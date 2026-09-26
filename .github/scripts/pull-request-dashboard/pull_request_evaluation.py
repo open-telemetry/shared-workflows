@@ -473,6 +473,7 @@ async def evaluate_pull_request(
                 activity.events,
                 pr_source.review_requests,
                 pr.assignees,
+                author,
             )
         )
         facts = _compute_facts(

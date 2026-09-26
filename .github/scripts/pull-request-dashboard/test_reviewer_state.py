@@ -44,12 +44,14 @@ def prepare(
     events: list[dict[str, object]] | None = None,
     review_requests: list[dict[str, object]] | None = None,
     assignees: list[dict[str, object]] | None = None,
+    author: str = "author",
 ):
     return prepare_reviewers(
         ReviewerInput(
             tuple(events or []),
             normalize_review_requests(review_requests),
             tuple(normalize_actor(value) for value in assignees or []),
+            author,
         )
     )
 
@@ -169,6 +171,43 @@ class ReviewerStateTest(unittest.TestCase):
 
         self.assertEqual(frozenset(), prepared.pending_human_reviewer_logins)
         self.assertEqual((), resolve(prepared))
+
+    def test_effective_author_request_is_not_pending_rereview(self) -> None:
+        for requested_login in ("trask", "Trask"):
+            with self.subTest(requested_login=requested_login):
+                prepared = prepare(
+                    [
+                        review_event("trask", "COMMENTED", role="author"),
+                        review_event("reviewer", "APPROVED"),
+                    ],
+                    [
+                        {"__typename": "User", "login": requested_login},
+                        {"__typename": "User", "login": "reviewer"},
+                    ],
+                    assignees=[{"login": "trask"}],
+                    author="trask",
+                )
+
+                reviewers = {
+                    reviewer.login: reviewer for reviewer in resolve(prepared)
+                }
+
+                self.assertEqual(("trask",), prepared.assignee_logins)
+                self.assertEqual(
+                    frozenset({"reviewer"}),
+                    prepared.pending_human_reviewer_logins,
+                )
+                self.assertNotIn("trask", reviewers)
+                self.assertTrue(reviewers["reviewer"].pending_review)
+                self.assertEqual(0, prepared.approval_count)
+
+    def test_assignee_author_is_not_listed_as_reviewer(self) -> None:
+        prepared = prepare(
+            assignees=[{"login": "Author"}, {"login": "reviewer"}],
+        )
+
+        self.assertEqual(("Author", "reviewer"), prepared.assignee_logins)
+        self.assertEqual(["reviewer"], [r.login for r in resolve(prepared)])
 
     def test_commenting_approver_and_assignee_only_reviewer_remain_visible(self) -> None:
         prepared = prepare(

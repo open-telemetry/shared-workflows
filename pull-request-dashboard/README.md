@@ -61,14 +61,14 @@ any refresh that could not be persisted.
 The dashboard groups open non-draft pull requests by who is expected to act next (e.g. *Waiting on reviewers*, *Waiting on authors*, *Waiting on maintainers*). Draft PRs are listed separately at the bottom unless `large_repo` rendering is enabled. Within each group, rows are sorted longest-waiting first. Every row has these six columns:
 
 - **PR** — Pull request number and title, followed by any configured matching labels. The number autolinks to the PR on GitHub. Configured labels are rendered inline for both active and draft PRs.
-- **Author** — GitHub login of the PR author.
-- **Reviewers** — Reviewers who have engaged with the PR, each annotated with one or more icons:
+- **Author** — Effective author of the PR. For Copilot-authored PRs, this is the human assignee or committer when available.
+- **Reviewers** — Reviewers who have engaged with the PR, excluding the effective author even when assigned or requested for review, each annotated with one or more icons:
   - ✅ active approval
   - ✔️ active approval (non-code-owner — does **not** count toward `required_approvals`)
   - 💬 unresolved feedback from reviewer
   - 📌 has tracked top-level feedback that still needs author action
   - 🔴 requested changes
-  - ⏳ a review is in flight (a human reviewer was requested again after reviewing, or a Copilot review is pending while it holds the PR)
+  - ⏳ a review is in flight (a human reviewer other than the effective author was requested again after reviewing, or a Copilot review is pending while it holds the PR)
   - Icons combine when multiple states apply. For example, 💬📌 means the reviewer has unresolved inline feedback and top-level feedback that still needs author action; ✅ may accompany either or both.
 - **CI** — Aggregate check status across the PR's required status checks. Optional checks do not affect this column:
   - ✅ all required checks passing

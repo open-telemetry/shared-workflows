@@ -15,6 +15,7 @@ class ReviewerInput:
     events: tuple[Mapping[str, Any], ...]
     review_requests: tuple[ReviewRequest, ...]
     assignees: tuple[Actor, ...]
+    author: str
 
 
 @dataclass(frozen=True)
@@ -29,6 +30,7 @@ class PreparedReviewers:
     approval_count: int
     assignee_logins: tuple[str, ...]
     pending_human_reviewer_logins: frozenset[str]
+    author: str
     _state: _PreparedReviewerState = field(repr=False, compare=False)
 
 
@@ -64,11 +66,14 @@ def _latest_review_states(events: tuple[Mapping[str, Any], ...]) -> dict[str, st
 
 def _human_request_logins(
     review_requests: tuple[ReviewRequest, ...],
+    author: str,
 ) -> set[str]:
     return {
         request.login
         for request in review_requests
-        if request.is_human and request.login
+        if request.is_human
+        and request.login
+        and request.login.casefold() != author.casefold()
     }
 
 
@@ -102,7 +107,7 @@ def _participating_approver_logins(
 
 
 def prepare_reviewers(source: ReviewerInput) -> PreparedReviewers:
-    requested = _human_request_logins(source.review_requests)
+    requested = _human_request_logins(source.review_requests, source.author)
     pending_reviews = requested & _reviewing_logins(source.events)
     active_states = {
         reviewer: state
@@ -124,6 +129,7 @@ def prepare_reviewers(source: ReviewerInput) -> PreparedReviewers:
         approval_count=approval_count,
         assignee_logins=assignee_logins,
         pending_human_reviewer_logins=frozenset(pending_reviews),
+        author=source.author,
         _state=_PreparedReviewerState(
             active_review_states=active_states,
             approver_logins=frozenset(approvers),
@@ -228,4 +234,5 @@ def resolve_reviewers(
             top_level_feedback=login in with_top_level,
         )
         for login in sorted(candidates, key=str.lower)
+        if login.casefold() != prepared.author.casefold()
     )
