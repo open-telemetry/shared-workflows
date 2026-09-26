@@ -3137,19 +3137,23 @@
         "approval_count": 0,
         "assignees": [],
         "author": "jaydeluca",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20282#discussion_r4112168970",
+          "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20282#discussion_r4112168986"
+        ],
         "author_action_top_level_feedback_urls": [],
         "author_can_act": true,
+        "author_nudge_episode_id": "483d7cc0240246fa9dc428d9b32292a4",
         "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "caef3e3c41a724a8a07e8cac0ddecca94e15b81ab0796e64f92ba30a641715da",
+        "copilot_request_fingerprint": "1a70c44d8e8cfd1238de1d650f85bb7c1128a7685670ed940c661b8cd91a986e",
         "copilot_review_exists": true,
-        "copilot_review_needed": false,
-        "copilot_review_outstanding": false,
+        "copilot_review_needed": true,
+        "copilot_review_outstanding": true,
         "copilot_review_request_needed": false,
-        "copilot_review_requested": true,
+        "copilot_review_requested": false,
         "copilot_review_stale": false,
         "copilot_review_unreported": false,
         "created_at": "2026-09-26T11:29:39+00:00",
@@ -3164,17 +3168,28 @@
         "last_approver_activity_at": "",
         "last_author_activity_at": "2026-09-26T11:26:52+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "copilot-pull-request-reviewer[bot]",
+            "open_thread": true,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": true
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "d8d0a152f6da00f19d1c055b27c9df9b48280f665bf2c7fcfb573dea65a15091",
-        "waiting_age_basis": "gate_release",
-        "waiting_since": "2026-09-26T13:39:00.975481+00:00"
+        "routing_input_fingerprint": "9c71d968ee77ff5b21663a892f81a1a5fd6d112718a320c7b4eb139b284570b6",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-09-26T17:34:45+00:00"
       },
       "failed": false,
       "pr_number": 20282,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20282",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     }
   },
