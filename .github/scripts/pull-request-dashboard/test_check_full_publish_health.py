@@ -2,11 +2,11 @@ from __future__ import annotations
 
 import base64
 import json
-import subprocess
 import unittest
 from unittest.mock import patch
 
 import check_full_publish_health as health
+from github_cli import GhNotFoundError
 
 
 class FullPublishHealthTest(unittest.TestCase):
@@ -15,28 +15,36 @@ class FullPublishHealthTest(unittest.TestCase):
             json.dumps({"version": 1, "generation": 3}).encode("utf-8")
         ).decode("ascii")
         with patch.object(
-            health.subprocess,
-            "run",
-            return_value=subprocess.CompletedProcess(
-                ["gh"], 0, json.dumps({"encoding": "base64", "content": encoded}), ""
-            ),
+            health,
+            "gh_api",
+            return_value={"encoding": "base64", "content": encoded},
         ) as request:
             self.assertEqual(
                 3,
                 health.remote_generation("example", "otelbot/state", "full-publish-needed.json"),
             )
-        self.assertEqual(
-            ["gh", "api", "--method", "GET",
-             "repos/open-telemetry/shared-workflows/contents/example/full-publish-needed.json",
-             "-f", "ref=otelbot/state/example"],
-            request.call_args.args[0],
+        request.assert_called_once_with(
+            "repos/open-telemetry/shared-workflows/contents/example/"
+            "full-publish-needed.json?ref=otelbot%2Fstate%2Fexample"
         )
         with patch.object(
-            health.subprocess, "run",
-            return_value=subprocess.CompletedProcess(["gh"], 1, "", "rate limited"),
+            health,
+            "gh_api",
+            side_effect=RuntimeError("rate limited"),
         ):
             with self.assertRaisesRegex(RuntimeError, "rate limited"):
                 health.remote_generation("example", "otelbot/state", "full-publish-needed.json")
+
+    def test_missing_generation_file_is_zero(self) -> None:
+        with patch.object(health, "gh_api", side_effect=GhNotFoundError("not found")):
+            self.assertEqual(
+                0,
+                health.remote_generation(
+                    "example",
+                    "otelbot/state",
+                    "full-publish-needed.json",
+                ),
+            )
 
     def test_pending_full_publish_is_unhealthy_even_if_matrix_succeeded(self) -> None:
         with patch.object(health, "remote_generation", side_effect=[6, 5]):

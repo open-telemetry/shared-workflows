@@ -7,27 +7,22 @@ import base64
 import json
 import os
 from pathlib import Path
-import subprocess
 import sys
+from urllib.parse import quote
 
+from github_cli import GhNotFoundError, gh_api
 from state import FULL_PUBLISH_DELIVERED_FILE, FULL_PUBLISH_NEEDED_FILE, full_publish_generation
 
 
 def remote_generation(repository: str, branch_prefix: str, filename: str) -> int:
     branch = f"{branch_prefix}/{repository}"
     endpoint = f"repos/open-telemetry/shared-workflows/contents/{repository}/{filename}"
-    result = subprocess.run(
-        ["gh", "api", "--method", "GET", endpoint, "-f", f"ref={branch}"],
-        capture_output=True,
-        text=True,
-        check=False,
-        creationflags=subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0,
-    )
-    if result.returncode != 0:
-        if "HTTP 404" in result.stderr:
-            return 0
-        raise RuntimeError(f"cannot read {branch}/{filename}: {result.stderr.strip()}")
-    payload = json.loads(result.stdout)
+    try:
+        payload = gh_api(f"{endpoint}?ref={quote(branch, safe='')}")
+    except GhNotFoundError:
+        return 0
+    except RuntimeError as error:
+        raise RuntimeError(f"cannot read {branch}/{filename}: {error}") from error
     if payload.get("encoding") != "base64" or not isinstance(payload.get("content"), str):
         raise RuntimeError(f"unexpected GitHub response for {branch}/{filename}")
     data = json.loads(base64.b64decode("".join(payload["content"].split()), validate=True))
