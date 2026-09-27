@@ -1,0 +1,38 @@
+{
+  "schema": {
+    "id": "github.copilot.pr-simplify-validation",
+    "version": 1
+  },
+  "request_id": "pr-simplify-420-2b78971d3080476a94ff0e45c956a8cf",
+  "source": {
+    "repository": "open-telemetry/shared-workflows",
+    "pull_request": 420,
+    "head_repository": "open-telemetry/shared-workflows",
+    "head_ref": "trask-recover-stalled-dashboard-runs",
+    "head_sha": "431de8a411087da1b893b3cde172b36c1750f807"
+  },
+  "complete": true,
+  "outcomes": [
+    {
+      "command": "GitHub MCP pull_request_read(get) for open-telemetry/shared-workflows#420",
+      "status": "passed",
+      "detail": "Verified the live pull request is open at the captured head repository, ref, and SHA before inspection."
+    },
+    {
+      "command": "node --test test_workflow_watchdog.mjs test_github_dispatch.mjs",
+      "status": "passed",
+      "detail": "All 47 focused watchdog and GitHub dispatch tests passed."
+    },
+    {
+      "command": "npm ci",
+      "status": "passed",
+      "detail": "Installed 47 packages from the lockfile; npm reported zero vulnerabilities."
+    },
+    {
+      "command": "node --test 'test_*.mjs'",
+      "status": "passed",
+      "detail": "All 107 JavaScript tests passed after dependency installation."
+    }
+  ],
+  "commits": []
+}
