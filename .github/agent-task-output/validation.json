@@ -1,0 +1,41 @@
+{
+  "schema": {
+    "id": "github.copilot.pr-simplify-validation",
+    "version": 1
+  },
+  "request_id": "simplify-419-3e586e6983c5-20260926-d83f3b2",
+  "source": {
+    "repository": "open-telemetry/shared-workflows",
+    "pull_request": 419,
+    "head_repository": "open-telemetry/shared-workflows",
+    "head_ref": "trask-durable-dashboard-publishing",
+    "head_sha": "3e586e6983c57ca19a9b854582c12b18cbdcc317"
+  },
+  "complete": true,
+  "outcomes": [
+    {
+      "command": "cd .github/scripts/pull-request-dashboard && python3 -m unittest test_check_full_publish_health.py test_github_cli.py",
+      "status": "passed",
+      "commit": "81bf451359e2c7218dd6cf4eabbd5fd04546299e"
+    },
+    {
+      "command": "cd .github/scripts/pull-request-dashboard && python3 -m unittest discover -p 'test_*.py'",
+      "status": "passed",
+      "commit": "81bf451359e2c7218dd6cf4eabbd5fd04546299e"
+    },
+    {
+      "command": "cd .github/scripts/pull-request-dashboard && python3 -m unittest test_check_full_publish_health.py test_github_cli.py",
+      "status": "passed",
+      "commit": "2fe61ee8912a533b6565524898730b62c0c27bec"
+    },
+    {
+      "command": "cd .github/scripts/pull-request-dashboard && python3 -m unittest discover -p 'test_*.py'",
+      "status": "passed",
+      "commit": "2fe61ee8912a533b6565524898730b62c0c27bec"
+    }
+  ],
+  "commits": [
+    "81bf451359e2c7218dd6cf4eabbd5fd04546299e",
+    "2fe61ee8912a533b6565524898730b62c0c27bec"
+  ]
+}
