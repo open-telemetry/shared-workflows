@@ -1,0 +1,23 @@
+{
+  "schema": {
+    "id": "github.copilot.pr-simplify-validation",
+    "version": 1
+  },
+  "request_id": "pr-simplify-420-a410c147a4cb4f7dafdf83fed90eedd8",
+  "source": {
+    "repository": "open-telemetry/shared-workflows",
+    "pull_request": 420,
+    "head_repository": "open-telemetry/shared-workflows",
+    "head_ref": "trask-recover-stalled-dashboard-runs",
+    "head_sha": "431de8a411087da1b893b3cde172b36c1750f807"
+  },
+  "complete": true,
+  "outcomes": [
+    {
+      "command": "node --test test_workflow_watchdog.mjs test_github_dispatch.mjs",
+      "result": "passed",
+      "summary": "All 47 focused tests passed in the hosted environment; the completed inventory found no qualifying major behavior-preserving simplification."
+    }
+  ],
+  "commits": []
+}
