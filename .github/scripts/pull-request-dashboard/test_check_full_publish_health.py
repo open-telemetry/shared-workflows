@@ -36,15 +36,24 @@ class FullPublishHealthTest(unittest.TestCase):
                 health.remote_generation("example", "otelbot/state", "full-publish-needed.json")
 
     def test_missing_generation_file_is_zero(self) -> None:
-        with patch.object(health, "gh_api", side_effect=GhNotFoundError("not found")):
-            self.assertEqual(
-                0,
-                health.remote_generation(
-                    "example",
-                    "otelbot/state",
-                    "full-publish-needed.json",
-                ),
-            )
+        errors = (
+            GhNotFoundError("gh: Not Found (HTTP 404)"),
+            RuntimeError("gh: No commit found for the ref state/example (HTTP 404)"),
+        )
+        for error in errors:
+            with self.subTest(error=error), patch.object(
+                health,
+                "gh_api",
+                side_effect=error,
+            ):
+                self.assertEqual(
+                    0,
+                    health.remote_generation(
+                        "example",
+                        "otelbot/state",
+                        "full-publish-needed.json",
+                    ),
+                )
 
     def test_pending_full_publish_is_unhealthy_even_if_matrix_succeeded(self) -> None:
         with patch.object(health, "remote_generation", side_effect=[6, 5]):

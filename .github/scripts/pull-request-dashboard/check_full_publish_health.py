@@ -22,6 +22,8 @@ def remote_generation(repository: str, branch_prefix: str, filename: str) -> int
     except GhNotFoundError:
         return 0
     except RuntimeError as error:
+        if "HTTP 404" in str(error):
+            return 0
         raise RuntimeError(f"cannot read {branch}/{filename}: {error}") from error
     if payload.get("encoding") != "base64" or not isinstance(payload.get("content"), str):
         raise RuntimeError(f"unexpected GitHub response for {branch}/{filename}")
