@@ -1,0 +1,28 @@
+{
+  "schema": {
+    "id": "github.copilot.pr-simplify-validation",
+    "version": 1
+  },
+  "request_id": "prs419-28eb2d20176d4c2b85a95fb043d403ea",
+  "source": {
+    "repository": "open-telemetry/shared-workflows",
+    "pull_request": 419,
+    "head_repository": "open-telemetry/shared-workflows",
+    "head_ref": "trask-durable-dashboard-publishing",
+    "head_sha": "3e586e6983c57ca19a9b854582c12b18cbdcc317"
+  },
+  "complete": true,
+  "outcomes": [
+    {
+      "command": "python3 -m unittest test_state.py test_dashboard_async.py test_delivery.py test_process_queue_batch.py test_check_full_publish_health.py test_rollout.py",
+      "status": "passed",
+      "detail": "All 110 focused dashboard state, delivery, queue, health, and workflow tests passed in the hosted environment."
+    },
+    {
+      "command": "git diff --check 571e843a7fac66c62df6e20b759d220601cc15b6..HEAD",
+      "status": "passed",
+      "detail": "The complete source pull request diff passed Git whitespace validation."
+    }
+  ],
+  "commits": []
+}
