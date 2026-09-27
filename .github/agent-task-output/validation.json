@@ -1,0 +1,28 @@
+{
+  "schema": {
+    "id": "github.copilot.pr-simplify-validation",
+    "version": 1
+  },
+  "request_id": "pr-simplify-420-e99eba05ad0b4bfdaa9450d453e61c47",
+  "source": {
+    "repository": "open-telemetry/shared-workflows",
+    "pull_request": 420,
+    "head_repository": "open-telemetry/shared-workflows",
+    "head_ref": "trask-recover-stalled-dashboard-runs",
+    "head_sha": "431de8a411087da1b893b3cde172b36c1750f807"
+  },
+  "complete": true,
+  "outcomes": [
+    {
+      "command": "cd /home/runner/work/shared-workflows/shared-workflows/.github/scripts/pull-request-dashboard && node --test test_github_dispatch.mjs test_workflow_watchdog.mjs",
+      "result": "passed",
+      "details": "47 tests passed"
+    },
+    {
+      "command": "Deterministic review of the live PR metadata, complete 1,580-line GitHub diff, changed files, directly affected facilities, and all guarded invariants",
+      "result": "passed",
+      "details": "Complete inventory found no qualifying major behavior-preserving simplification"
+    }
+  ],
+  "code_commits": []
+}
