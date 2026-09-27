@@ -18,6 +18,7 @@
     "opentelemetry-cpp",
     "opentelemetry-cpp-contrib",
     "opentelemetry-dart",
+    "opentelemetry-demo",
     "opentelemetry-dotnet",
     "opentelemetry-dotnet-contrib",
     "opentelemetry-dotnet-instrumentation",
@@ -69,9 +70,23 @@
     "opentelemetry-weaver-packages",
     "opentelemetry-website-infra",
     "opentelemetry-zig",
-    "opentelemetry.io"
+    "opentelemetry.io",
+    "otel-arrow",
+    "semantic-conventions",
+    "semantic-conventions-client-side",
+    "semantic-conventions-conformance",
+    "semantic-conventions-genai",
+    "semantic-conventions-java",
+    "semantic-conventions-mainframe",
+    "shared-workflows",
+    "sig-contributor-experience",
+    "sig-developer-experience",
+    "sig-end-user",
+    "sig-profiling",
+    "sig-security",
+    "weaver"
   ],
-  "cursor": "2026-07-17T16:00:00Z",
+  "cursor": "2026-07-17T08:00:00Z",
   "initial_cursor": "2026-09-17T02:00:00Z",
   "pending_runs": [
     {
@@ -166,25 +181,25 @@
     },
     {
       "created_at": "2026-08-26T15:06:03Z",
-      "last_attempt_at": "2026-09-27T06:52:50Z",
+      "last_attempt_at": "2026-09-27T14:34:31Z",
       "repository": "opentelemetry-collector-contrib",
       "run_id": 32984063610
     },
     {
       "created_at": "2026-08-26T15:06:03Z",
-      "last_attempt_at": "2026-09-27T06:53:40Z",
+      "last_attempt_at": "2026-09-27T14:35:39Z",
       "repository": "opentelemetry-collector-contrib",
       "run_id": 32984063825
     },
     {
       "created_at": "2026-08-26T15:06:29Z",
-      "last_attempt_at": "2026-09-27T06:53:41Z",
+      "last_attempt_at": "2026-09-27T14:36:29Z",
       "repository": "opentelemetry-collector-contrib",
       "run_id": 32984084516
     },
     {
       "created_at": "2026-08-26T15:08:29Z",
-      "last_attempt_at": "2026-09-27T06:53:46Z",
+      "last_attempt_at": "2026-09-27T14:36:33Z",
       "repository": "opentelemetry-collector-contrib",
       "run_id": 32984180533
     },
@@ -310,7 +325,7 @@
     },
     {
       "created_at": "2026-08-29T20:19:43Z",
-      "last_attempt_at": "2026-09-27T06:48:25Z",
+      "last_attempt_at": "2026-09-27T14:31:16Z",
       "repository": "opentelemetry-collector-releases",
       "run_id": 33273192388
     },
@@ -328,7 +343,7 @@
     },
     {
       "created_at": "2026-08-26T09:28:29Z",
-      "last_attempt_at": "2026-09-27T06:53:45Z",
+      "last_attempt_at": "2026-09-27T14:36:32Z",
       "repository": "opentelemetry-demo",
       "run_id": 32953186371
     },
@@ -340,7 +355,7 @@
     },
     {
       "created_at": "2026-08-26T15:04:06Z",
-      "last_attempt_at": "2026-09-27T07:33:10Z",
+      "last_attempt_at": "2026-09-27T14:36:33Z",
       "repository": "opentelemetry-dotnet",
       "run_id": 32983971075
     },
@@ -690,7 +705,7 @@
     },
     {
       "created_at": "2026-08-11T13:48:41Z",
-      "last_attempt_at": "2026-09-27T06:51:42Z",
+      "last_attempt_at": "2026-09-27T14:34:31Z",
       "repository": "opentelemetry-java-instrumentation",
       "run_id": 31498137985
     },
@@ -748,8 +763,8 @@
     },
     {
       "created_at": "2026-09-09T12:02:44Z",
-      "failures": 71,
-      "last_attempt_at": "2026-09-27T06:50:43Z",
+      "failures": 72,
+      "last_attempt_at": "2026-09-27T14:33:33Z",
       "last_error": "GitHub API returned 502 for https://api.github.com/repos/open-telemetry/opentelemetry-php-contrib/actions/runs/34348777155/jobs?filter=all&per_page=100&page=1: {\n  \"message\": \"Server Error\"\n}\n",
       "repository": "opentelemetry-php-contrib",
       "run_id": 34348777155
@@ -796,8 +811,8 @@
     },
     {
       "created_at": "2026-08-10T14:05:18Z",
-      "failures": 8,
-      "last_attempt_at": "2026-09-27T06:44:27Z",
+      "failures": 9,
+      "last_attempt_at": "2026-09-27T14:28:39Z",
       "last_error": "GitHub API returned 502 for https://api.github.com/repos/open-telemetry/opentelemetry-python/actions/runs/31396257921/jobs?filter=all&per_page=100&page=1: {\n  \"message\": \"Server Error\"\n}\n",
       "repository": "opentelemetry-python",
       "run_id": 31396257921
@@ -906,8 +921,8 @@
     },
     {
       "created_at": "2026-09-04T07:47:22Z",
-      "failures": 57,
-      "last_attempt_at": "2026-09-27T06:52:50Z",
+      "failures": 58,
+      "last_attempt_at": "2026-09-27T14:35:39Z",
       "last_error": "GitHub API returned 502 for https://api.github.com/repos/open-telemetry/opentelemetry-python/actions/runs/33850331297/jobs?filter=all&per_page=100&page=2: {\n  \"message\": \"Server Error\"\n}\n",
       "repository": "opentelemetry-python",
       "run_id": 33850331297
@@ -926,8 +941,8 @@
     },
     {
       "created_at": "2026-09-08T18:49:38Z",
-      "failures": 69,
-      "last_attempt_at": "2026-09-27T06:51:33Z",
+      "failures": 70,
+      "last_attempt_at": "2026-09-27T14:34:23Z",
       "last_error": "GitHub API returned 502 for https://api.github.com/repos/open-telemetry/opentelemetry-python/actions/runs/34265344250/jobs?filter=all&per_page=100&page=1: {\n  \"message\": \"Server Error\"\n}\n",
       "repository": "opentelemetry-python",
       "run_id": 34265344250
@@ -958,9 +973,9 @@
     },
     {
       "created_at": "2026-07-31T00:55:06Z",
-      "failures": 4,
-      "last_attempt_at": "2026-09-27T06:46:36Z",
-      "last_error": "GitHub API returned 502 for https://api.github.com/repos/open-telemetry/opentelemetry-python-contrib/actions/runs/30594909004/jobs?filter=all&per_page=100&page=4: {\n  \"message\": \"Server Error\"\n}\n",
+      "failures": 5,
+      "last_attempt_at": "2026-09-27T14:29:29Z",
+      "last_error": "GitHub API returned 502 for https://api.github.com/repos/open-telemetry/opentelemetry-python-contrib/actions/runs/30594909004/jobs?filter=all&per_page=100&page=1: {\n  \"message\": \"Server Error\"\n}\n",
       "repository": "opentelemetry-python-contrib",
       "run_id": 30594909004
     },
@@ -996,17 +1011,17 @@
     },
     {
       "created_at": "2026-08-26T11:38:29Z",
-      "failures": 20,
-      "last_attempt_at": "2026-09-27T06:53:40Z",
+      "failures": 21,
+      "last_attempt_at": "2026-09-27T14:36:28Z",
       "last_error": "GitHub API returned 502 for https://api.github.com/repos/open-telemetry/opentelemetry-python-contrib/actions/runs/32964341397/jobs?filter=all&per_page=100&page=1: {\n  \"message\": \"Server Error\"\n}\n",
       "repository": "opentelemetry-python-contrib",
       "run_id": 32964341397
     },
     {
       "created_at": "2026-08-27T12:33:34Z",
-      "failures": 23,
-      "last_attempt_at": "2026-09-27T06:49:54Z",
-      "last_error": "GitHub API transport failed after 4 attempts for https://api.github.com/repos/open-telemetry/opentelemetry-python-contrib/actions/runs/33072438073/jobs?filter=all&per_page=100&page=4: IncompleteRead(0 bytes read, 98436 more expected)",
+      "failures": 24,
+      "last_attempt_at": "2026-09-27T14:32:44Z",
+      "last_error": "GitHub API returned 502 for https://api.github.com/repos/open-telemetry/opentelemetry-python-contrib/actions/runs/33072438073/jobs?filter=all&per_page=100&page=4: {\n  \"message\": \"Server Error\"\n}\n",
       "repository": "opentelemetry-python-contrib",
       "run_id": 33072438073
     },
@@ -1020,16 +1035,16 @@
     },
     {
       "created_at": "2026-09-11T14:44:32Z",
-      "failures": 76,
-      "last_attempt_at": "2026-09-27T06:48:22Z",
+      "failures": 77,
+      "last_attempt_at": "2026-09-27T14:31:14Z",
       "last_error": "GitHub API returned 502 for https://api.github.com/repos/open-telemetry/opentelemetry-python-contrib/actions/runs/34611937399/jobs?filter=all&per_page=100&page=1: {\n  \"message\": \"Server Error\"\n}\n",
       "repository": "opentelemetry-python-contrib",
       "run_id": 34611937399
     },
     {
       "created_at": "2026-09-15T20:54:55Z",
-      "failures": 87,
-      "last_attempt_at": "2026-09-27T06:47:33Z",
+      "failures": 88,
+      "last_attempt_at": "2026-09-27T14:30:25Z",
       "last_error": "GitHub API returned 502 for https://api.github.com/repos/open-telemetry/opentelemetry-python-contrib/actions/runs/35022505826/jobs?filter=all&per_page=100&page=1: {\n  \"message\": \"Server Error\"\n}\n",
       "repository": "opentelemetry-python-contrib",
       "run_id": 35022505826
@@ -1072,13 +1087,13 @@
     },
     {
       "created_at": "2026-09-11T00:07:47Z",
-      "last_attempt_at": "2026-09-27T06:43:38Z",
+      "last_attempt_at": "2026-09-27T14:27:50Z",
       "repository": "opentelemetry-specification",
       "run_id": 34545150008
     },
     {
       "created_at": "2026-09-14T21:47:56Z",
-      "last_attempt_at": "2026-09-27T06:44:29Z",
+      "last_attempt_at": "2026-09-27T14:28:40Z",
       "repository": "opentelemetry-specification",
       "run_id": 34900773822
     },
@@ -1096,13 +1111,13 @@
     },
     {
       "created_at": "2026-07-28T15:08:01Z",
-      "last_attempt_at": "2026-09-27T06:51:34Z",
+      "last_attempt_at": "2026-09-27T14:34:23Z",
       "repository": "opentelemetry.io",
       "run_id": 30371849815
     },
     {
       "created_at": "2026-08-07T06:13:21Z",
-      "last_attempt_at": "2026-09-27T06:51:34Z",
+      "last_attempt_at": "2026-09-27T14:34:24Z",
       "repository": "opentelemetry.io",
       "run_id": 31153190050
     },
@@ -1174,7 +1189,7 @@
     },
     {
       "created_at": "2026-08-29T11:22:21Z",
-      "last_attempt_at": "2026-09-27T06:48:23Z",
+      "last_attempt_at": "2026-09-27T14:31:15Z",
       "repository": "opentelemetry.io",
       "run_id": 33249978200
     },
@@ -1186,7 +1201,7 @@
     },
     {
       "created_at": "2026-09-15T02:00:32Z",
-      "last_attempt_at": "2026-09-27T06:46:40Z",
+      "last_attempt_at": "2026-09-27T14:29:33Z",
       "repository": "otel-arrow",
       "run_id": 34919501029
     },
@@ -1210,7 +1225,7 @@
     },
     {
       "created_at": "2026-09-13T08:59:31Z",
-      "last_attempt_at": "2026-09-27T06:46:36Z",
+      "last_attempt_at": "2026-09-27T14:29:29Z",
       "repository": "semantic-conventions",
       "run_id": 34748764755
     },
@@ -1234,7 +1249,7 @@
     },
     {
       "created_at": "2026-08-05T05:13:51Z",
-      "last_attempt_at": "2026-09-27T06:46:44Z",
+      "last_attempt_at": "2026-09-27T14:29:36Z",
       "repository": "semantic-conventions-genai",
       "run_id": 30977485343
     },
@@ -1249,6 +1264,11 @@
       "last_attempt_at": "2026-09-27T12:47:11Z",
       "repository": "semantic-conventions-java",
       "run_id": 32214237445
+    },
+    {
+      "created_at": "2026-07-17T08:09:44Z",
+      "repository": "shared-workflows",
+      "run_id": 29565476252
     },
     {
       "created_at": "2026-07-31T12:57:43Z",
