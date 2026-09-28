@@ -1,11 +1,9 @@
 export const DEFAULT_STALE_RUN_MS = 30 * 60 * 1000;
-export const DEFAULT_CANCEL_GRACE_MS = 30 * 60 * 1000;
+export const DEFAULT_FORCE_RUN_MS = 60 * 60 * 1000;
 
 const DASHBOARD_RUN_NAME_PREFIX = "pull-request-dashboard-";
 const MAX_CANDIDATES_PER_WORKFLOW = 4;
 const MAX_CANDIDATES_PER_INVOCATION = 8;
-const MAX_FORCE_ATTEMPTS = 2;
-const MAX_NORMAL_CONFLICTS = 2;
 const WATCHDOG_INTERVAL_MS = 15 * 60 * 1000;
 
 export const WATCHED_DASHBOARD_WORKFLOWS = Object.freeze([
@@ -35,28 +33,27 @@ const ACTIVE_RUN_STATUSES = Object.freeze([
 
 export async function cancelStalledDashboardRuns({
   actions,
-  store,
   now = () => Date.now(),
   staleRunMs = DEFAULT_STALE_RUN_MS,
-  cancelGraceMs = DEFAULT_CANCEL_GRACE_MS,
+  forceRunMs = DEFAULT_FORCE_RUN_MS,
   watchedWorkflows = WATCHED_DASHBOARD_WORKFLOWS,
 }) {
-  if (!actions || !store) {
-    throw new Error("actions client and watchdog store are required");
+  if (!actions) {
+    throw new Error("actions client is required");
   }
   if (!Number.isFinite(staleRunMs) || staleRunMs <= 0 ||
-      !Number.isFinite(cancelGraceMs) || cancelGraceMs <= 0) {
-    throw new Error("staleRunMs and cancelGraceMs must be positive");
+      !Number.isFinite(forceRunMs) || forceRunMs <= staleRunMs) {
+    throw new Error("forceRunMs must exceed a positive staleRunMs");
   }
 
   const checkedAt = now();
   const staleBefore = checkedAt - staleRunMs;
+  const forceBefore = checkedAt - forceRunMs;
   const requested = [];
   const forceRequested = [];
   const confirmed = [];
   const unconfirmed = [];
   const conflicts = [];
-  const unresponsive = [];
   let remainingCandidates = MAX_CANDIDATES_PER_INVOCATION;
   const workflowOffset = watchedWorkflows.length
     ? Math.floor(checkedAt / WATCHDOG_INTERVAL_MS) % watchedWorkflows.length
@@ -67,34 +64,9 @@ export async function cancelStalledDashboardRuns({
   ];
 
   for (const workflow of workflows) {
-    const key = `runs/${workflow.workflowId}/${workflow.event || "all"}`;
-    let entry = await store.get(key);
-    if (entry && (typeof entry.etag !== "string" || !entry.etag)) {
-      throw new Error(`watchdog state for ${key} has no ETag`);
-    }
-    const state = entry?.value ?? { records: {} };
-    if (!state.records || typeof state.records !== "object" ||
-        Array.isArray(state.records)) {
-      throw new Error(`invalid watchdog state for ${key}`);
-    }
-    async function saveState() {
-      const write = await store.set(
-        key,
-        state,
-        entry ? { onlyIfMatch: entry.etag } : { onlyIfNew: true },
-      );
-      if (!write.modified || !write.etag) {
-        throw new Error(`watchdog state changed while processing ${key}`);
-      }
-      entry = { etag: write.etag };
-    }
-    async function finishIfStopped(runId, details, current) {
+    function finishIfStopped(details, current) {
       if (current && current.status !== "completed") {
         return false;
-      }
-      if (state.records[runId]) {
-        delete state.records[runId];
-        await saveState();
       }
       if (current?.conclusion === "cancelled") {
         confirmed.push(details);
@@ -110,23 +82,9 @@ export async function cancelStalledDashboardRuns({
     });
     const matchingRuns = runs.filter((run) => matchesWorkflow(run, workflow));
 
-    const missingRecords = Object.entries(state.records)
-      .filter(([runId]) =>
-        !matchingRuns.some((run) => String(run.id) === runId));
-    const confirmationOffset = missingRecords.length > MAX_CANDIDATES_PER_WORKFLOW
-      ? Math.floor(checkedAt / WATCHDOG_INTERVAL_MS) % missingRecords.length
-      : 0;
-    for (const [runId, record] of [
-      ...missingRecords.slice(confirmationOffset),
-      ...missingRecords.slice(0, confirmationOffset),
-    ].slice(0, MAX_CANDIDATES_PER_WORKFLOW)) {
-      const current = await getRunIfFound(actions, runId);
-      await finishIfStopped(runId, record.details, current);
-    }
-
     const candidates = matchingRuns
       .filter((run) => {
-        const createdAt = Date.parse(run.created_at);
+        const createdAt = runAttemptStart(run);
         return BLOCKING_RUN_STATUSES.has(run.status) &&
           Number.isFinite(createdAt) &&
           createdAt <= staleBefore &&
@@ -146,129 +104,75 @@ export async function cancelStalledDashboardRuns({
 
     for (const run of selected) {
       const newerRun = findNewerRun(run, matchingRuns, workflow);
+      const createdAt = runAttemptStart(run);
       const details = {
         workflowId: workflow.workflowId,
         runId: run.id,
         newerRunId: newerRun.id,
         ageMinutes: Math.floor(
-          (checkedAt - Date.parse(run.created_at)) / (60 * 1000),
+          (checkedAt - createdAt) / (60 * 1000),
         ),
       };
-      const record = state.records[run.id];
-      const normalAccepted = Number.isFinite(record?.normalRequestedAt);
-      if (record) {
-        if (
-          (!normalAccepted &&
-            (!Number.isFinite(record.normalConflictAt) ||
-              !Number.isSafeInteger(record.normalConflictAttempts) ||
-              record.normalConflictAttempts < 1)) ||
-          !Number.isSafeInteger(record.forceAttempts ?? 0) ||
-          (record.forceAttempts ?? 0) < 0
-        ) {
-          throw new Error(`invalid watchdog receipt for run ${run.id}`);
-        }
-        const lastRequestAt = record.forceRequestedAt ??
-          (normalAccepted ? record.normalRequestedAt : record.normalConflictAt);
-        if (!Number.isFinite(lastRequestAt)) {
-          throw new Error(`invalid watchdog receipt for run ${run.id}`);
-        }
-        if (checkedAt - lastRequestAt < cancelGraceMs) {
-          continue;
-        }
+      if (createdAt <= forceBefore) {
         const [current, currentNewer, jobs] = await Promise.all([
           getRunIfFound(actions, run.id),
           getRunIfFound(actions, newerRun.id),
           getJobsIfFound(actions, run.id),
         ]);
-        if (await finishIfStopped(run.id, record.details, current)) {
-          continue;
-        }
-        if (jobs === null) {
-          await finishIfStopped(run.id, record.details, null);
+        if (!current || jobs === null) {
           continue;
         }
         if (
           !BLOCKING_RUN_STATUSES.has(current.status) ||
-          !Number.isFinite(Date.parse(current.created_at)) ||
-          Date.parse(current.created_at) > now() - staleRunMs ||
+          current.run_attempt !== run.run_attempt ||
+          !Number.isFinite(runAttemptStart(current)) ||
+          runAttemptStart(current) > now() - forceRunMs ||
           !matchesWorkflow(current, workflow) ||
           !currentNewer ||
           !WAITING_RUN_STATUSES.has(currentNewer.status) ||
           !matchesWorkflow(currentNewer, workflow) ||
-          Date.parse(currentNewer.created_at) <= Date.parse(current.created_at) ||
+          Date.parse(currentNewer.created_at) <= runAttemptStart(current) ||
           !sameConcurrencyGroup(current, currentNewer, workflow) ||
           !canCancelStalledRun(jobs, now() - staleRunMs)
         ) {
           continue;
         }
-        if (!normalAccepted &&
-            record.normalConflictAttempts >= MAX_NORMAL_CONFLICTS) {
-          unresponsive.push({ ...record.details, reason: "normal_conflicts" });
-          continue;
-        }
-        if (normalAccepted) {
-          if ((record.forceAttempts || 0) >= MAX_FORCE_ATTEMPTS) {
-            unresponsive.push({ ...record.details, reason: "force_attempts" });
-            continue;
+        try {
+          await actions.forceCancelWorkflowRun(run.id);
+        } catch (error) {
+          if (error.githubStatusCode !== 409) {
+            throw error;
           }
-          try {
-            await actions.forceCancelWorkflowRun(run.id);
-          } catch (error) {
-            if (error.githubStatusCode !== 409) {
-              throw error;
-            }
-            const afterConflict = await getRunIfFound(actions, run.id);
-            if (await finishIfStopped(run.id, record.details, afterConflict)) {
-              continue;
-            }
-            record.forceRequestedAt = now();
-            record.forceAttempts = (record.forceAttempts || 0) + 1;
-            await saveState();
+          const afterConflict = await getRunIfFound(actions, run.id);
+          if (!finishIfStopped(details, afterConflict)) {
             conflicts.push({ ...details, stage: "force" });
-            continue;
           }
-          record.forceRequestedAt = now();
-          record.forceAttempts = (record.forceAttempts || 0) + 1;
-          await saveState();
-          forceRequested.push(details);
-          const afterRequest = await getRunIfFound(actions, run.id);
-          await finishIfStopped(run.id, details, afterRequest);
           continue;
         }
+        forceRequested.push(details);
+        const afterRequest = await getRunIfFound(actions, run.id);
+        finishIfStopped(details, afterRequest);
       } else {
         const jobs = await actions.listRunJobs(run.id);
         if (!canCancelStalledRun(jobs, staleBefore)) {
           continue;
         }
-      }
-      try {
-        await actions.cancelWorkflowRun(run.id);
-      } catch (error) {
-        if (error.githubStatusCode !== 409) {
-          throw error;
-        }
-        const afterConflict = await getRunIfFound(actions, run.id);
-        if (await finishIfStopped(run.id, record?.details || details, afterConflict)) {
+        try {
+          await actions.cancelWorkflowRun(run.id);
+        } catch (error) {
+          if (error.githubStatusCode !== 409) {
+            throw error;
+          }
+          const afterConflict = await getRunIfFound(actions, run.id);
+          if (!finishIfStopped(details, afterConflict)) {
+            conflicts.push({ ...details, stage: "normal" });
+          }
           continue;
         }
-        state.records[run.id] = {
-          normalConflictAt: now(),
-          normalConflictAttempts: (record?.normalConflictAttempts || 0) + 1,
-          details,
-        };
-        await saveState();
-        conflicts.push({ ...details, stage: "normal" });
-        continue;
+        requested.push(details);
+        const current = await getRunIfFound(actions, run.id);
+        finishIfStopped(details, current);
       }
-      state.records[run.id] = {
-        normalRequestedAt: now(),
-        details,
-      };
-      await saveState();
-      requested.push(details);
-
-      const current = await getRunIfFound(actions, run.id);
-      await finishIfStopped(run.id, details, current);
     }
   }
 
@@ -279,7 +183,6 @@ export async function cancelStalledDashboardRuns({
     confirmed,
     unconfirmed,
     conflicts,
-    unresponsive,
   };
 }
 
@@ -317,11 +220,21 @@ function matchesWorkflow(run, workflow) {
         run.display_title.startsWith(workflow.runNamePrefix)));
 }
 
+function runAttemptStart(run) {
+  const createdAt = Date.parse(run.created_at);
+  if (run.run_attempt > 1) {
+    // A rerun keeps the original created_at; without its own start time, its age is unknown.
+    const startedAt = Date.parse(run.run_started_at);
+    return startedAt >= createdAt ? startedAt : NaN;
+  }
+  return createdAt;
+}
+
 function findNewerRun(run, runs, workflow) {
   return runs
     .filter((candidate) =>
       WAITING_RUN_STATUSES.has(candidate.status) &&
-      Date.parse(candidate.created_at) > Date.parse(run.created_at) &&
+      Date.parse(candidate.created_at) > runAttemptStart(run) &&
       sameConcurrencyGroup(run, candidate, workflow)
     )
     .sort((left, right) =>
