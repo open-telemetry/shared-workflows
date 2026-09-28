@@ -120,6 +120,8 @@ def deliver_from_state(
     copilot_retry_snapshot_path: Path,
     notification_retry_snapshot_path: Path,
     pr_number: int | None = None,
+    *,
+    priority_pr_number: int | None = None,
 ) -> list[str]:
     now = utc_now()
     errors: list[str] = []
@@ -195,6 +197,7 @@ def deliver_from_state(
                 open_draft_pr_numbers={
                     pr["number"] for pr in open_prs if pr.get("isDraft")
                 },
+                priority_pr_number=priority_pr_number,
             ),
             errors,
         )
@@ -269,6 +272,7 @@ def deliver_with_state(
             copilot_retry,
             notification_retry,
             None if pending_generation else pr_number,
+            priority_pr_number=pr_number if pending_generation else None,
         )
         return 0
 

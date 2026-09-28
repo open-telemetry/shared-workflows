@@ -123,7 +123,8 @@ the implementation understandable and operationally cheap.
   dashboard issue both succeed. The queue drain follows the same rule.
   Webhooks without an outstanding full-publish generation remain targeted,
   so unrelated PR events do not repeatedly fan out. Status-comment rollout
-  remains bounded to 50 per untargeted delivery.
+  remains bounded to 50 per untargeted delivery; a webhook publisher puts its
+  triggering PR first in that batch.
 - The top-level hourly health check compares worker generations with publisher
   receipts. A canceled matrix with no generation marker cannot prove recovery,
   so it is reported instead of assumed successful. Matrix failures also take

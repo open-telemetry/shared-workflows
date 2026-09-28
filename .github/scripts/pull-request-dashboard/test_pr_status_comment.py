@@ -1616,6 +1616,46 @@ class RolloutStateTest(unittest.TestCase):
         self.assertEqual(0, saved_state["completed_revision"])
 
     @patch.object(pr_status_comment, "save_status_comment_rollout_state")
+    @patch.object(pr_status_comment, "publish_pr_status")
+    @patch.object(
+        pr_status_comment,
+        "load_dashboard_state_cache",
+        return_value=dashboard_state(),
+    )
+    @patch.object(
+        pr_status_comment,
+        "load_status_comment_rollout_state",
+        return_value={
+            "target_revision": 0,
+            "completed_revision": 0,
+            "pending_pr_numbers": [],
+        },
+    )
+    def test_full_rollout_prioritizes_triggering_pr_within_cap(
+        self,
+        _load_rollout: object,
+        _load_dashboard: object,
+        publish_pr_status: Mock,
+        save_rollout: Mock,
+    ) -> None:
+        errors = pr_status_comment.update_status_comments_from_state(
+            "open-telemetry/example",
+            set(range(1, 56)),
+            priority_pr_number=55,
+        )
+
+        self.assertEqual([], errors)
+        self.assertEqual(
+            [55, *range(1, 50)],
+            [call.args[1] for call in publish_pr_status.call_args_list],
+        )
+        self.assertEqual(50, publish_pr_status.call_count)
+        self.assertEqual(
+            [50, 51, 52, 53, 54],
+            save_rollout.call_args.args[0]["pending_pr_numbers"],
+        )
+
+    @patch.object(pr_status_comment, "save_status_comment_rollout_state")
     @patch.object(
         pr_status_comment,
         "publish_pr_status",

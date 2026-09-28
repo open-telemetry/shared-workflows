@@ -37,6 +37,7 @@ class DeliveryTest(unittest.TestCase):
                     ),
                 )
                 self.assertEqual(None, deliver_actions.call_args.args[-1])
+                self.assertEqual(7, deliver_actions.call_args.kwargs["priority_pr_number"])
                 self.assertIn("full_publish_generation=4\n", output.read_text(encoding="utf-8"))
 
                 state.write_full_publish_generation(accepted / state.FULL_PUBLISH_NEEDED_FILE, 5)
@@ -49,6 +50,7 @@ class DeliveryTest(unittest.TestCase):
                     ),
                 )
                 self.assertIsNone(deliver_actions.call_args.args[-1])
+                self.assertEqual(8, deliver_actions.call_args.kwargs["priority_pr_number"])
                 state.record_full_publish_delivered(5)
                 self.assertEqual(
                     0,
@@ -58,7 +60,34 @@ class DeliveryTest(unittest.TestCase):
                     ),
                 )
                 self.assertEqual(8, deliver_actions.call_args.args[-1])
+                self.assertIsNone(deliver_actions.call_args.kwargs["priority_pr_number"])
                 self.assertTrue(output.read_text(encoding="utf-8").endswith("full_publish_generation=0\n"))
+
+    def test_full_delivery_prioritizes_triggering_status_without_limiting_slack(self) -> None:
+        with (
+            patch.object(
+                delivery,
+                "list_open_prs",
+                return_value=[{"number": 7, "isDraft": False}, {"number": 55, "isDraft": False}],
+            ),
+            patch.object(delivery, "deliver_dashboard_command_replies", return_value=[]),
+            patch.object(delivery, "deliver_prepared_author_nudges", return_value=[]),
+            patch.object(delivery, "update_status_comments_from_state", return_value=[]) as status,
+            patch.object(delivery, "deliver_copilot_review_requests", return_value=[]),
+            patch.object(delivery, "notify_slack_from_state", return_value=[]) as slack,
+        ):
+            self.assertEqual(
+                [],
+                delivery.deliver_from_state(
+                    "open-telemetry/example",
+                    Path("author"),
+                    Path("copilot"),
+                    Path("slack"),
+                    priority_pr_number=55,
+                ),
+            )
+        self.assertEqual(55, status.call_args.kwargs["priority_pr_number"])
+        self.assertEqual({7, 55}, {pr["number"] for pr in slack.call_args.args[2]})
 
     def test_failed_full_delivery_keeps_obligation_for_retry(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -219,6 +248,7 @@ class DeliveryTest(unittest.TestCase):
             {7, 8},
             set(),
             open_draft_pr_numbers={8},
+            priority_pr_number=None,
         )
         author_nudges.assert_called_once_with(
             "open-telemetry/example",
@@ -292,6 +322,7 @@ class DeliveryTest(unittest.TestCase):
             {7, 8},
             {7},
             open_draft_pr_numbers=set(),
+            priority_pr_number=None,
         )
         author_nudges.assert_called_once_with(
             "open-telemetry/example",
