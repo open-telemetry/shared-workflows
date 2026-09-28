@@ -3169,7 +3169,7 @@
     },
     "4173": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
@@ -3179,7 +3179,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "de53918e7a30c9f90bfd0c728b415eecd80cfbfa83d82794a8c31197b7b52ec6",
+        "copilot_request_fingerprint": "a76dd7834a95e06e6f721abb75dc4dc2dda7bd8e4166ffffe24275883467a918",
         "copilot_review_exists": true,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -3195,21 +3195,32 @@
         "head_sha": "62e0214c70d77b9f4e9dbb2d029fcb339fa4beda",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-09-28T00:41:47+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-28T07:54:56+00:00",
+        "last_approver_activity_at": "2026-09-28T07:54:56+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "lquerel",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "cc46ae7ce4486d580bbba46f9097072e23adcb43988b0be632eab5bd3656b799",
+        "routing_input_fingerprint": "8dcf2e17c72c7be6f78e549bfa9e08c621e949e0dd6b30660fc245c684b894fd",
         "waiting_age_basis": "created",
         "waiting_since": "2026-09-28T00:41:47+00:00"
       },
       "failed": false,
       "pr_number": 4173,
       "pr_url": "https://github.com/open-telemetry/otel-arrow/pull/4173",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "4174": {
