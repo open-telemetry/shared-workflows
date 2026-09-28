@@ -2941,12 +2941,11 @@
         "author_action_top_level_feedback_urls": [],
         "author_can_act": true,
         "author_nudge_episode_id": "73bbb0ed57334dfab63591c434acb159",
-        "ci_failing_count": 3,
-        "ci_failing_since": "2026-09-28T12:34:07+00:00",
+        "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
-        "ci_pending_count": 0,
+        "ci_pending_count": 4,
         "conflicts": "no",
-        "copilot_request_fingerprint": "14f965deee3f4228f64b8b94d22595e094b287a2cf8c99ee0f150d48951f3561",
+        "copilot_request_fingerprint": "7342692ec558bc78e56df7f57e8a13ade501f70bdae0cf8c76f49634cffe9851",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
         "copilot_review_outstanding": false,
@@ -2959,16 +2958,13 @@
         "dashboard_override_command_id": 0,
         "dashboard_override_command_user": "",
         "dashboard_override_head_sha": "",
-        "head_sha": "8e35088cab384d3bd2d509de7f4eb3cf3a263938",
+        "head_sha": "fa17b03b25e817fa1faf53316fef47bbe0529e06",
         "is_draft": false,
         "is_maintenance_bot": false,
         "last_activity_at": "2026-09-28T11:16:14+00:00",
         "last_approver_activity_at": "2026-09-25T15:17:17+00:00",
         "last_author_activity_at": "2026-09-28T11:16:14+00:00",
-        "non_blocking_check_failures": [
-          "Done (Check Consistency)"
-        ],
-        "required_checks_settled": true,
+        "required_checks_settled": false,
         "reviewers": [
           {
             "approved": true,
@@ -2978,13 +2974,14 @@
             "open_thread": false,
             "pending_review": false,
             "top_level_feedback": false,
-            "unresolved_thread": true
+            "unresolved_thread": false
           }
         ],
-        "route_held_for_gates": false,
+        "route_held_for_gates": true,
+        "route_held_since": "2026-09-28T13:03:26.239596+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "015b871b895b7ad41ad10d0888947fe252ccdb8784fef3404f08dde0ab91926e",
-        "waiting_age_basis": "ci_failure",
+        "routing_input_fingerprint": "0464067348bd029e63206036694742959456ec1b19f7817a199831d4651b096c",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-09-28T12:34:07+00:00"
       },
       "failed": false,
