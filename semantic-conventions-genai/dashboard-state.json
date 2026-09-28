@@ -868,17 +868,24 @@
     },
     "270": {
       "facts": {
-        "approval_count": 1,
+        "approval_count": 2,
         "assignees": [],
         "author": "aabmass",
-        "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/semantic-conventions-genai/pull/270#discussion_r4125522691"
+        ],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/semantic-conventions-genai/pull/270#issuecomment-4673487686",
+          "https://github.com/open-telemetry/semantic-conventions-genai/pull/270#issuecomment-4701247948",
+          "https://github.com/open-telemetry/semantic-conventions-genai/pull/270#issuecomment-4999060798"
+        ],
         "author_can_act": true,
+        "author_nudge_episode_id": "584365f3c93f43cb94ff08ff36b08247",
         "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "yes",
-        "copilot_request_fingerprint": "5266c2d240f565d3dd729cd6e0de1218014758d2a75ef7c74245a0567488d644",
+        "copilot_request_fingerprint": "4c8c5d5b37743fc603fb597f5de9eb3c95131cc3f581da03bf2ae7a08b476860",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
         "copilot_review_outstanding": false,
@@ -889,6 +896,7 @@
         "created_at": "2026-06-09T16:27:38+00:00",
         "dashboard_command_replies": [],
         "dashboard_override_bound_command_id": 5456882217,
+        "dashboard_override_cleared_by_feedback": true,
         "dashboard_override_command_id": 0,
         "dashboard_override_command_user": "",
         "dashboard_override_head_sha": "3227086ae006ecf8e3d61b579e0a4cc17648bec3",
@@ -896,8 +904,8 @@
         "head_sha": "3227086ae006ecf8e3d61b579e0a4cc17648bec3",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-02T14:43:04+00:00",
-        "last_approver_activity_at": "2026-07-17T04:45:32+00:00",
+        "last_activity_at": "2026-09-28T18:11:54+00:00",
+        "last_approver_activity_at": "2026-09-28T18:11:54+00:00",
         "last_author_activity_at": "2026-09-02T14:43:04+00:00",
         "required_checks_settled": true,
         "reviewers": [
@@ -918,31 +926,48 @@
             "login": "lmolkova",
             "open_thread": false,
             "pending_review": false,
-            "top_level_feedback": false,
+            "top_level_feedback": true,
             "unresolved_thread": false
           },
           {
             "approved": false,
             "approved_non_team": false,
             "changes_requested": false,
-            "login": "trask",
+            "login": "Nik-Reddy",
             "open_thread": false,
             "pending_review": false,
-            "top_level_feedback": false,
+            "top_level_feedback": true,
             "unresolved_thread": false
+          },
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "trask",
+            "open_thread": true,
+            "pending_review": false,
+            "top_level_feedback": true,
+            "unresolved_thread": true
           }
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "b3ea38c6b83c871068a05c4f9b7fe6d003cb516ada5520495ba185c4b0183b0d",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-09-02T14:43:04+00:00"
+        "routing_input_fingerprint": "df7704e555373f99fad9489f3a16720f2da300b7152372c885a7f5e28e4129c6",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-06-10T19:00:48+00:00"
       },
       "failed": false,
       "pr_number": 270,
       "pr_url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/270",
-      "route": "approver",
-      "top_level_history": {}
+      "route": "author",
+      "top_level_history": {
+        "pr-issue-comment-4678399566": {
+          "evidence": {
+            "reply": "2026-07-08T02:38:49Z"
+          },
+          "reply_source_id": 4910887956
+        }
+      }
     },
     "291": {
       "facts": {
