@@ -12756,7 +12756,7 @@
     },
     "51302": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "spathlavath",
         "author_action_review_thread_urls": [],
@@ -12764,9 +12764,9 @@
         "author_can_act": true,
         "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
-        "ci_pending_count": 0,
+        "ci_pending_count": 1,
         "conflicts": "no",
-        "copilot_request_fingerprint": "489432427754ede989cc601d5c3f64e5d57d9e0171ab9797d28898b54aeb038e",
+        "copilot_request_fingerprint": "859981ae4e598027b8270001e84494dfaa46591bf7585f630ca5dee0a74fd41b",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -12782,10 +12782,10 @@
         "head_sha": "559c3325fbc991c3123c382c0bffffdc1b403092",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-23T15:58:06+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-28T23:00:09+00:00",
+        "last_approver_activity_at": "2026-09-28T23:00:09+00:00",
         "last_author_activity_at": "2026-09-22T05:42:52+00:00",
-        "required_checks_settled": true,
+        "required_checks_settled": false,
         "reviewers": [
           {
             "approved": false,
@@ -12806,12 +12806,23 @@
             "pending_review": false,
             "top_level_feedback": false,
             "unresolved_thread": false
+          },
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "paulojmdias",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
           }
         ],
-        "route_held_for_gates": false,
+        "route_held_for_gates": true,
+        "route_held_since": "2026-09-28T23:01:53.976755+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "ebc37654b64b11035d1a9837475071e97ca6badf338d0d93a4fc349319a3041b",
-        "waiting_age_basis": "gate_release",
+        "routing_input_fingerprint": "a5f8d0ba2cbdde2871deade0453f6353d88d50615b6d1246899c4b1b96f935da",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-09-22T05:12:25.121060+00:00"
       },
       "failed": false,
