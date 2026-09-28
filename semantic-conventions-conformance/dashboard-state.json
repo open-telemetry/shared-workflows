@@ -790,7 +790,7 @@
     },
     "227": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "kamphaus",
         "author_action_review_thread_urls": [],
@@ -800,7 +800,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "915bfcd160a6812e5e235cc63b7acd82cc716cbe1313533e7458031f26c956b5",
+        "copilot_request_fingerprint": "029670f9d6c4fa8c956cd923b91b5598c5edd3deae7c5cd4a40be240cfb98ece",
         "copilot_review_exists": true,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -816,21 +816,32 @@
         "head_sha": "ce25eff1019302d6e7372a9d292d3214acca6486",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-20T18:54:25+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-28T16:38:23+00:00",
+        "last_approver_activity_at": "2026-09-28T16:38:23+00:00",
         "last_author_activity_at": "2026-09-20T18:54:25+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "trask",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "00df481dde99c8e95084f7e026e4d96f2666bc148aaef47afbbb6b0005aa8e18",
+        "routing_input_fingerprint": "5bc8c2def5006fd64b48f2d7fcd2adac3be3a6f4040af34dedd4399daf9a2557",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-09-20T18:54:25+00:00"
       },
       "failed": false,
       "pr_number": 227,
       "pr_url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/227",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "233": {
