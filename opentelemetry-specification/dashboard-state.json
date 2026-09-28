@@ -2435,7 +2435,7 @@
     },
     "5331": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 2,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
@@ -2445,7 +2445,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "50fb1a85244ae0af2d97b2218bef2efc92cf3bd85a0859b35b560ec408be6e9d",
+        "copilot_request_fingerprint": "1109aa10858d8acbb87de8f0c3388ad827b901e8db33bb03ed4e217a620ac135",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -2461,21 +2461,42 @@
         "head_sha": "60d08cf72e5ef1f6b373452261c19034ac86383b",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-09-28T00:45:10+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-28T16:16:38+00:00",
+        "last_approver_activity_at": "2026-09-28T16:16:38+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "arminru",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          },
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "codeboten",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "24ed08f0f364ec3dce988027117d0015d75870a65ee2cb11776a71521075fc29",
+        "routing_input_fingerprint": "1caec6249fe22c9e0e1c839c7bb9df44098c962a6d1a1d16188591bff43d7f0b",
         "waiting_age_basis": "created",
         "waiting_since": "2026-09-28T00:45:10+00:00"
       },
       "failed": false,
       "pr_number": 5331,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-specification/pull/5331",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     }
   },
