@@ -2335,10 +2335,9 @@
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "author_can_act": true,
-        "author_nudge_episode_id": "e0f0f445c506410985f70e12285852be",
         "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
-        "ci_pending_count": 1,
+        "ci_pending_count": 0,
         "conflicts": "no",
         "copilot_request_fingerprint": "363126401228f861ae6d78690bcdedc10720613de63e2ccda1016e9048b2cee3",
         "copilot_review_exists": true,
@@ -2359,7 +2358,7 @@
         "last_activity_at": "2026-09-28T05:47:22+00:00",
         "last_approver_activity_at": "",
         "last_author_activity_at": "2026-09-28T05:47:22+00:00",
-        "required_checks_settled": false,
+        "required_checks_settled": true,
         "reviewers": [
           {
             "approved": false,
@@ -2372,17 +2371,16 @@
             "unresolved_thread": false
           }
         ],
-        "route_held_for_gates": true,
-        "route_held_since": "2026-09-28T05:47:38.621165+00:00",
+        "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "e8c09aefa414fb360fd772d84c6802e9ee1a82ebb83714fa929344b1644d6f87",
-        "waiting_age_basis": "gate_hold",
-        "waiting_since": "2026-09-27T23:14:07+00:00"
+        "routing_input_fingerprint": "0dd134986008c8bdfeb7143b6542c1381d32f38de3eb655c21786c4a58ce5bc9",
+        "waiting_age_basis": "gate_release",
+        "waiting_since": "2026-09-28T05:48:26.859933+00:00"
       },
       "failed": false,
       "pr_number": 4115,
       "pr_url": "https://github.com/open-telemetry/semantic-conventions/pull/4115",
-      "route": "author",
+      "route": "approver",
       "top_level_history": {
         "pr-review-5332614666": {
           "evidence": {
