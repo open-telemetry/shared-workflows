@@ -126,9 +126,11 @@ the implementation understandable and operationally cheap.
   remains bounded to 50 per untargeted delivery; a webhook publisher puts its
   triggering PR first in that batch.
 - The top-level hourly health check compares worker generations with publisher
-  receipts. A canceled matrix with no generation marker cannot prove recovery,
-  so it is reported instead of assumed successful. Matrix failures also take
-  precedence over cancellation.
+  receipts after the initial backfill is complete. Before that, a pending
+  generation is expected because publishing is disabled; a canceled matrix
+  still cannot prove recovery and is reported. A canceled matrix with no
+  generation marker also cannot prove recovery, so it is reported instead of
+  assumed successful. Matrix failures take precedence over cancellation.
 
 ## GitHub Actions Instead Of Netlify For Scheduled Backfills
 
@@ -169,6 +171,8 @@ the implementation understandable and operationally cheap.
   live on the delivery branch. The generation is advanced in each backfill
   compare-and-swap update, including an empty or unchanged backfill, so a
   publisher that runs between two updates cannot acknowledge later work.
+  The generation marker also carries initial-backfill readiness so the
+  health check need not fetch the full dashboard state.
   Delivery-version claims include the full-publish state version; downgraded
   publishers cannot acknowledge work whose receipt protocol they do not know.
 - Targeted PR runs compute the triggered PR and merge that one PR slot with the

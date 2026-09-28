@@ -154,21 +154,26 @@ def read_full_publish_generation(path: Path) -> int:
     return full_publish_generation(data, str(path))
 
 
-def write_full_publish_generation(path: Path, generation: int) -> None:
+def write_full_publish_generation(
+    path: Path, generation: int, *, initial_backfill_complete: bool | None = None
+) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
+    data = {"version": FULL_PUBLISH_STATE_VERSION, "generation": generation}
+    if initial_backfill_complete is not None:
+        data[INITIAL_BACKFILL_COMPLETE_KEY] = initial_backfill_complete
     path.write_text(
-        json.dumps(
-            {"version": FULL_PUBLISH_STATE_VERSION, "generation": generation},
-            sort_keys=True,
-            indent=2,
-        ) + "\n",
+        json.dumps(data, sort_keys=True, indent=2) + "\n",
         encoding="utf-8",
     )
 
 
-def mark_full_publish_needed() -> None:
+def mark_full_publish_needed(*, initial_backfill_complete: bool) -> None:
     path = full_publish_needed_path()
-    write_full_publish_generation(path, read_full_publish_generation(path) + 1)
+    write_full_publish_generation(
+        path,
+        read_full_publish_generation(path) + 1,
+        initial_backfill_complete=initial_backfill_complete,
+    )
 
 
 def record_full_publish_delivered(generation: int) -> None:

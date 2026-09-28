@@ -82,11 +82,16 @@ class StateTest(unittest.TestCase):
             patch("state._using_delivery_state", False),
         ):
             self.assertEqual(0, read_full_publish_generation(full_publish_needed_path()))
-            mark_full_publish_needed()
-            mark_full_publish_needed()
+            mark_full_publish_needed(initial_backfill_complete=False)
+            mark_full_publish_needed(initial_backfill_complete=True)
             record_full_publish_delivered(2)
             record_full_publish_delivered(1)
             self.assertEqual(2, read_full_publish_generation(full_publish_needed_path()))
+            self.assertTrue(
+                json.loads(full_publish_needed_path().read_text(encoding="utf-8"))[
+                    "initial_backfill_complete"
+                ]
+            )
             self.assertEqual(2, read_full_publish_generation(full_publish_delivered_path()))
             self.assertEqual(FULL_PUBLISH_STATE_VERSION, current_delivery_versions()["FULL_PUBLISH_STATE_VERSION"])
             full_publish_delivered_path().write_text(

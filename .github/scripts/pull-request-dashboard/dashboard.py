@@ -627,7 +627,7 @@ def save_dashboard_update_state(
     dashboard_state_unchanged: bool,
 ) -> int:
     if args.pr_number is None:
-        mark_full_publish_needed()
+        mark_full_publish_needed(initial_backfill_complete=dashboard_state.initial_backfill_complete)
     if dashboard_state_unchanged:
         if args.pr_number:
             print(f"PR #{args.pr_number} dashboard state unchanged", file=sys.stderr)

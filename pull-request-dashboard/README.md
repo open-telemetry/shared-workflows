@@ -311,7 +311,7 @@ publisher, the next publisher for that repository performs a full delivery
 and acknowledges the generation after publishing the issue. Otherwise,
 webhook-triggered publishers continue to deliver status comments and Slack
 only for their triggering PR. An hourly health check reports generations that
-remain undelivered.
+remain undelivered after the initial backfill completes.
 
 Each repository can route Slack notifications to its own `slack_channel` and
 map GitHub logins to Slack user IDs via `slack_user_mapping`. Repositories
