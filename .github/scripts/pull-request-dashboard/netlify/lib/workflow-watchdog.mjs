@@ -1,5 +1,4 @@
 export const DEFAULT_STALE_RUN_MS = 30 * 60 * 1000;
-export const DEFAULT_FORCE_RUN_MS = 60 * 60 * 1000;
 
 const DASHBOARD_RUN_NAME_PREFIX = "pull-request-dashboard-";
 const MAX_CANDIDATES_PER_WORKFLOW = 4;
@@ -36,22 +35,18 @@ export async function cancelStalledDashboardRuns({
   actions,
   now = () => Date.now(),
   staleRunMs = DEFAULT_STALE_RUN_MS,
-  forceRunMs = DEFAULT_FORCE_RUN_MS,
   watchedWorkflows = WATCHED_DASHBOARD_WORKFLOWS,
 }) {
   if (!actions) {
     throw new Error("actions client is required");
   }
-  if (!Number.isFinite(staleRunMs) || staleRunMs <= 0 ||
-      !Number.isFinite(forceRunMs) || forceRunMs <= staleRunMs) {
-    throw new Error("forceRunMs must exceed a positive staleRunMs");
+  if (!Number.isFinite(staleRunMs) || staleRunMs <= 0) {
+    throw new Error("staleRunMs must be positive");
   }
 
   const checkedAt = now();
   const staleBefore = checkedAt - staleRunMs;
-  const forceBefore = checkedAt - forceRunMs;
   const requested = [];
-  const forceRequested = [];
   const confirmed = [];
   const unconfirmed = [];
   const conflicts = [];
@@ -115,91 +110,57 @@ export async function cancelStalledDashboardRuns({
           (checkedAt - createdAt) / (60 * 1000),
         ),
       };
-      if (createdAt <= forceBefore) {
-        const jobs = await getJobsIfFound(actions, run.id);
-        if (jobs === null) {
-          continue;
-        }
-        const [current, currentNewer] = await Promise.all([
-          getRunIfFound(actions, run.id),
-          getRunIfFound(actions, newerRun.id),
-        ]);
-        if (!current) {
-          continue;
-        }
-        const currentNewerStart = currentNewer
-          ? runAttemptStart(currentNewer)
-          : NaN;
-        if (
-          !BLOCKING_RUN_STATUSES.has(current.status) ||
-          current.run_attempt !== run.run_attempt ||
-          !Number.isFinite(runAttemptStart(current)) ||
-          runAttemptStart(current) > now() - forceRunMs ||
-          !matchesWorkflow(current, workflow) ||
-          !currentNewer ||
-          !WAITING_RUN_STATUSES.has(currentNewer.status) ||
-          !matchesWorkflow(currentNewer, workflow) ||
-          !Number.isFinite(currentNewerStart) ||
-          currentNewerStart <= runAttemptStart(current) ||
-          !sameConcurrencyGroup(current, currentNewer, workflow) ||
-          !canCancelStalledRun(jobs, now() - staleRunMs)
-        ) {
-          continue;
-        }
-        try {
-          await actions.forceCancelWorkflowRun(run.id);
-        } catch (error) {
-          if (error.githubStatusCode !== 409) {
-            throw error;
-          }
-          const afterConflict = await getRunIfFound(actions, run.id);
-          if (!finishIfStopped(details, afterConflict)) {
-            conflicts.push({ ...details, stage: "force" });
-          }
-          continue;
-        }
-        forceRequested.push(details);
-        const afterRequest = await getRunIfFound(actions, run.id);
-        finishIfStopped(details, afterRequest);
-      } else {
-        const jobs = await actions.listRunJobs(run.id);
-        if (!canCancelStalledRun(jobs, staleBefore)) {
-          continue;
-        }
-        const current = await getRunIfFound(actions, run.id);
-        if (
-          !current ||
-          !BLOCKING_RUN_STATUSES.has(current.status) ||
-          current.run_attempt !== run.run_attempt ||
-          !Number.isFinite(runAttemptStart(current)) ||
-          runAttemptStart(current) > now() - staleRunMs ||
-          !matchesWorkflow(current, workflow)
-        ) {
-          continue;
-        }
-        try {
-          await actions.cancelWorkflowRun(run.id);
-        } catch (error) {
-          if (error.githubStatusCode !== 409) {
-            throw error;
-          }
-          const afterConflict = await getRunIfFound(actions, run.id);
-          if (!finishIfStopped(details, afterConflict)) {
-            conflicts.push({ ...details, stage: "normal" });
-          }
-          continue;
-        }
-        requested.push(details);
-        const afterRequest = await getRunIfFound(actions, run.id);
-        finishIfStopped(details, afterRequest);
+      const jobs = await getJobsIfFound(actions, run.id);
+      if (jobs === null || !canCancelStalledRun(jobs, staleBefore)) {
+        continue;
       }
+      const [current, currentNewer] = await Promise.all([
+        getRunIfFound(actions, run.id),
+        getRunIfFound(actions, newerRun.id),
+      ]);
+      if (!current) {
+        continue;
+      }
+      const currentNewerStart = currentNewer
+        ? runAttemptStart(currentNewer)
+        : NaN;
+      if (
+        !BLOCKING_RUN_STATUSES.has(current.status) ||
+        current.run_attempt !== run.run_attempt ||
+        !Number.isFinite(runAttemptStart(current)) ||
+        runAttemptStart(current) > now() - staleRunMs ||
+        !matchesWorkflow(current, workflow) ||
+        !currentNewer ||
+        !WAITING_RUN_STATUSES.has(currentNewer.status) ||
+        !matchesWorkflow(currentNewer, workflow) ||
+        !Number.isFinite(currentNewerStart) ||
+        currentNewerStart <= runAttemptStart(current) ||
+        !sameConcurrencyGroup(current, currentNewer, workflow) ||
+        !canCancelStalledRun(jobs, now() - staleRunMs)
+      ) {
+        continue;
+      }
+      try {
+        await actions.forceCancelWorkflowRun(run.id);
+      } catch (error) {
+        if (error.githubStatusCode !== 409) {
+          throw error;
+        }
+        const afterConflict = await getRunIfFound(actions, run.id);
+        if (!finishIfStopped(details, afterConflict)) {
+          conflicts.push(details);
+        }
+        continue;
+      }
+      requested.push(details);
+      const afterRequest = await getRunIfFound(actions, run.id);
+      finishIfStopped(details, afterRequest);
     }
   }
 
   return {
     checkedWorkflows: watchedWorkflows.length,
     requested,
-    forceRequested,
     confirmed,
     unconfirmed,
     conflicts,

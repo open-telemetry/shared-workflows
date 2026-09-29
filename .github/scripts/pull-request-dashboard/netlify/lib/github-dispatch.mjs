@@ -178,13 +178,6 @@ export async function createGitHubActionsClient(
         token,
       );
     },
-    async cancelWorkflowRun(runId) {
-      await githubFetch(
-        `${GITHUB_API_ROOT}/actions/runs/${runId}/cancel`,
-        token,
-        { method: "POST" },
-      );
-    },
     async forceCancelWorkflowRun(runId) {
       await githubFetch(
         `${GITHUB_API_ROOT}/actions/runs/${runId}/force-cancel`,

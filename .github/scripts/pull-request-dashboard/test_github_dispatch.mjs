@@ -51,9 +51,6 @@ test("does not cancel when an active job is on a later page", async (t) => {
     { id: 42, status: "waiting", created_at: "2026-09-10T11:01:00Z" },
     { id: 43, status: "pending", created_at: "2026-09-10T11:45:00Z" },
   ];
-  actions.cancelWorkflowRun = () => {
-    throw new Error("must not cancel while a job is active");
-  };
   actions.forceCancelWorkflowRun = () => {
     throw new Error("must not force-cancel while a job is active");
   };

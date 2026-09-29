@@ -57,10 +57,9 @@ repeatedly without an acknowledgment is moved to the shard's dead letters
 instead of being requeued forever.
 
 The `dashboard-workflow-watchdog` scheduled function runs every 15 minutes. It
-requests normal cancellation of an automated dashboard run after 30 minutes,
-or force-cancellation after 60 minutes, when a newer run is queued behind it
-in the same concurrency group. Force-cancellation does not require a previous
-normal cancellation request; it rechecks both runs and all jobs first. Reruns
+force-cancels an automated dashboard run after 30 minutes when a newer run is
+queued behind it in the same concurrency group. It rechecks both runs and all
+jobs before requesting cancellation and checks the resulting run state. Reruns
 use their current attempt's start time rather than the original run's age. If no
 jobs have completed, none may have received a runner or started a step. For
 partially completed runs, at least one job must still be waiting or queued, and every
