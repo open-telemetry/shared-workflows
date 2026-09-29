@@ -369,6 +369,48 @@ test("ignores targeted dispatches without an exposed concurrency group", async (
   ]);
 });
 
+test("ignores manually dispatched dashboard runs", async () => {
+  const targetedWorkflow = {
+    workflowId: "dashboard.yml",
+    event: "workflow_dispatch",
+    groupByRunName: true,
+    runNamePrefix: "pull-request-dashboard-",
+    runNameSuffix: "-refresh",
+  };
+  const { actions, calls } = fixture({
+    runs: [
+      run(
+        2,
+        "pending",
+        "2026-09-10T11:45:00Z",
+        "workflow_dispatch",
+        "pull-request-dashboard-repo-a-1-manual",
+      ),
+      run(
+        1,
+        "waiting",
+        "2026-09-10T10:00:00Z",
+        "workflow_dispatch",
+        "pull-request-dashboard-repo-a-1-manual",
+      ),
+    ],
+  });
+
+  const result = await cancelStalledDashboardRuns({
+    actions,
+    now: () => NOW,
+    watchedWorkflows: [targetedWorkflow],
+  });
+
+  assert.deepEqual(result.forceRequested, []);
+  assert.deepEqual(calls, [
+    ["list-runs", "dashboard.yml", {
+      event: "workflow_dispatch",
+      statuses: ACTIVE_RUN_STATUSES,
+    }],
+  ]);
+});
+
 test("continues when a run completes during cancellation", async () => {
   const conflict = Object.assign(new Error("Conflict"), {
     githubStatusCode: 409,
@@ -1081,7 +1123,7 @@ test("rotates a force-cancel backlog across bounded invocations", async () => {
   const { actions, calls } = fixture({ runs });
   const options = { actions, now: () => clock, watchedWorkflows: [WORKFLOW] };
   const seen = new Set();
-  for (let tick = 0; tick < 8; tick += 1) {
+  for (let tick = 0; tick < 2; tick += 1) {
     const result = await cancelStalledDashboardRuns(options);
     assert.ok(result.forceRequested.length <= 4);
     for (const { runId } of result.forceRequested) {

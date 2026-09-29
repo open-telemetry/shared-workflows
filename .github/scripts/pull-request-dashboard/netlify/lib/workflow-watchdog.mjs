@@ -17,6 +17,7 @@ export const WATCHED_DASHBOARD_WORKFLOWS = Object.freeze([
     event: "workflow_dispatch",
     groupByRunName: true,
     runNamePrefix: DASHBOARD_RUN_NAME_PREFIX,
+    runNameSuffix: "-refresh",
   }),
   Object.freeze({
     workflowId: "pull-request-dashboard-deploy-webhook.yml",
@@ -96,7 +97,8 @@ export async function cancelStalledDashboardRuns({
     // Rotate large backlogs so one run that ignores force-cancel cannot hide
     // later eligible runs behind the per-invocation API budget.
     const offset = candidates.length > MAX_CANDIDATES_PER_WORKFLOW
-      ? Math.floor(checkedAt / WATCHDOG_INTERVAL_MS) % candidates.length
+      ? Math.floor(checkedAt / WATCHDOG_INTERVAL_MS) *
+        MAX_CANDIDATES_PER_WORKFLOW % candidates.length
       : 0;
     const selected = [...candidates.slice(offset), ...candidates.slice(0, offset)]
       .slice(0, Math.min(MAX_CANDIDATES_PER_WORKFLOW, remainingCandidates));
@@ -235,7 +237,10 @@ function matchesWorkflow(run, workflow) {
   return (!workflow.event || run.event === workflow.event) &&
     (!workflow.runNamePrefix ||
       (typeof run.display_title === "string" &&
-        run.display_title.startsWith(workflow.runNamePrefix)));
+        run.display_title.startsWith(workflow.runNamePrefix))) &&
+    (!workflow.runNameSuffix ||
+      (typeof run.display_title === "string" &&
+        run.display_title.endsWith(workflow.runNameSuffix)));
 }
 
 function runAttemptStart(run) {
