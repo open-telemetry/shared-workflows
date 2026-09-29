@@ -2358,17 +2358,20 @@
     },
     "3760": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "jainam-panchal",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry-rust/pull/3760#discussion_r4137846095"
+        ],
         "author_action_top_level_feedback_urls": [],
         "author_can_act": true,
+        "author_nudge_episode_id": "87553e6ce3b5439fa1f1455e77fbb172",
         "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "7b7361f53cef2518dece795338e4ce4c5aa52ed18b85667c027a21ae0ab50084",
+        "copilot_request_fingerprint": "2d80c2504e8a7159819cbdbbd2dd12ce3f757a248c8933f1d3490632827695b7",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -2384,21 +2387,32 @@
         "head_sha": "5f526bd79574847b51c73d030dbd2776d6242e69",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-28T09:07:27+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-29T20:11:52+00:00",
+        "last_approver_activity_at": "2026-09-29T20:11:52+00:00",
         "last_author_activity_at": "2026-09-28T08:58:46+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "cijothomas",
+            "open_thread": true,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": true
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "371d394e970bcc81adce0e4e360889c4cd847888ae60442ec70e5648d8c2cd06",
-        "waiting_age_basis": "gate_release",
-        "waiting_since": "2026-09-28T09:20:13.316714+00:00"
+        "routing_input_fingerprint": "a2e5efad586e10104623bdb4e7408fecd9e8c5bf80865c7b218e37fc6ef718a9",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-09-29T20:11:31+00:00"
       },
       "failed": false,
       "pr_number": 3760,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-rust/pull/3760",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     },
     "3761": {
