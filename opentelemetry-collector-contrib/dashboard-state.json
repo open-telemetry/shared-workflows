@@ -14849,7 +14849,7 @@
     },
     "51575": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
@@ -14859,7 +14859,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 1,
         "conflicts": "no",
-        "copilot_request_fingerprint": "369a8df467fdbac43c1737d3d213a0327c05e92b6039b300b823f48c14faaa1d",
+        "copilot_request_fingerprint": "fd28bed5cbed34213d4c47fd83a6d1acf84c1a36db1ce8797bc7407af76dca81",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -14875,8 +14875,8 @@
         "head_sha": "d5bc5c4f6a2c31b41d70dd3d69a1d86e577c6598",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-09-29T02:54:34+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-29T15:26:01+00:00",
+        "last_approver_activity_at": "2026-09-29T15:26:01+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": false,
         "reviewers": [
@@ -14889,12 +14889,23 @@
             "pending_review": false,
             "top_level_feedback": false,
             "unresolved_thread": false
+          },
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "songy23",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
           }
         ],
-        "route_held_for_gates": false,
+        "route_held_for_gates": true,
+        "route_held_since": "2026-09-29T15:28:03.331962+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "b9ca8573f139a80a1195e9aa265f5f43510152916faeb89d72fbd9f0e4e3da85",
-        "waiting_age_basis": "created",
+        "routing_input_fingerprint": "f7363d1d310e45986ffc7e4d24c622f37112cb5cf7348322111492cf615aa793",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-09-29T01:07:53+00:00"
       },
       "failed": false,
