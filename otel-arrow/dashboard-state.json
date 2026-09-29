@@ -1890,10 +1890,9 @@
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "author_can_act": true,
-        "author_nudge_episode_id": "9b5c33c55c8f4b84a6186d5023c2b9b4",
         "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
-        "ci_pending_count": 1,
+        "ci_pending_count": 0,
         "conflicts": "no",
         "copilot_request_fingerprint": "64396dc61c9e96a231b639c509e948eadaeb0cf25b662ca6cd1b8ad52dce6110",
         "copilot_review_exists": true,
@@ -1914,7 +1913,7 @@
         "last_activity_at": "2026-09-29T19:59:30+00:00",
         "last_approver_activity_at": "2026-09-28T20:56:03+00:00",
         "last_author_activity_at": "2026-09-29T19:59:30+00:00",
-        "required_checks_settled": false,
+        "required_checks_settled": true,
         "reviewers": [
           {
             "approved": false,
@@ -1927,17 +1926,16 @@
             "unresolved_thread": false
           }
         ],
-        "route_held_for_gates": true,
-        "route_held_since": "2026-09-29T20:01:09.805963+00:00",
+        "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "55aef82c1712da86e8f46c64401a7e4fdfdd5d3718ed5af049c2c7ba6cd9518a",
-        "waiting_age_basis": "gate_hold",
-        "waiting_since": "2026-09-28T20:49:39+00:00"
+        "routing_input_fingerprint": "fd0c0a18bdbca266ad04da815e03be23b5782b302b0abdd89f0b34dcfa5f6efc",
+        "waiting_age_basis": "gate_release",
+        "waiting_since": "2026-09-29T20:59:43.914802+00:00"
       },
       "failed": false,
       "pr_number": 4177,
       "pr_url": "https://github.com/open-telemetry/otel-arrow/pull/4177",
-      "route": "author",
+      "route": "approver",
       "top_level_history": {}
     },
     "4183": {
