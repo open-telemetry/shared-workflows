@@ -94,7 +94,7 @@
     },
     "425": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
@@ -104,7 +104,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "5bdef52eedca1c78002699511a0c92c673e5d23e7ba012ac4e81ac1f4d6d62d9",
+        "copilot_request_fingerprint": "afb286c455f4486c204878f928b61196fc87687336369d026a804a88c5f41f17",
         "copilot_review_exists": true,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -120,21 +120,32 @@
         "head_sha": "c2aeff69f2e7578802fec89428b541062fa71cb8",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-09-29T02:51:00+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-29T10:02:20+00:00",
+        "last_approver_activity_at": "2026-09-29T10:02:20+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "mx-psi",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "ed1930381faa51027d4f88c88b4abe93e029eff2d648982feff3263bdb6b3e2b",
+        "routing_input_fingerprint": "cab6afb427e705dd082d515afaa62791be2d78270a33f5b606011a5e622cb845",
         "waiting_age_basis": "created",
         "waiting_since": "2026-09-29T02:51:00+00:00"
       },
       "failed": false,
       "pr_number": 425,
       "pr_url": "https://github.com/open-telemetry/shared-workflows/pull/425",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "426": {
