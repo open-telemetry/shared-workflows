@@ -904,9 +904,8 @@ test("skips force when job lookup races with run deletion", async () => {
     jobErrors: { 1: missing },
   });
   const getRun = actions.getWorkflowRun;
-  let targetReads = 0;
   actions.getWorkflowRun = (id) => {
-    if (Number(id) === 1 && ++targetReads > 1) {
+    if (Number(id) === 1) {
       throw missing;
     }
     return getRun(id);
