@@ -13624,11 +13624,13 @@
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "author_can_act": true,
-        "ci_failing_count": 0,
+        "author_nudge_episode_id": "a3cb0a9b83f74810b7a7bd68976c077b",
+        "ci_failing_count": 1,
+        "ci_failing_since": "2026-09-29T00:26:50+00:00",
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "70b2c7d3da992647486013f18f9da1e1ed1fb55adcc94d4848644904b5906d26",
+        "copilot_request_fingerprint": "293930870c7d74fc28995787921870abcf8a23871db8d0cf0c8d9c377947c108",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -13644,9 +13646,9 @@
         "head_sha": "61c941ef8e28a2cff77e1a19f629d99018c82c61",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-29T00:32:53+00:00",
+        "last_activity_at": "2026-09-29T03:02:06+00:00",
         "last_approver_activity_at": "",
-        "last_author_activity_at": "2026-09-29T00:32:53+00:00",
+        "last_author_activity_at": "2026-09-29T03:02:06+00:00",
         "required_checks_settled": true,
         "reviewers": [
           {
@@ -13662,14 +13664,14 @@
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "a56c0fc66f7ae014e447aaa1ede41bb3e074e93f593dd571f6e2011f3dcbbb65",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-09-29T00:32:53+00:00"
+        "routing_input_fingerprint": "e4b00973700df9f595a8e810e02ae3636fc0c3882029da0b004c9cef317d72f0",
+        "waiting_age_basis": "ci_failure",
+        "waiting_since": "2026-09-29T00:26:50+00:00"
       },
       "failed": false,
       "pr_number": 51456,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/51456",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     },
     "51457": {
