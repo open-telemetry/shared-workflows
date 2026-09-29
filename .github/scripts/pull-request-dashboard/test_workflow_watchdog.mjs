@@ -1135,6 +1135,46 @@ test("rotates a force-cancel backlog across bounded invocations", async () => {
   assert.ok(calls.some(([action, runId]) => action === "force-cancel" && runId === 8));
 });
 
+test("rotates every backlog when workflows compete for the invocation budget", async () => {
+  let clock = NOW;
+  const watchedWorkflows = Array.from({ length: 4 }, (_, index) => ({
+    workflowId: `dashboard-${index}.yml`,
+  }));
+  const runsByWorkflow = new Map(watchedWorkflows.map((workflow, workflowIndex) => [
+    workflow.workflowId,
+    [
+      run(workflowIndex * 100 + 99, "pending", "2026-09-10T11:50:00Z"),
+      ...Array.from({ length: 16 }, (_, index) =>
+        run(
+          workflowIndex * 100 + index + 1,
+          "waiting",
+          new Date(NOW - (120 + index) * 60 * 1000).toISOString(),
+        )),
+    ],
+  ]));
+  const runs = [...runsByWorkflow.values()].flat();
+  const { actions } = fixture({ runs });
+  actions.listWorkflowRuns = async (workflowId) => runsByWorkflow.get(workflowId);
+  const seen = new Set();
+  for (let tick = 0; tick < 16; tick += 1) {
+    const result = await cancelStalledDashboardRuns({
+      actions, now: () => clock, watchedWorkflows,
+    });
+    assert.equal(result.forceRequested.length, 8);
+    for (const { workflowId } of watchedWorkflows) {
+      assert.ok(result.forceRequested.filter((request) =>
+        request.workflowId === workflowId).length <= 4);
+    }
+    for (const { runId } of result.forceRequested) {
+      seen.add(runId);
+    }
+    clock += 15 * 60 * 1000;
+  }
+  assert.deepEqual(seen, new Set(runs
+    .filter(({ status }) => status === "waiting")
+    .map(({ id }) => id)));
+});
+
 test("a recovered run is never force-cancelled", async () => {
   const { actions, runs, calls } = fixture({
     runs: [

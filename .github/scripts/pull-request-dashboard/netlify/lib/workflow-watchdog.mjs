@@ -94,10 +94,10 @@ export async function cancelStalledDashboardRuns({
       .sort((left, right) =>
         Date.parse(left.created_at) - Date.parse(right.created_at)
       );
-    // Rotate large backlogs so one run that ignores force-cancel cannot hide
-    // later eligible runs behind the per-invocation API budget.
+    // Keep each candidate slice for a full workflow rotation so every workflow
+    // can receive budget before its slice advances.
     const offset = candidates.length > MAX_CANDIDATES_PER_WORKFLOW
-      ? Math.floor(checkedAt / WATCHDOG_INTERVAL_MS) *
+      ? Math.floor(checkedAt / (WATCHDOG_INTERVAL_MS * workflows.length)) *
         MAX_CANDIDATES_PER_WORKFLOW % candidates.length
       : 0;
     const selected = [...candidates.slice(offset), ...candidates.slice(0, offset)]
