@@ -2704,7 +2704,7 @@
     },
     "814": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
@@ -2714,7 +2714,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "687da691bf09a7622b60546685f06cd5ff3607a6cf7da78d38d44ccb891ef8ec",
+        "copilot_request_fingerprint": "6aba705a18ee2fd06af20205294dc5726bff8a31bae4041798521f0c76a6fbf2",
         "copilot_review_exists": true,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -2730,21 +2730,32 @@
         "head_sha": "910f6edb3d50dc4233ff40e4cf932cd9d9d64940",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-09-29T02:10:28+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-29T21:22:31+00:00",
+        "last_approver_activity_at": "2026-09-29T21:22:31+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "rads-1996",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "abd1c8805a7a6e1484f65e004328ac345cba3994eda7dcbec133a64aa8863a2c",
+        "routing_input_fingerprint": "47c9d289c8e145c94039e5202ab9be7002c625239e78a7479c569d7a9324f7cb",
         "waiting_age_basis": "created",
         "waiting_since": "2026-09-29T02:10:28+00:00"
       },
       "failed": false,
       "pr_number": 814,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/814",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     }
   },
