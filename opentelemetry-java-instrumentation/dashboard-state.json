@@ -2393,9 +2393,7 @@
         "approval_count": 1,
         "assignees": [],
         "author": "trask",
-        "author_action_review_thread_urls": [
-          "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20259#discussion_r4136724467"
-        ],
+        "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "author_can_act": true,
         "author_nudge_episode_id": "344da5c050e1426890d1099b97ea7c59",
@@ -2403,12 +2401,12 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 2,
         "conflicts": "no",
-        "copilot_request_fingerprint": "b8640569ff19a7d9ad97363f11bab722b9bde0c4d6a8a14d77bd936a1e111d32",
+        "copilot_request_fingerprint": "224c8614adf5d365134d057be911dba0b372bf613fff31b9381efa7c7fd9d7d8",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
         "copilot_review_outstanding": true,
         "copilot_review_request_needed": false,
-        "copilot_review_requested": false,
+        "copilot_review_requested": true,
         "copilot_review_stale": true,
         "copilot_review_unreported": true,
         "created_at": "2026-09-25T20:43:02+00:00",
@@ -2419,21 +2417,11 @@
         "head_sha": "42f473ae22e83bf62f0c84b4d9b1ee96a8a82e6c",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-29T18:19:26+00:00",
+        "last_activity_at": "2026-09-29T18:23:30+00:00",
         "last_approver_activity_at": "2026-09-28T12:40:56+00:00",
-        "last_author_activity_at": "2026-09-29T18:01:13+00:00",
+        "last_author_activity_at": "2026-09-29T18:23:30+00:00",
         "required_checks_settled": false,
         "reviewers": [
-          {
-            "approved": false,
-            "approved_non_team": false,
-            "changes_requested": false,
-            "login": "copilot-pull-request-reviewer[bot]",
-            "open_thread": true,
-            "pending_review": false,
-            "top_level_feedback": false,
-            "unresolved_thread": true
-          },
           {
             "approved": true,
             "approved_non_team": false,
@@ -2445,10 +2433,11 @@
             "unresolved_thread": false
           }
         ],
-        "route_held_for_gates": false,
+        "route_held_for_gates": true,
+        "route_held_since": "2026-09-29T18:24:15.124103+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "a2aa5880c05b3eb0f27de470911a59657f1db44cba9cd49961987b6d7a4fced6",
-        "waiting_age_basis": "oldest_pending_thread",
+        "routing_input_fingerprint": "1c0a0f07ad25504ca0745446c902c8e94e220d60116429fde0b91d9347ae754d",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-09-29T18:05:30+00:00"
       },
       "failed": false,
