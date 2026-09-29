@@ -1445,7 +1445,7 @@
     },
     "1920": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
@@ -1455,7 +1455,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "74c170554a70a67e1e6b5ee3fbbf8ad830ca7552dadef9bad76414d451482812",
+        "copilot_request_fingerprint": "9d58b4a772dff7f1f9c95b89a325899ac7eed5b5ec97c7a268f695aa9b5c8736",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -1471,21 +1471,32 @@
         "head_sha": "388c123328b27660284a448568cf18809f83bdd9",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-09-29T05:52:30+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-29T07:44:54+00:00",
+        "last_approver_activity_at": "2026-09-29T07:44:54+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "florianl",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "7edace6b8a97246ceeba6d0667aab88d6ae3bac335f416ddb7e79fde85dd0ec4",
+        "routing_input_fingerprint": "47c989e84230de91a9ce0d8782829a4ebe0d601db0836bc27864dc53f99f4ca4",
         "waiting_age_basis": "created",
         "waiting_since": "2026-09-29T05:52:30+00:00"
       },
       "failed": false,
       "pr_number": 1920,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-ebpf-profiler/pull/1920",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "1921": {
