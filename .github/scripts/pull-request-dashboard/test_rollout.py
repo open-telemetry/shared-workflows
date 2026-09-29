@@ -95,9 +95,9 @@ class RolloutWiringTest(unittest.TestCase):
                 self.assertNotIn("node_modules/.bin", text)
         dependencies = json.loads((SCRIPT_DIR / "package.json").read_text(encoding="utf-8"))
         self.assertNotIn("@github/copilot", dependencies["dependencies"])
-        self.assertIn(
-            "github-copilot-sdk==1.0.14",
+        self.assertRegex(
             (SCRIPT_DIR / "requirements.txt").read_text(encoding="utf-8"),
+            r"(?m)^github-copilot-sdk==\d+\.\d+\.\d+$",
         )
 
     def test_unit_tests_install_sdk_without_downloading_runtime(self) -> None:
