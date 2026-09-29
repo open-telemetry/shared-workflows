@@ -826,18 +826,13 @@
         "assignees": [],
         "author": "Kielek",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [
-          "https://github.com/open-telemetry/opentelemetry-dotnet/pull/7804#issuecomment-5776315299",
-          "https://github.com/open-telemetry/opentelemetry-dotnet/pull/7804#issuecomment-5776974436",
-          "https://github.com/open-telemetry/opentelemetry-dotnet/pull/7804#issuecomment-5785886862"
-        ],
+        "author_action_top_level_feedback_urls": [],
         "author_can_act": true,
-        "author_nudge_episode_id": "d1101d262dd045a38353df531a4911d2",
         "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
-        "conflicts": "no",
-        "copilot_request_fingerprint": "8961dbfa535997289397aeb7b52fa0543b2b93294058d1c4b6f1a79b44193532",
+        "conflicts": "yes",
+        "copilot_request_fingerprint": "32d1ebbe3ca1845d83bb50d21d13f971e765c1a591cb0fbaefc8fb22a3c38921",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
         "copilot_review_outstanding": false,
@@ -853,9 +848,9 @@
         "head_sha": "4ba8b901ee426b826534a341d9b01f14b3b59c57",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-24T07:44:14+00:00",
+        "last_activity_at": "2026-09-29T10:07:05+00:00",
         "last_approver_activity_at": "2026-09-22T13:00:48+00:00",
-        "last_author_activity_at": "2026-09-24T07:44:14+00:00",
+        "last_author_activity_at": "2026-09-29T10:07:05+00:00",
         "required_checks_settled": true,
         "reviewers": [
           {
@@ -865,31 +860,40 @@
             "login": "martincostello",
             "open_thread": false,
             "pending_review": false,
-            "top_level_feedback": true,
-            "unresolved_thread": false
-          },
-          {
-            "approved": false,
-            "approved_non_team": false,
-            "changes_requested": false,
-            "login": "richardcocks",
-            "open_thread": false,
-            "pending_review": false,
-            "top_level_feedback": true,
+            "top_level_feedback": false,
             "unresolved_thread": false
           }
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "45bf3579cacc30bf56313b928433358f658d617714515b279bd8588fe3809827",
-        "waiting_age_basis": "oldest_pending_thread",
-        "waiting_since": "2026-09-22T12:16:42+00:00"
+        "routing_input_fingerprint": "aa1eb761dcb4405d0c88af9c50070568d9929d769a82d844e75a5c52dd02e253",
+        "waiting_age_basis": "last_author_activity",
+        "waiting_since": "2026-09-29T10:07:05+00:00"
       },
       "failed": false,
       "pr_number": 7804,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-dotnet/pull/7804",
-      "route": "author",
-      "top_level_history": {}
+      "route": "approver",
+      "top_level_history": {
+        "pr-issue-comment-5776315299": {
+          "evidence": {
+            "reply": "2026-09-29T10:07:05Z"
+          },
+          "reply_source_id": 5888049578
+        },
+        "pr-issue-comment-5776974436": {
+          "evidence": {
+            "reply": "2026-09-29T10:07:05Z"
+          },
+          "reply_source_id": 5888049578
+        },
+        "pr-issue-comment-5785886862": {
+          "evidence": {
+            "reply": "2026-09-29T10:07:05Z"
+          },
+          "reply_source_id": 5888049578
+        }
+      }
     },
     "7842": {
       "facts": {
