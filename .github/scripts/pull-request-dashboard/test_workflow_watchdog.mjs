@@ -132,6 +132,7 @@ test("cancels an unassigned stale run blocking a newer run", async () => {
       statuses: ACTIVE_RUN_STATUSES,
     }],
     ["list-jobs", 1],
+    ["get-run", 1],
     ["cancel", 1],
     ["get-run", 1],
   ]);
@@ -164,6 +165,7 @@ test("cancels a stale run before GitHub creates job records", async () => {
       statuses: ACTIVE_RUN_STATUSES,
     }],
     ["list-jobs", 1],
+    ["get-run", 1],
     ["cancel", 1],
     ["get-run", 1],
   ]);
@@ -199,6 +201,7 @@ test("cancels a stale run blocked by a newer pending run", async () => {
       statuses: ACTIVE_RUN_STATUSES,
     }],
     ["list-jobs", 1],
+    ["get-run", 1],
     ["cancel", 1],
     ["get-run", 1],
   ]);
@@ -234,6 +237,7 @@ test("cancels a stale run blocked by a newer waiting run", async () => {
       statuses: ACTIVE_RUN_STATUSES,
     }],
     ["list-jobs", 1],
+    ["get-run", 1],
     ["cancel", 1],
     ["get-run", 1],
   ]);
@@ -269,6 +273,7 @@ test("cancels a stale waiting run blocking a newer pending run", async () => {
       statuses: ACTIVE_RUN_STATUSES,
     }],
     ["list-jobs", 1],
+    ["get-run", 1],
     ["cancel", 1],
     ["get-run", 1],
   ]);
@@ -329,6 +334,7 @@ test("matches targeted dispatches by their exposed concurrency group", async () 
       statuses: ACTIVE_RUN_STATUSES,
     }],
     ["list-jobs", 1],
+    ["get-run", 1],
     ["cancel", 1],
     ["get-run", 1],
   ]);
@@ -410,9 +416,11 @@ test("continues when a run completes during cancellation", async () => {
       statuses: ACTIVE_RUN_STATUSES,
     }],
     ["list-jobs", 1],
+    ["get-run", 1],
     ["cancel", 1],
     ["get-run", 1],
     ["list-jobs", 2],
+    ["get-run", 2],
     ["cancel", 2],
     ["get-run", 2],
   ]);
@@ -468,7 +476,8 @@ test("cancels a partially completed run when only stale unassigned waiting jobs 
     newerRunId: 2,
     ageMinutes: 90,
   }]);
-  assert.deepEqual(calls.map(([action]) => action), ["list-runs", "list-jobs", "cancel", "get-run"]);
+  assert.deepEqual(calls.map(([action]) => action),
+    ["list-runs", "list-jobs", "get-run", "cancel", "get-run"]);
 });
 
 test("requests cancellation for old queued jobs after other jobs finish", async () => {
@@ -752,6 +761,31 @@ test("does not force if the run is rerun during the job lookup", async () => {
     ["list-runs", "list-jobs", "get-run", "get-run"]);
 });
 
+test("does not normally cancel if the run is rerun during the job lookup", async () => {
+  const { actions, calls, runs } = fixture({
+    runs: [
+      run(2, "pending", "2026-09-10T11:55:00Z"),
+      { ...run(1, "waiting", "2026-09-10T11:20:00Z"), run_attempt: 1 },
+    ],
+  });
+  const listJobs = actions.listRunJobs;
+  actions.listRunJobs = async (id) => {
+    const jobs = await listJobs(id);
+    runs[1] = {
+      ...runs[1],
+      run_attempt: 2,
+      run_started_at: "2026-09-10T11:50:00Z",
+    };
+    return jobs;
+  };
+  const result = await cancelStalledDashboardRuns({
+    actions, now: () => NOW, watchedWorkflows: [WORKFLOW],
+  });
+  assert.deepEqual(result.requested, []);
+  assert.deepEqual(calls.map(([action]) => action),
+    ["list-runs", "list-jobs", "get-run"]);
+});
+
 test("uses the newer run's current attempt start", async () => {
   const { actions, calls } = fixture({
     runs: [
@@ -873,7 +907,7 @@ test("reports a deleted run on the immediate normal-cancellation GET", async () 
   assert.deepEqual(result.unconfirmed.map(({ runId, reason }) =>
     ({ runId, reason })), [{ runId: 1, reason: "not_found" }]);
   assert.deepEqual(calls.map(([action]) => action),
-    ["list-runs", "list-jobs", "cancel", "get-run"]);
+    ["list-runs", "list-jobs", "get-run", "cancel", "get-run"]);
 });
 
 test("skips a deleted run during force revalidation without reporting a request", async () => {
@@ -1496,6 +1530,7 @@ test("uses the workflow run age instead of the job record age", async () => {
       statuses: ACTIVE_RUN_STATUSES,
     }],
     ["list-jobs", 1],
+    ["get-run", 1],
     ["cancel", 1],
     ["get-run", 1],
   ]);
@@ -1530,6 +1565,7 @@ test("filters workflows whose concurrency group is event-specific", async () => 
       statuses: ACTIVE_RUN_STATUSES,
     }],
     ["list-jobs", 1],
+    ["get-run", 1],
     ["cancel", 1],
     ["get-run", 1],
   ]);

@@ -63,7 +63,7 @@ in the same concurrency group. Force-cancellation does not require a previous
 normal cancellation request; it rechecks both runs and all jobs first. Reruns
 use their current attempt's start time rather than the original run's age. If no
 jobs have completed, none may have received a runner or started a step. For
-partially completed runs, at least one job must still be waiting, and every
+partially completed runs, at least one job must still be waiting or queued, and every
 unfinished job must have waited without a runner or started step for at least
 30 minutes. The watchdog covers queue drains, hourly dashboard backfills,
 targeted dashboard dispatches, and webhook deployments. Targeted dispatch

@@ -164,6 +164,17 @@ export async function cancelStalledDashboardRuns({
         if (!canCancelStalledRun(jobs, staleBefore)) {
           continue;
         }
+        const current = await getRunIfFound(actions, run.id);
+        if (
+          !current ||
+          !BLOCKING_RUN_STATUSES.has(current.status) ||
+          current.run_attempt !== run.run_attempt ||
+          !Number.isFinite(runAttemptStart(current)) ||
+          runAttemptStart(current) > now() - staleRunMs ||
+          !matchesWorkflow(current, workflow)
+        ) {
+          continue;
+        }
         try {
           await actions.cancelWorkflowRun(run.id);
         } catch (error) {
@@ -177,8 +188,8 @@ export async function cancelStalledDashboardRuns({
           continue;
         }
         requested.push(details);
-        const current = await getRunIfFound(actions, run.id);
-        finishIfStopped(details, current);
+        const afterRequest = await getRunIfFound(actions, run.id);
+        finishIfStopped(details, afterRequest);
       }
     }
   }
