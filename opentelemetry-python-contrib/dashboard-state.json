@@ -6015,11 +6015,13 @@
     },
     "5064": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "saichowdary007",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/opentelemetry-python-contrib/pull/5064#issuecomment-5894098402"
+        ],
         "author_can_act": true,
         "author_nudge_episode_id": "6ecf2a6c6224429fa57e842babe5d89d",
         "ci_failing_count": 1,
@@ -6027,7 +6029,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "2541fc8e1a24e11c1b19360410d8d3b2cc172f2b1a0151636c69e77a1f23a969",
+        "copilot_request_fingerprint": "8f2893e928a07d9dc76145f4dc81a440d86b3c5de986c658eaad8fd1ec558005",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -6043,14 +6045,25 @@
         "head_sha": "fb63cc2eff4731a9852b98564b3cc1f836283e11",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-29T02:49:33+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-29T16:13:54+00:00",
+        "last_approver_activity_at": "2026-09-29T16:13:54+00:00",
         "last_author_activity_at": "2026-09-29T02:49:33+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "lzchen",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": true,
+            "unresolved_thread": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "914071774344fcb6cea19ebabcccd6ed249decc0e27370c667602aa35b866625",
+        "routing_input_fingerprint": "ad64f164ec51b003133c5bfb8a48fa204cb9969de29ddea180c695b323a033f4",
         "waiting_age_basis": "ci_failure",
         "waiting_since": "2026-09-29T02:49:43+00:00"
       },
