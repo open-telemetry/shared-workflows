@@ -83,7 +83,7 @@ class RolloutWiringTest(unittest.TestCase):
             with self.subTest(workflow=path.name):
                 text = path.read_text(encoding="utf-8")
                 self.assertIn("actions/setup-python@", text)
-                self.assertIn("python-version: '3.12'", text)
+                self.assertIn("python-version: '3.14'", text)
                 self.assertIn(f"python -m pip install -r {requirements}", text)
                 self.assertIn("python -m copilot download-runtime", text)
                 self.assertLess(
