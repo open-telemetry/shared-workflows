@@ -3337,7 +3337,7 @@
     },
     "20309": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
@@ -3347,7 +3347,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 1,
         "conflicts": "no",
-        "copilot_request_fingerprint": "51d6a806133eb31b2902259bd18da75bf5827b636a62d8b26df7559f89a5d4db",
+        "copilot_request_fingerprint": "2a0d050ef4cb55160245cb5cf6ddc7bf5b5458243601c30ff8c93cbd43445b19",
         "copilot_review_exists": true,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -3363,15 +3363,27 @@
         "head_sha": "74a1c01abaf10bfb4dc19e3e48b987b9b49977e8",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-09-29T00:11:12+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-29T00:40:22+00:00",
+        "last_approver_activity_at": "2026-09-29T00:40:22+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": false,
-        "reviewers": [],
-        "route_held_for_gates": false,
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "trask",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          }
+        ],
+        "route_held_for_gates": true,
+        "route_held_since": "2026-09-29T00:41:02.128278+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "8a3f48b68e2f4e7eb0e3fcbe27ca4cebf6d52fe62d647fdabc362584ed74c474",
-        "waiting_age_basis": "created",
+        "routing_input_fingerprint": "416a4e31ce943af43f030d663e05270b09d7511029943a6b0e5b83ff4a190cb9",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-09-29T00:11:12+00:00"
       },
       "failed": false,
