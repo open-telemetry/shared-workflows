@@ -14844,18 +14844,17 @@
     },
     "51570": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "author_can_act": false,
-        "ci_failing_count": 1,
-        "ci_failing_since": "2026-09-29T13:17:13+00:00",
+        "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
-        "ci_pending_count": 1,
+        "ci_pending_count": 2,
         "conflicts": "no",
-        "copilot_request_fingerprint": "f2e9c46004ceb917f8d65b1df33fc10cf2ea32d7507b45297d8af2add64eea72",
+        "copilot_request_fingerprint": "446eaa0ba9efdfd9525bf92e2ec6020914bdbeeae9eed81d6384c2c1b89e4c0b",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -14871,11 +14870,21 @@
         "head_sha": "29ae0a077f4ea881dc1a079e650708677ff30ae0",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-09-29T12:45:53+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-29T13:53:49+00:00",
+        "last_approver_activity_at": "2026-09-29T13:53:49+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": false,
         "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "iblancasa",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          },
           {
             "approved": false,
             "approved_non_team": true,
@@ -14887,10 +14896,11 @@
             "unresolved_thread": false
           }
         ],
-        "route_held_for_gates": false,
+        "route_held_for_gates": true,
+        "route_held_since": "2026-09-29T13:54:38.965326+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "9bd971ee59b8c2dfb1797f622647bfce7daeed10747318125547a30aa282caf5",
-        "waiting_age_basis": "created",
+        "routing_input_fingerprint": "4570a57e4397c220ad091671281b4e1a2e6f1af0fd7f6f708a17d21642ff546e",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-09-29T00:09:26+00:00"
       },
       "failed": false,
