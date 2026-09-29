@@ -652,7 +652,7 @@ test("forces a 60-minute-old run on the first invocation", async () => {
   assert.deepEqual(result.forceRequested.map(({ runId, ageMinutes }) =>
     ({ runId, ageMinutes })), [{ runId: 1, ageMinutes: 60 }]);
   assert.deepEqual(calls.map(([action]) => action),
-    ["list-runs", "get-run", "get-run", "list-jobs", "force-cancel", "get-run"]);
+    ["list-runs", "list-jobs", "get-run", "get-run", "force-cancel", "get-run"]);
 });
 
 test("does not force a fresh rerun with an old run ID and no jobs", async () => {
@@ -725,6 +725,67 @@ test("does not force if the run is rerun between listing and revalidation", asyn
   assert.deepEqual(result.forceRequested, []);
   assert.deepEqual(result.confirmed, []);
   assert.equal(calls.some(([action]) => action === "force-cancel"), false);
+});
+
+test("does not force if the run is rerun during the job lookup", async () => {
+  const { actions, calls, runs } = fixture({
+    runs: [
+      run(2, "pending", "2026-09-10T11:55:00Z"),
+      { ...run(1, "waiting", "2026-09-10T10:00:00Z"), run_attempt: 1 },
+    ],
+  });
+  const listJobs = actions.listRunJobs;
+  actions.listRunJobs = async (id) => {
+    const jobs = await listJobs(id);
+    runs[1] = {
+      ...runs[1],
+      run_attempt: 2,
+      run_started_at: "2026-09-10T11:50:00Z",
+    };
+    return jobs;
+  };
+  const result = await cancelStalledDashboardRuns({
+    actions, now: () => NOW, watchedWorkflows: [WORKFLOW],
+  });
+  assert.deepEqual(result.forceRequested, []);
+  assert.deepEqual(calls.map(([action]) => action),
+    ["list-runs", "list-jobs", "get-run", "get-run"]);
+});
+
+test("uses the newer run's current attempt start", async () => {
+  const { actions, calls } = fixture({
+    runs: [
+      {
+        ...run(2, "pending", "2026-09-10T09:00:00Z"),
+        run_attempt: 2,
+        run_started_at: "2026-09-10T11:55:00Z",
+      },
+      run(1, "waiting", "2026-09-10T10:00:00Z"),
+    ],
+  });
+  const result = await cancelStalledDashboardRuns({
+    actions, now: () => NOW, watchedWorkflows: [WORKFLOW],
+  });
+  assert.deepEqual(result.forceRequested.map(({ runId }) => runId), [1]);
+  assert.equal(calls.some(([action]) => action === "force-cancel"), true);
+});
+
+test("does not use a newer rerun with an unknown attempt start", async () => {
+  const { actions, calls } = fixture({
+    runs: [
+      {
+        ...run(2, "pending", "2026-09-10T11:55:00Z"),
+        run_attempt: 2,
+        run_started_at: null,
+      },
+      run(1, "waiting", "2026-09-10T10:00:00Z"),
+    ],
+  });
+  const result = await cancelStalledDashboardRuns({
+    actions, now: () => NOW, watchedWorkflows: [WORKFLOW],
+  });
+  assert.deepEqual(result.forceRequested, []);
+  assert.deepEqual(calls.map(([action]) => action), ["list-runs"]);
 });
 
 test("repeats normal and force requests without retaining state", async () => {

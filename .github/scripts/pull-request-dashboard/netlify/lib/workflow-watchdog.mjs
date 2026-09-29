@@ -114,14 +114,20 @@ export async function cancelStalledDashboardRuns({
         ),
       };
       if (createdAt <= forceBefore) {
-        const [current, currentNewer, jobs] = await Promise.all([
-          getRunIfFound(actions, run.id),
-          getRunIfFound(actions, newerRun.id),
-          getJobsIfFound(actions, run.id),
-        ]);
-        if (!current || jobs === null) {
+        const jobs = await getJobsIfFound(actions, run.id);
+        if (jobs === null) {
           continue;
         }
+        const [current, currentNewer] = await Promise.all([
+          getRunIfFound(actions, run.id),
+          getRunIfFound(actions, newerRun.id),
+        ]);
+        if (!current) {
+          continue;
+        }
+        const currentNewerStart = currentNewer
+          ? runAttemptStart(currentNewer)
+          : NaN;
         if (
           !BLOCKING_RUN_STATUSES.has(current.status) ||
           current.run_attempt !== run.run_attempt ||
@@ -131,7 +137,8 @@ export async function cancelStalledDashboardRuns({
           !currentNewer ||
           !WAITING_RUN_STATUSES.has(currentNewer.status) ||
           !matchesWorkflow(currentNewer, workflow) ||
-          Date.parse(currentNewer.created_at) <= runAttemptStart(current) ||
+          !Number.isFinite(currentNewerStart) ||
+          currentNewerStart <= runAttemptStart(current) ||
           !sameConcurrencyGroup(current, currentNewer, workflow) ||
           !canCancelStalledRun(jobs, now() - staleRunMs)
         ) {
@@ -232,13 +239,15 @@ function runAttemptStart(run) {
 
 function findNewerRun(run, runs, workflow) {
   return runs
-    .filter((candidate) =>
-      WAITING_RUN_STATUSES.has(candidate.status) &&
-      Date.parse(candidate.created_at) > runAttemptStart(run) &&
-      sameConcurrencyGroup(run, candidate, workflow)
-    )
+    .filter((candidate) => {
+      const candidateStart = runAttemptStart(candidate);
+      return WAITING_RUN_STATUSES.has(candidate.status) &&
+        Number.isFinite(candidateStart) &&
+        candidateStart > runAttemptStart(run) &&
+        sameConcurrencyGroup(run, candidate, workflow);
+    })
     .sort((left, right) =>
-      Date.parse(left.created_at) - Date.parse(right.created_at)
+      runAttemptStart(left) - runAttemptStart(right)
     )[0];
 }
 
