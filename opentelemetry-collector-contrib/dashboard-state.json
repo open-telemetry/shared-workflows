@@ -12698,16 +12698,14 @@
         "assignees": [],
         "author": "rluidash",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [
-          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/51420#pullrequestreview-5358316669"
-        ],
+        "author_action_top_level_feedback_urls": [],
         "author_can_act": true,
         "author_nudge_episode_id": "2743062a9b7a4707b7ec6bce30d5cdac",
         "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 1,
         "conflicts": "no",
-        "copilot_request_fingerprint": "b58d7473d08e9f0dd030ecda62ed3dc34018b87841f1eb8b9e2b9c022b5b53e6",
+        "copilot_request_fingerprint": "73acc359fa9e5418f9a8a686794d52e797b4832e7464a0357afa174e7d85066e",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -12723,9 +12721,9 @@
         "head_sha": "d4bd5c9b843807cb07310eb3c101f9527fa4080d",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-30T15:37:50+00:00",
+        "last_activity_at": "2026-09-30T16:10:15+00:00",
         "last_approver_activity_at": "",
-        "last_author_activity_at": "2026-09-30T15:37:50+00:00",
+        "last_author_activity_at": "2026-09-30T16:10:15+00:00",
         "required_checks_settled": false,
         "reviewers": [
           {
@@ -12735,21 +12733,29 @@
             "login": "ebrdarSplunk",
             "open_thread": false,
             "pending_review": false,
-            "top_level_feedback": true,
+            "top_level_feedback": false,
             "unresolved_thread": false
           }
         ],
-        "route_held_for_gates": false,
+        "route_held_for_gates": true,
+        "route_held_since": "2026-09-30T16:10:29.155758+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "5dab3fa6c5ba9ea1ba1f61adff2208557df91addbddd676484dce2238544afef",
-        "waiting_age_basis": "oldest_pending_thread",
+        "routing_input_fingerprint": "0891647a631936bb597ea458809db9e58305db457f15ece0cd1515a49898095e",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-09-29T20:52:15+00:00"
       },
       "failed": false,
       "pr_number": 51420,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/51420",
       "route": "author",
-      "top_level_history": {}
+      "top_level_history": {
+        "pr-review-5358316669": {
+          "evidence": {
+            "reply": "2026-09-30T16:10:15Z"
+          },
+          "reply_source_id": 5915101188
+        }
+      }
     },
     "51421": {
       "facts": {
