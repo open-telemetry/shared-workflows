@@ -101,6 +101,40 @@ class RunGhJsonTest(unittest.TestCase):
 
     @patch("github_cli.sleep_for_retry")
     @patch("github_cli.subprocess.run")
+    def test_recovers_from_api_connection_error(self, run, sleep) -> None:
+        run.side_effect = [
+            subprocess.CompletedProcess(
+                ["gh"], 1, "",
+                "error connecting to api.github.com\n"
+                "check your internet connection or https://githubstatus.com",
+            ),
+            subprocess.CompletedProcess(["gh"], 0, '{"ok": true}', ""),
+        ]
+
+        self.assertEqual({"ok": True}, run_gh_json(["gh", "api", "/test"]))
+        self.assertEqual(2, run.call_count)
+        sleep.assert_called_once_with(0)
+
+    @patch("github_cli.sleep_for_retry")
+    @patch("github_cli.subprocess.run")
+    def test_api_connection_error_exhaustion_is_transient(self, run, sleep) -> None:
+        run.return_value = subprocess.CompletedProcess(
+            ["gh"], 1, "",
+            "error connecting to api.github.com\n"
+            "check your internet connection or https://githubstatus.com",
+        )
+
+        with self.assertRaisesRegex(TransientGhError, "error connecting to api"):
+            run_gh_json(["gh", "api", "/test"])
+
+        self.assertEqual(GH_RETRY_ATTEMPTS, run.call_count)
+        self.assertEqual(
+            [call(attempt) for attempt in range(GH_RETRY_ATTEMPTS - 1)],
+            sleep.call_args_list,
+        )
+
+    @patch("github_cli.sleep_for_retry")
+    @patch("github_cli.subprocess.run")
     def test_exact_not_found_raises_typed_error_without_retry(
         self, run, sleep
     ) -> None:
