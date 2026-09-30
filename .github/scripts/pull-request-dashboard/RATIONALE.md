@@ -121,6 +121,8 @@ the implementation understandable and operationally cheap.
   drains repository-wide work when it observes a generation without a delivery
   receipt. The publisher records the receipt only after full delivery and the
   dashboard issue both succeed. The queue drain follows the same rule.
+  A full queue publication satisfies the batch's pending issue update; another
+  issue publication is needed only after a later active delivery.
   Webhooks without an outstanding full-publish generation remain targeted,
   so unrelated PR events do not repeatedly fan out. Status-comment rollout
   remains bounded to 50 per untargeted delivery; a webhook publisher puts its

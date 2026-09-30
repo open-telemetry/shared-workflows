@@ -466,6 +466,43 @@ class QueueBatchTest(unittest.TestCase):
         )
         self.assertEqual([result["outcome"] for result in results], ["success", "success"])
 
+    def test_queue_skips_issue_publication_already_completed_by_full_delivery(self) -> None:
+        for deliveries, expected_generations in (
+            ([(True, None, 5)], [5]),
+            ([(True, None, 0), (True, None, 5)], [5]),
+            ([(True, None, 5), (False, None, 0)], [5]),
+            ([(True, None, 5), (True, None, 6)], [5, 6]),
+        ):
+            with self.subTest(deliveries=deliveries), tempfile.TemporaryDirectory() as directory:
+                config_path = Path(directory) / "repositories.json"
+                config_path.write_text(json.dumps([{"name": "example"}]), encoding="utf-8")
+                processor = process_queue_batch.DashboardBatchProcessor(
+                    config_path, env={"REPO_NAME": "example"},
+                )
+                items = [
+                    WorkItem("example", number, (claim(f"example#pr:{number}", "example", pr_number=number),))
+                    for number in range(1, len(deliveries) + 1)
+                ]
+                with (
+                    mock.patch.object(processor, "_initial_backfill_complete", return_value=True),
+                    mock.patch.object(processor, "_update_dashboard"),
+                    mock.patch.object(processor, "_deliver", side_effect=deliveries),
+                    mock.patch.object(
+                        processor, "_publish",
+                        side_effect=[None] * len(expected_generations) + [
+                            RuntimeError("redundant publication failed"),
+                        ],
+                    ) as publish,
+                    mock.patch.object(processor, "_complete_full_publish") as acknowledge,
+                ):
+                    results = processor.process_repository("example", items)
+                self.assertEqual(["success"] * len(items), [result["outcome"] for result in results])
+                self.assertEqual(len(expected_generations), publish.call_count)
+                self.assertEqual(
+                    expected_generations,
+                    [call.args[2] for call in acknowledge.call_args_list],
+                )
+
     def test_queue_drains_full_obligation_once_before_next_targeted_item(self) -> None:
         lifecycle: list[str] = []
         with tempfile.TemporaryDirectory() as directory:
@@ -480,7 +517,10 @@ class QueueBatchTest(unittest.TestCase):
                 mock.patch.object(processor, "_initial_backfill_complete", return_value=True),
                 mock.patch.object(processor, "_update_dashboard"),
                 mock.patch.object(
-                    processor, "_deliver", side_effect=[(True, None, 5), (True, None, 0)]
+                    processor, "_deliver",
+                    side_effect=lambda _repo, number, *_args: (
+                        lifecycle.append(f"deliver-{number}") or (True, None, 5 if number == 1 else 0)
+                    ),
                 ),
                 mock.patch.object(processor, "_publish", side_effect=lambda *_args: lifecycle.append("publish")),
                 mock.patch.object(
@@ -489,9 +529,67 @@ class QueueBatchTest(unittest.TestCase):
                 ) as acknowledge,
             ):
                 results = processor.process_repository("example", items)
-        self.assertEqual(["publish", "acknowledge", "publish"], lifecycle)
+        self.assertEqual(
+            ["deliver-1", "publish", "acknowledge", "deliver-2", "publish"],
+            lifecycle,
+        )
         acknowledge.assert_called_once()
         self.assertEqual(["success", "success"], [result["outcome"] for result in results])
+
+    def test_queue_publishes_later_active_state_even_when_delivery_fails(self) -> None:
+        lifecycle: list[str] = []
+        with tempfile.TemporaryDirectory() as directory:
+            config_path = Path(directory) / "repositories.json"
+            config_path.write_text(json.dumps([{"name": "example"}]), encoding="utf-8")
+            processor = process_queue_batch.DashboardBatchProcessor(
+                config_path, env={"REPO_NAME": "example"},
+            )
+            items = [
+                WorkItem("example", number, (claim(f"example#pr:{number}", "example", pr_number=number),))
+                for number in (1, 2)
+            ]
+            with (
+                mock.patch.object(processor, "_initial_backfill_complete", return_value=True),
+                mock.patch.object(processor, "_update_dashboard"),
+                mock.patch.object(
+                    processor, "_deliver",
+                    side_effect=[(True, None, 5), (True, RuntimeError("status comments failed"), 0)],
+                ),
+                mock.patch.object(processor, "_publish", side_effect=lambda *_args: lifecycle.append("publish")),
+                mock.patch.object(
+                    processor, "_complete_full_publish",
+                    side_effect=lambda *_args: lifecycle.append("acknowledge"),
+                ),
+            ):
+                results = processor.process_repository("example", items)
+        self.assertEqual(["publish", "acknowledge", "publish"], lifecycle)
+        self.assertEqual(
+            {"example#pr:1": "success", "example#pr:2": "retry"},
+            {result["itemKey"]: result["outcome"] for result in results},
+        )
+
+    def test_queue_receipt_failure_retries_without_republishing_the_issue(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            config_path = Path(directory) / "repositories.json"
+            config_path.write_text(json.dumps([{"name": "example"}]), encoding="utf-8")
+            processor = process_queue_batch.DashboardBatchProcessor(
+                config_path, env={"REPO_NAME": "example"},
+            )
+            item = WorkItem("example", 1, (claim("example#pr:1", "example", pr_number=1),))
+            with (
+                mock.patch.object(processor, "_initial_backfill_complete", return_value=True),
+                mock.patch.object(processor, "_update_dashboard"),
+                mock.patch.object(processor, "_deliver", return_value=(True, None, 5)),
+                mock.patch.object(processor, "_publish") as publish,
+                mock.patch.object(
+                    processor, "_complete_full_publish", side_effect=RuntimeError("receipt push failed"),
+                ) as acknowledge,
+            ):
+                results = processor.process_repository("example", [item])
+        self.assertEqual("retry", results[0]["outcome"])
+        self.assertEqual("receipt push failed", results[0]["error"])
+        publish.assert_called_once()
+        acknowledge.assert_called_once()
 
     def test_queue_does_not_acknowledge_failed_full_publication(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

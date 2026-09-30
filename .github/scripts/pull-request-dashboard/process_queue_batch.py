@@ -378,25 +378,26 @@ class DashboardBatchProcessor:
             return results
 
         successful: list[WorkItem] = []
-        publish_active = False
+        publish_needed = False
         for item in ready:
             delivery_active, delivery_error, full_generation = self._deliver(
                 repository, item.pr_number, state_branch, env
             )
-            publish_active = delivery_active or publish_active
+            publish_needed = delivery_active or publish_needed
             if delivery_error is not None:
                 results.extend(failure_acknowledgments(item.claims, delivery_error))
                 continue
             if full_generation:
                 try:
                     self._publish(repository, state_branch, config, env)
+                    publish_needed = False
                     self._complete_full_publish(repository, state_branch, full_generation, env)
                 except Exception as error:
                     results.extend(failure_acknowledgments(item.claims, error))
                     continue
             successful.append(item)
 
-        if publish_active:
+        if publish_needed:
             try:
                 self._publish(repository, state_branch, config, env)
             except Exception as error:
