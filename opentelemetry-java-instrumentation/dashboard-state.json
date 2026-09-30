@@ -2446,7 +2446,7 @@
     },
     "20329": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "trask",
         "author_action_review_thread_urls": [],
@@ -2457,7 +2457,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 2,
         "conflicts": "no",
-        "copilot_request_fingerprint": "74753a83df80d3240eaa014c2aaf7147db525e842aa95e2dc759bdccb45ffc7e",
+        "copilot_request_fingerprint": "ece834a4728ef1c6bcf944cfeb8d1bbe3aee3bc6e86d9ba78c3dfcfe63d11f41",
         "copilot_review_exists": true,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -2473,16 +2473,27 @@
         "head_sha": "6fda636f071b651cbed3e204c332038e17f72202",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-30T17:59:27+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-30T18:02:24+00:00",
+        "last_approver_activity_at": "2026-09-30T18:02:24+00:00",
         "last_author_activity_at": "2026-09-30T17:59:01+00:00",
         "required_checks_settled": false,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "laurit",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          }
+        ],
         "route_held_for_gates": true,
         "route_held_since": "2026-09-30T18:01:50.302548+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "2a98a99163f5587926fbc99692b3cf3c45a737df5faf4f9eee7751cb7ba618c5",
-        "waiting_age_basis": "created",
+        "routing_input_fingerprint": "45146c3a41480e370e7a38474041b00674ca38eb8a1bf34735f72e6ccafada7b",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-09-30T17:59:27+00:00"
       },
       "failed": false,
