@@ -3724,7 +3724,7 @@
     },
     "554": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/dependabot",
         "author_action_review_thread_urls": [],
@@ -3734,7 +3734,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "4785cb3595453bacf064d58ac242f7a48f6cef10e56c7d66e1fcaeacebf91241",
+        "copilot_request_fingerprint": "0c5087c404d3703ea18eea7c51e7c9f5b9ed0c7c6ad8600dc95dfcaadfdff516",
         "copilot_review_exists": true,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -3750,21 +3750,32 @@
         "head_sha": "26cb3cdc73660debd693dc4de5ef03aa0d0ec478",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-09-30T17:01:51+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-30T17:05:56+00:00",
+        "last_approver_activity_at": "2026-09-30T17:05:56+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "trask",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "3ee690d9f1e01ef3adf8f01140958b905f4f91fb48882151c2ba58efd30d6c40",
+        "routing_input_fingerprint": "0180ff1a55e5ae305e0bcc4ccc15b54b9ea12ba90763368e723f9e4fdc035f69",
         "waiting_age_basis": "created",
         "waiting_since": "2026-09-30T17:01:51+00:00"
       },
       "failed": false,
       "pr_number": 554,
       "pr_url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/554",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     }
   },
