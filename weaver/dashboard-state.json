@@ -769,10 +769,9 @@
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "author_can_act": true,
-        "author_nudge_episode_id": "948f57eff1ee4090a6f5910bfb6d88c7",
         "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
-        "ci_pending_count": 1,
+        "ci_pending_count": 0,
         "conflicts": "no",
         "copilot_request_fingerprint": "cdeb842598f213074164ac014fd7b1ce6690f1f4c58a3bc1d085daf6fdd1d4a3",
         "copilot_review_exists": false,
@@ -793,7 +792,7 @@
         "last_activity_at": "2026-09-30T17:49:15+00:00",
         "last_approver_activity_at": "2026-09-29T18:22:04+00:00",
         "last_author_activity_at": "2026-09-30T17:49:15+00:00",
-        "required_checks_settled": false,
+        "required_checks_settled": true,
         "reviewers": [
           {
             "approved": false,
@@ -806,17 +805,16 @@
             "unresolved_thread": false
           }
         ],
-        "route_held_for_gates": true,
-        "route_held_since": "2026-09-30T17:50:20.544694+00:00",
+        "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "515659c36459cdcf05a90f5602a6e9728c1c50b3d594bac6c559defbdb29e34b",
-        "waiting_age_basis": "gate_hold",
-        "waiting_since": "2026-09-29T18:22:04+00:00"
+        "routing_input_fingerprint": "57a335a25d347743b07bb015a69c9b95077f6560d56bd1febb72ac6d4154fb22",
+        "waiting_age_basis": "gate_release",
+        "waiting_since": "2026-09-30T17:54:31.028148+00:00"
       },
       "failed": false,
       "pr_number": 1775,
       "pr_url": "https://github.com/open-telemetry/weaver/pull/1775",
-      "route": "author",
+      "route": "approver",
       "top_level_history": {
         "pr-issue-comment-5896094100": {
           "evidence": {
