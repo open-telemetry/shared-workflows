@@ -2312,7 +2312,7 @@
     },
     "816": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
@@ -2322,7 +2322,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "436b7a85c2a5ae8058a73947c4573c6403542eec3a3847a3bf5c53dbe06cf3d5",
+        "copilot_request_fingerprint": "4a28a896c5c219af7658ca065e5cde3c850f716d06bf3c337d952fb1302fc484",
         "copilot_review_exists": true,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -2338,21 +2338,32 @@
         "head_sha": "ec63bde680dde8f30352b643dcc7fc726f2507c6",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-09-30T01:14:00+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-30T20:58:12+00:00",
+        "last_approver_activity_at": "2026-09-30T20:58:12+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "lmolkova",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "5012ee972cd0d33d6787aa077654790cefaa7ed566998d2d71740ef3b1fcb550",
+        "routing_input_fingerprint": "c78e9224d8645b45a2f5f145349e2b47a980372f091b16d20fd71705bd5f8ed8",
         "waiting_age_basis": "created",
         "waiting_since": "2026-09-30T01:14:00+00:00"
       },
       "failed": false,
       "pr_number": 816,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/816",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "817": {
