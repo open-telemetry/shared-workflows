@@ -1030,7 +1030,7 @@
     },
     "5457": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "martincostello",
         "author_action_review_thread_urls": [],
@@ -1040,7 +1040,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "998762a265f462e1322c2fc5c4eec9bd1108dfe45c0c62d9b6be19d717ece639",
+        "copilot_request_fingerprint": "a761c07dba99104565d6d32e63c015a195e48997142b243c799a724ac1863400",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -1056,21 +1056,32 @@
         "head_sha": "8004100439e028b3e01478431d4b1eaa4cd6d2d9",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-30T13:50:53+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-30T14:11:57+00:00",
+        "last_approver_activity_at": "2026-09-30T14:11:57+00:00",
         "last_author_activity_at": "2026-09-30T13:49:56+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "matt-hensley",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "32d684e61d227627a8d8a5e21fd957a19554819c894ec892055f637e7b6b9304",
+        "routing_input_fingerprint": "3ce1d0e6242723bfd25e1f18f9b41f3633a2a9f8509a600f18e254102829aee8",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-09-30T13:49:56+00:00"
       },
       "failed": false,
       "pr_number": 5457,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-dotnet-contrib/pull/5457",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     }
   },
