@@ -11,7 +11,6 @@ import subprocess
 import sys
 
 from state import (
-    DASHBOARD_STATE_VERSION,
     FULL_PUBLISH_DELIVERED_FILE,
     FULL_PUBLISH_NEEDED_FILE,
     INITIAL_BACKFILL_COMPLETE_KEY,
@@ -50,31 +49,21 @@ def remote_generation(repository: str, branch_prefix: str, filename: str) -> int
     return full_publish_generation(data, f"{branch}/{filename}")
 
 
-def needed_generation(repository: str) -> tuple[int, bool | None]:
+def needed_generation(repository: str) -> tuple[int, bool]:
     branch = os.environ["DASHBOARD_STATE_BRANCH_PREFIX"]
     data = remote_state_file(repository, branch, FULL_PUBLISH_NEEDED_FILE)
     if data is None:
-        return 0, None
+        return 0, False
     generation = full_publish_generation(
         data, f"{branch}/{repository}/{FULL_PUBLISH_NEEDED_FILE}"
     )
     complete = data.get(INITIAL_BACKFILL_COMPLETE_KEY)
-    if INITIAL_BACKFILL_COMPLETE_KEY in data and not isinstance(complete, bool):
-        raise RuntimeError(f"incompatible full publish state {branch}/{repository}/{FULL_PUBLISH_NEEDED_FILE}")
+    if not isinstance(complete, bool):
+        raise RuntimeError(
+            f"incompatible full publish state {branch}/{repository}/{FULL_PUBLISH_NEEDED_FILE}: "
+            "initial_backfill_complete must be a boolean; run a backfill to regenerate the marker"
+        )
     return generation, complete
-
-
-def initial_backfill_complete(repository: str) -> bool:
-    branch = os.environ["DASHBOARD_STATE_BRANCH_PREFIX"]
-    data = remote_state_file(repository, branch, "dashboard-state.json")
-    if data is None:
-        return False
-    if (
-        data.get("version") != DASHBOARD_STATE_VERSION
-        or not isinstance(data.get(INITIAL_BACKFILL_COMPLETE_KEY), bool)
-    ):
-        raise RuntimeError(f"incompatible dashboard state {branch}/{repository}/dashboard-state.json")
-    return data[INITIAL_BACKFILL_COMPLETE_KEY]
 
 
 def check_health(repositories: list[str], canary: set[str], canceled: set[str]) -> bool:
@@ -96,11 +85,8 @@ def check_health(repositories: list[str], canary: set[str], canceled: set[str]) 
             FULL_PUBLISH_DELIVERED_FILE,
         )
         if delivered < needed:
-            if channel not in canceled:
-                if ready is None:
-                    ready = initial_backfill_complete(repository)
-                if not ready:
-                    continue
+            if channel not in canceled and not ready:
+                continue
             print(
                 f"{repository}: full publication pending ({delivered}/{needed})",
                 file=sys.stderr,

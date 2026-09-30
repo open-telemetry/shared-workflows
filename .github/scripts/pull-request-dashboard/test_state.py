@@ -75,6 +75,24 @@ from state import (
 
 
 class StateTest(unittest.TestCase):
+    def test_backfill_regenerates_readiness_on_legacy_marker(self) -> None:
+        with (
+            tempfile.TemporaryDirectory() as temp_dir,
+            patch("state._state_dir", Path(temp_dir)),
+            patch("state._using_delivery_state", False),
+        ):
+            full_publish_needed_path().write_text(
+                json.dumps({"version": FULL_PUBLISH_STATE_VERSION, "generation": 6}),
+                encoding="utf-8",
+            )
+            record_full_publish_delivered(5)
+            mark_full_publish_needed(initial_backfill_complete=True)
+            self.assertEqual(
+                {"version": FULL_PUBLISH_STATE_VERSION, "generation": 7, "initial_backfill_complete": True},
+                json.loads(full_publish_needed_path().read_text(encoding="utf-8")),
+            )
+            self.assertEqual(5, read_full_publish_generation(full_publish_delivered_path()))
+
     def test_full_publish_generations_are_strict_and_monotonic(self) -> None:
         with (
             tempfile.TemporaryDirectory() as temp_dir,
