@@ -159,6 +159,10 @@ the implementation understandable and operationally cheap.
   delivery branch. Continuous worker compare-and-swap traffic therefore cannot
   reject a publisher receipt push, and publisher activity never delays a
   worker.
+- Every untargeted backfill save advances the full-publish generation, including
+  saves with unchanged dashboard state. Successful hourly backfills therefore
+  add worker commits even when no dashboard result changes; PR-by-PR backfills
+  also advance the generation throughout the run.
 - Updates use `git push --force-with-lease`, so each owned ref remains its own
   durable compare-and-swap boundary.
 - The first publisher copies compatible receipt state from the accepted branch
