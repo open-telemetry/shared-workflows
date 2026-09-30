@@ -42,8 +42,6 @@ concurrency:
 
 env:
   DASHBOARD_CONFIG: .github/scripts/pull-request-dashboard/repositories.json
-  DASHBOARD_STATE_BRANCH_PREFIX: otelbot/pull-request-dashboard-state
-  DASHBOARD_DELIVERY_STATE_BRANCH_PREFIX: otelbot/pull-request-dashboard-delivery
   # Repositories that run dashboard code from the triggering commit, ahead of
   # everyone else. Job-level `if` cannot read `env`, so the targeted canary job
   # repeats this list inline; test_rollout.py keeps the two in sync.
@@ -321,44 +319,11 @@ jobs:
       PR_DASHBOARD_PRIVATE_KEY: ${{ secrets.PR_DASHBOARD_PRIVATE_KEY }}
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
-  check-full-publish-health:
-    needs:
-      - resolve-targets
-      - run-repo-dashboard-canary
-      - run-repo-dashboard-stable
-    if: >-
-      always() &&
-      (
-        github.event_name == 'schedule' ||
-        (
-          github.event_name == 'workflow_dispatch' &&
-          inputs.repository == '' &&
-          inputs.pr_number == ''
-        )
-      )
-    runs-on: ubuntu-slim
-    permissions:
-      contents: read
-    outputs:
-      healthy: ${{ steps.check.outputs.healthy }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - name: Check outstanding full publications
-        id: check
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CANARY_RESULT: ${{ needs.run-repo-dashboard-canary.result }}
-          STABLE_RESULT: ${{ needs.run-repo-dashboard-stable.result }}
-        run: python3 .github/scripts/pull-request-dashboard/check_full_publish_health.py "$DASHBOARD_CONFIG"
-
   notify-hourly-failure:
     needs:
       - resolve-targets
       - run-repo-dashboard-canary
       - run-repo-dashboard-stable
-      - check-full-publish-health
     if: >-
       always() &&
       (
@@ -373,7 +338,7 @@ jobs:
       issues: write # needed to open/close the hourly failure tracking issue
     uses: ./.github/workflows/workflow-failure-issue.yml
     with:
-      # A canceled pending publisher is harmless only when no full delivery
-      # obligation remains. The health check also detects undelivered backfills
-      # when every matrix job reports success.
-      success: ${{ needs.resolve-targets.result == 'success' && needs.check-full-publish-health.result == 'success' && needs.check-full-publish-health.outputs.healthy == 'true' && (needs.run-repo-dashboard-canary.result == 'success' || needs.run-repo-dashboard-canary.result == 'cancelled' || needs.run-repo-dashboard-canary.result == 'skipped') && (needs.run-repo-dashboard-stable.result == 'success' || needs.run-repo-dashboard-stable.result == 'cancelled' || needs.run-repo-dashboard-stable.result == 'skipped') }}
+      # GitHub can replace pending publishers; subsequent publishers drain
+      # durable work. Cancellations and empty channels are tolerated, while
+      # genuine matrix failures still trigger the failure issue.
+      success: ${{ needs.resolve-targets.result == 'success' && (needs.run-repo-dashboard-canary.result == 'success' || needs.run-repo-dashboard-canary.result == 'cancelled' || needs.run-repo-dashboard-canary.result == 'skipped') && (needs.run-repo-dashboard-stable.result == 'success' || needs.run-repo-dashboard-stable.result == 'cancelled' || needs.run-repo-dashboard-stable.result == 'skipped') }}

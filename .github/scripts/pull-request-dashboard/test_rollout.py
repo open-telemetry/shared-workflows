@@ -215,24 +215,20 @@ class RolloutWiringTest(unittest.TestCase):
         self.assertIn("steps.publish-issue.outcome == 'success'", publish_job)
         self.assertIn("steps.delivery.outcome == 'success'", publish_job)
 
-    def test_hourly_failure_gate_reads_full_publish_health(self) -> None:
-        health = self.jobs["check-full-publish-health"]
+    def test_hourly_failure_gate_tolerates_cancellation_but_not_failure(self) -> None:
         failure = self.jobs["notify-hourly-failure"]
-        self.assertIn("check_full_publish_health.py", health)
-        self.assertIn("contents: read", health)
-        self.assertIn("needs.check-full-publish-health.outputs.healthy == 'true'", failure)
-        self.assertIn("needs.check-full-publish-health.result == 'success'", failure)
-
-    def test_health_checker_branch_prefixes_match_publisher(self) -> None:
-        publisher = REPO_WORKFLOW.read_text(encoding="utf-8")
-        for name in (
-            "DASHBOARD_STATE_BRANCH_PREFIX",
-            "DASHBOARD_DELIVERY_STATE_BRANCH_PREFIX",
-        ):
-            with self.subTest(variable=name):
-                prefix = re.search(rf"^ {{2}}{name}: (\S+)$", publisher, re.MULTILINE)
-                self.assertIsNotNone(prefix)
-                self.assertIn(f"  {name}: {prefix.group(1)}", self.text)
+        self.assertIn(
+            "success: ${{ needs.resolve-targets.result == 'success' && "
+            "(needs.run-repo-dashboard-canary.result == 'success' || "
+            "needs.run-repo-dashboard-canary.result == 'cancelled' || "
+            "needs.run-repo-dashboard-canary.result == 'skipped') && "
+            "(needs.run-repo-dashboard-stable.result == 'success' || "
+            "needs.run-repo-dashboard-stable.result == 'cancelled' || "
+            "needs.run-repo-dashboard-stable.result == 'skipped') }}",
+            failure,
+        )
+        self.assertNotIn("check-full-publish-health", self.jobs)
+        self.assertNotIn("check-full-publish-health", failure)
 
     def test_reminder_sweep_relies_on_repository_publisher_concurrency(self) -> None:
         body = SWEEP_WORKFLOW.read_text(encoding="utf-8")

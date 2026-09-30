@@ -75,20 +75,24 @@ from state import (
 
 
 class StateTest(unittest.TestCase):
-    def test_backfill_regenerates_readiness_on_legacy_marker(self) -> None:
+    def test_backfill_preserves_generations_with_extra_marker_metadata(self) -> None:
         with (
             tempfile.TemporaryDirectory() as temp_dir,
             patch("state._state_dir", Path(temp_dir)),
             patch("state._using_delivery_state", False),
         ):
             full_publish_needed_path().write_text(
-                json.dumps({"version": FULL_PUBLISH_STATE_VERSION, "generation": 6}),
+                json.dumps({
+                    "version": FULL_PUBLISH_STATE_VERSION,
+                    "generation": 6,
+                    "initial_backfill_complete": True,
+                }),
                 encoding="utf-8",
             )
             record_full_publish_delivered(5)
-            mark_full_publish_needed(initial_backfill_complete=True)
+            mark_full_publish_needed()
             self.assertEqual(
-                {"version": FULL_PUBLISH_STATE_VERSION, "generation": 7, "initial_backfill_complete": True},
+                {"version": FULL_PUBLISH_STATE_VERSION, "generation": 7},
                 json.loads(full_publish_needed_path().read_text(encoding="utf-8")),
             )
             self.assertEqual(5, read_full_publish_generation(full_publish_delivered_path()))
@@ -100,16 +104,11 @@ class StateTest(unittest.TestCase):
             patch("state._using_delivery_state", False),
         ):
             self.assertEqual(0, read_full_publish_generation(full_publish_needed_path()))
-            mark_full_publish_needed(initial_backfill_complete=False)
-            mark_full_publish_needed(initial_backfill_complete=True)
+            mark_full_publish_needed()
+            mark_full_publish_needed()
             record_full_publish_delivered(2)
             record_full_publish_delivered(1)
             self.assertEqual(2, read_full_publish_generation(full_publish_needed_path()))
-            self.assertTrue(
-                json.loads(full_publish_needed_path().read_text(encoding="utf-8"))[
-                    "initial_backfill_complete"
-                ]
-            )
             self.assertEqual(2, read_full_publish_generation(full_publish_delivered_path()))
             self.assertEqual(FULL_PUBLISH_STATE_VERSION, current_delivery_versions()["FULL_PUBLISH_STATE_VERSION"])
             full_publish_delivered_path().write_text(

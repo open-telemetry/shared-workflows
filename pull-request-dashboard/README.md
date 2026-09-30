@@ -310,10 +310,10 @@ full-publish generation on the state branch. If GitHub cancels its pending
 publisher, the next publisher for that repository performs a full delivery
 and acknowledges the generation after publishing the issue. Otherwise,
 webhook-triggered publishers continue to deliver status comments and Slack
-only for their triggering PR. An hourly health check reports generations that
-remain undelivered after the initial backfill completes.
-Stable repositories without generation markers retain cancellation tolerance
-until the receipt protocol is promoted. Matrix failures still report failure.
+only for their triggering PR. Subsequent publishers, including hourly runs,
+retry outstanding full deliveries. Hourly failure reporting tolerates
+cancellations but reports failed jobs. Pending generations are not separately
+monitored for age.
 
 Each repository can route Slack notifications to its own `slack_channel` and
 map GitHub logins to Slack user IDs via `slack_user_mapping`. Repositories
