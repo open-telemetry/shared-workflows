@@ -908,12 +908,11 @@
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "author_can_act": true,
-        "author_nudge_episode_id": "f29353bff8c94c11806499e7a42080d8",
         "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
-        "ci_pending_count": 1,
-        "conflicts": "no",
-        "copilot_request_fingerprint": "a6e21825c40c934abf4377eb8fdc9ac329b1d5e3c004063e940c6dc01524fb0a",
+        "ci_pending_count": 0,
+        "conflicts": "yes",
+        "copilot_request_fingerprint": "942003352f5c9041def923b4ba636d8f26ddca0643f71905c9e2760fce2f4d9b",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -932,7 +931,7 @@
         "last_activity_at": "2026-09-30T13:17:10+00:00",
         "last_approver_activity_at": "2026-09-30T12:18:45+00:00",
         "last_author_activity_at": "2026-09-30T13:17:10+00:00",
-        "required_checks_settled": false,
+        "required_checks_settled": true,
         "reviewers": [
           {
             "approved": false,
@@ -945,17 +944,16 @@
             "unresolved_thread": false
           }
         ],
-        "route_held_for_gates": true,
-        "route_held_since": "2026-09-30T13:17:32.780342+00:00",
+        "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "86cff9434de7cc7fb13b53382e41d75babfd560c69c6b5d9317be0617ec391ff",
-        "waiting_age_basis": "gate_hold",
-        "waiting_since": "2026-09-30T11:52:35+00:00"
+        "routing_input_fingerprint": "d49f9b95fae0733ae438c814510b16e3127e13145a75f3ffe1d8d1db1217c740",
+        "waiting_age_basis": "gate_release",
+        "waiting_since": "2026-09-30T13:43:13.620081+00:00"
       },
       "failed": false,
       "pr_number": 7859,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-dotnet/pull/7859",
-      "route": "author",
+      "route": "approver",
       "top_level_history": {}
     },
     "7860": {
