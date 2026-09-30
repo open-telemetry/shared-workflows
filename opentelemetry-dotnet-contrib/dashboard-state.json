@@ -477,7 +477,7 @@
     },
     "5429": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "martincostello",
         "author_action_review_thread_urls": [],
@@ -487,7 +487,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "0fb61d0ee137f76fccc90d84bdace2e60b50526cd03f25d4095d90bec115886b",
+        "copilot_request_fingerprint": "53aeef4dba642e46198d64b5e7d4c6f1bdf3fd25f523f863c74e541e66c471d3",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -503,21 +503,32 @@
         "head_sha": "01ab09409a83ba4923e297e8152770b1cb5fb3ff",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-30T09:52:06+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-30T10:31:49+00:00",
+        "last_approver_activity_at": "2026-09-30T10:31:49+00:00",
         "last_author_activity_at": "2026-09-30T09:50:27+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "Kielek",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "abb13d69e8711bad35f5360d0118d5de7ee35a8f0b35c9f65d407b5b3778f227",
+        "routing_input_fingerprint": "5db8194273ce39601b89393721234bab8245802d16a6bc4cc1391ca104be59ca",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-09-30T09:50:27+00:00"
       },
       "failed": false,
       "pr_number": 5429,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-dotnet-contrib/pull/5429",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     }
   },
