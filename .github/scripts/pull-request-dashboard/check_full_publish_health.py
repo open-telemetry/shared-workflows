@@ -21,7 +21,7 @@ from state import (
 
 def remote_state_file(repository: str, branch_prefix: str, filename: str) -> dict | None:
     branch = f"{branch_prefix}/{repository}"
-    endpoint = f"repos/open-telemetry/shared-workflows/contents/{repository}/{filename}"
+    endpoint = f"repos/{os.environ['GITHUB_REPOSITORY']}/contents/{repository}/{filename}"
     result = subprocess.run(
         ["gh", "api", "--method", "GET", endpoint, "-f", f"ref={branch}"],
         capture_output=True,
@@ -51,7 +51,7 @@ def remote_generation(repository: str, branch_prefix: str, filename: str) -> int
 
 
 def needed_generation(repository: str) -> tuple[int, bool | None]:
-    branch = "otelbot/pull-request-dashboard-state"
+    branch = os.environ["DASHBOARD_STATE_BRANCH_PREFIX"]
     data = remote_state_file(repository, branch, FULL_PUBLISH_NEEDED_FILE)
     if data is None:
         return 0, None
@@ -65,7 +65,7 @@ def needed_generation(repository: str) -> tuple[int, bool | None]:
 
 
 def initial_backfill_complete(repository: str) -> bool:
-    branch = "otelbot/pull-request-dashboard-state"
+    branch = os.environ["DASHBOARD_STATE_BRANCH_PREFIX"]
     data = remote_state_file(repository, branch, "dashboard-state.json")
     if data is None:
         return False
@@ -91,7 +91,9 @@ def check_health(repositories: list[str], canary: set[str], canceled: set[str]) 
                 healthy = False
             continue
         delivered = remote_generation(
-            repository, "otelbot/pull-request-dashboard-delivery", FULL_PUBLISH_DELIVERED_FILE
+            repository,
+            os.environ["DASHBOARD_DELIVERY_STATE_BRANCH_PREFIX"],
+            FULL_PUBLISH_DELIVERED_FILE,
         )
         if delivered < needed:
             if channel not in canceled:

@@ -223,6 +223,17 @@ class RolloutWiringTest(unittest.TestCase):
         self.assertIn("needs.check-full-publish-health.outputs.healthy == 'true'", failure)
         self.assertIn("needs.check-full-publish-health.result == 'success'", failure)
 
+    def test_health_checker_branch_prefixes_match_publisher(self) -> None:
+        publisher = REPO_WORKFLOW.read_text(encoding="utf-8")
+        for name in (
+            "DASHBOARD_STATE_BRANCH_PREFIX",
+            "DASHBOARD_DELIVERY_STATE_BRANCH_PREFIX",
+        ):
+            with self.subTest(variable=name):
+                prefix = re.search(rf"^ {{2}}{name}: (\S+)$", publisher, re.MULTILINE)
+                self.assertIsNotNone(prefix)
+                self.assertIn(f"  {name}: {prefix.group(1)}", self.text)
+
     def test_reminder_sweep_relies_on_repository_publisher_concurrency(self) -> None:
         body = SWEEP_WORKFLOW.read_text(encoding="utf-8")
         sweep_job = job_blocks(body)["sweep"]

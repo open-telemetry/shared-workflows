@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import json
+import os
 import subprocess
 import unittest
 from unittest.mock import patch
@@ -10,6 +11,58 @@ import check_full_publish_health as health
 
 
 class FullPublishHealthTest(unittest.TestCase):
+    def setUp(self) -> None:
+        environment = patch.dict(
+            os.environ,
+            {
+                "GITHUB_REPOSITORY": "open-telemetry/shared-workflows",
+                "DASHBOARD_STATE_BRANCH_PREFIX": "otelbot/pull-request-dashboard-state",
+                "DASHBOARD_DELIVERY_STATE_BRANCH_PREFIX": "otelbot/pull-request-dashboard-delivery",
+            },
+        )
+        environment.start()
+        self.addCleanup(environment.stop)
+
+    def test_health_uses_configured_repository_and_state_prefixes(self) -> None:
+        responses = [
+            subprocess.CompletedProcess(
+                ["gh"],
+                0,
+                json.dumps({
+                    "encoding": "base64",
+                    "content": base64.b64encode(json.dumps(data).encode("utf-8")).decode("ascii"),
+                }),
+                "",
+            )
+            for data in (
+                {"version": 1, "generation": 6, "initial_backfill_complete": True},
+                {"version": 1, "generation": 5},
+            )
+        ]
+        with (
+            patch.dict(
+                os.environ,
+                {
+                    "GITHUB_REPOSITORY": "example/fork",
+                    "DASHBOARD_STATE_BRANCH_PREFIX": "custom/state",
+                    "DASHBOARD_DELIVERY_STATE_BRANCH_PREFIX": "custom/delivery",
+                },
+            ),
+            patch.object(health.subprocess, "run", side_effect=responses) as request,
+        ):
+            self.assertFalse(health.check_health(["example"], {"example"}, set()))
+        self.assertEqual(
+            [
+                ["gh", "api", "--method", "GET",
+                 "repos/example/fork/contents/example/full-publish-needed.json",
+                 "-f", "ref=custom/state/example"],
+                ["gh", "api", "--method", "GET",
+                 "repos/example/fork/contents/example/full-publish-delivered.json",
+                 "-f", "ref=custom/delivery/example"],
+            ],
+            [call.args[0] for call in request.call_args_list],
+        )
+
     def test_reads_versioned_generation_and_surfaces_api_failure(self) -> None:
         encoded = base64.b64encode(
             json.dumps({"version": 1, "generation": 3}).encode("utf-8")

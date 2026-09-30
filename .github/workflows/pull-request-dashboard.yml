@@ -42,6 +42,8 @@ concurrency:
 
 env:
   DASHBOARD_CONFIG: .github/scripts/pull-request-dashboard/repositories.json
+  DASHBOARD_STATE_BRANCH_PREFIX: otelbot/pull-request-dashboard-state
+  DASHBOARD_DELIVERY_STATE_BRANCH_PREFIX: otelbot/pull-request-dashboard-delivery
   # Repositories that run dashboard code from the triggering commit, ahead of
   # everyone else. Job-level `if` cannot read `env`, so the targeted canary job
   # repeats this list inline; test_rollout.py keeps the two in sync.
