@@ -306,7 +306,6 @@ def deliver_with_state(
 
 def complete_full_publish(
     repo: str,
-    state_branch_name: str,
     delivery_state_branch_name: str,
     generation: int,
 ) -> int:
@@ -351,7 +350,6 @@ def main() -> int:
             parser.error("--complete-full-publish-generation must be positive")
         return complete_full_publish(
             repo,
-            args.state_branch,
             args.delivery_state_branch,
             args.complete_full_publish_generation,
         )

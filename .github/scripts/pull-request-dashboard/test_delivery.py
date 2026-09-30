@@ -131,15 +131,29 @@ class DeliveryTest(unittest.TestCase):
                 patch.object(delivery, "claim_delivery_versions", side_effect=[False, True]),
             ):
                 with self.assertRaisesRegex(RuntimeError, "full publish remains pending"):
-                    delivery.complete_full_publish("open-telemetry/example", "state", "delivery", 3)
+                    delivery.complete_full_publish("open-telemetry/example", "delivery", 3)
                 self.assertEqual(
                     0,
-                    delivery.complete_full_publish("open-telemetry/example", "state", "delivery", 3),
+                    delivery.complete_full_publish("open-telemetry/example", "delivery", 3),
                 )
                 self.assertEqual(
                     3,
                     state.read_full_publish_generation(root / "example" / state.FULL_PUBLISH_DELIVERED_FILE),
                 )
+
+    def test_cli_acknowledges_full_publication_on_delivery_branch(self) -> None:
+        with (
+            patch("sys.argv", [
+                "delivery.py",
+                "--repo", "open-telemetry/example",
+                "--state-branch", "state",
+                "--delivery-state-branch", "delivery",
+                "--complete-full-publish-generation", "3",
+            ]),
+            patch.object(delivery, "complete_full_publish", return_value=0) as complete,
+        ):
+            self.assertEqual(0, delivery.main())
+        complete.assert_called_once_with("open-telemetry/example", "delivery", 3)
 
     def test_migrates_existing_receipts_once(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
