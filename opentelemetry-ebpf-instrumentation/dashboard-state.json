@@ -273,11 +273,8 @@
         "assignees": [],
         "author": "darkraider01",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [
-          "https://github.com/open-telemetry/opentelemetry-ebpf-instrumentation/pull/3401#issuecomment-5911634120"
-        ],
+        "author_action_top_level_feedback_urls": [],
         "author_can_act": true,
-        "author_nudge_episode_id": "d5dd8fbd65e046eb97d68af8f652ab1c",
         "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
@@ -310,21 +307,28 @@
             "login": "mmat11",
             "open_thread": false,
             "pending_review": false,
-            "top_level_feedback": true,
+            "top_level_feedback": false,
             "unresolved_thread": false
           }
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
         "routing_input_fingerprint": "0335aa04607430bdeae5bbdb0fc547f6f77d1cc9573f8112b2a32272ef54ca94",
-        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-09-30T12:55:24+00:00"
       },
       "failed": false,
       "pr_number": 3401,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-ebpf-instrumentation/pull/3401",
-      "route": "author",
-      "top_level_history": {}
+      "route": "approver",
+      "top_level_history": {
+        "pr-issue-comment-5911634120": {
+          "evidence": {
+            "reply": "2026-09-30T12:55:24Z"
+          },
+          "reply_source_id": 5911726532
+        }
+      }
     },
     "3458": {
       "facts": {
