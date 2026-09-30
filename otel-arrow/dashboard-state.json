@@ -2150,7 +2150,7 @@
     },
     "4205": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "drewrelmas",
         "author_action_review_thread_urls": [],
@@ -2161,7 +2161,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 1,
         "conflicts": "no",
-        "copilot_request_fingerprint": "6344843e0296f3eb43a38cf402194262f8c28d7d4aee1dfec750434e8083948a",
+        "copilot_request_fingerprint": "fbfc39be658919d8ab2fccc390417a0c0401ef3ad42c7df8a3d456e18b39ea5b",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -2177,16 +2177,27 @@
         "head_sha": "c10bbcd2e33a3153b1398d331ac538876b998d8a",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-30T21:44:40+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-30T21:50:54+00:00",
+        "last_approver_activity_at": "2026-09-30T21:50:54+00:00",
         "last_author_activity_at": "2026-09-30T21:44:40+00:00",
         "required_checks_settled": false,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "jmacd",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          }
+        ],
         "route_held_for_gates": true,
         "route_held_since": "2026-09-30T21:50:02.785962+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "cbf6126ec8712eede76614ac2efb0fdb674261d5625f7124d5871dc076edda90",
-        "waiting_age_basis": "created",
+        "routing_input_fingerprint": "7eb4cac3df4fb44cdc6f550296942adbcae46dd70a91cb6b45888619c47b8b79",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-09-30T21:40:52+00:00"
       },
       "failed": false,
