@@ -128,9 +128,11 @@ the implementation understandable and operationally cheap.
 - The top-level hourly health check compares worker generations with publisher
   receipts after the initial backfill is complete. Before that, a pending
   generation is expected because publishing is disabled; a canceled matrix
-  still cannot prove recovery and is reported. A canceled matrix with no
-  generation marker also cannot prove recovery, so it is reported instead of
-  assumed successful. Matrix failures take precedence over cancellation.
+  still cannot prove recovery and is reported. A canceled canary matrix with no
+  generation marker is also reported. Stable cancellations without a marker
+  retain legacy tolerance until the receipt protocol is promoted; stable
+  repositories with markers use the same receipt checks as canaries. Matrix
+  failures take precedence over cancellation.
 
 ## GitHub Actions Instead Of Netlify For Scheduled Backfills
 

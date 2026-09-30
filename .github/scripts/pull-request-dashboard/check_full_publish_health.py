@@ -83,7 +83,7 @@ def check_health(repositories: list[str], canary: set[str], canceled: set[str]) 
         channel = "canary" if repository in canary else "stable"
         needed, ready = needed_generation(repository)
         if needed == 0:
-            if channel in canceled:
+            if channel == "canary" and channel in canceled:
                 print(
                     f"{repository}: canceled {channel} matrix with no full publish receipt protocol",
                     file=sys.stderr,

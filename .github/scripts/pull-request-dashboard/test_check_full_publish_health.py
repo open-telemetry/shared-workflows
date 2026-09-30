@@ -115,11 +115,23 @@ class FullPublishHealthTest(unittest.TestCase):
         ):
             self.assertTrue(health.check_health(["example"], {"example"}, {"canary"}))
 
-    def test_canceled_legacy_job_without_obligation_is_not_assumed_delivered(self) -> None:
+    def test_canceled_legacy_stable_job_retains_cancellation_tolerance(self) -> None:
         with patch.object(health, "needed_generation", return_value=(0, None)) as fetch:
-            self.assertFalse(health.check_health(["example"], set(), {"stable"}))
+            self.assertTrue(health.check_health(["example"], set(), {"stable"}))
             self.assertTrue(health.check_health(["example"], set(), set()))
             self.assertEqual(2, fetch.call_count)
+
+    def test_canceled_canary_job_requires_receipt_protocol(self) -> None:
+        with patch.object(health, "needed_generation", return_value=(0, None)):
+            self.assertFalse(health.check_health(["example"], {"example"}, {"canary"}))
+
+    def test_canceled_stable_job_checks_receipts_when_protocol_is_available(self) -> None:
+        with (
+            patch.object(health, "needed_generation", return_value=(6, True)),
+            patch.object(health, "remote_generation", side_effect=[5, 6]),
+        ):
+            self.assertFalse(health.check_health(["example"], set(), {"stable"}))
+            self.assertTrue(health.check_health(["example"], set(), {"stable"}))
 
     def test_health_reads_at_most_two_files_per_repository(self) -> None:
         with (
