@@ -1231,7 +1231,7 @@
     },
     "1923": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
@@ -1241,7 +1241,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "5f4d55945c74d5a65687d7a1ea445bf2f3d2de595d03e68f189d5ad2b886ac55",
+        "copilot_request_fingerprint": "ae4d9d017db4abc63568b66813c55ac79a354cdf29564d8ad315b72ab7c57286",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -1257,21 +1257,32 @@
         "head_sha": "4d67dfe9460ac16940a8de636936e436f8679546",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-09-30T01:30:23+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-30T06:01:02+00:00",
+        "last_approver_activity_at": "2026-09-30T06:01:02+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "fabled",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "6cb4971148fa18489d683ec089f2b629ffc54c4ccd8c00f33f70e1793ec0135f",
+        "routing_input_fingerprint": "b762fe795bcc88f355f4ff2df80f8e8b245f604101786796e52ce43f950d824a",
         "waiting_age_basis": "created",
         "waiting_since": "2026-09-30T01:30:23+00:00"
       },
       "failed": false,
       "pr_number": 1923,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-ebpf-profiler/pull/1923",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     }
   },
