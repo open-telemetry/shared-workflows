@@ -23,7 +23,7 @@ permissions: {}
 
 concurrency:
   # github.workflow here would be the caller's name, not this workflow's.
-  group: shared-workflow-zizmor-${{ github.event.pull_request.number || github.ref }}
+  group: shared-workflow-zizmor-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: true
 
 jobs:
