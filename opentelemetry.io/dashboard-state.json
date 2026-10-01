@@ -3730,8 +3730,13 @@
         "approval_count": 0,
         "assignees": [],
         "author": "reese-lee",
-        "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry.io/pull/11920#discussion_r4160709608"
+        ],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/opentelemetry.io/pull/11920#pullrequestreview-5385821662",
+          "https://github.com/open-telemetry/opentelemetry.io/pull/11920#pullrequestreview-5385814875"
+        ],
         "author_can_act": true,
         "author_nudge_episode_id": "2e26bd19b426447487847e30bc7c31cc",
         "ci_failing_count": 3,
@@ -3739,7 +3744,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "c180f7c350d1adadcbbef868a86e363968d6b74d722320b1b5060e53abe72a41",
+        "copilot_request_fingerprint": "efcd3674146461430137044a74df829fd69968ecb57cf9a5977aa3a1bf517317",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -3755,14 +3760,35 @@
         "head_sha": "dd9d8d777d09f52dd95379c9323e58c78ab210ab",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-10-01T21:21:39+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-10-01T21:33:27+00:00",
+        "last_approver_activity_at": "2026-10-01T21:33:11+00:00",
         "last_author_activity_at": "2026-10-01T21:21:39+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": true,
+            "login": "avillela",
+            "open_thread": true,
+            "pending_review": false,
+            "top_level_feedback": true,
+            "unresolved_thread": true
+          },
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": true,
+            "login": "didiViking",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": true,
+            "unresolved_thread": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "3f2499eb9d96f3dcf7afd8b74c708ac7d102ed8c3151b10b17c0d20b7a0f3c3c",
+        "routing_input_fingerprint": "9c17472e6dac67a2f820375e866cf97df1910471b3f7ff630a8272f82469479d",
         "waiting_age_basis": "ci_failure",
         "waiting_since": "2026-10-01T21:21:55+00:00"
       },
