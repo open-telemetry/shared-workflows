@@ -1263,11 +1263,12 @@
         "author_action_top_level_feedback_urls": [],
         "author_can_act": true,
         "author_nudge_episode_id": "088e08e474cb449c8166c17f1021fa35",
-        "ci_failing_count": 0,
+        "ci_failing_count": 1,
+        "ci_failing_since": "2026-10-01T17:07:02+00:00",
         "ci_maintainer_action_required_count": 0,
-        "ci_pending_count": 1,
+        "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "193c1ac02e613770f269ab83b17b259ca5c1e6d1081db5ced88c7f09f1fc86b1",
+        "copilot_request_fingerprint": "f5d84745364a6c32382df451551e35df2a597e810c25d37ccf54b12a9deeab2a",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -1283,10 +1284,10 @@
         "head_sha": "4ce64126bae8a6257ac45c30435ef5601df0ffe1",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-10-01T17:05:33+00:00",
+        "last_activity_at": "2026-10-01T17:07:07+00:00",
         "last_approver_activity_at": "2026-09-29T19:28:52+00:00",
-        "last_author_activity_at": "2026-10-01T17:05:33+00:00",
-        "required_checks_settled": false,
+        "last_author_activity_at": "2026-10-01T17:07:07+00:00",
+        "required_checks_settled": true,
         "reviewers": [
           {
             "approved": false,
@@ -1309,12 +1310,11 @@
             "unresolved_thread": false
           }
         ],
-        "route_held_for_gates": true,
-        "route_held_since": "2026-10-01T17:02:54.901442+00:00",
+        "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "e3790c6b0facc98bf9e7c917efdae73669faa01f1817b801b4defba3c502f88e",
-        "waiting_age_basis": "gate_hold",
-        "waiting_since": "2026-09-29T19:28:49+00:00"
+        "routing_input_fingerprint": "448aef8394637d00da39fbbd6e20803be1f8a6b38a1cde0829453b5287a841e7",
+        "waiting_age_basis": "ci_failure",
+        "waiting_since": "2026-10-01T17:07:02+00:00"
       },
       "failed": false,
       "pr_number": 5448,
