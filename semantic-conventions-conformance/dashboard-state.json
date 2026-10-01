@@ -274,9 +274,11 @@
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "author_can_act": true,
-        "ci_failing_count": 0,
+        "author_nudge_episode_id": "c61e622c517348d4b81c5fffeb0ba499",
+        "ci_failing_count": 1,
+        "ci_failing_since": "2026-10-01T14:20:04+00:00",
         "ci_maintainer_action_required_count": 0,
-        "ci_pending_count": 1,
+        "ci_pending_count": 0,
         "conflicts": "no",
         "copilot_request_fingerprint": "27c21f51ee2ba689f391d57a6715f35547c1747b7d7f00d4d4a21d584577836f",
         "copilot_review_exists": true,
@@ -297,7 +299,7 @@
         "last_activity_at": "2026-10-01T14:02:42+00:00",
         "last_approver_activity_at": "2026-09-29T20:10:35+00:00",
         "last_author_activity_at": "2026-10-01T14:02:42+00:00",
-        "required_checks_settled": false,
+        "required_checks_settled": true,
         "reviewers": [
           {
             "approved": true,
@@ -312,14 +314,14 @@
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "c94c35af380c6175100d26d94dc4c6dad5cfd936adf2a07d1af40d8d2d6be4aa",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-10-01T03:17:48+00:00"
+        "routing_input_fingerprint": "128597544a980018a511d76108d6c9f956fc66934dc152ae17c4433f48828504",
+        "waiting_age_basis": "ci_failure",
+        "waiting_since": "2026-10-01T14:20:04+00:00"
       },
       "failed": false,
       "pr_number": 180,
       "pr_url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/180",
-      "route": "maintainer",
+      "route": "author",
       "top_level_history": {}
     },
     "204": {
