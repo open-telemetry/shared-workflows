@@ -728,7 +728,7 @@
     },
     "235": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
@@ -738,7 +738,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "unknown",
-        "copilot_request_fingerprint": "bc4a1c9b51679d3a9393f56312d46e193b9a4c407c6ef71f2c25de1f3db2b7f6",
+        "copilot_request_fingerprint": "2df87bbc0cc060b4b5acbc98908ac3d74992fb4a4de8af464e35a0e96de9af66",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
         "copilot_review_outstanding": false,
@@ -754,21 +754,32 @@
         "head_sha": "1740124af419b62b89bd5dacd1e8add7e99eabbf",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-09-30T03:50:19+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-10-01T13:36:44+00:00",
+        "last_approver_activity_at": "2026-10-01T13:36:44+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "lmolkova",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "d5944c2d7b31ef36d7b4ee4f0b95c70fef2c50823a2dc5f2e59e78cbe2909572",
+        "routing_input_fingerprint": "eed89bb4eea3104bb6986b383a5a9abfa9bd3789f9b3733fe5a360117bed1c7e",
         "waiting_age_basis": "created",
         "waiting_since": "2026-09-21T06:14:34+00:00"
       },
       "failed": false,
       "pr_number": 235,
       "pr_url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/235",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "236": {
