@@ -721,7 +721,7 @@
     },
     "3618": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
@@ -731,7 +731,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "7fea8ef171c95e74463840fbf6d1643df80a0e62867e45ea2aa9d3974e1d9055",
+        "copilot_request_fingerprint": "9e3f51f464247689476e603f27af71b5ee7afc7533ae58861e53c7e48fb0660b",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -747,21 +747,32 @@
         "head_sha": "53fe680e736d80001d6b903da0583e5e1f981f3e",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-10-01T13:36:47+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-10-01T14:31:55+00:00",
+        "last_approver_activity_at": "2026-10-01T14:31:55+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "mariomac",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "4b3bfee51afbec0ea4a98b35486723bc39ec9b98d3f22ecd13f774ccbfb44b5d",
+        "routing_input_fingerprint": "d066133690c739ee6f4c3155ae72873928f7acee1ba8bd34690bbc8ea166a220",
         "waiting_age_basis": "created",
         "waiting_since": "2026-10-01T13:36:47+00:00"
       },
       "failed": false,
       "pr_number": 3618,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-ebpf-instrumentation/pull/3618",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "3619": {
