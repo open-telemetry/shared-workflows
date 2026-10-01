@@ -15175,7 +15175,7 @@
     },
     "51674": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 2,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
@@ -15183,9 +15183,9 @@
         "author_can_act": false,
         "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
-        "ci_pending_count": 8,
+        "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "ffdb86c98ea534d8a8a9aa8d8af27ce9f752532e3930494f51f57d88e33df236",
+        "copilot_request_fingerprint": "852785697f6894ed844cc23ae5f20080bce8f9031fc676eb21f06dafed67ff32",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -15201,21 +15201,52 @@
         "head_sha": "a5cd6069599fa3ba125db3b3863cceea472cee15",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-10-01T14:13:30+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-10-01T14:22:11+00:00",
+        "last_approver_activity_at": "2026-10-01T14:22:11+00:00",
         "last_author_activity_at": "",
-        "required_checks_settled": false,
-        "reviewers": [],
+        "required_checks_settled": true,
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": true,
+            "changes_requested": false,
+            "login": "singhvibhanshu",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          },
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "songy23",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          },
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "TylerHelmuth",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "1c39cc9b66cb341a79b1af85583bf43e01695722c0e72d45b2715c1e05e4dfed",
+        "routing_input_fingerprint": "96042de134068880d389b1d9784405daf89a552dfb9fd24c2602256e5085ffd2",
         "waiting_age_basis": "created",
         "waiting_since": "2026-10-01T14:13:30+00:00"
       },
       "failed": false,
       "pr_number": 51674,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/51674",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     }
   },
