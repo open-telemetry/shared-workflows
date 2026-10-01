@@ -378,18 +378,26 @@ class DashboardBatchProcessor:
             return results
 
         successful: list[WorkItem] = []
-        publish_active = False
+        publish_needed = False
         for item in ready:
-            delivery_active, delivery_error = self._deliver(
+            delivery_active, delivery_error, full_generation = self._deliver(
                 repository, item.pr_number, state_branch, env
             )
-            publish_active = delivery_active or publish_active
+            publish_needed = delivery_active or publish_needed
             if delivery_error is not None:
                 results.extend(failure_acknowledgments(item.claims, delivery_error))
                 continue
+            if full_generation:
+                try:
+                    self._publish(repository, state_branch, config, env)
+                    publish_needed = False
+                    self._complete_full_publish(repository, state_branch, full_generation, env)
+                except Exception as error:
+                    results.extend(failure_acknowledgments(item.claims, error))
+                    continue
             successful.append(item)
 
-        if publish_active:
+        if publish_needed:
             try:
                 self._publish(repository, state_branch, config, env)
             except Exception as error:
@@ -460,7 +468,7 @@ class DashboardBatchProcessor:
         pr_number: int,
         state_branch: str,
         env: dict[str, str],
-    ) -> tuple[bool, Exception | None]:
+    ) -> tuple[bool, Exception | None, int]:
         with tempfile.NamedTemporaryFile(delete=False) as github_output:
             output_path = Path(github_output.name)
         try:
@@ -485,10 +493,38 @@ class DashboardBatchProcessor:
                 )
             except Exception as caught:
                 error = caught
-            output = output_path.read_text(encoding="utf-8")
-            return "active=true" in output.splitlines(), error
+            output = dict(
+                line.split("=", 1)
+                for line in output_path.read_text(encoding="utf-8").splitlines()
+                if "=" in line
+            )
+            generation = int(output.get("full_publish_generation", "0"))
+            return output.get("active") == "true", error, generation if error is None else 0
         finally:
             output_path.unlink(missing_ok=True)
+
+    def _complete_full_publish(
+        self,
+        repository: str,
+        state_branch: str,
+        generation: int,
+        env: dict[str, str],
+    ) -> None:
+        self._run(
+            [
+                sys.executable,
+                str(self.script_dir / "delivery.py"),
+                "--state-branch",
+                state_branch,
+                "--delivery-state-branch",
+                state_branch_git.delivery_state_branch(state_branch),
+                "--repo",
+                repository,
+                "--complete-full-publish-generation",
+                str(generation),
+            ],
+            env=env,
+        )
 
     def _publish(
         self,

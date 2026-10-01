@@ -197,7 +197,7 @@ class RolloutWiringTest(unittest.TestCase):
         )
         self.assertEqual(
             body.count("DASHBOARD_CODE: ${{ steps.dashboard-code.outputs.path }}"),
-            6,
+            7,
         )
         self.assertNotIn('python3 "${{ steps.dashboard-code.outputs.path }}', body)
         self.assertEqual(body.count("steps.dashboard-code.outcome == 'success'"), 3)
@@ -210,6 +210,25 @@ class RolloutWiringTest(unittest.TestCase):
         self.assertIn("otelbot/pull-request-dashboard-delivery", body)
         self.assertIn('--delivery-state-branch "$delivery_state_branch"', publish_job)
         self.assertIn("    timeout-minutes: 50", publish_job)
+        self.assertIn("group: pull-request-dashboard-publish-${{ inputs.repository }}", publish_job)
+        self.assertLess(publish_job.index("id: publish-issue"), publish_job.index("name: Acknowledge full dashboard publication"))
+        self.assertIn("steps.publish-issue.outcome == 'success'", publish_job)
+        self.assertIn("steps.delivery.outcome == 'success'", publish_job)
+
+    def test_hourly_failure_gate_tolerates_cancellation_but_not_failure(self) -> None:
+        failure = self.jobs["notify-hourly-failure"]
+        self.assertIn(
+            "success: ${{ needs.resolve-targets.result == 'success' && "
+            "(needs.run-repo-dashboard-canary.result == 'success' || "
+            "needs.run-repo-dashboard-canary.result == 'cancelled' || "
+            "needs.run-repo-dashboard-canary.result == 'skipped') && "
+            "(needs.run-repo-dashboard-stable.result == 'success' || "
+            "needs.run-repo-dashboard-stable.result == 'cancelled' || "
+            "needs.run-repo-dashboard-stable.result == 'skipped') }}",
+            failure,
+        )
+        self.assertNotIn("check-full-publish-health", self.jobs)
+        self.assertNotIn("check-full-publish-health", failure)
 
     def test_reminder_sweep_relies_on_repository_publisher_concurrency(self) -> None:
         body = SWEEP_WORKFLOW.read_text(encoding="utf-8")

@@ -115,20 +115,25 @@ the implementation understandable and operationally cheap.
   repositories by coalescing events in Netlify first.
 - Publishers use one concurrency group per target repository. GitHub preserves
   the running publisher but may replace an older pending publisher with a newer
-  one even when `cancel-in-progress` is false. The queue drain can overlap a
-  direct publisher, but both persist receipts with compare-and-swap pushes to
-  the delivery branch. GitHub-facing actions validate live state and use
-  markers or managed resources to make repeated attempts safe. Accepted work
-  lives on the worker branch: a targeted publisher limits status-comment and
-  Slack delivery to its triggering PR. Webhook runs can arrive concurrently for many
-  PRs, so allowing each publisher to fan out into repository-wide delivery
-  would create long jobs and put pressure on the GitHub Actions job queue,
-  especially when a new status-comment revision queues every open PR. The
-  hourly untargeted publisher is the bounded repository-wide rollout and
-  recovery path.
-- The top-level hourly health check treats a replaced pending publisher as
-  successful. Matrix failures take precedence over cancellation, so genuine
-  update or delivery failures still open the failure issue.
+  one even when `cancel-in-progress` is false. Each backfill transaction records
+  a monotonic full-publish generation on the worker branch. A targeted
+  publisher normally limits status-comment and Slack delivery to its PR, but
+  drains repository-wide work when it observes a generation without a delivery
+  receipt. The publisher records the receipt only after full delivery and the
+  dashboard issue both succeed. The queue drain follows the same rule.
+  A full queue publication satisfies the batch's pending issue update; another
+  issue publication is needed only after a later active delivery.
+  Webhooks without an outstanding full-publish generation remain targeted,
+  so unrelated PR events do not repeatedly fan out. Status-comment rollout
+  remains bounded to 50 per untargeted delivery; a webhook publisher puts its
+  triggering PR first in that batch.
+- Hourly failure reporting uses workflow results rather than outstanding
+  generations. A canceled publisher can leave work for a replacement that is
+  still pending or running, so cancellation alone does not trigger a failure
+  issue. Delivery, issue publication, and receipt errors fail the publishing
+  job; genuine matrix failures take precedence over cancellation. Subsequent
+  publishers retry outstanding generations, including on hourly runs. Pending
+  generations have no separate age-based alert.
 
 ## GitHub Actions Instead Of Netlify For Scheduled Backfills
 
@@ -153,6 +158,10 @@ the implementation understandable and operationally cheap.
   delivery branch. Continuous worker compare-and-swap traffic therefore cannot
   reject a publisher receipt push, and publisher activity never delays a
   worker.
+- Every untargeted backfill save advances the full-publish generation, including
+  saves with unchanged dashboard state. Successful hourly backfills therefore
+  add worker commits even when no dashboard result changes; PR-by-PR backfills
+  also advance the generation throughout the run.
 - Updates use `git push --force-with-lease`, so each owned ref remains its own
   durable compare-and-swap boundary.
 - The first publisher copies compatible receipt state from the accepted branch
@@ -165,6 +174,12 @@ the implementation understandable and operationally cheap.
   least once. Targeted PR runs, dashboard publishing, status comments, and
   Slack notifications skip until that initial backfill is complete, so no
   partial dashboard is exposed.
+- Full-publish generations live on the worker branch and completion receipts
+  live on the delivery branch. The generation is advanced in each backfill
+  compare-and-swap update, including an empty or unchanged backfill, so a
+  publisher that runs between two updates cannot acknowledge later work.
+  Delivery-version claims include the full-publish state version; downgraded
+  publishers cannot acknowledge work whose receipt protocol they do not know.
 - Targeted PR runs compute the triggered PR and merge that one PR slot with the
   latest accepted state on each state-branch compare-and-swap retry.
 
@@ -742,11 +757,11 @@ the implementation understandable and operationally cheap.
 - When a mapped assignee is added after a PR was already notified during the
   same waiting period, that assignee may wait until the next follow-up cadence
   instead of receiving an immediate initial notification.
-- A targeted publisher evaluates only its triggering PR and preserves unrelated
-  entries in the sent-notification ledger. An untargeted publisher evaluates all
-  accepted repository state for eligible initial and follow-up notifications,
-  providing the recovery path for Slack work whose pending publisher GitHub
-  replaced. The ledger and weekday 24-hour follow-up cadence bound delivery.
+- A targeted publisher evaluates only its triggering PR unless a backfill's
+  full-publish generation is outstanding; it preserves unrelated entries in
+  the sent-notification ledger. Full delivery evaluates all accepted repository
+  state for eligible initial and follow-up notifications. The ledger and
+  weekday 24-hour follow-up cadence bound delivery.
 - Slack notifications are sent only for dashboard state that has already been
   accepted on the state branch. A newer dashboard update can land after the
   publisher checks out state, so a notification can be slightly late
@@ -763,9 +778,10 @@ the implementation understandable and operationally cheap.
 - Dashboard publishing is normally serialized per target repository. The publisher owns
   target-repository writes for status comments, author reminders, Copilot
   re-review requests, Slack notifications, and the dashboard issue.
-- Each publisher pins one accepted-state snapshot. A
-  targeted publisher limits status-comment and Slack delivery to its triggering
-  PR; an untargeted publisher drains repository-wide work, with status comments
+- Each publisher pins one accepted-state snapshot. A targeted publisher
+  limits status-comment and Slack delivery to its triggering PR unless a
+  backfill generation is outstanding; then it makes one untargeted delivery.
+  An untargeted publisher drains repository-wide work, with status comments
   bounded to 50 per run. Author reminders and Copilot requests use explicit
   durable ledgers; Slack eligibility is reconstructed from accepted dashboard
   and notification state.

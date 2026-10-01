@@ -324,7 +324,6 @@ jobs:
       - resolve-targets
       - run-repo-dashboard-canary
       - run-repo-dashboard-stable
-    # Notify for backfills: scheduled runs and unfiltered manual runs.
     if: >-
       always() &&
       (
@@ -339,8 +338,7 @@ jobs:
       issues: write # needed to open/close the hourly failure tracking issue
     uses: ./.github/workflows/workflow-failure-issue.yml
     with:
-      # GitHub replaces an older pending per-repo publisher even with
-      # cancel-in-progress disabled. Its replacement drains all durable work,
-      # while genuine matrix failures take precedence over cancellation. A
-      # channel with no repositories is skipped, which is not a failure.
+      # GitHub can replace pending publishers; subsequent publishers drain
+      # durable work. Cancellations and empty channels are tolerated, while
+      # genuine matrix failures still trigger the failure issue.
       success: ${{ needs.resolve-targets.result == 'success' && (needs.run-repo-dashboard-canary.result == 'success' || needs.run-repo-dashboard-canary.result == 'cancelled' || needs.run-repo-dashboard-canary.result == 'skipped') && (needs.run-repo-dashboard-stable.result == 'success' || needs.run-repo-dashboard-stable.result == 'cancelled' || needs.run-repo-dashboard-stable.result == 'skipped') }}

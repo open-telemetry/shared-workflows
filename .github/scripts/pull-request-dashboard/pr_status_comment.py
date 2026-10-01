@@ -714,6 +714,7 @@ def update_status_comments_from_state(
     excluded_pr_numbers: set[int] | None = None,
     *,
     open_draft_pr_numbers: set[int] | None = None,
+    priority_pr_number: int | None = None,
 ) -> list[str]:
     dashboard_state = load_dashboard_state_cache()
     if dashboard_state is None:
@@ -737,11 +738,15 @@ def update_status_comments_from_state(
         if number not in queued_pr_number_set
     ]
     excluded_pr_numbers = excluded_pr_numbers or set()
-    rollout_pr_numbers = [
+    eligible_pr_numbers = [
         number
         for number in pending_pr_numbers
         if number not in excluded_pr_numbers
-    ][:STATUS_COMMENT_ROLLOUT_BATCH_SIZE]
+    ]
+    if priority_pr_number in eligible_pr_numbers:
+        eligible_pr_numbers.remove(priority_pr_number)
+        eligible_pr_numbers.insert(0, priority_pr_number)
+    rollout_pr_numbers = eligible_pr_numbers[:STATUS_COMMENT_ROLLOUT_BATCH_SIZE]
     successful_pr_numbers: set[int] = set()
     deferred_pr_numbers: set[int] = set()
     missing_pr_numbers: set[int] = set()

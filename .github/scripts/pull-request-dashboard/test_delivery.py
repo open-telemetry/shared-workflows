@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from contextlib import nullcontext
 from pathlib import Path
 import json
 import tempfile
@@ -11,6 +12,149 @@ import state
 
 
 class DeliveryTest(unittest.TestCase):
+    def test_canceled_full_job_is_drained_by_next_targeted_job(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            accepted = root / "accepted"
+            delivery_dir = root / "delivery"
+            accepted.mkdir()
+            delivery_dir.mkdir()
+            with (
+                patch.object(state, "_state_dir", delivery_dir),
+                patch.object(state, "_accepted_state_dir", accepted),
+                patch.object(state, "_using_delivery_state", True),
+                patch.object(delivery, "claim_delivery_versions", return_value=True),
+                patch.object(delivery.state_branch, "push_state_changes", side_effect=lambda _d, _m, action, **_kw: action()),
+                patch.object(delivery, "deliver_from_state", return_value=[]) as deliver_actions,
+            ):
+                state.write_full_publish_generation(accepted / state.FULL_PUBLISH_NEEDED_FILE, 4)
+                output = root / "output"
+                self.assertEqual(
+                    0,
+                    delivery.deliver_with_state(
+                        "open-telemetry/example", "state", root, pr_number=7,
+                        github_output=output, delivery_state_branch_name="delivery",
+                    ),
+                )
+                self.assertEqual(None, deliver_actions.call_args.args[-1])
+                self.assertEqual(7, deliver_actions.call_args.kwargs["priority_pr_number"])
+                self.assertIn("full_publish_generation=4\n", output.read_text(encoding="utf-8"))
+
+                state.write_full_publish_generation(accepted / state.FULL_PUBLISH_NEEDED_FILE, 5)
+                state.record_full_publish_delivered(4)
+                self.assertEqual(
+                    0,
+                    delivery.deliver_with_state(
+                        "open-telemetry/example", "state", root, pr_number=8,
+                        github_output=output, delivery_state_branch_name="delivery",
+                    ),
+                )
+                self.assertIsNone(deliver_actions.call_args.args[-1])
+                self.assertEqual(8, deliver_actions.call_args.kwargs["priority_pr_number"])
+                state.record_full_publish_delivered(5)
+                self.assertEqual(
+                    0,
+                    delivery.deliver_with_state(
+                        "open-telemetry/example", "state", root, pr_number=8,
+                        github_output=output, delivery_state_branch_name="delivery",
+                    ),
+                )
+                self.assertEqual(8, deliver_actions.call_args.args[-1])
+                self.assertIsNone(deliver_actions.call_args.kwargs["priority_pr_number"])
+                self.assertTrue(output.read_text(encoding="utf-8").endswith("full_publish_generation=0\n"))
+
+    def test_full_delivery_prioritizes_triggering_status_without_limiting_slack(self) -> None:
+        with (
+            patch.object(
+                delivery,
+                "list_open_prs",
+                return_value=[{"number": 7, "isDraft": False}, {"number": 55, "isDraft": False}],
+            ),
+            patch.object(delivery, "deliver_dashboard_command_replies", return_value=[]),
+            patch.object(delivery, "deliver_prepared_author_nudges", return_value=[]),
+            patch.object(delivery, "update_status_comments_from_state", return_value=[]) as status,
+            patch.object(delivery, "deliver_copilot_review_requests", return_value=[]),
+            patch.object(delivery, "notify_slack_from_state", return_value=[]) as slack,
+        ):
+            self.assertEqual(
+                [],
+                delivery.deliver_from_state(
+                    "open-telemetry/example",
+                    Path("author"),
+                    Path("copilot"),
+                    Path("slack"),
+                    priority_pr_number=55,
+                ),
+            )
+        self.assertEqual(55, status.call_args.kwargs["priority_pr_number"])
+        self.assertEqual({7, 55}, {pr["number"] for pr in slack.call_args.args[2]})
+
+    def test_failed_full_delivery_keeps_obligation_for_retry(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            accepted = root / "accepted"
+            delivery_dir = root / "delivery"
+            accepted.mkdir()
+            delivery_dir.mkdir()
+            state.write_full_publish_generation(accepted / state.FULL_PUBLISH_NEEDED_FILE, 2)
+            with (
+                patch.object(state, "_state_dir", delivery_dir),
+                patch.object(state, "_accepted_state_dir", accepted),
+                patch.object(state, "_using_delivery_state", True),
+                patch.object(delivery, "claim_delivery_versions", return_value=True),
+                patch.object(delivery.state_branch, "push_state_changes", side_effect=lambda _d, _m, action, **_kw: action()),
+                patch.object(delivery, "deliver_from_state", side_effect=[["Slack notifications: failed"], []]) as deliver_actions,
+            ):
+                self.assertEqual(
+                    1,
+                    delivery.deliver_with_state(
+                        "open-telemetry/example", "state", root, pr_number=7,
+                        delivery_state_branch_name="delivery",
+                    ),
+                )
+                self.assertEqual(0, state.read_full_publish_generation(state.full_publish_delivered_path()))
+                self.assertEqual(
+                    0,
+                    delivery.deliver_with_state(
+                        "open-telemetry/example", "state", root, pr_number=8,
+                        delivery_state_branch_name="delivery",
+                    ),
+                )
+                self.assertEqual([None, None], [call.args[-1] for call in deliver_actions.call_args_list])
+
+    def test_full_publish_acknowledgement_requires_compatible_versions(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            with (
+                patch.object(delivery.state_branch, "temporary_state_dir", return_value=nullcontext(root)),
+                patch.object(delivery.state_branch, "push_state_changes", side_effect=lambda _d, _m, action, **_kw: action()),
+                patch.object(delivery, "claim_delivery_versions", side_effect=[False, True]),
+            ):
+                with self.assertRaisesRegex(RuntimeError, "full publish remains pending"):
+                    delivery.complete_full_publish("open-telemetry/example", "delivery", 3)
+                self.assertEqual(
+                    0,
+                    delivery.complete_full_publish("open-telemetry/example", "delivery", 3),
+                )
+                self.assertEqual(
+                    3,
+                    state.read_full_publish_generation(root / "example" / state.FULL_PUBLISH_DELIVERED_FILE),
+                )
+
+    def test_cli_acknowledges_full_publication_on_delivery_branch(self) -> None:
+        with (
+            patch("sys.argv", [
+                "delivery.py",
+                "--repo", "open-telemetry/example",
+                "--state-branch", "state",
+                "--delivery-state-branch", "delivery",
+                "--complete-full-publish-generation", "3",
+            ]),
+            patch.object(delivery, "complete_full_publish", return_value=0) as complete,
+        ):
+            self.assertEqual(0, delivery.main())
+        complete.assert_called_once_with("open-telemetry/example", "delivery", 3)
+
     def test_migrates_existing_receipts_once(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -118,6 +262,7 @@ class DeliveryTest(unittest.TestCase):
             {7, 8},
             set(),
             open_draft_pr_numbers={8},
+            priority_pr_number=None,
         )
         author_nudges.assert_called_once_with(
             "open-telemetry/example",
@@ -191,6 +336,7 @@ class DeliveryTest(unittest.TestCase):
             {7, 8},
             {7},
             open_draft_pr_numbers=set(),
+            priority_pr_number=None,
         )
         author_nudges.assert_called_once_with(
             "open-telemetry/example",
@@ -427,6 +573,7 @@ class DeliveryTest(unittest.TestCase):
 
         with (
             tempfile.TemporaryDirectory() as temp_dir,
+            patch.object(state, "_state_dir", Path(temp_dir)),
             patch.object(delivery, "author_nudge_state_path", return_value=Path("author")),
             patch.object(delivery, "copilot_review_request_state_path", return_value=Path("copilot")),
             patch.object(delivery, "notification_state_path", return_value=Path("slack")),
@@ -444,7 +591,7 @@ class DeliveryTest(unittest.TestCase):
             github_output_text = github_output.read_text(encoding="utf-8")
 
         self.assertEqual(1, status)
-        self.assertEqual("active=true\n", github_output_text)
+        self.assertEqual("active=true\nfull_publish_generation=0\n", github_output_text)
         self.assertEqual(
             "otelbot/pull-request-dashboard-delivery/example",
             push_state_changes.call_args.kwargs["state_branch"],
@@ -488,7 +635,7 @@ class DeliveryTest(unittest.TestCase):
         self.assertEqual(0, status)
         claim_delivery_versions.assert_called_once_with()
         deliver_from_state.assert_not_called()
-        self.assertEqual("active=false\n", github_output_text)
+        self.assertEqual("active=false\nfull_publish_generation=0\n", github_output_text)
         self.assertEqual(
             "otelbot/pull-request-dashboard-delivery/example",
             push_state_changes.call_args.kwargs["state_branch"],
