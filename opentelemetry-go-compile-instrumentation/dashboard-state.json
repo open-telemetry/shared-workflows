@@ -3632,17 +3632,20 @@
     },
     "1427": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "om7057",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/opentelemetry-go-compile-instrumentation/pull/1427#issuecomment-5929489177"
+        ],
         "author_can_act": true,
+        "author_nudge_episode_id": "75719b32d2624089abc01f4396f6fceb",
         "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "yes",
-        "copilot_request_fingerprint": "b75b67e8d833cce4fe7576add0376ca5eab7962eaa46df2af72b45fe89d24cd7",
+        "copilot_request_fingerprint": "07c734ffe3f768b87d34f1541d048caa101c86c3234e4abbbd17979578efde41",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -3658,21 +3661,32 @@
         "head_sha": "6b72f3141c07fb8f10b0f636b2c7ce99ee781fde",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-30T03:19:42+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-10-01T10:26:04+00:00",
+        "last_approver_activity_at": "2026-10-01T10:26:04+00:00",
         "last_author_activity_at": "2026-09-30T03:19:42+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "darccio",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": true,
+            "unresolved_thread": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "ce0a4e2729bf990285f85f888e56702339827ff998ceae2f8a47c8ad7101e43a",
-        "waiting_age_basis": "gate_release",
-        "waiting_since": "2026-09-30T03:43:02.216005+00:00"
+        "routing_input_fingerprint": "b23e89d6299b9a17880842527352c8ab88b3ae09ccbcb6d74a4e5b49269b7eee",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-10-01T10:26:04+00:00"
       },
       "failed": false,
       "pr_number": 1427,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-go-compile-instrumentation/pull/1427",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     },
     "1432": {
