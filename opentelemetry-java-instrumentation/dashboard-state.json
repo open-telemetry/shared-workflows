@@ -2514,7 +2514,7 @@
     },
     "20342": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "trask",
         "author_action_review_thread_urls": [],
@@ -2525,7 +2525,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 1,
         "conflicts": "no",
-        "copilot_request_fingerprint": "1658d91f394819a834cc30de59bfec0c6acb20344a4d24d51ef538db8d569198",
+        "copilot_request_fingerprint": "3cedc79f9a40b1846f844850378b0ba06062c14a82856ae7366627037aef2e71",
         "copilot_review_exists": true,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -2541,16 +2541,27 @@
         "head_sha": "0e8666b0fce392f1351eb84613bd848ebdcd87db",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-10-01T15:44:22+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-10-01T16:03:35+00:00",
+        "last_approver_activity_at": "2026-10-01T16:03:35+00:00",
         "last_author_activity_at": "2026-10-01T15:44:06+00:00",
         "required_checks_settled": false,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "jaydeluca",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          }
+        ],
         "route_held_for_gates": true,
         "route_held_since": "2026-10-01T15:56:39.341248+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "47a61729590daaa0c3d625e96d4570e0ed1ed7bdb0b0a1588adbcd144ee7b629",
-        "waiting_age_basis": "created",
+        "routing_input_fingerprint": "515e822bda0d31482c895f81c440a7d930bf40c41eb0c9f048ecc68648eb78f6",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-10-01T15:44:22+00:00"
       },
       "failed": false,
