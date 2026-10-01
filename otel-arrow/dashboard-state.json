@@ -1402,7 +1402,10 @@
         "approval_count": 0,
         "assignees": [],
         "author": "lquerel",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/otel-arrow/pull/4151#discussion_r4160720887",
+          "https://github.com/open-telemetry/otel-arrow/pull/4151#discussion_r4160720975"
+        ],
         "author_action_top_level_feedback_urls": [
           "https://github.com/open-telemetry/otel-arrow/pull/4151#pullrequestreview-5314172899"
         ],
@@ -1412,12 +1415,12 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "1395beda226f8e2f438bb12cd34d703f856409dcc96244481e0043c4ff1d3062",
-        "copilot_review_exists": false,
-        "copilot_review_needed": false,
+        "copilot_request_fingerprint": "824e37fa6d57c09f7e39f0107ef5f19cbf43199279941c2bf8088a3ce55ec8cd",
+        "copilot_review_exists": true,
+        "copilot_review_needed": true,
         "copilot_review_outstanding": false,
         "copilot_review_request_needed": false,
-        "copilot_review_requested": true,
+        "copilot_review_requested": false,
         "copilot_review_stale": false,
         "copilot_review_unreported": false,
         "created_at": "2026-09-24T06:47:43+00:00",
@@ -1435,6 +1438,16 @@
         "reviewers": [
           {
             "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "copilot-pull-request-reviewer[bot]",
+            "open_thread": true,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": true
+          },
+          {
+            "approved": false,
             "approved_non_team": true,
             "changes_requested": false,
             "login": "Dipanshusinghh",
@@ -1446,7 +1459,7 @@
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "55bc36e3b2c500e42832bef459fcc214f2eb27042025b328ab54dfba646729ab",
+        "routing_input_fingerprint": "81a377096cd7fa35405c3798e1ea11498fa82de4d15b09d3bc889a7ab10e7374",
         "waiting_age_basis": "oldest_pending_thread",
         "waiting_since": "2026-09-25T06:16:30+00:00"
       },
