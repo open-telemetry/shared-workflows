@@ -2567,7 +2567,7 @@
     },
     "3767": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/dependabot",
         "author_action_review_thread_urls": [],
@@ -2577,7 +2577,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "a50d68a41dee35a4dc44a8919105e2b37fe2785595d2c6c93debb7661d38b07a",
+        "copilot_request_fingerprint": "281696116d714b70677011561553c0faaf24f3383668ae0ff6181ef0e42872aa",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -2593,21 +2593,32 @@
         "head_sha": "f170f2c675b4d5142be662d1788066cf97f1c048",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-10-01T19:34:20+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-10-01T20:31:50+00:00",
+        "last_approver_activity_at": "2026-10-01T20:31:50+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "utpilla",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "491faa2307ed9abdc33b7d2ceb0c2634da391934fb24672f860d31cc6ca97bd3",
+        "routing_input_fingerprint": "0702ef891d6f574947938ba4ce240c398b4b532ff647f923082be975cac1c620",
         "waiting_age_basis": "created",
         "waiting_since": "2026-10-01T19:34:20+00:00"
       },
       "failed": false,
       "pr_number": 3767,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-rust/pull/3767",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "3768": {
