@@ -3635,7 +3635,7 @@
     },
     "11906": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "chalin",
         "author_action_review_thread_urls": [],
@@ -3645,7 +3645,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "4a379e651629d18074bc131bf2e7e46e623943aa7cef7309c1aac6e2480dd587",
+        "copilot_request_fingerprint": "b9dbdc5e0cf6fe461550147fded7fa7b396f1ad7d7e722318a25fda901ed91ab",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -3661,21 +3661,32 @@
         "head_sha": "6f4bc75689fd2b1185c8c43c3f1eda8e9302b49f",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-10-01T19:02:51+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-10-01T19:41:10+00:00",
+        "last_approver_activity_at": "2026-10-01T19:41:10+00:00",
         "last_author_activity_at": "2026-10-01T19:02:51+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "tiffany76",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "146bbfc36129b76bc9498383c0ef80a92d2d2d0d11be9a5196663d59874ff569",
+        "routing_input_fingerprint": "d9041507a6612709b58e1db44b50e6e037336d0a27fd34d8242e31f948e8e4ea",
         "waiting_age_basis": "gate_release",
         "waiting_since": "2026-10-01T14:51:06.016148+00:00"
       },
       "failed": false,
       "pr_number": 11906,
       "pr_url": "https://github.com/open-telemetry/opentelemetry.io/pull/11906",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "11912": {
