@@ -396,7 +396,7 @@
     },
     "8817": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "jack-berg",
         "author_action_review_thread_urls": [],
@@ -406,7 +406,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "c6bd353430298b0940c422fb048ed6409279912f41e5e58fd5fe9fb629fa7033",
+        "copilot_request_fingerprint": "c86e84d62356bbc51f0c527138fa38d58b2de9fc859ddf4acc06c1947808780d",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -422,21 +422,32 @@
         "head_sha": "ca4ab8bf92f10d1a06e85b336bea0d989b07e0fe",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-14T15:51:37+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-10-01T15:41:27+00:00",
+        "last_approver_activity_at": "2026-10-01T15:41:27+00:00",
         "last_author_activity_at": "2026-09-14T15:51:37+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "jaydeluca",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "97eade71e8448665b3be2bb752077f02bd90f18a94a3fb5597d6a48f8190ba2c",
+        "routing_input_fingerprint": "aaf69f4b17371876acc51fbd0f2df060c097e901b1889d926555583d5da5dc1e",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-09-14T15:51:37+00:00"
       },
       "failed": false,
       "pr_number": 8817,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-java/pull/8817",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "8827": {
