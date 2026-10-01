@@ -669,19 +669,17 @@
     },
     "234": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
-        "author_action_review_thread_urls": [
-          "https://github.com/open-telemetry/semantic-conventions-conformance/pull/234#discussion_r4059577893"
-        ],
+        "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "author_can_act": false,
         "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 1,
         "conflicts": "no",
-        "copilot_request_fingerprint": "09107fa641bc4dfebe003f8cd6e8cfa902daea10863940af5cc28147a81256a8",
+        "copilot_request_fingerprint": "4bd1e3f998da2351573a849771ccec2ea4f8b58f9d65369fd58d619921e03abc",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
         "copilot_review_outstanding": false,
@@ -697,26 +695,27 @@
         "head_sha": "3c62ff9ab950200a5915bf081e670a52ee64c702",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-10-01T13:40:16+00:00",
-        "last_approver_activity_at": "2026-10-01T13:40:16+00:00",
+        "last_activity_at": "2026-10-01T13:46:57+00:00",
+        "last_approver_activity_at": "2026-10-01T13:46:57+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": false,
         "reviewers": [
           {
-            "approved": false,
+            "approved": true,
             "approved_non_team": false,
             "changes_requested": false,
-            "login": "copilot-pull-request-reviewer[bot]",
-            "open_thread": true,
+            "login": "lmolkova",
+            "open_thread": false,
             "pending_review": false,
             "top_level_feedback": false,
-            "unresolved_thread": true
+            "unresolved_thread": false
           }
         ],
-        "route_held_for_gates": false,
+        "route_held_for_gates": true,
+        "route_held_since": "2026-10-01T13:47:39.288425+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "7c5b5c21c1fb18fe71523bbeb4876649e70d82648a8098031f535cb7d6ae56cc",
-        "waiting_age_basis": "created",
+        "routing_input_fingerprint": "6f281e56400e08967bc78b04dbbe9f9defc4cb28b14a7284985e9baff91b675b",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-09-21T05:54:48+00:00"
       },
       "failed": false,
