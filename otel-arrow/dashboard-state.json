@@ -2101,7 +2101,7 @@
     },
     "4212": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "uros-stefanovic-db",
         "author_action_review_thread_urls": [],
@@ -2111,7 +2111,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "c633925fce479e9d4fa1a8a36247ce27276d06f3557c873415f12b7d9af948da",
+        "copilot_request_fingerprint": "fcae6ffdcbb8d3a0f9cf134bc7993d8d78ade8764377ab2cf31da73342888736",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
         "copilot_review_outstanding": false,
@@ -2127,21 +2127,32 @@
         "head_sha": "6f127cccb57a3d8b1eab99119b1a8dfa09b2f6d8",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-10-01T10:32:29+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-10-01T18:24:57+00:00",
+        "last_approver_activity_at": "2026-10-01T18:24:57+00:00",
         "last_author_activity_at": "2026-10-01T10:32:29+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "jmacd",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "1689fcf6de71cc86c2a140169d2c8a7c12c8b32d29db10d72d0057b3dae19f1c",
+        "routing_input_fingerprint": "3d3b341d64a5263b81f334bdced763b20a58f914d615a3baf03860f102c23823",
         "waiting_age_basis": "gate_release",
         "waiting_since": "2026-10-01T11:06:03.729068+00:00"
       },
       "failed": false,
       "pr_number": 4212,
       "pr_url": "https://github.com/open-telemetry/otel-arrow/pull/4212",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "4214": {
