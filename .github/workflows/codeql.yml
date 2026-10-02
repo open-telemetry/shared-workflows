@@ -19,7 +19,7 @@ jobs:
     name: Analyze (${{ matrix.language }})
     runs-on: ubuntu-latest
     concurrency:
-      group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ matrix.language }}
+      group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}-${{ matrix.language }}
       cancel-in-progress: true
     permissions:
       contents: read
