@@ -1446,7 +1446,7 @@
     },
     "4188": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/dependabot",
         "author_action_review_thread_urls": [],
@@ -1456,7 +1456,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "b5ac6c10aa94bedf902900046c12b627995b90795a1a103edd8259a37ac81c95",
+        "copilot_request_fingerprint": "3640a4fb00a02a95a05c04a16f9c43c30743e2be33df17ad5710d01381425e6e",
         "copilot_review_exists": true,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -1472,21 +1472,32 @@
         "head_sha": "55949b6a2aa731ae8379997e30f4c2a94f387baa",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-09-29T19:31:46+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-10-02T20:46:34+00:00",
+        "last_approver_activity_at": "2026-10-02T20:46:34+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "drewrelmas",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "27cb00bb57fdc9cc167600033741c4b5d271798ace494605d748fd51449abad0",
+        "routing_input_fingerprint": "a28d69e1f7d64013a2708063f3fe1d0aa797e35d0c235868057d36e9e40a998c",
         "waiting_age_basis": "created",
         "waiting_since": "2026-09-29T19:31:46+00:00"
       },
       "failed": false,
       "pr_number": 4188,
       "pr_url": "https://github.com/open-telemetry/otel-arrow/pull/4188",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "4189": {
