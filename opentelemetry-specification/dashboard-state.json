@@ -2252,7 +2252,7 @@
     },
     "5340": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
@@ -2262,7 +2262,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "97352cebbf8ad7ea4f25a9ef0581dd74a01ed9a4962cca25ff2a551bc3593bd3",
+        "copilot_request_fingerprint": "c109033f565570dbebf636c509e8280255193e8a639ed4e8ab8a79f961be74ed",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -2278,21 +2278,32 @@
         "head_sha": "ae7292c76addc1d7f6aa86673a5b92f3eb466c7d",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-10-02T00:29:15+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-10-02T00:58:29+00:00",
+        "last_approver_activity_at": "2026-10-02T00:58:29+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "reyang",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "b233f501f0877f0f92ec6e3982927b1053df58fb65db6524891b75e50f48487f",
+        "routing_input_fingerprint": "238e3172e2dc2f28782f1dbda07206bafe3c4adffc00873a563c32a4a8562893",
         "waiting_age_basis": "created",
         "waiting_since": "2026-10-02T00:29:15+00:00"
       },
       "failed": false,
       "pr_number": 5340,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-specification/pull/5340",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     }
   },
