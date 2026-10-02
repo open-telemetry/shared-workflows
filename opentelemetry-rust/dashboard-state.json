@@ -1753,8 +1753,11 @@
         "assignees": [],
         "author": "klochek",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/opentelemetry-rust/pull/3675#pullrequestreview-5218259955"
+        ],
         "author_can_act": true,
+        "author_nudge_episode_id": "1fac818957fa49a9ae8e1cb69a6d3f42",
         "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
@@ -1787,28 +1790,21 @@
             "login": "lalitb",
             "open_thread": false,
             "pending_review": true,
-            "top_level_feedback": false,
+            "top_level_feedback": true,
             "unresolved_thread": false
           }
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
         "routing_input_fingerprint": "eae774fc2f50d8b1f19ef4175e34da3f235d858dbbf5e5412b683577186542d9",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-09-22T18:31:59+00:00"
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-09-16T03:41:52+00:00"
       },
       "failed": false,
       "pr_number": 3675,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-rust/pull/3675",
-      "route": "approver",
-      "top_level_history": {
-        "pr-review-5218259955": {
-          "evidence": {
-            "reply": "2026-10-01T11:47:27Z"
-          },
-          "reply_source_id": 5781846829
-        }
-      }
+      "route": "author",
+      "top_level_history": {}
     },
     "3718": {
       "facts": {
