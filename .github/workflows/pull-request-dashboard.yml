@@ -227,10 +227,10 @@ jobs:
       fail-fast: false
       max-parallel: 3
       matrix: ${{ fromJSON(needs.resolve-targets.outputs.stable_matrix) }}
-    uses: open-telemetry/shared-workflows/.github/workflows/pull-request-dashboard-repo.yml@117fd4566ba1caa91248c987e827f3a668043ea7 # v0.15.0
+    uses: open-telemetry/shared-workflows/.github/workflows/pull-request-dashboard-repo.yml@0cc57aeabf2a31cf41114e7b24561f21a04e360b # v0.18.0
     with:
       repository: ${{ matrix.name }}
-      code_ref: 117fd4566ba1caa91248c987e827f3a668043ea7 # v0.15.0
+      code_ref: 0cc57aeabf2a31cf41114e7b24561f21a04e360b # v0.18.0
     secrets:
       PR_DASHBOARD_PRIVATE_KEY: ${{ secrets.PR_DASHBOARD_PRIVATE_KEY }}
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
@@ -266,11 +266,11 @@ jobs:
     permissions:
       contents: write
       copilot-requests: write
-    uses: open-telemetry/shared-workflows/.github/workflows/pull-request-dashboard-repo.yml@117fd4566ba1caa91248c987e827f3a668043ea7 # v0.15.0
+    uses: open-telemetry/shared-workflows/.github/workflows/pull-request-dashboard-repo.yml@0cc57aeabf2a31cf41114e7b24561f21a04e360b # v0.18.0
     with:
       repository: ${{ inputs.repository }}
       pr_number: ${{ inputs.pr_number }}
-      code_ref: 117fd4566ba1caa91248c987e827f3a668043ea7 # v0.15.0
+      code_ref: 0cc57aeabf2a31cf41114e7b24561f21a04e360b # v0.18.0
     secrets:
       PR_DASHBOARD_PRIVATE_KEY: ${{ secrets.PR_DASHBOARD_PRIVATE_KEY }}
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
@@ -310,11 +310,11 @@ jobs:
       max-parallel: 1
       matrix:
         pr_number: ${{ fromJSON(needs.resolve-head-sha.outputs.pr_numbers) }}
-    uses: open-telemetry/shared-workflows/.github/workflows/pull-request-dashboard-repo.yml@117fd4566ba1caa91248c987e827f3a668043ea7 # v0.15.0
+    uses: open-telemetry/shared-workflows/.github/workflows/pull-request-dashboard-repo.yml@0cc57aeabf2a31cf41114e7b24561f21a04e360b # v0.18.0
     with:
       repository: ${{ inputs.repository }}
       pr_number: ${{ matrix.pr_number }}
-      code_ref: 117fd4566ba1caa91248c987e827f3a668043ea7 # v0.15.0
+      code_ref: 0cc57aeabf2a31cf41114e7b24561f21a04e360b # v0.18.0
     secrets:
       PR_DASHBOARD_PRIVATE_KEY: ${{ secrets.PR_DASHBOARD_PRIVATE_KEY }}
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
