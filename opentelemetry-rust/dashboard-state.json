@@ -2669,7 +2669,7 @@
     },
     "3772": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "cijothomas",
         "author_action_review_thread_urls": [],
@@ -2679,7 +2679,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "5f0692ef1a94dcc187d19b33a80235610df9113b56a6ba85b4444d28bda58a14",
+        "copilot_request_fingerprint": "e666b714a342cdaa34bca57c5ca1db8cea26a9238626173675302ef8f1076076",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -2695,21 +2695,32 @@
         "head_sha": "354669849443a523750f9f91903b86ccadc3a4ba",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-10-02T05:15:00+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-10-02T06:21:18+00:00",
+        "last_approver_activity_at": "2026-10-02T06:21:18+00:00",
         "last_author_activity_at": "2026-10-02T05:02:50+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "utpilla",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "6e5613398f8b281dc6d25ac5675ae2f66ad56550a33463037dab37841e0723ea",
+        "routing_input_fingerprint": "224e71d183a8d782238349c184d9c6392fd1ead264c419e12c483d54b351e66c",
         "waiting_age_basis": "gate_release",
         "waiting_since": "2026-10-02T05:27:33.980896+00:00"
       },
       "failed": false,
       "pr_number": 3772,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-rust/pull/3772",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     }
   },
