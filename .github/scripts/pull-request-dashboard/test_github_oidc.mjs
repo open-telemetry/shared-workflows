@@ -13,6 +13,7 @@ import {
   EXPECTED_REF,
   EXPECTED_REPOSITORY,
   EXPECTED_WORKFLOW_REF,
+  ENQUEUE_WORKFLOW_REFS,
   GITHUB_OIDC_ISSUER,
   QUEUE_OIDC_AUDIENCE,
   verifyGitHubOidcToken,
@@ -52,6 +53,14 @@ test("accepts the exact drain workflow identity", async () => {
   const { token, keySet } = await tokenFixture();
   const claims = await verifyGitHubOidcToken(token, { keySet });
   assert.equal(claims.repository, EXPECTED_REPOSITORY);
+});
+
+test("enqueue identity can read and accept work but cannot own a worker lease", async () => {
+  const { token, keySet } = await tokenFixture({ workflow_ref: ENQUEUE_WORKFLOW_REFS[0] });
+  await verifyGitHubOidcToken(token, {
+    keySet, workflowRef: [EXPECTED_WORKFLOW_REF, ...ENQUEUE_WORKFLOW_REFS],
+  });
+  await assert.rejects(verifyGitHubOidcToken(token, { keySet }), /workflow_ref/);
 });
 
 for (const [claim, value] of [

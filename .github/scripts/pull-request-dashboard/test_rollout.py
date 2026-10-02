@@ -123,11 +123,13 @@ class RolloutWiringTest(unittest.TestCase):
         for name in self.canary:
             self.assertIn(name, configured)
 
-    def test_run_name_exposes_the_workflow_concurrency_group(self) -> None:
+    def test_enqueue_runs_do_not_wait_in_a_shared_concurrency_group(self) -> None:
         lines = self.text.splitlines()
         run_name = lines[lines.index("run-name: >-") + 1].strip()
         concurrency = lines[lines.index("concurrency:") + 2].strip()
-        self.assertEqual(run_name, concurrency)
+        self.assertIn("github.run_id", concurrency)
+        self.assertIn("PR_DASHBOARD_EXECUTION_MODE", concurrency)
+        self.assertTrue(run_name.startswith("pull-request-dashboard-"))
 
     def test_every_entry_path_has_both_channels(self) -> None:
         for prefix in ENTRY_PATHS:
@@ -230,15 +232,19 @@ class RolloutWiringTest(unittest.TestCase):
         self.assertNotIn("check-full-publish-health", self.jobs)
         self.assertNotIn("check-full-publish-health", failure)
 
-    def test_reminder_sweep_relies_on_repository_publisher_concurrency(self) -> None:
+    def test_reminder_write_mode_is_queued_and_dry_run_is_independent(self) -> None:
         body = SWEEP_WORKFLOW.read_text(encoding="utf-8")
         sweep_job = job_blocks(body)["sweep"]
         self.assertNotIn("publisher-lock", sweep_job)
         self.assertIn(
-            "group: pull-request-dashboard-publish-${{ matrix.name }}",
+            "inputs.dry_run && format('pull-request-dashboard-dry-run-{0}-{1}', github.run_id, matrix.name)",
             sweep_job,
         )
         self.assertIn("      contents: write", sweep_job)
+        enqueue = job_blocks(body)["enqueue"]
+        self.assertIn("inputs.dry_run == false", enqueue)
+        self.assertIn("enqueue_dashboard.py --reminders", enqueue)
+        self.assertIn("id-token: write", enqueue)
 
     def test_queue_mode_canary_list_matches_the_rollout_canary_list(self) -> None:
         webhook = WEBHOOK.read_text(encoding="utf-8")
@@ -253,7 +259,7 @@ class RolloutWiringTest(unittest.TestCase):
 
     def test_queue_drain_uses_one_current_checkout(self) -> None:
         body = DRAIN_WORKFLOW.read_text(encoding="utf-8")
-        self.assertEqual(body.count("actions/checkout@"), 1)
+        self.assertEqual(body.count("actions/checkout@"), 2)
         self.assertNotIn("code_ref:", body)
         self.assertNotRegex(body, STABLE_USES)
         self.assertRegex(body, r"(?m)^    timeout-minutes: 50$")
@@ -269,6 +275,12 @@ class RolloutWiringTest(unittest.TestCase):
         )
         self.assertIsNotNone(drain_canary)
         self.assertEqual(json.loads(drain_canary.group(1)), self.canary)
+        self.assertNotIn("concurrency:", body)
+        owned = job_blocks(body)["owned-drain"]
+        self.assertIn("--owned", owned)
+        self.assertIn("CANARY_CODE_REF: ${{ github.sha }}", owned)
+        self.assertIn('--canary-code-ref "$CANARY_CODE_REF"', owned)
+        self.assertNotIn("actions: write", owned)
 
     def test_webhook_deployment_automates_queue_rollout(self) -> None:
         body = DEPLOY_WORKFLOW.read_text(encoding="utf-8")

@@ -14,6 +14,16 @@ on:
       - .github/workflows/pull-request-dashboard-deploy-webhook.yml
       - .github/workflows/pull-request-dashboard.yml
   workflow_dispatch:
+    inputs:
+      execution_mode:
+        description: Migration override. Empty uses the repository execution-mode variable.
+        required: false
+        type: choice
+        options:
+          - ""
+          - legacy
+          - paused
+          - owned
 
 permissions:
   contents: read
@@ -44,15 +54,18 @@ jobs:
           NETLIFY_SITE_ID: ${{ vars.NETLIFY_PR_DASHBOARD_PROJECT_ID }}
           OTELBOT_SHARED_WORKFLOWS_CLIENT_ID: ${{ vars.OTELBOT_SHARED_WORKFLOWS_CLIENT_ID }}
           OTELBOT_SHARED_WORKFLOWS_PRIVATE_KEY: ${{ secrets.OTELBOT_SHARED_WORKFLOWS_PRIVATE_KEY }}
+          EXECUTION_MODE: ${{ inputs.execution_mode || vars.PR_DASHBOARD_EXECUTION_MODE || 'legacy' }}
         run: |
           set -euo pipefail
           queue_mode=all
+          [[ "$EXECUTION_MODE" =~ ^(legacy|paused|owned)$ ]] || { echo "bad execution mode"; exit 1; }
           echo "Deploying pull request dashboard queue mode: $queue_mode"
           dispatcher_private_key_base64=$(printf '%s' "$OTELBOT_SHARED_WORKFLOWS_PRIVATE_KEY" | base64 -w0)
           echo "::add-mask::$dispatcher_private_key_base64"
           bash ./set_netlify_dispatcher_env.sh OTELBOT_SHARED_WORKFLOWS_CLIENT_ID "$OTELBOT_SHARED_WORKFLOWS_CLIENT_ID"
           bash ./set_netlify_dispatcher_env.sh OTELBOT_SHARED_WORKFLOWS_PRIVATE_KEY_BASE64 "$dispatcher_private_key_base64" --secret
           bash ./set_netlify_dispatcher_env.sh PR_DASHBOARD_QUEUE_MODE "$queue_mode"
+          bash ./set_netlify_dispatcher_env.sh PR_DASHBOARD_EXECUTION_MODE "$EXECUTION_MODE"
 
       - name: Install function dependencies
         working-directory: .github/scripts/pull-request-dashboard

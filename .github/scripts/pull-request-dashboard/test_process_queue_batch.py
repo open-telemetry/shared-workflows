@@ -470,7 +470,6 @@ class QueueBatchTest(unittest.TestCase):
         for deliveries, expected_generations in (
             ([(True, None, 5)], [5]),
             ([(True, None, 0), (True, None, 5)], [5]),
-            ([(True, None, 5), (False, None, 0)], [5]),
             ([(True, None, 5), (True, None, 6)], [5, 6]),
         ):
             with self.subTest(deliveries=deliveries), tempfile.TemporaryDirectory() as directory:
@@ -502,6 +501,21 @@ class QueueBatchTest(unittest.TestCase):
                     expected_generations,
                     [call.args[2] for call in acknowledge.call_args_list],
                 )
+
+    def test_inactive_delivery_is_not_success(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            config = Path(directory) / "repositories.json"
+            config.write_text('[{"name":"example"}]', encoding="utf-8")
+            processor = process_queue_batch.DashboardBatchProcessor(config)
+            item = WorkItem("example", 1, (claim("example#pr:1", "example", pr_number=1),))
+            with (
+                mock.patch.object(processor, "_initial_backfill_complete", return_value=True),
+                mock.patch.object(processor, "_update_dashboard"),
+                mock.patch.object(processor, "_deliver", return_value=(False, None, 0)),
+            ):
+                results = processor.process_repository("example", [item])
+        self.assertEqual(results[0]["outcome"], "retry")
+        self.assertIn("versions", results[0]["error"])
 
     def test_queue_drains_full_obligation_once_before_next_targeted_item(self) -> None:
         lifecycle: list[str] = []

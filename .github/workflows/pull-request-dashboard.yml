@@ -24,6 +24,18 @@ on:
         description: Event that requested the refresh.
         required: false
         type: string
+      request_item_key:
+        description: Inspect a previously accepted queue item instead of requesting work.
+        required: false
+        type: string
+      request_generation:
+        description: Generation returned when the queue accepted the item.
+        required: false
+        type: string
+      request_id:
+        description: Request ID returned when the queue accepted the item.
+        required: false
+        type: string
 permissions:
   contents: read
 
@@ -37,7 +49,7 @@ permissions:
 # review id.
 concurrency:
   group: >-
-    pull-request-dashboard-${{ inputs.repository || 'all-repositories' }}-${{ inputs.pr_number || inputs.head_sha || 'backfill' }}-${{ github.event_name == 'workflow_dispatch' && (inputs.trigger_event == '' || inputs.trigger_event == 'workflow_dispatch') && 'manual' || 'refresh' }}
+    ${{ vars.PR_DASHBOARD_EXECUTION_MODE != '' && vars.PR_DASHBOARD_EXECUTION_MODE != 'legacy' && github.run_id || format('pull-request-dashboard-{0}-{1}-{2}', inputs.repository || 'all-repositories', inputs.pr_number || inputs.head_sha || 'backfill', github.event_name == 'workflow_dispatch' && (inputs.trigger_event == '' || inputs.trigger_event == 'workflow_dispatch') && 'manual' || 'refresh') }}
   cancel-in-progress: false
 
 env:
@@ -48,10 +60,38 @@ env:
   CANARY_REPOSITORIES: '["opentelemetry-java-instrumentation", "shared-workflows"]'
 
 jobs:
+  enqueue:
+    if: >-
+      (vars.PR_DASHBOARD_EXECUTION_MODE != '' && vars.PR_DASHBOARD_EXECUTION_MODE != 'legacy') ||
+      inputs.request_item_key != '' || inputs.request_generation != '' || inputs.request_id != ''
+    runs-on: ubuntu-latest
+    environment: protected
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      PR_DASHBOARD_QUEUE_ENDPOINT: https://otel-pull-request-dashboard.netlify.app/.netlify/functions/dashboard-queue-worker
+      TARGET_REPOSITORY: ${{ inputs.repository }}
+      TRIGGER_PR_NUMBER: ${{ inputs.pr_number }}
+      HEAD_SHA: ${{ inputs.head_sha }}
+      TRIGGER_EVENT: ${{ inputs.trigger_event || github.event_name }}
+      REQUEST_ITEM_KEY: ${{ inputs.request_item_key }}
+      REQUEST_GENERATION: ${{ inputs.request_generation }}
+      REQUEST_ID: ${{ inputs.request_id }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Accept work or report request progress
+        run: python3 .github/scripts/pull-request-dashboard/enqueue_dashboard.py
+
   resolve-targets:
     # Targeted refreshes go straight to the reusable workflow, which resolves
     # its own configuration. Only backfills need a matrix resolved up front.
-    if: inputs.head_sha == '' && (inputs.repository == '' || inputs.pr_number == '')
+    if: >-
+      (vars.PR_DASHBOARD_EXECUTION_MODE == '' || vars.PR_DASHBOARD_EXECUTION_MODE == 'legacy') &&
+      inputs.request_item_key == '' && inputs.request_generation == '' && inputs.request_id == '' &&
+      inputs.head_sha == '' && (inputs.repository == '' || inputs.pr_number == '')
     runs-on: ubuntu-slim
     permissions:
       contents: read
@@ -116,7 +156,10 @@ jobs:
 
   resolve-head-sha:
     # Check and status events for a fork head carry no pull request number.
-    if: inputs.head_sha != '' && inputs.pr_number == ''
+    if: >-
+      (vars.PR_DASHBOARD_EXECUTION_MODE == '' || vars.PR_DASHBOARD_EXECUTION_MODE == 'legacy') &&
+      inputs.request_item_key == '' && inputs.request_generation == '' && inputs.request_id == '' &&
+      inputs.head_sha != '' && inputs.pr_number == ''
     runs-on: ubuntu-slim
     permissions:
       contents: read
@@ -240,6 +283,8 @@ jobs:
     # volume path, where webhook refreshes already know their single target.
     # That is also why the canary list is inlined here instead of resolved.
     if: >-
+      (vars.PR_DASHBOARD_EXECUTION_MODE == '' || vars.PR_DASHBOARD_EXECUTION_MODE == 'legacy') &&
+      inputs.request_item_key == '' && inputs.request_generation == '' && inputs.request_id == '' &&
       inputs.repository != '' &&
       inputs.pr_number != '' &&
       contains(fromJSON('["opentelemetry-java-instrumentation", "shared-workflows"]'), inputs.repository)
@@ -260,6 +305,8 @@ jobs:
     # reusable workflow call acquires no runner.
     if: >-
       always() &&
+      (vars.PR_DASHBOARD_EXECUTION_MODE == '' || vars.PR_DASHBOARD_EXECUTION_MODE == 'legacy') &&
+      inputs.request_item_key == '' && inputs.request_generation == '' && inputs.request_id == '' &&
       inputs.repository != '' &&
       inputs.pr_number != '' &&
       needs.run-targeted-dashboard-canary.result == 'skipped'
@@ -326,6 +373,8 @@ jobs:
       - run-repo-dashboard-stable
     if: >-
       always() &&
+      (vars.PR_DASHBOARD_EXECUTION_MODE == '' || vars.PR_DASHBOARD_EXECUTION_MODE == 'legacy') &&
+      inputs.request_item_key == '' && inputs.request_generation == '' && inputs.request_id == '' &&
       (
         github.event_name == 'schedule' ||
         (

@@ -34,7 +34,17 @@ env:
   DASHBOARD_DELIVERY_STATE_BRANCH_PREFIX: otelbot/pull-request-dashboard-delivery
 
 jobs:
+  reject-unowned-execution:
+    if: vars.PR_DASHBOARD_EXECUTION_MODE != '' && vars.PR_DASHBOARD_EXECUTION_MODE != 'legacy'
+    permissions: {}
+    runs-on: ubuntu-slim
+    steps:
+      - run: |
+          echo "::error::Use pull-request-dashboard.yml to enqueue work; direct repository writers are disabled."
+          exit 1
+
   update-dashboard:
+    if: vars.PR_DASHBOARD_EXECUTION_MODE == '' || vars.PR_DASHBOARD_EXECUTION_MODE == 'legacy'
     concurrency:
       group: ${{ github.workflow }}-state-${{ inputs.repository }}-${{ inputs.pr_number || 'backfill' }}
       cancel-in-progress: false
@@ -223,6 +233,7 @@ jobs:
     needs: update-dashboard
     if: >-
       always() &&
+      (vars.PR_DASHBOARD_EXECUTION_MODE == '' || vars.PR_DASHBOARD_EXECUTION_MODE == 'legacy') &&
       (needs.update-dashboard.result == 'success' || inputs.pr_number == '') &&
       needs.update-dashboard.outputs.initial_backfill_complete == 'true'
     concurrency:

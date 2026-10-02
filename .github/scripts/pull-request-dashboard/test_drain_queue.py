@@ -727,7 +727,7 @@ class ProcessClaimWaveTest(unittest.TestCase):
                     1,
                     "worker",
                     TokenClient(),
-                    lease_monitor=mock.Mock(),
+                    lease_monitor=mock.Mock(spec=drain_queue.LeaseMonitor),
                 )
 
         self.assertEqual(client.calls[0]["action"], "acknowledge")

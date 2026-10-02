@@ -32,6 +32,8 @@ from process_queue_batch import (
 )
 from queue_worker_client import QueueWorkerClient, acknowledge_results
 from report_rate_limits import report_rate_limits
+from execution_code import ExecutionCode, ExecutionCodeLoader, stable_code_ref
+from execution_process import subprocess_options
 
 WAVE_LIMIT = 16
 MINIMUM_WAVE_SECONDS = 10 * 60
@@ -151,6 +153,7 @@ class GitHubAppTokenClient:
             capture_output=True,
             check=False,
             env=child_process_environment(),
+            **subprocess_options(),
         )
         if completed.returncode != 0:
             raise RuntimeError(
@@ -343,18 +346,27 @@ def process_claim_wave(
     resolve_stable_head: Callable[[str, str, str], tuple[int, ...]],
     dispatch_stable: Callable[[Claim], None],
     report_limits: Callable[..., None] = report_rate_limits,
+    execution_code: dict[str, ExecutionCode] | None = None,
+    lease_monitor: LeaseMonitor | None = None,
 ) -> WaveResult:
+    if execution_code is None and any(claim.kind != "refresh" for claim in claims):
+        raise RuntimeError(
+            "backfill and reminder queue items require owned execution; "
+            "keep the queue paused until migration or rollback is complete"
+        )
     claims_by_repository: dict[str, list[Claim]] = defaultdict(list)
     stable_claims: list[Claim] = []
     for claim in claims:
-        if claim.repository in canary_repositories:
+        if execution_code is not None or claim.repository in canary_repositories:
             claims_by_repository[claim.repository].append(claim)
         else:
             stable_claims.append(claim)
 
-    monitor = LeaseMonitor(client, generation, worker_id)
+    monitor = lease_monitor or LeaseMonitor(client, generation, worker_id)
+    owns_monitor = lease_monitor is None
     try:
-        monitor.start()
+        if owns_monitor:
+            monitor.start()
     except Exception as error:
         monitor.close()
         unresolved = unresolved_acknowledgments(claims, [], error)
@@ -465,6 +477,7 @@ def process_claim_wave(
                     token_client,
                     lease_monitor=monitor,
                     report_limits=report_limits,
+                    execution_code=execution_code.get(repository) if execution_code else None,
                 ): repository
                 for index, (repository, repository_claims) in enumerate(
                     sorted(claims_by_repository.items())
@@ -477,7 +490,8 @@ def process_claim_wave(
                 except Exception as error:
                     failures[repository] = error
     finally:
-        monitor.close()
+        if owns_monitor:
+            monitor.close()
 
     if failures:
         details = "; ".join(
@@ -506,14 +520,23 @@ def process_repository_claims(
     *,
     lease_monitor: LeaseMonitor,
     report_limits: Callable[..., None] = report_rate_limits,
+    execution_code: ExecutionCode | None = None,
 ) -> list[dict[str, Any]]:
     token: str | None = None
     common = {"generation": generation, "workerId": worker_id}
     try:
+        lease_monitor.assert_valid()
         token = token_client.mint([claims[0].repository])
         print(f"::add-mask::{token}")
         processor_env = child_process_environment()
         processor_env.update({"GH_TOKEN": token, "PR_DASHBOARD_TOKEN": token})
+        execution_options: dict[str, Any] = {}
+        if execution_code is not None:
+            execution_options = {
+                "script_dir": execution_code.script_dir,
+                "python_executable": execution_code.python,
+            }
+            print(f"{claims[0].repository}: processing with {execution_code.ref}")
         _summary, results = process_claims(
             claims,
             results_path,
@@ -522,6 +545,7 @@ def process_repository_claims(
             worker_id,
             processor_env=processor_env,
             lease_monitor=lease_monitor,
+            **execution_options,
         )
     except Exception as error:
         results = read_results(results_path)
@@ -579,9 +603,82 @@ def load_configured_repositories(
     )
 
 
+def run_owned_drain(args: argparse.Namespace) -> int:
+    client = QueueWorkerClient(args.endpoint)
+    activation = client.call("activate", generation=args.generation, workerId=args.worker)
+    if activation.get("activated") is not True:
+        print("Dispatcher activation was rejected; this run owns no work.")
+        return 0
+    client_id, private_key = take_github_app_credentials()
+    token_client = GitHubAppTokenClient(client_id, private_key)
+    monitor = LeaseMonitor(
+        client, args.generation, args.worker, processing_deadline=args.deadline
+    )
+    try:
+        monitor.start()
+        with tempfile.TemporaryDirectory(prefix="dashboard-execution-") as directory:
+            root = Path(directory)
+            loader = ExecutionCodeLoader(root / "code", monitor, child_process_environment())
+            stable_ref = stable_code_ref(SCRIPT_DIR.parents[1] / "workflows" / "pull-request-dashboard.yml")
+            configured = load_configured_repositories()
+
+            def claim_wave(_wave: int, excluded: list[str]) -> list[Claim]:
+                monitor.assert_valid()
+                response = client.call(
+                    "claim", generation=args.generation, workerId=args.worker,
+                    limit=WAVE_LIMIT, excludeItemKeys=excluded,
+                )
+                return parse_claims(response.get("claims"))
+
+            def process_wave(claims: list[Claim], wave: int) -> WaveResult:
+                try:
+                    codes = {
+                        repository: loader.load(
+                            args.canary_code_ref if repository in args.canary_repositories else stable_ref
+                        )
+                        for repository in sorted({claim.repository for claim in claims})
+                    }
+                except Exception as error:
+                    failures = [
+                        result for claim in claims
+                        for result in failure_acknowledgments((claim,), error)
+                    ]
+                    acknowledge_results(
+                        client, failures, {"generation": args.generation, "workerId": args.worker}
+                    )
+                    return WaveResult(
+                        sum(result["outcome"] == "dead" for result in failures),
+                        tuple(result["itemKey"] for result in failures if result["outcome"] == "retry"),
+                    )
+                return process_claim_wave(
+                    claims, root / f"results-{wave}.json", client, args.generation,
+                    args.worker, token_client,
+                    canary_repositories=args.canary_repositories,
+                    configured_repositories=configured,
+                    # Owned execution resolves heads in the selected code's
+                    # combined processor, never through a workflow dispatch.
+                    resolve_stable_head=lambda *_args: (),
+                    dispatch_stable=lambda _claim: None,
+                    execution_code=codes,
+                    lease_monitor=monitor,
+                )
+
+            result = drain_queue(
+                claim_wave(1, []), args.deadline, claim_wave, process_wave,
+            )
+            print(json.dumps(asdict(result), sort_keys=True))
+            return 1 if result.dead_letters else 0
+    finally:
+        monitor.close()
+        if not monitor.lost_event.is_set() and monitor.now() < monitor.valid_until:
+            client.call("finish", generation=args.generation, workerId=args.worker)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Drain dashboard queue waves.")
-    parser.add_argument("--claims", type=Path, required=True)
+    parser.add_argument("--claims", type=Path)
+    parser.add_argument("--owned", action="store_true")
+    parser.add_argument("--canary-code-ref")
     parser.add_argument("--deadline", type=int, required=True)
     parser.add_argument("--generation", type=int, required=True)
     parser.add_argument("--worker", required=True)
@@ -594,6 +691,12 @@ def main() -> int:
     )
     args = parser.parse_args()
 
+    if args.owned:
+        if not args.canary_code_ref:
+            parser.error("--owned requires --canary-code-ref")
+        return run_owned_drain(args)
+    if args.claims is None:
+        parser.error("--claims is required for a legacy drain")
     initial_claims = load_claims(args.claims)
     configured_repositories = load_configured_repositories()
     client = QueueWorkerClient(args.endpoint)

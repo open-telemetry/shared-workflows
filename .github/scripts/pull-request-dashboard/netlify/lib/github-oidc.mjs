@@ -10,6 +10,10 @@ export const EXPECTED_REF = "refs/heads/main";
 export const EXPECTED_ENVIRONMENT = "protected";
 export const EXPECTED_WORKFLOW_REF =
   "open-telemetry/shared-workflows/.github/workflows/pull-request-dashboard-drain.yml@refs/heads/main";
+export const ENQUEUE_WORKFLOW_REFS = [
+  "pull-request-dashboard.yml",
+  "pull-request-dashboard-refresh-author-nudges.yml",
+].map((name) => `open-telemetry/shared-workflows/.github/workflows/${name}@refs/heads/main`);
 
 const githubKeys = createRemoteJWKSet(
   new URL(`${GITHUB_OIDC_ISSUER}/.well-known/jwks`),
@@ -53,12 +57,15 @@ export async function verifyGitHubOidcToken(
     repository,
     ref,
     environment,
-    workflow_ref: workflowRef,
   };
   for (const [claim, expected] of Object.entries(expectedClaims)) {
     if (payload[claim] !== expected) {
       throw oidcError(`GitHub OIDC claim ${claim} is not authorized`);
     }
+  }
+  const allowedRefs = Array.isArray(workflowRef) ? workflowRef : [workflowRef];
+  if (!allowedRefs.includes(payload.workflow_ref)) {
+    throw oidcError("GitHub OIDC claim workflow_ref is not authorized");
   }
   return payload;
 }

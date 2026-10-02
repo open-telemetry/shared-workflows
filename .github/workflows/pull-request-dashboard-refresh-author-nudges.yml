@@ -25,8 +25,29 @@ env:
   DASHBOARD_STATE_BRANCH_PREFIX: otelbot/pull-request-dashboard-state
 
 jobs:
+  enqueue:
+    if: >-
+      inputs.dry_run == false &&
+      (vars.PR_DASHBOARD_EXECUTION_MODE == 'owned' || vars.PR_DASHBOARD_EXECUTION_MODE == 'paused')
+    runs-on: ubuntu-latest
+    environment: protected
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      TARGET_REPOSITORY: ${{ inputs.repository }}
+      PR_DASHBOARD_QUEUE_ENDPOINT: https://otel-pull-request-dashboard.netlify.app/.netlify/functions/dashboard-queue-worker
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Accept author reminder sweep
+        run: python3 .github/scripts/pull-request-dashboard/enqueue_dashboard.py --reminders
+
   resolve-targets:
-    if: github.repository == 'open-telemetry/shared-workflows'
+    if: >-
+      github.repository == 'open-telemetry/shared-workflows' &&
+      (inputs.dry_run || vars.PR_DASHBOARD_EXECUTION_MODE == '' || vars.PR_DASHBOARD_EXECUTION_MODE == 'legacy')
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -61,7 +82,7 @@ jobs:
   sweep:
     needs: resolve-targets
     concurrency:
-      group: pull-request-dashboard-publish-${{ matrix.name }}
+      group: ${{ inputs.dry_run && format('pull-request-dashboard-dry-run-{0}-{1}', github.run_id, matrix.name) || format('pull-request-dashboard-publish-{0}', matrix.name) }}
       cancel-in-progress: false
     strategy:
       fail-fast: false
@@ -87,8 +108,8 @@ jobs:
           private-key: ${{ secrets.PR_DASHBOARD_PRIVATE_KEY }}
           owner: open-telemetry
           repositories: ${{ matrix.name }}
-          permission-issues: write
-          permission-pull-requests: read
+          permission-issues: ${{ inputs.dry_run && 'read' || 'write' }}
+          permission-pull-requests: ${{ inputs.dry_run && 'read' || 'write' }}
 
       - name: Refresh author reminders
         env:
