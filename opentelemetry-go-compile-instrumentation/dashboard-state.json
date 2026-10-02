@@ -2322,14 +2322,10 @@
     },
     "1350": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "darkraider01",
-        "author_action_review_thread_urls": [
-          "https://github.com/open-telemetry/opentelemetry-go-compile-instrumentation/pull/1350#discussion_r4154818969",
-          "https://github.com/open-telemetry/opentelemetry-go-compile-instrumentation/pull/1350#discussion_r4155893695",
-          "https://github.com/open-telemetry/opentelemetry-go-compile-instrumentation/pull/1350#discussion_r4155910419"
-        ],
+        "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "author_can_act": true,
         "author_nudge_episode_id": "78763772ea99462695d266b742305518",
@@ -2337,7 +2333,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 3,
         "conflicts": "no",
-        "copilot_request_fingerprint": "74b52cfce17aeaa18c1f72bd93cc8b125556733c8b704f45a30b7386d9c45b47",
+        "copilot_request_fingerprint": "3062f2ea4eca9ed14adaf73579958ffa8de75f8f7e4c2cd0ad8dcd2ecfd446e4",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -2353,26 +2349,27 @@
         "head_sha": "075acee31423bc78d319101f943cf9b210e8ec76",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-10-02T10:39:28+00:00",
-        "last_approver_activity_at": "2026-10-01T14:46:38+00:00",
+        "last_activity_at": "2026-10-02T10:41:39+00:00",
+        "last_approver_activity_at": "2026-10-02T10:41:39+00:00",
         "last_author_activity_at": "2026-10-02T10:39:28+00:00",
         "required_checks_settled": false,
         "reviewers": [
           {
-            "approved": false,
+            "approved": true,
             "approved_non_team": false,
-            "changes_requested": true,
+            "changes_requested": false,
             "login": "darccio",
-            "open_thread": true,
+            "open_thread": false,
             "pending_review": false,
             "top_level_feedback": false,
-            "unresolved_thread": true
+            "unresolved_thread": false
           }
         ],
-        "route_held_for_gates": false,
+        "route_held_for_gates": true,
+        "route_held_since": "2026-10-02T10:43:00.122430+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "7b8e948ebd7d764ab3e9513a66722335b455febe7c18c66e9bc3ff099b587426",
-        "waiting_age_basis": "oldest_pending_thread",
+        "routing_input_fingerprint": "bf543687cd458d863395475eefef321a1956e363fcaf09599f0ba3911d207951",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-10-01T11:23:32+00:00"
       },
       "failed": false,
