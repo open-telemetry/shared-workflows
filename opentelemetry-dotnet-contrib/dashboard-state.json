@@ -741,7 +741,9 @@
       "facts": {
         "approval_count": 0,
         "assignees": [
-          "iskiselev"
+          "normj",
+          "iskiselev",
+          "srprash"
         ],
         "author": "martincostello",
         "author_action_review_thread_urls": [],
@@ -752,28 +754,28 @@
         "author_nudge_episode_id": "22bbac43b84549879b17c0c3ced4c947",
         "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
-        "ci_pending_count": 0,
+        "ci_pending_count": 1,
         "conflicts": "no",
-        "copilot_request_fingerprint": "d64b8edbc9eab6bdd1a597388fa0f87b640ca9a5ac0fbdbc69a4df09ffd341ff",
+        "copilot_request_fingerprint": "18523a77a01bef70c0ae29c545c4583eb62e3182abfb39490c18ce911deae576",
         "copilot_review_exists": true,
-        "copilot_review_needed": false,
+        "copilot_review_needed": true,
         "copilot_review_outstanding": false,
         "copilot_review_request_needed": false,
         "copilot_review_requested": false,
-        "copilot_review_stale": false,
+        "copilot_review_stale": true,
         "copilot_review_unreported": false,
         "created_at": "2026-09-30T13:19:06+00:00",
         "dashboard_command_replies": [],
         "dashboard_override_command_id": 0,
         "dashboard_override_command_user": "",
         "dashboard_override_head_sha": "",
-        "head_sha": "3730a5e1d027b646d3efbff06a7a8075edac00ea",
+        "head_sha": "1d2541fbf31f649fe1a0ae9066c37c36f0d46b0d",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-10-02T09:33:09+00:00",
+        "last_activity_at": "2026-10-02T09:47:36+00:00",
         "last_approver_activity_at": "2026-10-02T05:10:27+00:00",
-        "last_author_activity_at": "2026-10-02T09:33:09+00:00",
-        "required_checks_settled": true,
+        "last_author_activity_at": "2026-10-02T09:47:36+00:00",
+        "required_checks_settled": false,
         "reviewers": [
           {
             "approved": false,
@@ -794,11 +796,31 @@
             "pending_review": false,
             "top_level_feedback": true,
             "unresolved_thread": false
+          },
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "normj",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          },
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "srprash",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
           }
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "5099620e3a08a0b943cd3aa182c9ce80752d424abf3d1c1540dd8d7411be5e09",
+        "routing_input_fingerprint": "628909a7c2db74b948ce7b21a06ba98b4309f7c178e72f8d4706f653cea5861a",
         "waiting_age_basis": "oldest_pending_thread",
         "waiting_since": "2026-10-02T08:51:26+00:00"
       },
