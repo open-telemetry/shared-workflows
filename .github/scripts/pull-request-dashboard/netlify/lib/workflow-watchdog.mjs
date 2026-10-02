@@ -19,6 +19,11 @@ export const WATCHED_DASHBOARD_WORKFLOWS = Object.freeze([
     runNameSuffix: "-refresh",
   }),
   Object.freeze({
+    workflowId: "pull-request-dashboard.yml",
+    groupByPublisher: true,
+    runNamePrefix: DASHBOARD_RUN_NAME_PREFIX,
+  }),
+  Object.freeze({
     workflowId: "pull-request-dashboard-deploy-webhook.yml",
   }),
 ]);
@@ -77,14 +82,26 @@ export async function cancelStalledDashboardRuns({
       statuses: ACTIVE_RUN_STATUSES,
     });
     const matchingRuns = runs.filter((run) => matchesWorkflow(run, workflow));
+    const jobsByRun = new Map();
+    if (workflow.groupByPublisher && matchingRuns.some((run) =>
+      BLOCKING_RUN_STATUSES.has(run.status) &&
+      runAttemptStart(run) <= staleBefore &&
+      !run.display_title.endsWith("-manual")
+    )) {
+      await Promise.all(matchingRuns.map(async (run) => {
+        jobsByRun.set(run.id, await getJobsIfFound(actions, run.id));
+      }));
+    }
 
     const candidates = matchingRuns
       .filter((run) => {
         const createdAt = runAttemptStart(run);
-        return BLOCKING_RUN_STATUSES.has(run.status) &&
+        return !requested.some((request) => request.runId === run.id) &&
+          BLOCKING_RUN_STATUSES.has(run.status) &&
+          (!workflow.groupByPublisher || !run.display_title.endsWith("-manual")) &&
           Number.isFinite(createdAt) &&
           createdAt <= staleBefore &&
-          findNewerRun(run, matchingRuns, workflow);
+          findNewerRun(run, matchingRuns, workflow, jobsByRun);
       })
       .sort((left, right) =>
         Date.parse(left.created_at) - Date.parse(right.created_at)
@@ -100,7 +117,10 @@ export async function cancelStalledDashboardRuns({
     remainingCandidates -= selected.length;
 
     for (const run of selected) {
-      const newerRun = findNewerRun(run, matchingRuns, workflow);
+      const newerRun = findNewerRun(run, matchingRuns, workflow, jobsByRun);
+      if (!newerRun) {
+        continue;
+      }
       const createdAt = runAttemptStart(run);
       const details = {
         workflowId: workflow.workflowId,
@@ -110,7 +130,9 @@ export async function cancelStalledDashboardRuns({
           (checkedAt - createdAt) / (60 * 1000),
         ),
       };
-      const jobs = await getJobsIfFound(actions, run.id);
+      const jobs = workflow.groupByPublisher
+        ? jobsByRun.get(run.id)
+        : await getJobsIfFound(actions, run.id);
       if (jobs === null || !canCancelStalledRun(jobs, staleBefore)) {
         continue;
       }
@@ -124,6 +146,14 @@ export async function cancelStalledDashboardRuns({
       const currentNewerStart = currentNewer
         ? runAttemptStart(currentNewer)
         : NaN;
+      if (workflow.groupByPublisher && current && currentNewer) {
+        await Promise.all([current, currentNewer].map(async (candidate) => {
+          jobsByRun.set(candidate.id, await getJobsIfFound(actions, candidate.id));
+        }));
+      }
+      const currentJobs = workflow.groupByPublisher
+        ? jobsByRun.get(run.id)
+        : jobs;
       if (
         !BLOCKING_RUN_STATUSES.has(current.status) ||
         current.run_attempt !== run.run_attempt ||
@@ -131,12 +161,15 @@ export async function cancelStalledDashboardRuns({
         runAttemptStart(current) > now() - staleRunMs ||
         !matchesWorkflow(current, workflow) ||
         !currentNewer ||
-        !WAITING_RUN_STATUSES.has(currentNewer.status) ||
+        !(workflow.groupByPublisher
+          ? ACTIVE_RUN_STATUSES.includes(currentNewer.status)
+          : WAITING_RUN_STATUSES.has(currentNewer.status)) ||
         !matchesWorkflow(currentNewer, workflow) ||
         !Number.isFinite(currentNewerStart) ||
-        currentNewerStart <= runAttemptStart(current) ||
-        !sameConcurrencyGroup(current, currentNewer, workflow) ||
-        !canCancelStalledRun(jobs, now() - staleRunMs)
+        (!workflow.groupByPublisher && currentNewerStart <= runAttemptStart(current)) ||
+        !sameConcurrencyGroup(current, currentNewer, workflow, jobsByRun) ||
+        currentJobs === null ||
+        !canCancelStalledRun(currentJobs, now() - staleRunMs)
       ) {
         continue;
       }
@@ -214,23 +247,57 @@ function runAttemptStart(run) {
   return createdAt;
 }
 
-function findNewerRun(run, runs, workflow) {
+function findNewerRun(run, runs, workflow, jobsByRun) {
   return runs
     .filter((candidate) => {
       const candidateStart = runAttemptStart(candidate);
-      return WAITING_RUN_STATUSES.has(candidate.status) &&
+      return candidate.id !== run.id &&
+        (workflow.groupByPublisher
+          ? ACTIVE_RUN_STATUSES.includes(candidate.status)
+          : WAITING_RUN_STATUSES.has(candidate.status)) &&
         Number.isFinite(candidateStart) &&
-        candidateStart > runAttemptStart(run) &&
-        sameConcurrencyGroup(run, candidate, workflow);
+        (workflow.groupByPublisher || candidateStart > runAttemptStart(run)) &&
+        sameConcurrencyGroup(run, candidate, workflow, jobsByRun);
     })
     .sort((left, right) =>
       runAttemptStart(left) - runAttemptStart(right)
     )[0];
 }
 
-function sameConcurrencyGroup(left, right, workflow) {
+function sameConcurrencyGroup(left, right, workflow, jobsByRun) {
+  if (workflow.groupByPublisher) {
+    const requests = publisherRequests(left, jobsByRun.get(left.id));
+    return publisherRequests(right, jobsByRun.get(right.id))
+      .some((newer) => requests.some((older) =>
+        newer.repository === older.repository && newer.createdAt > older.createdAt
+      ));
+  }
   return !workflow.groupByRunName ||
     left.display_title.toLowerCase() === right.display_title.toLowerCase();
+}
+
+function publisherRequests(run, jobs) {
+  const target = run.display_title?.match(
+    /^pull-request-dashboard-(.+)-(?:[1-9][0-9]*|[0-9a-f]{40}|backfill)-(?:refresh|manual)$/i,
+  )?.[1];
+  return (jobs || []).flatMap((job) => {
+    const createdAt = Date.parse(job.created_at || job.started_at);
+    if (!WAITING_RUN_STATUSES.has(job.status) || wasAssigned(job) ||
+        !Number.isFinite(createdAt)) {
+      return [];
+    }
+    const matrixRepository = job.name?.match(
+      /^run-repo-dashboard-(?:canary|stable) \(([^()]+)\) \/ publish-dashboard$/,
+    )?.[1];
+    if (matrixRepository) {
+      return [{ repository: matrixRepository.toLowerCase(), createdAt }];
+    }
+    if (target && target.toLowerCase() !== "all-repositories" &&
+        /^run-(?:targeted|head-sha)-dashboard-(?:canary|stable)(?: \([^()]+\))? \/ publish-dashboard$/.test(job.name)) {
+      return [{ repository: target.toLowerCase(), createdAt }];
+    }
+    return [];
+  });
 }
 
 function canCancelStalledRun(jobs, staleBefore) {
