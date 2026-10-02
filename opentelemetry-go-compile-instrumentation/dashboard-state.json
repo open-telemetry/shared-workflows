@@ -2344,11 +2344,16 @@
     },
     "1354": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "Labreo",
-        "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry-go-compile-instrumentation/pull/1354#discussion_r4165533430",
+          "https://github.com/open-telemetry/opentelemetry-go-compile-instrumentation/pull/1354#discussion_r4165538802"
+        ],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/opentelemetry-go-compile-instrumentation/pull/1354#pullrequestreview-5391545164"
+        ],
         "author_can_act": true,
         "author_nudge_episode_id": "5398f3fa17ab451eae0ad8ad7ee8126d",
         "ci_failing_count": 1,
@@ -2356,7 +2361,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "yes",
-        "copilot_request_fingerprint": "31a5dbb76c66e4742512af380748b6275949a3934272dee7d99f8b29d03df6c6",
+        "copilot_request_fingerprint": "3b7d927101b844dc1e3a29d6046314dcad954992c519cb2ba38dc1af580b0709",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -2372,16 +2377,27 @@
         "head_sha": "0bbe9934246bc4215c994832320f5f27fc287319",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-25T23:28:26+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-10-02T12:13:56+00:00",
+        "last_approver_activity_at": "2026-10-02T12:13:56+00:00",
         "last_author_activity_at": "2026-09-25T23:28:26+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "amazingakai",
+            "open_thread": true,
+            "pending_review": false,
+            "top_level_feedback": true,
+            "unresolved_thread": true
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "7754d36c1af05beb4e03c2e74ce82daae6728a327b280d8e85bf750f252076aa",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-09-25T23:28:26+00:00"
+        "routing_input_fingerprint": "100eea2040bb13be7e032b9017339fc65a14cb0bdef2a4331b0a91314395d25b",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-10-02T12:08:52+00:00"
       },
       "failed": false,
       "pr_number": 1354,
