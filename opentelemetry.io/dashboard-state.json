@@ -3298,7 +3298,7 @@
     },
     "11885": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "cyrille-leclerc",
         "author_action_review_thread_urls": [],
@@ -3306,9 +3306,9 @@
         "author_can_act": true,
         "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
-        "ci_pending_count": 0,
+        "ci_pending_count": 6,
         "conflicts": "no",
-        "copilot_request_fingerprint": "764be5cf87667770ddfcf9dd4e0d78703fafaa18da58c9034715a517fd7ffa3f",
+        "copilot_request_fingerprint": "22e825470d4da2808743891f8fe63576aa79a8f6350de17291408cdfb21316c7",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -3321,13 +3321,13 @@
         "dashboard_override_command_id": 0,
         "dashboard_override_command_user": "",
         "dashboard_override_head_sha": "",
-        "head_sha": "579d15498c87d648ae64d435b5f51ca79ef39566",
+        "head_sha": "a2f37a73d718cf6f36e9fccb60c5b1b232840e6d",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-29T12:14:11+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-10-02T22:53:14+00:00",
+        "last_approver_activity_at": "2026-10-02T22:53:14+00:00",
         "last_author_activity_at": "2026-09-29T11:52:48+00:00",
-        "required_checks_settled": true,
+        "required_checks_settled": false,
         "reviewers": [
           {
             "approved": false,
@@ -3338,12 +3338,23 @@
             "pending_review": false,
             "top_level_feedback": false,
             "unresolved_thread": false
+          },
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "tiffany76",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
           }
         ],
-        "route_held_for_gates": false,
+        "route_held_for_gates": true,
+        "route_held_since": "2026-10-02T22:54:21.540110+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "8807d87a37385857c64af394452d29707f6fd0a7bf71093d49fc7eccd856dced",
-        "waiting_age_basis": "gate_release",
+        "routing_input_fingerprint": "1189ee1468ea988691aa3bda0f83eeff465bb21ba803cb5a3169588a565c5b64",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-09-29T12:01:16.879487+00:00"
       },
       "failed": false,
