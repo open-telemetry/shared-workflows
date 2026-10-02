@@ -1517,8 +1517,11 @@
         "assignees": [],
         "author": "ormeilu",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/opentelemetry-rust/pull/3624#issuecomment-5667288626"
+        ],
         "author_can_act": true,
+        "author_nudge_episode_id": "4a0dd30818ea43e999c117354e6b1580",
         "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
@@ -1551,7 +1554,7 @@
             "login": "cijothomas",
             "open_thread": false,
             "pending_review": false,
-            "top_level_feedback": false,
+            "top_level_feedback": true,
             "unresolved_thread": false
           },
           {
@@ -1568,21 +1571,14 @@
         "route_held_for_gates": false,
         "route_hold_expired": false,
         "routing_input_fingerprint": "d3b398d500684194cc2536881b0b1720c15aca773adc939d7c8be1614e896da6",
-        "waiting_age_basis": "last_author_activity",
+        "waiting_age_basis": "oldest_pending_thread",
         "waiting_since": "2026-09-17T18:17:20+00:00"
       },
       "failed": false,
       "pr_number": 3624,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-rust/pull/3624",
-      "route": "approver",
-      "top_level_history": {
-        "pr-issue-comment-5667288626": {
-          "evidence": {
-            "reply": "2026-09-17T18:17:20Z"
-          },
-          "reply_source_id": 5719149853
-        }
-      }
+      "route": "author",
+      "top_level_history": {}
     },
     "3639": {
       "facts": {
