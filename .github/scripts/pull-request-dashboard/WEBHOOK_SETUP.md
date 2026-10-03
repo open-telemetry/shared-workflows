@@ -68,8 +68,10 @@ unfinished job must have waited without a runner or started step for at least
 targeted dashboard dispatches, and webhook deployments. Targeted dispatch
 run names expose their concurrency group so the watchdog does not pair
 unrelated repository or pull request updates. Queued publishers also match by
-repository across different pull requests and backfills, using their job names
-and the targeted run's repository. Publisher enqueue times determine which
+repository using their job names and the targeted run's repository. A
+repository-wide publisher or backfill can replace a stalled publisher for any
+pull request, but a targeted publisher only replaces a stalled publisher for the
+same pull request, because it would not deliver the other pull request. Publisher enqueue times determine which
 request is newer, even when its backfill started earlier or is still processing
 other repositories. A newer manual backfill can unblock an automated publisher,
 but the watchdog does not cancel manual runs. Publisher jobs are fetched again

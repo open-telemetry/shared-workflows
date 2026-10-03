@@ -447,6 +447,7 @@ test("cancels an unassigned stale run blocking a newer run", async () => {
     ["get-run", 1],
     ["get-run", 2],
     ["list-jobs", 1],
+    ["get-run", 1],
     ["force-cancel", 1],
     ["get-run", 1],
   ]);
@@ -481,6 +482,7 @@ test("cancels a stale run before GitHub creates job records", async () => {
     ["get-run", 1],
     ["get-run", 2],
     ["list-jobs", 1],
+    ["get-run", 1],
     ["force-cancel", 1],
     ["get-run", 1],
   ]);
@@ -518,6 +520,7 @@ test("cancels a stale run blocked by a newer pending run", async () => {
     ["get-run", 1],
     ["get-run", 2],
     ["list-jobs", 1],
+    ["get-run", 1],
     ["force-cancel", 1],
     ["get-run", 1],
   ]);
@@ -555,6 +558,7 @@ test("cancels a stale run blocked by a newer waiting run", async () => {
     ["get-run", 1],
     ["get-run", 2],
     ["list-jobs", 1],
+    ["get-run", 1],
     ["force-cancel", 1],
     ["get-run", 1],
   ]);
@@ -592,6 +596,7 @@ test("cancels a stale waiting run blocking a newer pending run", async () => {
     ["get-run", 1],
     ["get-run", 2],
     ["list-jobs", 1],
+    ["get-run", 1],
     ["force-cancel", 1],
     ["get-run", 1],
   ]);
@@ -654,6 +659,7 @@ test("matches targeted dispatches by their exposed concurrency group", async () 
     ["get-run", 1],
     ["get-run", 3],
     ["list-jobs", 1],
+    ["get-run", 1],
     ["force-cancel", 1],
     ["get-run", 1],
   ]);
@@ -779,12 +785,14 @@ test("continues when a run completes during cancellation", async () => {
     ["get-run", 1],
     ["get-run", 2],
     ["list-jobs", 1],
+    ["get-run", 1],
     ["force-cancel", 1],
     ["get-run", 1],
     ["list-jobs", 2],
     ["get-run", 2],
     ["get-run", 3],
     ["list-jobs", 2],
+    ["get-run", 2],
     ["force-cancel", 2],
     ["get-run", 2],
   ]);
@@ -840,7 +848,7 @@ test("cancels a partially completed run when only stale unassigned waiting jobs 
     ageMinutes: 90,
   }]);
   assert.deepEqual(calls.map(([action]) => action),
-    ["list-runs", "list-jobs", "get-run", "get-run", "list-jobs", "force-cancel", "get-run"]);
+    ["list-runs", "list-jobs", "get-run", "get-run", "list-jobs", "get-run", "force-cancel", "get-run"]);
 });
 
 test("requests cancellation for old queued jobs after other jobs finish", async () => {
@@ -1022,7 +1030,7 @@ test("force-cancels a queued publisher at 30 minutes on the first invocation", a
   assert.deepEqual(result.requested.map(({ runId, ageMinutes }) =>
     ({ runId, ageMinutes })), [{ runId: 1, ageMinutes: 30 }]);
   assert.deepEqual(calls.map(([action]) => action),
-    ["list-runs", "list-jobs", "get-run", "get-run", "list-jobs", "force-cancel", "get-run"]);
+    ["list-runs", "list-jobs", "get-run", "get-run", "list-jobs", "get-run", "force-cancel", "get-run"]);
 });
 
 test("uses one configurable stale threshold for selection and revalidation", async () => {
@@ -1148,7 +1156,36 @@ test("does not force if the run is rerun during the job lookup", async () => {
   });
   assert.deepEqual(result.requested, []);
   assert.deepEqual(calls.map(([action]) => action),
-    ["list-runs", "list-jobs", "get-run", "get-run", "list-jobs"]);
+    ["list-runs", "list-jobs", "get-run", "get-run", "list-jobs", "get-run"]);
+});
+
+test("does not force if the run is rerun during the second job lookup", async () => {
+  const { actions, calls, runs } = fixture({
+    runs: [
+      run(2, "pending", "2026-09-10T11:55:00Z"),
+      { ...run(1, "waiting", "2026-09-10T10:00:00Z"), run_attempt: 1 },
+    ],
+  });
+  const listJobs = actions.listRunJobs;
+  let lookups = 0;
+  actions.listRunJobs = async (id) => {
+    const jobs = await listJobs(id);
+    lookups += 1;
+    if (lookups === 2) {
+      runs[1] = {
+        ...runs[1],
+        run_attempt: 2,
+        run_started_at: "2026-09-10T11:59:00Z",
+      };
+      return [];
+    }
+    return jobs;
+  };
+  const result = await cancelStalledDashboardRuns({
+    actions, now: () => NOW, watchedWorkflows: [WORKFLOW],
+  });
+  assert.deepEqual(result.requested, []);
+  assert.equal(calls.some(([action]) => action === "force-cancel"), false);
 });
 
 test("does not force a 40-minute-old run rerun during the job lookup", async () => {
@@ -1173,7 +1210,7 @@ test("does not force a 40-minute-old run rerun during the job lookup", async () 
   });
   assert.deepEqual(result.requested, []);
   assert.deepEqual(calls.map(([action]) => action),
-    ["list-runs", "list-jobs", "get-run", "get-run", "list-jobs"]);
+    ["list-runs", "list-jobs", "get-run", "get-run", "list-jobs", "get-run"]);
 });
 
 test("uses the newer run's current attempt start", async () => {
@@ -1493,7 +1530,7 @@ test("rechecks a force-cancel 409 and retries on each invocation if still active
     assert.deepEqual(result.conflicts.map(({ runId }) => runId), [1]);
   }
   assert.equal(calls.filter(([action]) => action === "force-cancel").length, 3);
-  assert.equal(calls.filter(([action, id]) => action === "get-run" && id === 1).length, 6);
+  assert.equal(calls.filter(([action, id]) => action === "get-run" && id === 1).length, 9);
 });
 
 test("confirms a completed run after a force-cancel 409 race", async () => {
@@ -1801,6 +1838,7 @@ test("uses the workflow run age instead of the job record age", async () => {
     ["get-run", 1],
     ["get-run", 2],
     ["list-jobs", 1],
+    ["get-run", 1],
     ["force-cancel", 1],
     ["get-run", 1],
   ]);
@@ -1837,6 +1875,7 @@ test("filters workflows whose concurrency group is event-specific", async () => 
     ["get-run", 1],
     ["get-run", 2],
     ["list-jobs", 1],
+    ["get-run", 1],
     ["force-cancel", 1],
     ["get-run", 1],
   ]);

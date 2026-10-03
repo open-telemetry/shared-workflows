@@ -169,12 +169,20 @@ export async function cancelStalledDashboardRuns({
         currentJobs = await getJobsIfFound(actions, run.id);
         currentNewer = currentReplacements[0];
       }
+      // Jobs were listed after `current`; re-read the run to catch a rerun
+      // that happened during that lookup.
+      const afterJobs = await getRunIfFound(actions, run.id);
       const currentNewerStart = !publisher && currentNewer
         ? runAttemptStart(currentNewer)
         : NaN;
       if (
         !BLOCKING_RUN_STATUSES.has(current.status) ||
         current.run_attempt !== run.run_attempt ||
+        !afterJobs ||
+        afterJobs.run_attempt !== run.run_attempt ||
+        !BLOCKING_RUN_STATUSES.has(afterJobs.status) ||
+        !Number.isFinite(runAttemptStart(afterJobs)) ||
+        runAttemptStart(afterJobs) > now() - staleRunMs ||
         !Number.isFinite(runAttemptStart(current)) ||
         runAttemptStart(current) > now() - staleRunMs ||
         !matchesWorkflow(current, workflow) ||
