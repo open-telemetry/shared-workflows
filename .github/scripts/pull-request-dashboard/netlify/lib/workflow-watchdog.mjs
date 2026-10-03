@@ -110,8 +110,24 @@ export async function cancelStalledDashboardRuns({
         ...staleRuns.slice(0, staleOffset),
       ].slice(0, MAX_CANDIDATES_PER_WORKFLOW);
       const lookupSlots = MAX_JOB_LOOKUP_RUNS_PER_WORKFLOW - scanned.length;
+      // Stale runs are looked up first so replacement lookups can skip runs
+      // that only cover other repositories and would otherwise split coverage
+      // across rotation slices.
+      await mapWithConcurrency(scanned, async (run) => {
+        jobsByRun.set(run.id, await getJobsIfFound(actions, run.id));
+      });
+      const neededRepositories = new Set(scanned.flatMap((run) =>
+        publisherRequests(
+          run,
+          (jobsByRun.get(run.id) || []).filter((job) =>
+            job.status !== "completed" && !isFailureNotification(job)
+          ),
+        ).map(({ repository }) => repository)
+      ));
       const unscanned = matchingRuns
-        .filter((run) => !scanned.includes(run))
+        .filter((run) =>
+          !scanned.includes(run) && mayCoverRepositories(run, neededRepositories)
+        )
         .sort((left, right) =>
           Date.parse(right.created_at) - Date.parse(left.created_at)
         );
@@ -130,7 +146,7 @@ export async function cancelStalledDashboardRuns({
         ...[...rest.slice(restOffset), ...rest.slice(0, restOffset)]
           .slice(0, rotatingSlots),
       ];
-      await mapWithConcurrency([...scanned, ...others], async (run) => {
+      await mapWithConcurrency(others, async (run) => {
         jobsByRun.set(run.id, await getJobsIfFound(actions, run.id));
       });
     }
@@ -361,6 +377,14 @@ function findNewerRun(run, runs, workflow, jobsByRun, requested) {
     )[0];
 }
 
+function mayCoverRepositories(run, repositories) {
+  const target = run.display_title?.match(
+    /^pull-request-dashboard-(.+)-([1-9][0-9]*|[0-9a-f]{40}|backfill)-(?:refresh|manual)$/i,
+  )?.[1]?.toLowerCase();
+  return !repositories.size || !target || target === "all-repositories" ||
+    repositories.has(target);
+}
+
 function sameConcurrencyGroup(left, right, workflow) {
   return !workflow.groupByRunName ||
     left.display_title.toLowerCase() === right.display_title.toLowerCase();
@@ -455,7 +479,9 @@ function canCancelStalledRun(jobs, staleBefore, requireJobAge = false) {
   const ageRequired = requireJobAge || unfinished.some(isPublisherJob);
   const isQueuedLike = (job) => job.status === "queued" || job.status === "pending";
   const jobStart = (job) => Date.parse(
-    isQueuedLike(job) ? job.started_at || job.created_at : job.started_at,
+    isQueuedLike(job) || (job.status === "waiting" && isPublisherJob(job))
+      ? job.started_at || job.created_at
+      : job.started_at,
   );
   if (unfinished.length !== jobs.length) {
     return unfinished.length > 0 && unfinished.every((job) =>

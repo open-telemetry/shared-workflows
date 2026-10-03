@@ -1583,6 +1583,54 @@ test("rotates lookups to an older manual backfill behind newer unrelated runs", 
   assert.ok(calls.some(([action, runId]) => action === "force-cancel" && runId === 1));
 });
 
+test("assembles coverage for several repositories despite unrelated newer runs", async () => {
+  const unrelated = Array.from({ length: 20 }, (_, index) => 20 + index);
+  const runs = [
+    run(1, "queued", "2026-09-10T09:00:00Z", "schedule",
+      "pull-request-dashboard-all-repositories-backfill-refresh"),
+    run(2, "queued", "2026-09-10T09:01:00Z", "workflow_dispatch",
+      "pull-request-dashboard-repo-a-1-refresh"),
+    run(3, "pending", "2026-09-10T10:00:00Z", "workflow_dispatch",
+      "pull-request-dashboard-repo-a-backfill-manual"),
+    run(4, "pending", "2026-09-10T10:01:00Z", "workflow_dispatch",
+      "pull-request-dashboard-repo-b-backfill-manual"),
+    ...unrelated.map((id) => run(id, "pending",
+      new Date(Date.parse("2026-09-10T11:00:00Z") + id * 1000).toISOString(),
+      "workflow_dispatch", `pull-request-dashboard-repo-c-${id}-refresh`)),
+  ];
+  const jobs = {
+    1: [completedJob(), publisherJob("run-repo-dashboard-stable (repo-a) / publish-dashboard"),
+      publisherJob("run-repo-dashboard-stable (repo-b) / publish-dashboard")],
+    3: [publisherJob("run-repo-dashboard-stable (repo-a) / publish-dashboard",
+      "2026-09-10T11:50:00Z", "pending")],
+    4: [publisherJob("run-repo-dashboard-stable (repo-b) / publish-dashboard",
+      "2026-09-10T11:50:00Z", "pending")],
+  };
+  const { actions, calls } = fixture({ runs, jobs });
+  await cancelStalledDashboardRuns({
+    actions, now: () => NOW, watchedWorkflows: [PUBLISHER_WORKFLOW],
+  });
+  assert.ok(calls.some(([action, runId]) => action === "force-cancel" && runId === 1));
+});
+
+test("ages a waiting publisher without a start time by its enqueue time", async () => {
+  const { created_at, ...waiting } = {
+    ...publisherJob(undefined, undefined, "waiting"), created_at: "2026-09-10T10:00:00Z",
+  };
+  waiting.created_at = created_at;
+  delete waiting.started_at;
+  assert.deepEqual((await publisherCancellations([
+    run(1, "waiting", "2026-09-10T10:00:00Z", "workflow_dispatch",
+      "pull-request-dashboard-repo-a-1-refresh"),
+    run(2, "pending", "2026-09-10T11:50:00Z", "workflow_dispatch",
+      "pull-request-dashboard-repo-a-backfill-manual"),
+  ], {
+    1: [completedJob(), waiting],
+    2: [publisherJob("run-repo-dashboard-stable (repo-a) / publish-dashboard",
+      "2026-09-10T11:50:00Z", "pending")],
+  })).map(([, id]) => id), [1]);
+});
+
 test("checks every stale publisher against every replacement slice across sweeps", async () => {
   const stale = Array.from({ length: 8 }, (_, index) => index + 1);
   const unrelated = Array.from({ length: 6 }, (_, index) => 20 + index);
@@ -2077,7 +2125,7 @@ test("bounds concurrent publisher job lookups", async () => {
   const jobs = { 1: [completedJob(), publisherJob()] };
   for (let id = 2; id < 12; id++) {
     runs.push(run(id, "pending", "2026-09-10T11:50:00Z", "workflow_dispatch",
-      "pull-request-dashboard-repo-b-2-refresh"));
+      "pull-request-dashboard-repo-a-2-refresh"));
     jobs[id] = [publisherJob(undefined, "2026-09-10T11:50:00Z", "pending")];
   }
   const { actions } = fixture({ runs, jobs });
