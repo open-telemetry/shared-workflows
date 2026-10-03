@@ -2336,7 +2336,7 @@
     },
     "836": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "somuai",
         "author_action_review_thread_urls": [],
@@ -2344,9 +2344,9 @@
         "author_can_act": true,
         "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
-        "ci_pending_count": 0,
+        "ci_pending_count": 1,
         "conflicts": "no",
-        "copilot_request_fingerprint": "27c50d91fbc41180c049db83a81821f8a42c92393746a0a9ebd6fe7d172b337f",
+        "copilot_request_fingerprint": "4b162974e8da6498106e92c3bea82ba9831265eaa8d6b927213071fec8e9ab9f",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
         "copilot_review_outstanding": false,
@@ -2362,15 +2362,15 @@
         "head_sha": "8c6abe5c23b930cb5e89ce68233605fc99e15cb4",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-10-03T09:51:39+00:00",
-        "last_approver_activity_at": "2026-10-02T22:45:18+00:00",
+        "last_activity_at": "2026-10-03T20:33:29+00:00",
+        "last_approver_activity_at": "2026-10-03T20:33:29+00:00",
         "last_author_activity_at": "2026-10-03T09:51:39+00:00",
-        "required_checks_settled": true,
+        "required_checks_settled": false,
         "reviewers": [
           {
-            "approved": false,
+            "approved": true,
             "approved_non_team": false,
-            "changes_requested": true,
+            "changes_requested": false,
             "login": "lmolkova",
             "open_thread": false,
             "pending_review": false,
@@ -2378,10 +2378,11 @@
             "unresolved_thread": false
           }
         ],
-        "route_held_for_gates": false,
+        "route_held_for_gates": true,
+        "route_held_since": "2026-10-03T20:34:08.161479+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "56f1e75aacbe100e06d2ff839c7693b70a1bfc141594f1b9460134d1226f4682",
-        "waiting_age_basis": "last_author_activity",
+        "routing_input_fingerprint": "9587c839f6fbe14aa532760634dfa47e6700fa6f73925462d7dc171b07587ed6",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-10-03T09:51:39+00:00"
       },
       "failed": false,
