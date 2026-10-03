@@ -137,24 +137,41 @@ export async function cancelStalledDashboardRuns({
       if (jobs === null || !canCancelStalledRun(jobs, staleBefore)) {
         continue;
       }
-      const [current, currentNewer] = await Promise.all([
-        getRunIfFound(actions, run.id),
-        getRunIfFound(actions, newerRun.id),
-      ]);
+      const publisher = workflow.groupByPublisher;
+      const replacementRuns = publisher
+        ? findPublisherReplacements(run, matchingRuns, jobsByRun, requested)
+        : [newerRun];
+      const [current, ...currentReplacements] = await Promise.all(
+        [run, ...replacementRuns].map((candidate) =>
+          getRunIfFound(actions, candidate.id)
+        ),
+      );
       if (!current) {
         continue;
       }
-      const currentNewerStart = currentNewer
+      let currentJobs;
+      let currentNewer;
+      let stillReplaced;
+      if (publisher) {
+        const live = currentReplacements.filter(Boolean);
+        await mapWithConcurrency([current, ...live], async (candidate) => {
+          jobsByRun.set(candidate.id, await getJobsIfFound(actions, candidate.id));
+        });
+        currentJobs = jobsByRun.get(run.id);
+        stillReplaced = findPublisherReplacements(
+          current,
+          live.filter((candidate) => matchesWorkflow(candidate, workflow)),
+          jobsByRun,
+          requested,
+        ).length > 0;
+        currentNewer = stillReplaced;
+      } else {
+        currentJobs = await getJobsIfFound(actions, run.id);
+        currentNewer = currentReplacements[0];
+      }
+      const currentNewerStart = !publisher && currentNewer
         ? runAttemptStart(currentNewer)
         : NaN;
-      if (workflow.groupByPublisher && current && currentNewer) {
-        await Promise.all([current, currentNewer].map(async (candidate) => {
-          jobsByRun.set(candidate.id, await getJobsIfFound(actions, candidate.id));
-        }));
-      }
-      const currentJobs = workflow.groupByPublisher
-        ? jobsByRun.get(run.id)
-        : jobs;
       if (
         !BLOCKING_RUN_STATUSES.has(current.status) ||
         current.run_attempt !== run.run_attempt ||
@@ -162,14 +179,14 @@ export async function cancelStalledDashboardRuns({
         runAttemptStart(current) > now() - staleRunMs ||
         !matchesWorkflow(current, workflow) ||
         !currentNewer ||
-        requested.some((request) => request.runId === currentNewer.id) ||
-        !(workflow.groupByPublisher
-          ? ACTIVE_RUN_STATUSES.includes(currentNewer.status)
-          : WAITING_RUN_STATUSES.has(currentNewer.status)) ||
-        !matchesWorkflow(currentNewer, workflow) ||
-        !Number.isFinite(currentNewerStart) ||
-        (!workflow.groupByPublisher && currentNewerStart <= runAttemptStart(current)) ||
-        !sameConcurrencyGroup(current, currentNewer, workflow, jobsByRun) ||
+        (!publisher && (
+          requested.some((request) => request.runId === currentNewer.id) ||
+          !WAITING_RUN_STATUSES.has(currentNewer.status) ||
+          !matchesWorkflow(currentNewer, workflow) ||
+          !Number.isFinite(currentNewerStart) ||
+          currentNewerStart <= runAttemptStart(current) ||
+          !sameConcurrencyGroup(current, currentNewer, workflow, jobsByRun)
+        )) ||
         currentJobs === null ||
         !canCancelStalledRun(currentJobs, now() - staleRunMs)
       ) {
@@ -263,16 +280,17 @@ function runAttemptStart(run) {
 }
 
 function findNewerRun(run, runs, workflow, jobsByRun, requested) {
+  if (workflow.groupByPublisher) {
+    return findPublisherReplacements(run, runs, jobsByRun, requested)[0];
+  }
   return runs
     .filter((candidate) => {
       const candidateStart = runAttemptStart(candidate);
       return candidate.id !== run.id &&
         !requested.some((request) => request.runId === candidate.id) &&
-        (workflow.groupByPublisher
-          ? ACTIVE_RUN_STATUSES.includes(candidate.status)
-          : WAITING_RUN_STATUSES.has(candidate.status)) &&
+        WAITING_RUN_STATUSES.has(candidate.status) &&
         Number.isFinite(candidateStart) &&
-        (workflow.groupByPublisher || candidateStart > runAttemptStart(run)) &&
+        candidateStart > runAttemptStart(run) &&
         sameConcurrencyGroup(run, candidate, workflow, jobsByRun);
     })
     .sort((left, right) =>
@@ -280,22 +298,62 @@ function findNewerRun(run, runs, workflow, jobsByRun, requested) {
     )[0];
 }
 
-function sameConcurrencyGroup(left, right, workflow, jobsByRun) {
-  if (workflow.groupByPublisher) {
-    const requests = publisherRequests(left, jobsByRun.get(left.id));
-    return publisherRequests(right, jobsByRun.get(right.id))
-      .some((newer) => requests.some((older) =>
-        newer.repository === older.repository && newer.createdAt > older.createdAt
-      ));
-  }
+function sameConcurrencyGroup(left, right, workflow) {
   return !workflow.groupByRunName ||
     left.display_title.toLowerCase() === right.display_title.toLowerCase();
 }
 
+// Every unfinished job of the run must be a publisher request, and each must be
+// covered by a newer request in another run. Returns the covering runs, or an
+// empty list when any request is uncovered or any job cannot be mapped.
+function findPublisherReplacements(run, runs, jobsByRun, requested) {
+  const jobs = jobsByRun.get(run.id);
+  const unfinished = (jobs || []).filter((job) => job.status !== "completed");
+  const older = publisherRequests(run, unfinished);
+  if (!older.length || older.length !== unfinished.length) {
+    return [];
+  }
+  const candidates = runs
+    .filter((candidate) =>
+      candidate.id !== run.id &&
+      !requested.some((request) => request.runId === candidate.id) &&
+      ACTIVE_RUN_STATUSES.includes(candidate.status) &&
+      Number.isFinite(runAttemptStart(candidate))
+    )
+    .map((candidate) => ({
+      run: candidate,
+      requests: publisherRequests(candidate, jobsByRun.get(candidate.id)),
+    }));
+  const covering = new Set();
+  for (const request of older) {
+    const covers = candidates
+      .filter(({ requests }) => requests.some((newer) => replaces(newer, request)))
+      .sort((left, right) =>
+        runAttemptStart(left.run) - runAttemptStart(right.run)
+      );
+    if (!covers.length) {
+      return [];
+    }
+    covers.forEach(({ run: candidate }) => covering.add(candidate));
+  }
+  return [...covering].sort((left, right) =>
+    runAttemptStart(left) - runAttemptStart(right)
+  );
+}
+
+// A targeted publisher only delivers its own pull request, while a repository
+// publisher delivers every pending pull request.
+function replaces(newer, older) {
+  return newer.repository === older.repository &&
+    newer.createdAt > older.createdAt &&
+    (newer.scope === "all" || newer.scope === older.scope);
+}
+
 function publisherRequests(run, jobs) {
-  const target = run.display_title?.match(
-    /^pull-request-dashboard-(.+)-(?:[1-9][0-9]*|[0-9a-f]{40}|backfill)-(?:refresh|manual)$/i,
-  )?.[1];
+  const match = run.display_title?.match(
+    /^pull-request-dashboard-(.+)-([1-9][0-9]*|[0-9a-f]{40}|backfill)-(?:refresh|manual)$/i,
+  );
+  const target = match?.[1];
   return (jobs || []).flatMap((job) => {
     const createdAt = Date.parse(job.created_at || job.started_at);
     if (!WAITING_RUN_STATUSES.has(job.status) || wasAssigned(job) ||
@@ -306,11 +364,17 @@ function publisherRequests(run, jobs) {
       /^run-repo-dashboard-(?:canary|stable) \(([^()]+)\) \/ publish-dashboard$/,
     )?.[1];
     if (matrixRepository) {
-      return [{ repository: matrixRepository.toLowerCase(), createdAt }];
+      return [{ repository: matrixRepository.toLowerCase(), scope: "all", createdAt }];
     }
-    if (target && target.toLowerCase() !== "all-repositories" &&
-        /^run-(?:targeted|head-sha)-dashboard-(?:canary|stable)(?: \([^()]+\))? \/ publish-dashboard$/.test(job.name)) {
-      return [{ repository: target.toLowerCase(), createdAt }];
+    const targeted = job.name?.match(
+      /^run-(?:targeted|head-sha)-dashboard-(?:canary|stable)(?: \(([^()]+)\))? \/ publish-dashboard$/,
+    );
+    if (target && target.toLowerCase() !== "all-repositories" && targeted) {
+      return [{
+        repository: target.toLowerCase(),
+        scope: (targeted[1] || match[2]).toLowerCase(),
+        createdAt,
+      }];
     }
     return [];
   });
