@@ -2046,6 +2046,25 @@ test("does not let a targeted publisher replace another pull request's publisher
   }), []);
 });
 
+test("lets a replacement cover a publisher run with a queued failure notification", async () => {
+  const notify = () => publisherJob(
+    "notify-hourly-failure / Open or close workflow failure issue",
+  );
+  assert.deepEqual((await publisherCancellations([
+    run(1, "queued", "2026-09-10T10:00:00Z", "workflow_dispatch",
+      "pull-request-dashboard-repo-a-1-refresh"),
+    run(2, "pending", "2026-09-10T09:00:00Z", "schedule",
+      "pull-request-dashboard-all-repositories-backfill-refresh"),
+  ], {
+    1: [publisherJob(), notify()],
+    2: [
+      publisherJob("run-repo-dashboard-stable (repo-a) / publish-dashboard",
+        "2026-09-10T11:50:00Z", "pending"),
+      notify(),
+    ],
+  })).map(([, id]) => id), [1]);
+});
+
 test("lets a queued rerun publisher without a start time replace a stalled publisher", async () => {
   assert.deepEqual((await publisherCancellations([
     run(1, "queued", "2026-09-10T10:00:00Z", "workflow_dispatch",

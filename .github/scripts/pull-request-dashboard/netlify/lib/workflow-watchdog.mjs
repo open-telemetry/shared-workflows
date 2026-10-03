@@ -329,8 +329,9 @@ function sameConcurrencyGroup(left, right, workflow) {
 function findPublisherReplacements(run, runs, jobsByRun, requested) {
   const jobs = jobsByRun.get(run.id);
   const unfinished = (jobs || []).filter((job) => job.status !== "completed");
-  const older = publisherRequests(run, unfinished);
-  if (!older.length || older.length !== unfinished.length) {
+  const publishers = unfinished.filter((job) => !isFailureNotification(job));
+  const older = publisherRequests(run, publishers);
+  if (!older.length || older.length !== publishers.length) {
     return [];
   }
   const candidates = runs
@@ -358,6 +359,12 @@ function findPublisherReplacements(run, runs, jobsByRun, requested) {
   return [...covering].sort((left, right) =>
     Date.parse(left.created_at) - Date.parse(right.created_at)
   );
+}
+
+// The hourly failure notification waits on the repository publishers and is not
+// a dashboard delivery. It stays in the runner, step and age checks.
+function isFailureNotification(job) {
+  return /^notify-hourly-failure(?: \/|$)/.test(job.name || "");
 }
 
 // A targeted publisher only delivers its own pull request, while a repository
