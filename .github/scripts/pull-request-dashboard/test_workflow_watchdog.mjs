@@ -1995,6 +1995,21 @@ test("does not let a targeted publisher replace another pull request's publisher
   }), []);
 });
 
+test("lets a queued rerun publisher without a start time replace a stalled publisher", async () => {
+  assert.deepEqual((await publisherCancellations([
+    run(1, "queued", "2026-09-10T10:00:00Z", "workflow_dispatch",
+      "pull-request-dashboard-repo-a-1-refresh"),
+    {
+      ...run(2, "pending", "2026-09-10T09:00:00Z", "workflow_dispatch",
+        "pull-request-dashboard-repo-a-1-refresh"),
+      run_attempt: 2,
+    },
+  ], {
+    1: [publisherJob()],
+    2: [publisherJob(undefined, "2026-09-10T11:50:00Z", "pending")],
+  })).map(([, id]) => id), [1]);
+});
+
 test("refreshes candidate jobs before cancelling non-publisher entries", async () => {
   const { actions, calls, jobs } = fixture({
     runs: [

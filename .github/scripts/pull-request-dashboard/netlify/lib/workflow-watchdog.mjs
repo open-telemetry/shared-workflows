@@ -325,8 +325,7 @@ function findPublisherReplacements(run, runs, jobsByRun, requested) {
     .filter((candidate) =>
       candidate.id !== run.id &&
       !requested.some((request) => request.runId === candidate.id) &&
-      ACTIVE_RUN_STATUSES.includes(candidate.status) &&
-      Number.isFinite(runAttemptStart(candidate))
+      ACTIVE_RUN_STATUSES.includes(candidate.status)
     )
     .map((candidate) => ({
       run: candidate,
@@ -337,7 +336,7 @@ function findPublisherReplacements(run, runs, jobsByRun, requested) {
     const covers = candidates
       .filter(({ requests }) => requests.some((newer) => replaces(newer, request)))
       .sort((left, right) =>
-        runAttemptStart(left.run) - runAttemptStart(right.run)
+        Date.parse(left.run.created_at) - Date.parse(right.run.created_at)
       );
     if (!covers.length) {
       return [];
@@ -345,7 +344,7 @@ function findPublisherReplacements(run, runs, jobsByRun, requested) {
     covers.forEach(({ run: candidate }) => covering.add(candidate));
   }
   return [...covering].sort((left, right) =>
-    runAttemptStart(left) - runAttemptStart(right)
+    Date.parse(left.created_at) - Date.parse(right.created_at)
   );
 }
 
