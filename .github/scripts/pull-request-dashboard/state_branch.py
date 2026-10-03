@@ -191,10 +191,27 @@ def snapshot_generation(ref: str, cwd: Path | None = None) -> int:
     return int(trailers[0].split(": ", 1)[1])
 
 
+def has_snapshot_ancestor(oid: str) -> bool:
+    result = subprocess.run(
+        [
+            "git", "log", "-n1", "--format=%H", "-E",
+            f"--grep=^{SNAPSHOT_GENERATION_TRAILER}:", oid,
+        ],
+        capture_output=True, text=True, check=False,
+        creationflags=SUBPROCESS_FLAGS,
+    )
+    if result.returncode != 0:
+        raise RuntimeError(f"failed to inspect Git history for {oid}: {result.stderr.strip()}")
+    return bool(result.stdout.strip())
+
+
 def update_snapshot_ref(state_branch: str, fetched_ref: str) -> None:
     destination = remote_ref(state_branch)
     fetched_oid = ref_oid(fetched_ref)
     fetched_generation = snapshot_generation(fetched_oid)
+    # A fresh checkout has no local ref, so detect history appended to a snapshot from the commits themselves.
+    if not fetched_generation and has_snapshot_ancestor(fetched_oid):
+        raise RuntimeError(f"history restored after data snapshot for {state_branch}")
     for _ in range(FETCH_ATTEMPTS):
         local_oid = ref_oid(destination) if has_state_branch(state_branch) else ""
         if local_oid == fetched_oid:
