@@ -1494,6 +1494,33 @@ test("attempts every publisher backlog run when force-cancel keeps returning 409
   assert.deepEqual([...attempted].sort((a, b) => a - b), ids);
 });
 
+test("rotates lookups to an older manual backfill behind newer unrelated runs", async () => {
+  const unrelated = Array.from({ length: 15 }, (_, index) => 10 + index);
+  const runs = [
+    run(1, "queued", "2026-09-10T10:00:00Z", "workflow_dispatch",
+      "pull-request-dashboard-repo-a-1-refresh"),
+    run(2, "pending", "2026-09-10T10:10:00Z", "workflow_dispatch",
+      "pull-request-dashboard-repo-a-backfill-manual"),
+    ...unrelated.map((id) => run(id, "pending",
+      new Date(Date.parse("2026-09-10T11:00:00Z") + id * 1000).toISOString(),
+      "workflow_dispatch", `pull-request-dashboard-repo-b-${id}-refresh`)),
+  ];
+  const jobs = {
+    1: [completedJob(), publisherJob()],
+    2: [publisherJob("run-repo-dashboard-stable (repo-a) / publish-dashboard",
+      "2026-09-10T11:50:00Z", "pending")],
+  };
+  const { actions, calls } = fixture({ runs, jobs });
+  let clock = NOW;
+  for (let tick = 0; tick < 4; tick += 1) {
+    await cancelStalledDashboardRuns({
+      actions, now: () => clock, watchedWorkflows: [PUBLISHER_WORKFLOW],
+    });
+    clock += 15 * 60 * 1000;
+  }
+  assert.ok(calls.some(([action, runId]) => action === "force-cancel" && runId === 1));
+});
+
 test("rotates every backlog when workflows compete for the invocation budget", async () => {
   let clock = NOW;
   const watchedWorkflows = Array.from({ length: 4 }, (_, index) => ({

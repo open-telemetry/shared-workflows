@@ -107,12 +107,26 @@ export async function cancelStalledDashboardRuns({
         ...staleRuns.slice(staleOffset),
         ...staleRuns.slice(0, staleOffset),
       ].slice(0, MAX_CANDIDATES_PER_WORKFLOW);
-      const others = matchingRuns
+      const lookupSlots = MAX_JOB_LOOKUP_RUNS_PER_WORKFLOW - scanned.length;
+      const unscanned = matchingRuns
         .filter((run) => !scanned.includes(run))
         .sort((left, right) =>
           Date.parse(right.created_at) - Date.parse(left.created_at)
-        )
-        .slice(0, MAX_JOB_LOOKUP_RUNS_PER_WORKFLOW - scanned.length);
+        );
+      // A replacement can be older than many newer runs, such as a manual
+      // backfill whose publisher was enqueued later, so rotate the rest.
+      const rotatingSlots = Math.floor(lookupSlots / 2);
+      const newest = unscanned.slice(0, lookupSlots - rotatingSlots);
+      const rest = unscanned.slice(newest.length);
+      const restOffset = rest.length
+        ? Math.floor(checkedAt / (WATCHDOG_INTERVAL_MS * workflows.length)) *
+          rotatingSlots % rest.length
+        : 0;
+      const others = [
+        ...newest,
+        ...[...rest.slice(restOffset), ...rest.slice(0, restOffset)]
+          .slice(0, rotatingSlots),
+      ];
       await mapWithConcurrency([...scanned, ...others], async (run) => {
         jobsByRun.set(run.id, await getJobsIfFound(actions, run.id));
       });

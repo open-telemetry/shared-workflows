@@ -75,7 +75,8 @@ same pull request, because it would not deliver the other pull request. Publishe
 request is newer, even when its backfill started earlier or is still processing
 other repositories. A queued failure notification does not affect this matching. A newer manual backfill can unblock an automated publisher,
 but the watchdog does not cancel manual runs. Each invocation lists jobs for at most 16 runs per publisher workflow: the stale runs
-rotate fairly, and the newest runs fill the rest. Publisher jobs are fetched again
+rotate fairly, half of the rest goes to the newest runs, and the other half rotates
+through older runs, including manual backfills. Publisher jobs are fetched again
 before cancellation to check for a newly assigned runner or started step.
 
 Disable Deploy Previews. PR preview deploys are unused and only add noise to
