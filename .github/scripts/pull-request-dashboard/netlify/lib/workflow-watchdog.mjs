@@ -451,26 +451,33 @@ function publisherRequests(run, jobs) {
 
 function canCancelStalledRun(jobs, staleBefore, requireJobAge = false) {
   const unfinished = jobs.filter((job) => job.status !== "completed");
+  // Publisher jobs need the job age check on every route, not only the publisher entry.
+  const ageRequired = requireJobAge || unfinished.some(isPublisherJob);
+  const isQueuedLike = (job) => job.status === "queued" || job.status === "pending";
+  const jobStart = (job) => Date.parse(
+    isQueuedLike(job) ? job.started_at || job.created_at : job.started_at,
+  );
   if (unfinished.length !== jobs.length) {
-    return unfinished.length > 0 && unfinished.every((job) => {
-      const startedAt = Date.parse(
-        job.status === "queued" ? job.started_at || job.created_at : job.started_at,
-      );
-      return (job.status === "waiting" || job.status === "queued") &&
-        !wasAssigned(job) &&
-        Number.isFinite(startedAt) &&
-        startedAt <= staleBefore;
-    });
+    return unfinished.length > 0 && unfinished.every((job) =>
+      (job.status === "waiting" || isQueuedLike(job)) &&
+      !wasAssigned(job) &&
+      Number.isFinite(jobStart(job)) &&
+      jobStart(job) <= staleBefore
+    );
   }
   return jobs.every((job) =>
     (job.status === "in_progress" ||
-      (job.status === "waiting" && (!requireJobAge ||
+      (job.status === "waiting" && (!ageRequired ||
         Date.parse(job.started_at || job.created_at) <= staleBefore)) ||
-      (job.status === "queued" &&
+      (isQueuedLike(job) &&
         Number.isFinite(Date.parse(job.started_at || job.created_at)) &&
         Date.parse(job.started_at || job.created_at) <= staleBefore)) &&
     !wasAssigned(job)
   );
+}
+
+function isPublisherJob(job) {
+  return / \/ publish-dashboard$/.test(job.name || "");
 }
 
 function wasAssigned(job) {

@@ -1061,6 +1061,48 @@ test("does not force-cancel a publisher run with only a fresh waiting job", asyn
   assert.equal(calls.some(([action]) => action === "force-cancel"), false);
 });
 
+test("applies the publisher job age guard on the default workflow routes", async () => {
+  const title = "pull-request-dashboard-repo-a-1-refresh";
+  for (const workflow of WATCHED_DASHBOARD_WORKFLOWS.filter((candidate) =>
+    candidate.workflowId === "pull-request-dashboard.yml")) {
+    const { actions, calls } = fixture({
+      runs: [
+        run(2, "pending", "2026-09-10T11:58:00Z", workflow.event || "workflow_dispatch", title),
+        run(1, "in_progress", "2026-09-10T10:00:00Z", workflow.event || "workflow_dispatch", title),
+      ],
+      jobs: {
+        1: [publisherJob(undefined, "2026-09-10T11:55:00Z", "waiting")],
+        2: [publisherJob(undefined, "2026-09-10T11:58:00Z", "pending")],
+      },
+    });
+    const result = await cancelStalledDashboardRuns({
+      actions, now: () => NOW, watchedWorkflows: [workflow],
+    });
+    assert.deepEqual(result.requested, []);
+    assert.equal(calls.some(([action]) => action === "force-cancel"), false);
+  }
+});
+
+test("cancels an in-progress run with a stale pending publisher", async () => {
+  const title = "pull-request-dashboard-repo-a-1-refresh";
+  for (const finished of [[], [completedJob()]]) {
+    const { actions } = fixture({
+      runs: [
+        run(2, "pending", "2026-09-10T11:50:00Z", "workflow_dispatch", title),
+        run(1, "in_progress", "2026-09-10T10:00:00Z", "workflow_dispatch", title),
+      ],
+      jobs: {
+        1: [...finished, publisherJob(undefined, "2026-09-10T11:30:00Z", "pending")],
+        2: [publisherJob(undefined, "2026-09-10T11:50:00Z", "pending")],
+      },
+    });
+    const result = await cancelStalledDashboardRuns({
+      actions, now: () => NOW, watchedWorkflows: [PUBLISHER_WORKFLOW],
+    });
+    assert.deepEqual(result.requested.map(({ runId }) => runId), [1]);
+  }
+});
+
 test("uses one configurable stale threshold for selection and revalidation", async () => {
   for (const [ageMs, shouldRequest] of [
     [45 * 60 * 1000 - 1, false],
