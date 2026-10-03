@@ -1946,6 +1946,24 @@ async function publisherCancellations(runs, jobs) {
   return calls.filter(([action]) => action === "force-cancel");
 }
 
+test("orders a backfill publisher by its start time rather than its creation time", async () => {
+  const replacement = {
+    ...publisherJob("run-repo-dashboard-stable (repo-a) / publish-dashboard",
+      "2026-09-10T11:50:00Z", "pending"),
+    created_at: "2026-09-10T09:00:00Z",
+  };
+  const runs = [
+    run(1, "queued", "2026-09-10T10:00:00Z", "workflow_dispatch",
+      "pull-request-dashboard-repo-a-1-refresh"),
+    run(2, "pending", "2026-09-10T09:00:00Z", "schedule",
+      "pull-request-dashboard-all-repositories-backfill-refresh"),
+  ];
+  assert.deepEqual(await publisherCancellations(runs, {
+    1: [publisherJob()],
+    2: [replacement],
+  }), [["force-cancel", 1]]);
+});
+
 test("requires replacement coverage for every unfinished backfill publisher", async () => {
   const backfill = [
     publisherJob("run-repo-dashboard-stable (repo-a) / publish-dashboard"),

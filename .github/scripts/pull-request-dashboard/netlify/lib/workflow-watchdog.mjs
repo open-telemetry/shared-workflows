@@ -362,7 +362,7 @@ function publisherRequests(run, jobs) {
   );
   const target = match?.[1];
   return (jobs || []).flatMap((job) => {
-    const createdAt = Date.parse(job.created_at || job.started_at);
+    const createdAt = Date.parse(job.started_at || job.created_at);
     if (!WAITING_RUN_STATUSES.has(job.status) || wasAssigned(job) ||
         !Number.isFinite(createdAt)) {
       return [];
