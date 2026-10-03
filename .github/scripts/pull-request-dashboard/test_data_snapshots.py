@@ -206,6 +206,16 @@ class DataSnapshotTest(unittest.TestCase):
         with working_directory(self.worker), self.assertRaisesRegex(RuntimeError, "history restored"):
             state_branch.update_snapshot_ref("data", "HEAD")
 
+    def test_commit_rejects_history_appended_to_snapshot(self) -> None:
+        self.snapshot(self.worker, self.legacy)
+        (self.worker / "jobs.json").write_text('{"jobs":[2]}\n', encoding="utf-8")
+        run_git(self.worker, "add", ".")
+        run_git(self.worker, "commit", "-m", "History-bearing update")
+        appended = run_git(self.worker, "rev-parse", "HEAD").stdout.strip()
+        run_git(self.worker, "add", ".")
+        with self.assertRaisesRegex(RuntimeError, "history restored"):
+            state_branch.commit_staged_state(self.worker, "Update", appended)
+
     def test_disabled_mode_preserves_legacy_behavior_but_cannot_restore_history(self) -> None:
         with patch.dict(os.environ, {"DATA_BRANCH_SNAPSHOTS": "false"}):
             self.assertFalse(state_branch.commit_staged_state(self.worker, "No changes", self.legacy))

@@ -66,6 +66,10 @@ jobs:
           expected_sha=
           if git ls-remote --exit-code --heads origin "refs/heads/$DATA_BRANCH" >/dev/null; then
             git fetch --no-tags --depth=1 origin "$DATA_BRANCH"
+            # A head without a snapshot trailer needs its full history so commit-data can reject appended history.
+            if ! git log -1 --format=%B FETCH_HEAD | grep -q '^Data-snapshot-generation:'; then
+              git fetch --no-tags --depth=2147483647 origin "$DATA_BRANCH"
+            fi
             git worktree add --detach "$data_dir" FETCH_HEAD
             expected_sha=$(git -C "$data_dir" rev-parse HEAD)
           else

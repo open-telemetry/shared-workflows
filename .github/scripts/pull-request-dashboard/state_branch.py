@@ -191,13 +191,13 @@ def snapshot_generation(ref: str, cwd: Path | None = None) -> int:
     return int(trailers[0].split(": ", 1)[1])
 
 
-def has_snapshot_ancestor(oid: str) -> bool:
+def has_snapshot_ancestor(oid: str, cwd: Path | None = None) -> bool:
     result = subprocess.run(
         [
             "git", "log", "-n1", "--format=%H", "-E",
             f"--grep=^{SNAPSHOT_GENERATION_TRAILER}:", oid,
         ],
-        capture_output=True, text=True, check=False,
+        cwd=cwd, capture_output=True, text=True, check=False,
         creationflags=SUBPROCESS_FLAGS,
     )
     if result.returncode != 0:
@@ -358,6 +358,8 @@ def commit_staged_state(state_dir: Path, message: str, expected_sha: str) -> boo
     generation = snapshot_generation(expected_sha, cwd=state_dir) if expected_sha else 0
     if generation and not enabled:
         raise RuntimeError("DATA_BRANCH_SNAPSHOTS must remain true for snapshot branches")
+    if enabled and expected_sha and not generation and has_snapshot_ancestor(expected_sha, cwd=state_dir):
+        raise RuntimeError("history restored after data snapshot")
     diff = run(
         ["git", "diff", "--cached", "--quiet"], cwd=state_dir, check=False,
     )
