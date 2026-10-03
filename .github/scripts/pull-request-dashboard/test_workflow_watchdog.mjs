@@ -1461,6 +1461,39 @@ test("rotates a force-cancel backlog across bounded invocations", async () => {
   assert.ok(calls.some(([action, runId]) => action === "force-cancel" && runId === 8));
 });
 
+test("attempts every publisher backlog run when force-cancel keeps returning 409", async () => {
+  const conflict = Object.assign(new Error("Conflict"), { githubStatusCode: 409 });
+  const ids = Array.from({ length: 40 }, (_, index) => index + 1);
+  const runs = [
+    run(100, "pending", "2026-09-10T11:50:00Z", "workflow_dispatch",
+      "pull-request-dashboard-repo-a-backfill-manual"),
+    ...ids.map((id) => run(id, "queued",
+      new Date(Date.parse("2026-09-09T00:00:00Z") + id * 60 * 1000).toISOString(),
+      "workflow_dispatch", "pull-request-dashboard-repo-a-1-refresh")),
+  ];
+  const jobs = {
+    100: [publisherJob("run-repo-dashboard-stable (repo-a) / publish-dashboard",
+      "2026-09-10T11:50:00Z", "pending")],
+  };
+  const forceErrors = {};
+  for (const id of ids) {
+    jobs[id] = [completedJob(), publisherJob()];
+    forceErrors[id] = conflict;
+  }
+  const { actions, calls } = fixture({ runs, jobs, forceErrors });
+  let clock = NOW;
+  for (let tick = 0; tick < 10; tick += 1) {
+    await cancelStalledDashboardRuns({
+      actions, now: () => clock, watchedWorkflows: [PUBLISHER_WORKFLOW],
+    });
+    clock += 15 * 60 * 1000;
+  }
+  const attempted = new Set(calls
+    .filter(([action]) => action === "force-cancel")
+    .map(([, id]) => id));
+  assert.deepEqual([...attempted].sort((a, b) => a - b), ids);
+});
+
 test("rotates every backlog when workflows compete for the invocation budget", async () => {
   let clock = NOW;
   const watchedWorkflows = Array.from({ length: 4 }, (_, index) => ({

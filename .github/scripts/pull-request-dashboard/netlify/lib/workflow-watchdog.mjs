@@ -85,6 +85,7 @@ export async function cancelStalledDashboardRuns({
     });
     const matchingRuns = runs.filter((run) => matchesWorkflow(run, workflow));
     const jobsByRun = new Map();
+    let scanned = [];
     const staleRuns = workflow.groupByPublisher
       ? matchingRuns
         .filter((run) =>
@@ -102,7 +103,7 @@ export async function cancelStalledDashboardRuns({
       // without jobs are never treated as stalled or as replacements.
       const staleOffset = Math.floor(checkedAt / (WATCHDOG_INTERVAL_MS * workflows.length)) *
         MAX_CANDIDATES_PER_WORKFLOW % staleRuns.length;
-      const scanned = [
+      scanned = [
         ...staleRuns.slice(staleOffset),
         ...staleRuns.slice(0, staleOffset),
       ].slice(0, MAX_CANDIDATES_PER_WORKFLOW);
@@ -117,7 +118,9 @@ export async function cancelStalledDashboardRuns({
       });
     }
 
-    const candidates = matchingRuns
+    // Publisher candidates come only from the rotated scan, so the rotation
+    // below is not applied twice; other runs only serve as replacements.
+    const candidates = (workflow.groupByPublisher ? scanned : matchingRuns)
       .filter((run) => {
         const createdAt = runAttemptStart(run);
         return !requested.some((request) => request.runId === run.id) &&
