@@ -3,6 +3,8 @@ export const DEFAULT_STALE_RUN_MS = 30 * 60 * 1000;
 const DASHBOARD_RUN_NAME_PREFIX = "pull-request-dashboard-";
 const MAX_CANDIDATES_PER_WORKFLOW = 4;
 const MAX_CANDIDATES_PER_INVOCATION = 8;
+const MAX_CONCURRENT_JOB_LOOKUPS = 4;
+const MAX_JOB_LOOKUP_RUNS_PER_WORKFLOW = 16;
 const WATCHDOG_INTERVAL_MS = 15 * 60 * 1000;
 
 export const WATCHED_DASHBOARD_WORKFLOWS = Object.freeze([
@@ -17,6 +19,11 @@ export const WATCHED_DASHBOARD_WORKFLOWS = Object.freeze([
     groupByRunName: true,
     runNamePrefix: DASHBOARD_RUN_NAME_PREFIX,
     runNameSuffix: "-refresh",
+  }),
+  Object.freeze({
+    workflowId: "pull-request-dashboard.yml",
+    groupByPublisher: true,
+    runNamePrefix: DASHBOARD_RUN_NAME_PREFIX,
   }),
   Object.freeze({
     workflowId: "pull-request-dashboard-deploy-webhook.yml",
@@ -77,14 +84,68 @@ export async function cancelStalledDashboardRuns({
       statuses: ACTIVE_RUN_STATUSES,
     });
     const matchingRuns = runs.filter((run) => matchesWorkflow(run, workflow));
+    const jobsByRun = new Map();
+    let scanned = [];
+    const staleRuns = workflow.groupByPublisher
+      ? matchingRuns
+        .filter((run) =>
+          BLOCKING_RUN_STATUSES.has(run.status) &&
+          runAttemptStart(run) <= staleBefore &&
+          !run.display_title.endsWith("-manual")
+        )
+        .sort((left, right) =>
+          Date.parse(left.created_at) - Date.parse(right.created_at)
+        )
+      : [];
+    if (staleRuns.length) {
+      // Bound the job lookups. Rotate the stale runs fairly, then spend the
+      // rest on the newest runs, which are the likeliest replacements. Runs
+      // without jobs are never treated as stalled or as replacements.
+      const epoch = Math.floor(checkedAt / (WATCHDOG_INTERVAL_MS * workflows.length));
+      const sweepLength = Math.ceil(staleRuns.length / MAX_CANDIDATES_PER_WORKFLOW);
+      const staleOffset = (epoch % sweepLength) * MAX_CANDIDATES_PER_WORKFLOW %
+        staleRuns.length;
+      scanned = [
+        ...staleRuns.slice(staleOffset),
+        ...staleRuns.slice(0, staleOffset),
+      ].slice(0, MAX_CANDIDATES_PER_WORKFLOW);
+      const lookupSlots = MAX_JOB_LOOKUP_RUNS_PER_WORKFLOW - scanned.length;
+      const unscanned = matchingRuns
+        .filter((run) => !scanned.includes(run))
+        .sort((left, right) =>
+          Date.parse(right.created_at) - Date.parse(left.created_at)
+        );
+      // A replacement can be older than many newer runs, such as a manual
+      // backfill whose publisher was enqueued later, so rotate the rest. The
+      // rest advances only after a complete stale sweep, so every stale run is
+      // eventually checked alongside every replacement slice.
+      const rotatingSlots = Math.floor(lookupSlots / 2);
+      const newest = unscanned.slice(0, lookupSlots - rotatingSlots);
+      const rest = unscanned.slice(newest.length);
+      const restOffset = rest.length
+        ? Math.floor(epoch / sweepLength) * rotatingSlots % rest.length
+        : 0;
+      const others = [
+        ...newest,
+        ...[...rest.slice(restOffset), ...rest.slice(0, restOffset)]
+          .slice(0, rotatingSlots),
+      ];
+      await mapWithConcurrency([...scanned, ...others], async (run) => {
+        jobsByRun.set(run.id, await getJobsIfFound(actions, run.id));
+      });
+    }
 
-    const candidates = matchingRuns
+    // Publisher candidates come only from the rotated scan, so the rotation
+    // below is not applied twice; other runs only serve as replacements.
+    const candidates = (workflow.groupByPublisher ? scanned : matchingRuns)
       .filter((run) => {
         const createdAt = runAttemptStart(run);
-        return BLOCKING_RUN_STATUSES.has(run.status) &&
+        return !requested.some((request) => request.runId === run.id) &&
+          BLOCKING_RUN_STATUSES.has(run.status) &&
+          (!workflow.groupByPublisher || !run.display_title.endsWith("-manual")) &&
           Number.isFinite(createdAt) &&
           createdAt <= staleBefore &&
-          findNewerRun(run, matchingRuns, workflow);
+          findNewerRun(run, matchingRuns, workflow, jobsByRun, requested);
       })
       .sort((left, right) =>
         Date.parse(left.created_at) - Date.parse(right.created_at)
@@ -100,7 +161,10 @@ export async function cancelStalledDashboardRuns({
     remainingCandidates -= selected.length;
 
     for (const run of selected) {
-      const newerRun = findNewerRun(run, matchingRuns, workflow);
+      const newerRun = findNewerRun(run, matchingRuns, workflow, jobsByRun, requested);
+      if (!newerRun) {
+        continue;
+      }
       const createdAt = runAttemptStart(run);
       const details = {
         workflowId: workflow.workflowId,
@@ -110,33 +174,84 @@ export async function cancelStalledDashboardRuns({
           (checkedAt - createdAt) / (60 * 1000),
         ),
       };
-      const jobs = await getJobsIfFound(actions, run.id);
+      const jobs = workflow.groupByPublisher
+        ? jobsByRun.get(run.id)
+        : await getJobsIfFound(actions, run.id);
       if (jobs === null || !canCancelStalledRun(jobs, staleBefore)) {
         continue;
       }
-      const [current, currentNewer] = await Promise.all([
-        getRunIfFound(actions, run.id),
-        getRunIfFound(actions, newerRun.id),
-      ]);
+      const publisher = workflow.groupByPublisher;
+      const replacementRuns = publisher
+        ? findPublisherReplacements(run, matchingRuns, jobsByRun, requested)
+        : [newerRun];
+      const [current, ...currentReplacements] = await Promise.all(
+        [run, ...replacementRuns].map((candidate) =>
+          getRunIfFound(actions, candidate.id)
+        ),
+      );
       if (!current) {
         continue;
       }
-      const currentNewerStart = currentNewer
+      let currentJobs;
+      let currentNewer;
+      let stillReplaced;
+      if (publisher) {
+        const live = currentReplacements.filter(Boolean);
+        await mapWithConcurrency([current, ...live], async (candidate) => {
+          jobsByRun.set(candidate.id, await getJobsIfFound(actions, candidate.id));
+        });
+        currentJobs = jobsByRun.get(run.id);
+        // Covering runs can be cancelled or rerun while their jobs are listed.
+        const afterCovering = await Promise.all(
+          live.map((candidate) => getRunIfFound(actions, candidate.id)),
+        );
+        if (afterCovering.some((candidate, index) =>
+          !candidate || candidate.run_attempt !== live[index].run_attempt
+        )) {
+          continue;
+        }
+        stillReplaced = findPublisherReplacements(
+          current,
+          afterCovering.filter((candidate) => matchesWorkflow(candidate, workflow)),
+          jobsByRun,
+          requested,
+        ).length > 0;
+        currentNewer = stillReplaced;
+      } else {
+        currentJobs = await getJobsIfFound(actions, run.id);
+        // The replacement can be cancelled while the jobs are listed.
+        currentNewer = currentReplacements[0]
+          ? await getRunIfFound(actions, currentReplacements[0].id)
+          : undefined;
+      }
+      // Jobs were listed after `current`; re-read the run to catch a rerun
+      // that happened during that lookup.
+      const afterJobs = await getRunIfFound(actions, run.id);
+      const currentNewerStart = !publisher && currentNewer
         ? runAttemptStart(currentNewer)
         : NaN;
       if (
         !BLOCKING_RUN_STATUSES.has(current.status) ||
         current.run_attempt !== run.run_attempt ||
+        !afterJobs ||
+        afterJobs.run_attempt !== run.run_attempt ||
+        !BLOCKING_RUN_STATUSES.has(afterJobs.status) ||
+        !Number.isFinite(runAttemptStart(afterJobs)) ||
+        runAttemptStart(afterJobs) > now() - staleRunMs ||
         !Number.isFinite(runAttemptStart(current)) ||
         runAttemptStart(current) > now() - staleRunMs ||
         !matchesWorkflow(current, workflow) ||
         !currentNewer ||
-        !WAITING_RUN_STATUSES.has(currentNewer.status) ||
-        !matchesWorkflow(currentNewer, workflow) ||
-        !Number.isFinite(currentNewerStart) ||
-        currentNewerStart <= runAttemptStart(current) ||
-        !sameConcurrencyGroup(current, currentNewer, workflow) ||
-        !canCancelStalledRun(jobs, now() - staleRunMs)
+        (!publisher && (
+          requested.some((request) => request.runId === currentNewer.id) ||
+          !WAITING_RUN_STATUSES.has(currentNewer.status) ||
+          !matchesWorkflow(currentNewer, workflow) ||
+          !Number.isFinite(currentNewerStart) ||
+          currentNewerStart <= runAttemptStart(current) ||
+          !sameConcurrencyGroup(current, currentNewer, workflow, jobsByRun)
+        )) ||
+        currentJobs === null ||
+        !canCancelStalledRun(currentJobs, now() - staleRunMs)
       ) {
         continue;
       }
@@ -165,6 +280,19 @@ export async function cancelStalledDashboardRuns({
     unconfirmed,
     conflicts,
   };
+}
+
+async function mapWithConcurrency(items, fn) {
+  let next = 0;
+  const workers = Array.from(
+    { length: Math.min(MAX_CONCURRENT_JOB_LOOKUPS, items.length) },
+    async () => {
+      while (next < items.length) {
+        await fn(items[next++]);
+      }
+    },
+  );
+  await Promise.all(workers);
 }
 
 async function getRunIfFound(actions, runId) {
@@ -214,14 +342,19 @@ function runAttemptStart(run) {
   return createdAt;
 }
 
-function findNewerRun(run, runs, workflow) {
+function findNewerRun(run, runs, workflow, jobsByRun, requested) {
+  if (workflow.groupByPublisher) {
+    return findPublisherReplacements(run, runs, jobsByRun, requested)[0];
+  }
   return runs
     .filter((candidate) => {
       const candidateStart = runAttemptStart(candidate);
-      return WAITING_RUN_STATUSES.has(candidate.status) &&
+      return candidate.id !== run.id &&
+        !requested.some((request) => request.runId === candidate.id) &&
+        WAITING_RUN_STATUSES.has(candidate.status) &&
         Number.isFinite(candidateStart) &&
         candidateStart > runAttemptStart(run) &&
-        sameConcurrencyGroup(run, candidate, workflow);
+        sameConcurrencyGroup(run, candidate, workflow, jobsByRun);
     })
     .sort((left, right) =>
       runAttemptStart(left) - runAttemptStart(right)
@@ -231,6 +364,89 @@ function findNewerRun(run, runs, workflow) {
 function sameConcurrencyGroup(left, right, workflow) {
   return !workflow.groupByRunName ||
     left.display_title.toLowerCase() === right.display_title.toLowerCase();
+}
+
+// Every unfinished job of the run must be a publisher request, and each must be
+// covered by a newer request in another run. Returns the covering runs, or an
+// empty list when any request is uncovered or any job cannot be mapped.
+function findPublisherReplacements(run, runs, jobsByRun, requested) {
+  const jobs = jobsByRun.get(run.id);
+  const unfinished = (jobs || []).filter((job) => job.status !== "completed");
+  const publishers = unfinished.filter((job) => !isFailureNotification(job));
+  const older = publisherRequests(run, publishers);
+  if (!older.length || older.length !== publishers.length) {
+    return [];
+  }
+  const candidates = runs
+    .filter((candidate) =>
+      candidate.id !== run.id &&
+      !requested.some((request) => request.runId === candidate.id) &&
+      ACTIVE_RUN_STATUSES.includes(candidate.status)
+    )
+    .map((candidate) => ({
+      run: candidate,
+      requests: publisherRequests(candidate, jobsByRun.get(candidate.id)),
+    }));
+  const covering = new Set();
+  for (const request of older) {
+    const covers = candidates
+      .filter(({ requests }) => requests.some((newer) => replaces(newer, request)))
+      .sort((left, right) =>
+        Date.parse(left.run.created_at) - Date.parse(right.run.created_at)
+      );
+    if (!covers.length) {
+      return [];
+    }
+    covers.forEach(({ run: candidate }) => covering.add(candidate));
+  }
+  return [...covering].sort((left, right) =>
+    Date.parse(left.created_at) - Date.parse(right.created_at)
+  );
+}
+
+// The hourly failure notification waits on the repository publishers and is not
+// a dashboard delivery. It stays in the runner, step and age checks.
+function isFailureNotification(job) {
+  return /^notify-hourly-failure(?: \/|$)/.test(job.name || "");
+}
+
+// A targeted publisher only delivers its own pull request, while a repository
+// publisher delivers every pending pull request.
+function replaces(newer, older) {
+  return newer.repository === older.repository &&
+    newer.createdAt > older.createdAt &&
+    (newer.scope === "all" || newer.scope === older.scope);
+}
+
+function publisherRequests(run, jobs) {
+  const match = run.display_title?.match(
+    /^pull-request-dashboard-(.+)-([1-9][0-9]*|[0-9a-f]{40}|backfill)-(?:refresh|manual)$/i,
+  );
+  const target = match?.[1];
+  return (jobs || []).flatMap((job) => {
+    const createdAt = Date.parse(job.started_at || job.created_at);
+    if (!WAITING_RUN_STATUSES.has(job.status) || wasAssigned(job) ||
+        !Number.isFinite(createdAt)) {
+      return [];
+    }
+    const matrixRepository = job.name?.match(
+      /^run-repo-dashboard-(?:canary|stable) \(([^()]+)\) \/ publish-dashboard$/,
+    )?.[1];
+    if (matrixRepository) {
+      return [{ repository: matrixRepository.toLowerCase(), scope: "all", createdAt }];
+    }
+    const targeted = job.name?.match(
+      /^run-(?:targeted|head-sha)-dashboard-(?:canary|stable)(?: \(([^()]+)\))? \/ publish-dashboard$/,
+    );
+    if (target && target.toLowerCase() !== "all-repositories" && targeted) {
+      return [{
+        repository: target.toLowerCase(),
+        scope: (targeted[1] || match[2]).toLowerCase(),
+        createdAt,
+      }];
+    }
+    return [];
+  });
 }
 
 function canCancelStalledRun(jobs, staleBefore) {

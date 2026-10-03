@@ -67,7 +67,19 @@ unfinished job must have waited without a runner or started step for at least
 30 minutes. The watchdog covers queue drains, hourly dashboard backfills,
 targeted dashboard dispatches, and webhook deployments. Targeted dispatch
 run names expose their concurrency group so the watchdog does not pair
-unrelated repository or pull request updates.
+unrelated repository or pull request updates. Queued publishers also match by
+repository using their job names and the targeted run's repository. A
+repository-wide publisher or backfill can replace a stalled publisher for any
+pull request, but a targeted publisher only replaces a stalled publisher for the
+same pull request, because it would not deliver the other pull request. Publisher enqueue times determine which
+request is newer, even when its backfill started earlier or is still processing
+other repositories. A queued failure notification does not affect this matching. A newer manual backfill can unblock an automated publisher,
+but the watchdog does not cancel manual runs. Each invocation lists jobs for at most 16 runs per publisher workflow: the stale runs
+rotate fairly, half of the rest goes to the newest runs, and the other half rotates
+through older runs, including manual backfills. The older-run rotation advances only
+after a complete sweep of the stale runs, so every stale run is eventually checked
+against every older run. Publisher jobs are fetched again
+before cancellation to check for a newly assigned runner or started step.
 
 Disable Deploy Previews. PR preview deploys are unused and only add noise to
 PRs. In Netlify, go to **Project configuration** -> **Build & deploy** ->
