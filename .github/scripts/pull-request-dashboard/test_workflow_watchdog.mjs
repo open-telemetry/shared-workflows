@@ -1831,3 +1831,58 @@ test("filters workflows whose concurrency group is event-specific", async () => 
     ["get-run", 1],
   ]);
 });
+
+test("bounds concurrent publisher job lookups", async () => {
+  const runs = [run(1, "queued", "2026-09-10T10:00:00Z", "workflow_dispatch",
+    "pull-request-dashboard-repo-a-1-refresh")];
+  const jobs = { 1: [completedJob(), publisherJob()] };
+  for (let id = 2; id < 12; id++) {
+    runs.push(run(id, "pending", "2026-09-10T11:50:00Z", "workflow_dispatch",
+      "pull-request-dashboard-repo-b-2-refresh"));
+    jobs[id] = [publisherJob(undefined, "2026-09-10T11:50:00Z", "pending")];
+  }
+  const { actions } = fixture({ runs, jobs });
+  let inFlight = 0;
+  let maxInFlight = 0;
+  const listRunJobs = actions.listRunJobs;
+  actions.listRunJobs = async (runId) => {
+    inFlight++;
+    maxInFlight = Math.max(maxInFlight, inFlight);
+    await new Promise((resolve) => setTimeout(resolve, 1));
+    try {
+      return await listRunJobs(runId);
+    } finally {
+      inFlight--;
+    }
+  };
+  await cancelStalledDashboardRuns({
+    actions, now: () => NOW, watchedWorkflows: [PUBLISHER_WORKFLOW],
+  });
+  assert.ok(maxInFlight > 1 && maxInFlight <= 4);
+});
+
+test("does not reuse a cancellation-requested run as a replacement", async () => {
+  const runs = [
+    run(1, "queued", "2026-09-10T10:00:00Z", "schedule",
+      "pull-request-dashboard-all-repositories-backfill-refresh"),
+    run(2, "queued", "2026-09-10T10:05:00Z", "workflow_dispatch",
+      "pull-request-dashboard-repo-b-2-refresh"),
+    run(3, "queued", "2026-09-10T10:10:00Z", "workflow_dispatch",
+      "pull-request-dashboard-repo-a-3-refresh"),
+  ];
+  const jobs = {
+    1: [
+      publisherJob("run-repo-dashboard-stable (repo-a) / publish-dashboard",
+        "2026-09-10T10:00:00Z"),
+      publisherJob("run-repo-dashboard-stable (repo-b) / publish-dashboard",
+        "2026-09-10T10:08:00Z"),
+    ],
+    2: [publisherJob(undefined, "2026-09-10T10:05:00Z")],
+    3: [publisherJob(undefined, "2026-09-10T10:10:00Z")],
+  };
+  const { actions } = fixture({ runs, jobs });
+  const result = await cancelStalledDashboardRuns({
+    actions, now: () => NOW, watchedWorkflows: [PUBLISHER_WORKFLOW],
+  });
+  assert.deepEqual(result.requested.map((r) => r.runId), [1]);
+});

@@ -3,6 +3,7 @@ export const DEFAULT_STALE_RUN_MS = 30 * 60 * 1000;
 const DASHBOARD_RUN_NAME_PREFIX = "pull-request-dashboard-";
 const MAX_CANDIDATES_PER_WORKFLOW = 4;
 const MAX_CANDIDATES_PER_INVOCATION = 8;
+const MAX_CONCURRENT_JOB_LOOKUPS = 4;
 const WATCHDOG_INTERVAL_MS = 15 * 60 * 1000;
 
 export const WATCHED_DASHBOARD_WORKFLOWS = Object.freeze([
@@ -88,9 +89,9 @@ export async function cancelStalledDashboardRuns({
       runAttemptStart(run) <= staleBefore &&
       !run.display_title.endsWith("-manual")
     )) {
-      await Promise.all(matchingRuns.map(async (run) => {
+      await mapWithConcurrency(matchingRuns, async (run) => {
         jobsByRun.set(run.id, await getJobsIfFound(actions, run.id));
-      }));
+      });
     }
 
     const candidates = matchingRuns
@@ -101,7 +102,7 @@ export async function cancelStalledDashboardRuns({
           (!workflow.groupByPublisher || !run.display_title.endsWith("-manual")) &&
           Number.isFinite(createdAt) &&
           createdAt <= staleBefore &&
-          findNewerRun(run, matchingRuns, workflow, jobsByRun);
+          findNewerRun(run, matchingRuns, workflow, jobsByRun, requested);
       })
       .sort((left, right) =>
         Date.parse(left.created_at) - Date.parse(right.created_at)
@@ -117,7 +118,7 @@ export async function cancelStalledDashboardRuns({
     remainingCandidates -= selected.length;
 
     for (const run of selected) {
-      const newerRun = findNewerRun(run, matchingRuns, workflow, jobsByRun);
+      const newerRun = findNewerRun(run, matchingRuns, workflow, jobsByRun, requested);
       if (!newerRun) {
         continue;
       }
@@ -161,6 +162,7 @@ export async function cancelStalledDashboardRuns({
         runAttemptStart(current) > now() - staleRunMs ||
         !matchesWorkflow(current, workflow) ||
         !currentNewer ||
+        requested.some((request) => request.runId === currentNewer.id) ||
         !(workflow.groupByPublisher
           ? ACTIVE_RUN_STATUSES.includes(currentNewer.status)
           : WAITING_RUN_STATUSES.has(currentNewer.status)) ||
@@ -198,6 +200,19 @@ export async function cancelStalledDashboardRuns({
     unconfirmed,
     conflicts,
   };
+}
+
+async function mapWithConcurrency(items, fn) {
+  let next = 0;
+  const workers = Array.from(
+    { length: Math.min(MAX_CONCURRENT_JOB_LOOKUPS, items.length) },
+    async () => {
+      while (next < items.length) {
+        await fn(items[next++]);
+      }
+    },
+  );
+  await Promise.all(workers);
 }
 
 async function getRunIfFound(actions, runId) {
@@ -247,11 +262,12 @@ function runAttemptStart(run) {
   return createdAt;
 }
 
-function findNewerRun(run, runs, workflow, jobsByRun) {
+function findNewerRun(run, runs, workflow, jobsByRun, requested) {
   return runs
     .filter((candidate) => {
       const candidateStart = runAttemptStart(candidate);
       return candidate.id !== run.id &&
+        !requested.some((request) => request.runId === candidate.id) &&
         (workflow.groupByPublisher
           ? ACTIVE_RUN_STATUSES.includes(candidate.status)
           : WAITING_RUN_STATUSES.has(candidate.status)) &&
