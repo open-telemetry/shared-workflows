@@ -109,7 +109,7 @@ jobs:
           owner: open-telemetry
           repositories: ${{ matrix.name }}
           permission-issues: ${{ inputs.dry_run && 'read' || 'write' }}
-          permission-pull-requests: ${{ inputs.dry_run && 'read' || 'write' }}
+          permission-pull-requests: read
 
       - name: Refresh author reminders
         env:

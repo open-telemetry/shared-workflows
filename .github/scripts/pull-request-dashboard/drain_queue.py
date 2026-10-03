@@ -290,6 +290,28 @@ class DashboardWorkflowDispatcher:
             ) from error
 
 
+PREPARATION_SECRET_NAMES = frozenset({
+    "ACTIONS_ID_TOKEN_REQUEST_TOKEN",
+    "ACTIONS_ID_TOKEN_REQUEST_URL",
+    "ACTIONS_RUNTIME_TOKEN",
+    "COPILOT_GITHUB_TOKEN",
+    "GH_TOKEN",
+    "GITHUB_TOKEN",
+    "PR_DASHBOARD_CLIENT_ID",
+    "PR_DASHBOARD_PRIVATE_KEY",
+    "PR_DASHBOARD_TOKEN",
+    "SLACK_WEBHOOK_URL",
+})
+
+
+def code_preparation_environment() -> dict[str, str]:
+    return {
+        name: value
+        for name, value in os.environ.items()
+        if name not in PREPARATION_SECRET_NAMES
+    }
+
+
 def child_process_environment() -> dict[str, str]:
     return {
         name: value
@@ -618,7 +640,7 @@ def run_owned_drain(args: argparse.Namespace) -> int:
         monitor.start()
         with tempfile.TemporaryDirectory(prefix="dashboard-execution-") as directory:
             root = Path(directory)
-            loader = ExecutionCodeLoader(root / "code", monitor, child_process_environment())
+            loader = ExecutionCodeLoader(root / "code", monitor, code_preparation_environment())
             stable_ref = stable_code_ref(SCRIPT_DIR.parents[1] / "workflows" / "pull-request-dashboard.yml")
             configured = load_configured_repositories()
 

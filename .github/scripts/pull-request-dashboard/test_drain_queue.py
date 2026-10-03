@@ -31,6 +31,20 @@ def claim(item_key: str, *, attempts: int = 0) -> Claim:
 
 
 class DrainQueueTest(unittest.TestCase):
+    def test_code_preparation_environment_omits_credentials(self) -> None:
+        secrets = {
+            "ACTIONS_ID_TOKEN_REQUEST_TOKEN": "oidc",
+            "ACTIONS_ID_TOKEN_REQUEST_URL": "https://oidc.example",
+            "COPILOT_GITHUB_TOKEN": "copilot",
+            "GITHUB_TOKEN": "github",
+            "PR_DASHBOARD_PRIVATE_KEY": "key",
+            "SLACK_WEBHOOK_URL": "https://slack.example",
+        }
+        with mock.patch.dict(os.environ, {**secrets, "PATH": "/bin"}):
+            environment = drain_queue.code_preparation_environment()
+        self.assertEqual("/bin", environment["PATH"])
+        self.assertTrue(secrets.keys().isdisjoint(environment))
+
     def test_main_reports_invalid_canary_repositories_json(self) -> None:
         argv = [
             "drain_queue.py",
