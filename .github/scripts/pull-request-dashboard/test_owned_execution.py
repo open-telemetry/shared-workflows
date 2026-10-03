@@ -27,7 +27,7 @@ class OwnedExecutionTest(unittest.TestCase):
     def test_immutable_stable_pin_follows_existing_promotion_tool(self) -> None:
         workflow = execution_code.SCRIPT_DIR.parents[1] / "workflows" / "pull-request-dashboard.yml"
         current = stable_code_ref(workflow)
-        self.assertEqual(current, "0cc57aeabf2a31cf41114e7b24561f21a04e360b")
+        self.assertRegex(current, r"^[0-9a-f]{40}$")
         with tempfile.TemporaryDirectory() as directory:
             promoted = Path(directory) / "workflow.yml"
             promoted.write_text(

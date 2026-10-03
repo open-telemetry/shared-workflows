@@ -285,6 +285,7 @@ class RolloutWiringTest(unittest.TestCase):
     def test_webhook_deployment_automates_queue_rollout(self) -> None:
         body = DEPLOY_WORKFLOW.read_text(encoding="utf-8")
         self.assertIn("      - .github/workflows/pull-request-dashboard.yml", body)
+        self.assertIn("      - .github/scripts/pull-request-dashboard/repositories.json", body)
         self.assertNotIn("vars.PR_DASHBOARD_QUEUE_MODE", body)
         self.assertIn("queue_mode=all", body)
         self.assertNotIn("stable_queue_ready", body)
