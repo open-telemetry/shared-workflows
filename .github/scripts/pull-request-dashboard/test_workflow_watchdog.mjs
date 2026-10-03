@@ -2058,3 +2058,37 @@ test("refreshes candidate jobs before cancelling non-publisher entries", async (
   });
   assert.equal(calls.some(([action]) => action === "force-cancel"), false);
 });
+
+test("does not force when the replacement changes during its job lookup", async () => {
+  for (const change of [
+    (runs) => { runs[0] = { ...runs[0], status: "completed" }; },
+    (runs) => { runs[0] = { ...runs[0], run_attempt: 2 }; },
+  ]) {
+    const { actions, calls, runs } = fixture({
+      runs: [
+        run(2, "pending", "2026-09-10T11:50:00Z", "workflow_dispatch",
+          "pull-request-dashboard-all-repositories-backfill-refresh"),
+        run(1, "queued", "2026-09-10T10:00:00Z", "workflow_dispatch",
+          "pull-request-dashboard-repo-a-1-refresh"),
+      ],
+      jobs: {
+        1: [completedJob(), publisherJob()],
+        2: [publisherJob("run-repo-dashboard-stable (repo-a) / publish-dashboard",
+          "2026-09-10T11:50:00Z", "pending")],
+      },
+    });
+    const listJobs = actions.listRunJobs;
+    let lookups = 0;
+    actions.listRunJobs = async (id) => {
+      if (++lookups === 4) {
+        change(runs);
+      }
+      return listJobs(id);
+    };
+    const result = await cancelStalledDashboardRuns({
+      actions, now: () => NOW, watchedWorkflows: [PUBLISHER_WORKFLOW],
+    });
+    assert.deepEqual(result.requested, []);
+    assert.equal(calls.some(([action]) => action === "force-cancel"), false);
+  }
+});

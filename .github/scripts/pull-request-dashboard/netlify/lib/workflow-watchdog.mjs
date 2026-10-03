@@ -158,9 +158,18 @@ export async function cancelStalledDashboardRuns({
           jobsByRun.set(candidate.id, await getJobsIfFound(actions, candidate.id));
         });
         currentJobs = jobsByRun.get(run.id);
+        // Covering runs can be cancelled or rerun while their jobs are listed.
+        const afterCovering = await Promise.all(
+          live.map((candidate) => getRunIfFound(actions, candidate.id)),
+        );
+        if (afterCovering.some((candidate, index) =>
+          !candidate || candidate.run_attempt !== live[index].run_attempt
+        )) {
+          continue;
+        }
         stillReplaced = findPublisherReplacements(
           current,
-          live.filter((candidate) => matchesWorkflow(candidate, workflow)),
+          afterCovering.filter((candidate) => matchesWorkflow(candidate, workflow)),
           jobsByRun,
           requested,
         ).length > 0;
