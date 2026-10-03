@@ -60,7 +60,8 @@ configuration.
 
 The `dashboard-queue-recover` scheduled function reclaims expired worker and
 dispatcher leases. A new event normally requests the singleton drain immediately;
-scheduled recovery is only a failure backstop. An item whose lease expires
+scheduled recovery runs every five minutes as a failure backstop and also
+requests a drain once a retry backoff (`notBefore`) has elapsed. An item whose lease expires
 repeatedly without an acknowledgment is moved to the shard's dead letters
 instead of being requeued forever. Recovery logs include queued and inflight
 counts, retry and dead-letter counts, pending backfills and reminder sweeps,

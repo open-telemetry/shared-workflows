@@ -192,7 +192,7 @@ function workerId(value) {
 
 function acknowledgmentOutcome(value) {
   if (!ACKNOWLEDGMENT_OUTCOMES.has(value)) {
-    throw requestError(400, "outcome must be one of: success, retry, dead");
+    throw requestError(400, "outcome must be one of: success, retry, dead, continue");
   }
   return value;
 }
