@@ -97,7 +97,7 @@ export async function cancelStalledDashboardRuns({
           Date.parse(left.created_at) - Date.parse(right.created_at)
         )
       : [];
-    if (staleRuns.length) {
+    if (remainingCandidates > 0 && staleRuns.length) {
       // Bound the job lookups. Rotate the stale runs fairly, then spend the
       // rest on the newest runs, which are the likeliest replacements. Runs
       // without jobs are never treated as stalled or as replacements.
