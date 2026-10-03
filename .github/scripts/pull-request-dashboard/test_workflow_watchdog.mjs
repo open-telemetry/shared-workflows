@@ -1041,6 +1041,26 @@ test("force-cancels a queued publisher at 30 minutes on the first invocation", a
     ["list-runs", "list-jobs", "get-run", "get-run", "list-jobs", "get-run", "get-run", "force-cancel", "get-run"]);
 });
 
+test("does not force-cancel a publisher run with only a fresh waiting job", async () => {
+  const title = "pull-request-dashboard-repo-a-1-refresh";
+  const { actions, calls } = fixture({
+    runs: [
+      run(2, "pending", "2026-09-10T11:58:00Z", "workflow_dispatch", title),
+      run(1, "queued", "2026-09-10T10:00:00Z", "workflow_dispatch", title),
+    ],
+    jobs: {
+      1: [publisherJob(undefined, "2026-09-10T11:55:00Z", "waiting")],
+      2: [publisherJob(undefined, "2026-09-10T11:58:00Z", "pending")],
+    },
+  });
+  const result = await cancelStalledDashboardRuns({
+    actions, now: () => NOW, watchedWorkflows: [PUBLISHER_WORKFLOW],
+  });
+
+  assert.deepEqual(result.requested, []);
+  assert.equal(calls.some(([action]) => action === "force-cancel"), false);
+});
+
 test("uses one configurable stale threshold for selection and revalidation", async () => {
   for (const [ageMs, shouldRequest] of [
     [45 * 60 * 1000 - 1, false],

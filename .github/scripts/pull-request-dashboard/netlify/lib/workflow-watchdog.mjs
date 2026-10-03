@@ -177,7 +177,7 @@ export async function cancelStalledDashboardRuns({
       const jobs = workflow.groupByPublisher
         ? jobsByRun.get(run.id)
         : await getJobsIfFound(actions, run.id);
-      if (jobs === null || !canCancelStalledRun(jobs, staleBefore)) {
+      if (jobs === null || !canCancelStalledRun(jobs, staleBefore, workflow.groupByPublisher)) {
         continue;
       }
       const publisher = workflow.groupByPublisher;
@@ -251,7 +251,7 @@ export async function cancelStalledDashboardRuns({
           !sameConcurrencyGroup(current, currentNewer, workflow, jobsByRun)
         )) ||
         currentJobs === null ||
-        !canCancelStalledRun(currentJobs, now() - staleRunMs)
+        !canCancelStalledRun(currentJobs, now() - staleRunMs, publisher)
       ) {
         continue;
       }
@@ -449,7 +449,7 @@ function publisherRequests(run, jobs) {
   });
 }
 
-function canCancelStalledRun(jobs, staleBefore) {
+function canCancelStalledRun(jobs, staleBefore, requireJobAge = false) {
   const unfinished = jobs.filter((job) => job.status !== "completed");
   if (unfinished.length !== jobs.length) {
     return unfinished.length > 0 && unfinished.every((job) => {
@@ -464,7 +464,8 @@ function canCancelStalledRun(jobs, staleBefore) {
   }
   return jobs.every((job) =>
     (job.status === "in_progress" ||
-      job.status === "waiting" ||
+      (job.status === "waiting" && (!requireJobAge ||
+        Date.parse(job.started_at || job.created_at) <= staleBefore)) ||
       (job.status === "queued" &&
         Number.isFinite(Date.parse(job.started_at || job.created_at)) &&
         Date.parse(job.started_at || job.created_at) <= staleBefore)) &&
