@@ -201,7 +201,7 @@ test("requires a newer publisher request with a known enqueue time", async () =>
     const { actions, calls } = fixture({
       runs: [
         run(2, "pending", "2026-09-10T11:50:00Z", "workflow_dispatch",
-          "pull-request-dashboard-repo-a-2-refresh"),
+          "pull-request-dashboard-repo-a-1-refresh"),
         run(1, "queued", "2026-09-10T10:00:00Z", "workflow_dispatch",
           "pull-request-dashboard-repo-a-1-refresh"),
       ],
@@ -272,7 +272,7 @@ test("protects fresh, assigned or started publisher jobs and other active work",
     const { actions, calls } = fixture({
       runs: [
         run(2, "pending", "2026-09-10T11:50:00Z", "workflow_dispatch",
-          "pull-request-dashboard-repo-a-2-refresh"),
+          "pull-request-dashboard-repo-a-1-refresh"),
         run(1, "queued", "2026-09-10T10:00:00Z", "workflow_dispatch",
           "pull-request-dashboard-repo-a-1-refresh"),
       ],
