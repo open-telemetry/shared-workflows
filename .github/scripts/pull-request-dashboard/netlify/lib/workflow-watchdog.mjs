@@ -176,7 +176,10 @@ export async function cancelStalledDashboardRuns({
         currentNewer = stillReplaced;
       } else {
         currentJobs = await getJobsIfFound(actions, run.id);
-        currentNewer = currentReplacements[0];
+        // The replacement can be cancelled while the jobs are listed.
+        currentNewer = currentReplacements[0]
+          ? await getRunIfFound(actions, currentReplacements[0].id)
+          : undefined;
       }
       // Jobs were listed after `current`; re-read the run to catch a rerun
       // that happened during that lookup.
