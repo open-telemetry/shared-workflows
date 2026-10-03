@@ -2578,7 +2578,7 @@
     },
     "20364": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/otelbot-java-instrumentation",
         "author_action_review_thread_urls": [],
@@ -2588,7 +2588,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 1,
         "conflicts": "no",
-        "copilot_request_fingerprint": "9bca53ed779ff4b27484eabb6657b01e5969d98189b848a821ffcfa887a9dc0f",
+        "copilot_request_fingerprint": "e555c202ca0074f4b3ed76a750c865f8300593dcb1d7abf80863274110056252",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -2604,15 +2604,27 @@
         "head_sha": "b63a44cffa37795470a80a454e2b2147c774b5b2",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-10-03T02:05:16+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-10-03T02:07:39+00:00",
+        "last_approver_activity_at": "2026-10-03T02:07:39+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": false,
-        "reviewers": [],
-        "route_held_for_gates": false,
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "trask",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          }
+        ],
+        "route_held_for_gates": true,
+        "route_held_since": "2026-10-03T02:08:42.932769+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "8262ed0e92ddc5366915b02c230cb0957bc070c3efb5d7c4d1e598abe519ccb6",
-        "waiting_age_basis": "created",
+        "routing_input_fingerprint": "3658d2ac9ba068f33509cf7f65b364804cec0d33b0bb075833afa12f364b0cff",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-10-03T02:05:16+00:00"
       },
       "failed": false,
