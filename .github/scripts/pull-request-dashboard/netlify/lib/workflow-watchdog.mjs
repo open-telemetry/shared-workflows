@@ -4,6 +4,7 @@ const DASHBOARD_RUN_NAME_PREFIX = "pull-request-dashboard-";
 const MAX_CANDIDATES_PER_WORKFLOW = 4;
 const MAX_CANDIDATES_PER_INVOCATION = 8;
 const MAX_CONCURRENT_JOB_LOOKUPS = 4;
+const MAX_JOB_LOOKUP_RUNS_PER_WORKFLOW = 16;
 const WATCHDOG_INTERVAL_MS = 15 * 60 * 1000;
 
 export const WATCHED_DASHBOARD_WORKFLOWS = Object.freeze([
@@ -84,12 +85,34 @@ export async function cancelStalledDashboardRuns({
     });
     const matchingRuns = runs.filter((run) => matchesWorkflow(run, workflow));
     const jobsByRun = new Map();
-    if (workflow.groupByPublisher && matchingRuns.some((run) =>
-      BLOCKING_RUN_STATUSES.has(run.status) &&
-      runAttemptStart(run) <= staleBefore &&
-      !run.display_title.endsWith("-manual")
-    )) {
-      await mapWithConcurrency(matchingRuns, async (run) => {
+    const staleRuns = workflow.groupByPublisher
+      ? matchingRuns
+        .filter((run) =>
+          BLOCKING_RUN_STATUSES.has(run.status) &&
+          runAttemptStart(run) <= staleBefore &&
+          !run.display_title.endsWith("-manual")
+        )
+        .sort((left, right) =>
+          Date.parse(left.created_at) - Date.parse(right.created_at)
+        )
+      : [];
+    if (staleRuns.length) {
+      // Bound the job lookups. Rotate the stale runs fairly, then spend the
+      // rest on the newest runs, which are the likeliest replacements. Runs
+      // without jobs are never treated as stalled or as replacements.
+      const staleOffset = Math.floor(checkedAt / (WATCHDOG_INTERVAL_MS * workflows.length)) *
+        MAX_CANDIDATES_PER_WORKFLOW % staleRuns.length;
+      const scanned = [
+        ...staleRuns.slice(staleOffset),
+        ...staleRuns.slice(0, staleOffset),
+      ].slice(0, MAX_CANDIDATES_PER_WORKFLOW);
+      const others = matchingRuns
+        .filter((run) => !scanned.includes(run))
+        .sort((left, right) =>
+          Date.parse(right.created_at) - Date.parse(left.created_at)
+        )
+        .slice(0, MAX_JOB_LOOKUP_RUNS_PER_WORKFLOW - scanned.length);
+      await mapWithConcurrency([...scanned, ...others], async (run) => {
         jobsByRun.set(run.id, await getJobsIfFound(actions, run.id));
       });
     }
