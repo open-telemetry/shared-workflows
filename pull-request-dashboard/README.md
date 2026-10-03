@@ -8,6 +8,23 @@ Webhook-triggered incremental runs keep active dashboards close to real time. Ho
 
 The classification cache reuses prior results for unchanged review threads, minimizing Copilot token usage.
 
+## Data branch storage
+
+The current dashboard state and delivery acknowledgements live on
+`otelbot/pull-request-dashboard-state/*` and
+`otelbot/pull-request-dashboard-delivery/*`. They must survive between runs,
+but their previous Git versions are not needed.
+
+The repository variable `DATA_BRANCH_SNAPSHOTS=true` makes data writers replace
+each branch with a single parentless commit containing its complete current
+files. It also controls the Actions queue collector. It defaults to disabled.
+Enable it only after promoting snapshot-capable dashboard code to the stable
+channel and completing the
+[controlled cutover](../.github/scripts/pull-request-dashboard/WEBHOOK_SETUP.md#6-data-branch-snapshot-cutover).
+Refresh schedules, notifications, and the stalled-run watchdog are unaffected.
+
+## Classification runtime
+
 Classification uses the Python Copilot SDK with a task-specific system prompt
 and no tools or repository instructions. Each dashboard process reuses one
 client, but every batch of up to ten items gets a fresh session. This removes

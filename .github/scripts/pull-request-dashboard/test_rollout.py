@@ -105,6 +105,28 @@ class RolloutWiringTest(unittest.TestCase):
         self.assertIn("python -m pip install -r requirements.txt", text)
         self.assertNotIn("download-runtime", text)
 
+    def test_all_data_writers_share_the_snapshot_activation_variable(self) -> None:
+        for path in (
+            REPO_WORKFLOW,
+            DRAIN_WORKFLOW,
+            SWEEP_WORKFLOW,
+            WORKFLOW.parent / "github-actions-queue-collector.yml",
+        ):
+            with self.subTest(workflow=path.name):
+                self.assertIn(
+                    "DATA_BRANCH_SNAPSHOTS: ${{ vars.DATA_BRANCH_SNAPSHOTS }}",
+                    path.read_text(encoding="utf-8"),
+                )
+
+    def test_collector_uses_the_checkout_sha_as_an_explicit_push_lease(self) -> None:
+        body = (WORKFLOW.parent / "github-actions-queue-collector.yml").read_text(encoding="utf-8")
+        self.assertIn('expected_sha=$(git -C "$data_dir" rev-parse HEAD)', body)
+        self.assertIn('echo "expected_sha=$expected_sha" >> "$GITHUB_OUTPUT"', body)
+        self.assertIn("EXPECTED_SHA: ${{ steps.data.outputs.expected_sha }}", body)
+        self.assertIn("state_branch.py commit-data", body)
+        self.assertIn('--expected-sha "$EXPECTED_SHA"', body)
+        self.assertNotIn('push origin "HEAD:', body)
+
     def test_targeted_canary_job_inlines_the_workflow_canary_list(self) -> None:
         body = self.jobs["run-targeted-dashboard-canary"]
         inline = re.findall(r"fromJSON\('(\[[^']*\])'\)", body)

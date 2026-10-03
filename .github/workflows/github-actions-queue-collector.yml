@@ -63,15 +63,27 @@ jobs:
         run: |
           set -euo pipefail
           data_dir="$RUNNER_TEMP/github-actions-queue-data"
+          expected_sha=
           if git ls-remote --exit-code --heads origin "refs/heads/$DATA_BRANCH" >/dev/null; then
             git fetch --no-tags --depth=1 origin "$DATA_BRANCH"
+            # A head without a snapshot trailer needs its full history so commit-data can reject appended history.
+            if ! git log -1 --format=%B FETCH_HEAD | grep -q '^Data-snapshot-generation:'; then
+              git fetch --no-tags --depth=2147483647 origin "$DATA_BRANCH"
+            fi
             git worktree add --detach "$data_dir" FETCH_HEAD
+            expected_sha=$(git -C "$data_dir" rev-parse HEAD)
           else
+            status=$?
+            if [[ "$status" != 2 ]]; then
+              echo "::error::Could not check the data branch"
+              exit "$status"
+            fi
             git worktree add --detach "$data_dir" HEAD
             git -C "$data_dir" switch --orphan "$DATA_BRANCH"
           fi
           cp "$DATA_BRANCH_README" "$data_dir/README.md"
           echo "directory=$data_dir" >> "$GITHUB_OUTPUT"
+          echo "expected_sha=$expected_sha" >> "$GITHUB_OUTPUT"
 
       - name: Remove records without measurable queue time
         id: migration
@@ -175,19 +187,18 @@ jobs:
         env:
           CURSOR: ${{ steps.collect.outputs.cursor }}
           DATA_DIRECTORY: ${{ steps.data.outputs.directory }}
-          GH_TOKEN: ${{ github.token }}
+          EXPECTED_SHA: ${{ steps.data.outputs.expected_sha }}
+          DATA_BRANCH_SNAPSHOTS: ${{ vars.DATA_BRANCH_SNAPSHOTS }}
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           git -C "$DATA_DIRECTORY" config user.name "github-actions[bot]"
           git -C "$DATA_DIRECTORY" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git -C "$DATA_DIRECTORY" add --all
-          if git -C "$DATA_DIRECTORY" diff --cached --quiet; then
-            echo "No data or checkpoint changes to commit"
-            exit 0
-          fi
-          git -C "$DATA_DIRECTORY" commit -m "Collect queue data through $CURSOR"
-          gh auth setup-git
-          git -C "$DATA_DIRECTORY" push origin "HEAD:refs/heads/$DATA_BRANCH"
+          python3 .github/scripts/pull-request-dashboard/state_branch.py commit-data \
+            --state-dir "$DATA_DIRECTORY" \
+            --state-branch "$DATA_BRANCH" \
+            --expected-sha "$EXPECTED_SHA" \
+            --message "Collect queue data through $CURSOR"
 
       - name: Prepare Pages site
         id: site
