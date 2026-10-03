@@ -8,6 +8,7 @@ import subprocess
 import sys
 import tempfile
 import threading
+import time
 from collections import defaultdict
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -15,6 +16,7 @@ from pathlib import Path
 from typing import Any
 
 from head_resolution import matching_open_pr_numbers
+from execution_process import run_monitored, subprocess_options
 from queue_worker_client import QueueWorkerClient, acknowledge_results
 import state_branch as state_branch_git
 
@@ -30,12 +32,17 @@ class LeaseMonitor:
         generation: int,
         worker_id: str,
         *,
-        interval_seconds: int = 240,
+        interval_seconds: float = 240,
+        now: Callable[[], float] = time.monotonic,
+        processing_deadline: float | None = None,
     ) -> None:
         self.client = client
         self.generation = generation
         self.worker_id = worker_id
         self.interval_seconds = interval_seconds
+        self.now = now
+        self.valid_until = 0.0
+        self.processing_deadline = processing_deadline
         self.stop_event = threading.Event()
         self.lost_event = threading.Event()
         self.error: Exception | None = None
@@ -53,6 +60,10 @@ class LeaseMonitor:
     def assert_valid(self) -> None:
         if self.lost_event.is_set():
             raise RuntimeError(f"queue lease heartbeat failed: {self.error}")
+        if self.now() >= self.valid_until:
+            raise RuntimeError("queue lease safety deadline expired")
+        if self.processing_deadline is not None and time.time() >= self.processing_deadline:
+            raise RuntimeError("queue processing deadline expired")
 
     def _heartbeat(self) -> None:
         while not self.stop_event.wait(self.interval_seconds):
@@ -64,6 +75,7 @@ class LeaseMonitor:
                 return
 
     def _send_heartbeat(self) -> None:
+        started_at = self.now()
         result = self.client.call(
             "heartbeat",
             generation=self.generation,
@@ -71,6 +83,12 @@ class LeaseMonitor:
         )
         if result.get("dispatcher") is not True:
             raise RuntimeError("queue dispatcher heartbeat was rejected")
+        duration = result.get("leaseDurationMs", 15 * 60 * 1000)
+        if not isinstance(duration, int) or duration <= 60_000:
+            raise RuntimeError("queue heartbeat returned an invalid lease duration")
+        # Stop before the server can hand ownership to a replacement. Network
+        # time belongs to the lease, not to this worker's execution allowance.
+        self.valid_until = started_at + duration / 1000 - 60
 
 
 @dataclass(frozen=True)
@@ -82,13 +100,15 @@ class Claim:
     head_sha: str
     attempts: int
     trigger_events: tuple[str, ...] = ()
+    kind: str = "refresh"
 
 
 @dataclass(frozen=True)
 class WorkItem:
     repository: str
-    pr_number: int
+    pr_number: int | None
     claims: tuple[Claim, ...]
+    kind: str = "refresh"
 
 
 def load_claims(path: Path) -> list[Claim]:
@@ -110,8 +130,15 @@ def parse_claims(raw: Any) -> list[Claim]:
             head_sha=value.get("headSha") or "",
             attempts=non_negative_int(value.get("attempts", 0), "attempts"),
             trigger_events=string_tuple(value.get("triggerEvents"), "triggerEvents"),
+            kind=value.get("kind", "refresh"),
         )
-        if (claim.pr_number is None) == (not claim.head_sha):
+        if not isinstance(claim.kind, str) or claim.kind not in {"refresh", "backfill", "reminders"}:
+            raise ValueError(f"claim {claim.item_key} has an invalid kind")
+        if not isinstance(claim.head_sha, str):
+            raise ValueError(f"claim {claim.item_key} has an invalid head SHA")
+        if claim.kind != "refresh" and (claim.pr_number is not None or claim.head_sha):
+            raise ValueError(f"claim {claim.item_key} must not identify a PR or head SHA")
+        if claim.kind == "refresh" and (claim.pr_number is None) == (not claim.head_sha):
             raise ValueError(f"claim {claim.item_key} must identify one PR or head SHA")
         claims.append(claim)
     return claims
@@ -128,6 +155,9 @@ def process_claims(
     max_repositories: int = 4,
     processor_env: dict[str, str] | None = None,
     lease_monitor: LeaseMonitor | None = None,
+    script_dir: Path = SCRIPT_DIR,
+    python_executable: str = sys.executable,
+    repository_root: Path = SCRIPT_DIR.parents[2],
 ) -> tuple[dict[str, int], list[dict[str, Any]]]:
     monitor = lease_monitor or LeaseMonitor(client, generation, worker_id)
     owns_monitor = lease_monitor is None
@@ -160,6 +190,9 @@ def process_claims(
             config_path,
             env=processor_env,
             lease_check=monitor.assert_valid,
+            script_dir=script_dir,
+            python_executable=python_executable,
+            repository_root=repository_root,
         )
         work_items, resolved = resolve_work_items(claims, processor.resolve_head)
         record_and_acknowledge(resolved)
@@ -191,9 +224,12 @@ def resolve_work_items(
     claims: list[Claim],
     resolve_head: Callable[[str, str], tuple[int, ...]],
 ) -> tuple[list[WorkItem], list[dict[str, Any]]]:
-    grouped: dict[tuple[str, int], list[Claim]] = defaultdict(list)
+    grouped: dict[tuple[str, int | None, str], list[Claim]] = defaultdict(list)
     completed: list[dict[str, Any]] = []
     for claim in claims:
+        if claim.kind != "refresh":
+            grouped[(claim.repository, None, claim.kind)].append(claim)
+            continue
         try:
             pr_numbers = (
                 (claim.pr_number,)
@@ -207,17 +243,19 @@ def resolve_work_items(
             completed.append(acknowledgment(claim, "success"))
             continue
         for pr_number in pr_numbers:
-            grouped[(claim.repository, pr_number)].append(claim)
+            grouped[(claim.repository, pr_number, "refresh")].append(claim)
     work = [
-        WorkItem(repository, pr_number, tuple(item_claims))
-        for (repository, pr_number), item_claims in sorted(grouped.items())
+        WorkItem(repository, pr_number, tuple(item_claims), kind)
+        for (repository, pr_number, kind), item_claims in sorted(
+            grouped.items(), key=lambda entry: (entry[0][0], entry[0][2], entry[0][1] or 0)
+        )
     ]
     return work, completed
 
 
 def coalesce_acknowledgments(results: list[dict[str, Any]]) -> list[dict[str, Any]]:
     combined: dict[str, dict[str, Any]] = {}
-    severity = {"success": 0, "retry": 1, "dead": 2}
+    severity = {"success": 0, "continue": 1, "retry": 2, "dead": 3}
     for result in results:
         key = result["itemKey"]
         previous = combined.get(key)
@@ -231,7 +269,7 @@ def group_by_repository(work_items: list[WorkItem]) -> dict[str, list[WorkItem]]
     for item in work_items:
         grouped[item.repository].append(item)
     for items in grouped.values():
-        items.sort(key=lambda item: item.pr_number)
+        items.sort(key=lambda item: (item.kind, item.pr_number or 0))
     return dict(sorted(grouped.items()))
 
 
@@ -284,11 +322,15 @@ class DashboardBatchProcessor:
         env: dict[str, str] | None = None,
         run: Callable[..., subprocess.CompletedProcess[str]] = subprocess.run,
         lease_check: Callable[[], None] | None = None,
+        python_executable: str = sys.executable,
+        repository_root: Path = SCRIPT_DIR.parents[2],
     ) -> None:
         self.script_dir = script_dir
-        self.base_env = dict(env or os.environ)
+        self.base_env = dict(os.environ if env is None else env)
         self.run = run
         self.lease_check = lease_check
+        self.python_executable = python_executable
+        self.repository_root = repository_root
         config = json.loads(config_path.read_text(encoding="utf-8"))
         self.config = {
             entry["name"]: entry
@@ -327,7 +369,10 @@ class DashboardBatchProcessor:
                 for item in items
                 for claim in item.claims
             ]
-        cache_dir = self.script_dir / ".cache" / "classifications" / repository
+        cache_dir = Path(self.base_env.get(
+            "PR_DASHBOARD_CLASSIFICATION_CACHE_ROOT",
+            str(self.script_dir / ".cache" / "classifications"),
+        )) / repository
         worker_temp = self.script_dir / ".cache" / "queue-workers" / repository
         worker_temp.mkdir(parents=True, exist_ok=True)
         env = {
@@ -349,33 +394,55 @@ class DashboardBatchProcessor:
         state_branch = f"{state_branch_git.STATE_BRANCH_PREFIX}/{repository}"
         results: list[dict[str, Any]] = []
         ready: list[WorkItem] = []
+        failed_updates: set[tuple[str, int | None]] = set()
+        reminders = [item for item in items if item.kind == "reminders"]
+        items = [item for item in items if item.kind != "reminders"]
 
         try:
-            initial_backfill_complete = self._initial_backfill_complete(
+            initial_backfill_complete = not items or self._initial_backfill_complete(
                 repository, state_branch, env
             )
         except Exception as error:
-            return [
+            results.extend(
                 result
                 for item in items
                 for result in failure_acknowledgments(item.claims, error)
-            ]
-        if not initial_backfill_complete:
-            return [
-                acknowledgment(claim, "success")
-                for item in items
-                for claim in item.claims
-            ]
-
+            )
+            items = []
         for item in items:
             try:
-                self._update_dashboard(repository, item.pr_number, state_branch, config, env)
+                if self.lease_check:
+                    self.lease_check()
+                if item.kind == "refresh" and not initial_backfill_complete:
+                    results.extend(acknowledgment(claim, "success") for claim in item.claims)
+                    continue
+                item_env = dict(env)
+                if item.kind == "backfill" and any(
+                    "schedule" in claim.trigger_events for claim in item.claims
+                ):
+                    item_env["PREPARE_AUTHOR_NUDGES"] = "true"
+                self._update_dashboard(repository, item.pr_number, state_branch, config, item_env)
+                if item.kind == "backfill":
+                    initial_backfill_complete = self._initial_backfill_complete(
+                        repository, state_branch, env
+                    )
+                    if not initial_backfill_complete:
+                        results.extend(acknowledgment(claim, "continue") for claim in item.claims)
+                        continue
                 ready.append(item)
             except Exception as error:
                 results.extend(failure_acknowledgments(item.claims, error))
-
-        if not ready:
-            return results
+                failed_updates.add((item.kind, item.pr_number))
+                if item.kind == "backfill":
+                    try:
+                        initial_backfill_complete = self._initial_backfill_complete(
+                            repository, state_branch, env
+                        )
+                    except Exception as state_error:
+                        results.extend(failure_acknowledgments(item.claims, state_error))
+                    else:
+                        if initial_backfill_complete:
+                            ready.append(item)
 
         successful: list[WorkItem] = []
         publish_needed = False
@@ -386,6 +453,11 @@ class DashboardBatchProcessor:
             publish_needed = delivery_active or publish_needed
             if delivery_error is not None:
                 results.extend(failure_acknowledgments(item.claims, delivery_error))
+                continue
+            if not delivery_active:
+                results.extend(failure_acknowledgments(
+                    item.claims, RuntimeError("dashboard delivery rejected the execution's versions")
+                ))
                 continue
             if full_generation:
                 try:
@@ -406,7 +478,18 @@ class DashboardBatchProcessor:
                 successful = []
 
         for item in successful:
-            results.extend(acknowledgment(claim, "success") for claim in item.claims)
+            if (item.kind, item.pr_number) not in failed_updates:
+                results.extend(acknowledgment(claim, "success") for claim in item.claims)
+        for item in reminders:
+            try:
+                self._run(
+                    [self.python_executable, str(self.script_dir / "refresh_author_nudges.py"), "--repo", repository],
+                    env=env,
+                )
+            except Exception as error:
+                results.extend(failure_acknowledgments(item.claims, error))
+            else:
+                results.extend(acknowledgment(claim, "success") for claim in item.claims)
         return results
 
     def _initial_backfill_complete(
@@ -417,7 +500,7 @@ class DashboardBatchProcessor:
     ) -> bool:
         result = self._run(
             [
-                sys.executable,
+                self.python_executable,
                 str(self.script_dir / "state.py"),
                 "--repo",
                 repository,
@@ -434,26 +517,29 @@ class DashboardBatchProcessor:
     def _update_dashboard(
         self,
         repository: str,
-        pr_number: int,
+        pr_number: int | None,
         state_branch: str,
         config: dict[str, Any],
         env: dict[str, str],
     ) -> None:
-        with tempfile.NamedTemporaryFile() as github_output:
+        with tempfile.TemporaryDirectory() as directory:
+            github_output = Path(directory) / "output"
             command = [
-                sys.executable,
+                self.python_executable,
                 str(self.script_dir / "dashboard.py"),
                 "--state-branch",
                 state_branch,
                 "--repo",
                 repository,
-                "--pr-number",
-                str(pr_number),
                 "--required-approvals",
                 str(config.get("required_approvals", 1)),
                 "--github-output",
-                github_output.name,
+                str(github_output),
             ]
+            if pr_number is not None:
+                command.extend(["--pr-number", str(pr_number)])
+            if env.get("PREPARE_AUTHOR_NUDGES") == "true":
+                command.append("--prepare-author-nudges")
             for team in config.get("approver_teams", []):
                 command.extend(["--approver-team", team])
             for pattern in config.get("non_blocking_check_patterns", []):
@@ -465,7 +551,7 @@ class DashboardBatchProcessor:
     def _deliver(
         self,
         repository: str,
-        pr_number: int,
+        pr_number: int | None,
         state_branch: str,
         env: dict[str, str],
     ) -> tuple[bool, Exception | None, int]:
@@ -474,23 +560,21 @@ class DashboardBatchProcessor:
         try:
             error = None
             try:
-                self._run(
-                    [
-                        sys.executable,
-                        str(self.script_dir / "delivery.py"),
-                        "--state-branch",
-                        state_branch,
-                        "--delivery-state-branch",
-                        state_branch_git.delivery_state_branch(state_branch),
-                        "--repo",
-                        repository,
-                        "--pr-number",
-                        str(pr_number),
-                        "--github-output",
-                        str(output_path),
-                    ],
-                    env=env,
-                )
+                command = [
+                    self.python_executable,
+                    str(self.script_dir / "delivery.py"),
+                    "--state-branch",
+                    state_branch,
+                    "--delivery-state-branch",
+                    state_branch_git.delivery_state_branch(state_branch),
+                    "--repo",
+                    repository,
+                    "--github-output",
+                    str(output_path),
+                ]
+                if pr_number is not None:
+                    command.extend(["--pr-number", str(pr_number)])
+                self._run(command, env=env)
             except Exception as caught:
                 error = caught
             output = dict(
@@ -512,7 +596,7 @@ class DashboardBatchProcessor:
     ) -> None:
         self._run(
             [
-                sys.executable,
+                self.python_executable,
                 str(self.script_dir / "delivery.py"),
                 "--state-branch",
                 state_branch,
@@ -534,7 +618,7 @@ class DashboardBatchProcessor:
         env: dict[str, str],
     ) -> None:
         command = [
-            sys.executable,
+            self.python_executable,
             str(self.script_dir / "publish_dashboard.py"),
             "--state-branch",
             state_branch,
@@ -557,40 +641,15 @@ class DashboardBatchProcessor:
         if self.lease_check is None:
             result = self.run(
                 command,
-                cwd=self.script_dir.parents[2],
+                cwd=self.repository_root,
                 env=env,
                 text=True,
                 encoding="utf-8",
                 capture_output=True,
+                **subprocess_options(),
             )
         else:
-            self.lease_check()
-            process = subprocess.Popen(
-                command,
-                cwd=self.script_dir.parents[2],
-                env=env,
-                text=True,
-                encoding="utf-8",
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-            )
-            while True:
-                try:
-                    stdout, stderr = process.communicate(timeout=1)
-                    break
-                except subprocess.TimeoutExpired:
-                    try:
-                        self.lease_check()
-                    except Exception:
-                        process.terminate()
-                        process.communicate()
-                        raise
-            result = subprocess.CompletedProcess(
-                command,
-                process.returncode,
-                stdout,
-                stderr,
-            )
+            result = run_monitored(command, self.lease_check, cwd=self.repository_root, env=env)
         if result.stdout and print_stdout:
             print(result.stdout, end="")
         if result.stderr:
@@ -627,6 +686,7 @@ def failure_acknowledgments(
             claim,
             "dead" if claim.attempts + 1 >= MAX_ATTEMPTS else "retry",
             message,
+            min(60_000 * 2**claim.attempts, 15 * 60_000),
         )
         for claim in claims
     ]

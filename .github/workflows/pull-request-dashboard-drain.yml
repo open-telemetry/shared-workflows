@@ -10,16 +10,73 @@ on:
 
 permissions: {}
 
-# One checkout serves every claimed repository. Canary claims run the dashboard
-# code from the default branch; stable claims are handed to the targeted
-# workflow, which runs the promoted repository workflow and scripts.
-concurrency:
-  group: pull-request-dashboard-queue-drain
-  cancel-in-progress: false
-
 jobs:
+  owned-drain:
+    if: github.repository == 'open-telemetry/shared-workflows' && vars.PR_DASHBOARD_EXECUTION_MODE == 'owned'
+    permissions:
+      contents: write
+      copilot-requests: write
+      id-token: write
+    environment: protected
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    env:
+      DISPATCHER_GENERATION: ${{ inputs.dispatcher_generation }}
+      PR_DASHBOARD_QUEUE_ENDPOINT: https://otel-pull-request-dashboard.netlify.app/.netlify/functions/dashboard-queue-worker
+      WORKER_ID: ${{ github.run_id }}-${{ github.run_attempt }}
+      CANARY_REPOSITORIES: '["opentelemetry-java-instrumentation", "shared-workflows"]'
+      CANARY_CODE_REF: ${{ github.sha }}
+      PR_DASHBOARD_CLASSIFICATION_CACHE_ROOT: ${{ github.workspace }}/.github/scripts/pull-request-dashboard/.cache/classifications
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          package-manager-cache: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.14'
+      - name: Install worker dependencies
+        run: |
+          npm ci --prefix .github/scripts/pull-request-dashboard
+          mkdir -p .github/scripts/pull-request-dashboard/.cache/classifications
+      - name: Restore classification cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .github/scripts/pull-request-dashboard/.cache/classifications
+          key: pull-request-dashboard-classifications-owned-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: pull-request-dashboard-classifications-owned-
+      - name: Process owned queue work
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COPILOT_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_DASHBOARD_CLIENT_ID: ${{ vars.PR_DASHBOARD_CLIENT_ID }}
+          PR_DASHBOARD_PRIVATE_KEY: ${{ secrets.PR_DASHBOARD_PRIVATE_KEY }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          set -euo pipefail
+          [[ "$DISPATCHER_GENERATION" =~ ^[1-9][0-9]*$ ]] || { echo "bad dispatcher generation"; exit 1; }
+          python3 .github/scripts/pull-request-dashboard/drain_queue.py \
+            --owned \
+            --deadline "$(($(date +%s) + 40 * 60))" \
+            --generation "$DISPATCHER_GENERATION" \
+            --worker "$WORKER_ID" \
+            --endpoint "$PR_DASHBOARD_QUEUE_ENDPOINT" \
+            --canary-code-ref "$CANARY_CODE_REF" \
+            --canary-repositories-json "$CANARY_REPOSITORIES"
+      - name: Save classification cache
+        if: always()
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .github/scripts/pull-request-dashboard/.cache/classifications
+          key: pull-request-dashboard-classifications-owned-${{ github.run_id }}-${{ github.run_attempt }}
+
   drain:
-    if: github.repository == 'open-telemetry/shared-workflows'
+    if: >-
+      github.repository == 'open-telemetry/shared-workflows' &&
+      (vars.PR_DASHBOARD_EXECUTION_MODE == '' || vars.PR_DASHBOARD_EXECUTION_MODE == 'legacy')
     permissions:
       actions: write
       contents: write

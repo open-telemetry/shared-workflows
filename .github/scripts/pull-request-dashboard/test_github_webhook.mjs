@@ -215,6 +215,45 @@ test("opened drafts bypass all and canary queues", async () => {
   }
 });
 
+test("owned execution queues opened drafts even when legacy queue mode is off", async () => {
+  const previous = process.env.PR_DASHBOARD_EXECUTION_MODE;
+  process.env.PR_DASHBOARD_EXECUTION_MODE = "owned";
+  try {
+    const calls = [];
+    const response = await withQueueMode("off", () => handleWebhookRequest(
+      webhookRequest("shared-workflows", 456, { draft: true }),
+      {
+        queue: queueMock(calls),
+        dispatchRefresh: async () => calls.push(["legacy"]),
+        dispatchDrain: async () => calls.push(["drain"]),
+      },
+    ));
+    assert.equal((await response.json()).completed, false);
+    assert.deepEqual(calls.map(([name]) => name), ["enqueue:live", "request", "drain"]);
+  } finally {
+    restoreEnvironment("PR_DASHBOARD_EXECUTION_MODE", previous);
+  }
+});
+
+test("paused execution accepts draft refreshes without dispatching a writer", async () => {
+  const previous = process.env.PR_DASHBOARD_EXECUTION_MODE;
+  process.env.PR_DASHBOARD_EXECUTION_MODE = "paused";
+  try {
+    const calls = [];
+    await withQueueMode("all", () => handleWebhookRequest(
+      webhookRequest("shared-workflows", 456, { draft: true }),
+      {
+        queue: queueMock(calls),
+        dispatchRefresh: async () => calls.push(["legacy"]),
+        dispatchDrain: async () => calls.push(["drain"]),
+      },
+    ));
+    assert.deepEqual(calls.map(([name]) => name), ["enqueue:live"]);
+  } finally {
+    restoreEnvironment("PR_DASHBOARD_EXECUTION_MODE", previous);
+  }
+});
+
 test("queued mode uses an internal dispatcher owner", async () => {
   const calls = [];
   await withQueueMode("all", () => handleWebhookRequest(

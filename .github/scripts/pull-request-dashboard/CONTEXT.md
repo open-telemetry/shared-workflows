@@ -53,10 +53,89 @@ those updates. The state branch remains the durable compare-and-swap boundary;
 the acceptance transaction only decides which dashboard state a retry may
 persist.
 
-Workers exclusively own `otelbot/pull-request-dashboard-state/<repository>`.
-Publishers read a detached snapshot of that ref and persist receipts and rollout
-progress on `otelbot/pull-request-dashboard-delivery/<repository>`. The two
-paths never push the same ref.
+The combined processor writes accepted state on
+`otelbot/pull-request-dashboard-state/<repository>`, then reads a detached
+snapshot for delivery. It persists receipts and rollout progress on
+`otelbot/pull-request-dashboard-delivery/<repository>`. Accepted state and
+delivery receipts retain their existing Git compare-and-swap transactions.
+
+## Execution ownership
+
+`PR_DASHBOARD_EXECUTION_MODE` selects `legacy`, `paused`, or `owned`. An unset
+variable means `legacy`; deploying this code does not opt production into a
+new execution path. GitHub Actions and the Netlify bridge must agree on the
+mode. `WEBHOOK_SETUP.md` describes the cutover and rollback.
+
+In `owned` mode, webhooks, manual PR and head-SHA refreshes, hourly and manual
+backfills, and author-reminder write sweeps enter the existing Blob queue.
+Draft-open events use that same path. An enqueue run reports acceptance, not
+completion, with an item key, generation, and request ID for later status
+queries. The request ID prevents a later use of the same item key from looking
+like completion of an earlier request. Receipts are bounded; an unavailable
+receipt produces `unknown`, never assumed success.
+
+The singleton dispatcher lease is the execution owner. A requested generation
+deduplicates dispatches but is not active execution ownership. A drain activates
+it after acquiring a runner. Expired requested generations can be replaced;
+recovery can replay a runnerless requested generation after 15 minutes without
+waiting for its request lease to expire. Whichever run acquires a runner first
+must win activation; duplicate or stale runs cannot claim work. The drain has no
+GitHub concurrency group, so an unassigned old run cannot block its replacement.
+
+`drain_queue.py` keeps one heartbeat across preparation and all processing
+waves. It runs up to four repositories concurrently and processes each
+repository serially. Stable and canary claims both use `process_queue_batch.py`,
+not workflow dispatch as a completion signal. The processing path covers
+calculation, accepted-state persistence, delivery, issue publication, and
+full-publication receipt updates. Coalesced publication must succeed before
+affected claims receive success. Ordinary errors retry the whole item with
+bounded backoff and dead letters. Accepted state, pending intents, and delivery
+receipts survive those retries; there is no separate publication queue.
+
+`execution_code.py` loads scripts from immutable commit archives into temporary
+directories without replacing the worker checkout. Each ref has its own Python
+environment and runtime dependencies. Canaries use the drain's triggering
+commit on main. Stable code comes from the existing promoted pins in
+`pull-request-dashboard.yml`; `promote_rollout.py` remains the promotion
+authority. Repository policy comes from the current worker checkout in both
+channels. Stable repositories do not run main's evaluation or state codecs.
+
+A backfill is one repository item, not a list of queued PRs. It invokes the
+existing bounded `dashboard.py` backfill CLI, including its durable cursor,
+failed-PR tracking, closed-PR cleanup, and full-publication generation.
+Initial population continues through bounded slices until it can publish.
+A `continue` result releases the claim for another slice without acknowledging
+completion or consuming a retry. Subsequent hourly backfills retain the
+existing bounded round-robin refresh behavior. Only scheduled backfills prepare
+due author nudges, including when a scheduled request coalesces with a manual
+one. Large-repository rendering and draft rollout remain in their existing
+CLIs.
+
+Heartbeats renew dispatcher and item leases. Acknowledgments fence both the
+dispatcher generation and the item claim generation. The local monitor uses
+monotonic time and stops execution a minute before the server's lease deadline,
+even if a heartbeat call hangs. Lease loss stops the monitored subprocess tree
+and prevents later commands from starting. A processing time limit preserves
+time for shutdown; abandoned claims recover through lease expiry.
+
+Delivery is not exactly once. A GitHub or Slack request can succeed just before
+the worker dies, before its receipt reaches Git. Existing status markers,
+live-state reconciliation, and delivery ledgers suppress ordinary duplicates,
+but cannot eliminate that external-success/receipt-loss window.
+
+`paused` accepts work but prevents activation, claims, and successor dispatch.
+Already claimed work can finish under its existing heartbeat. Recovery logs
+queue counts, retries, dead letters, pending backfills and sweeps, dispatcher
+expiry, and the oldest unfinished timestamp. In `owned` mode the watchdog
+only monitors webhook deployment, not dashboard processing. Legacy publisher
+jobs and matching remain gated for migration and rollback; they must not run
+alongside queue-owned writers.
+
+Other CLI writers are maintenance tools, not independent production workers.
+Before invoking `dashboard.py`, `delivery.py`, `publish_dashboard.py`, or a
+reminder sweep in write mode by hand, pause dispatch, retire all active writers,
+and keep the queue paused until the command finishes. Dry-run reminder sweeps
+perform no writes and need no ownership lease.
 
 ## Activity timeline
 
