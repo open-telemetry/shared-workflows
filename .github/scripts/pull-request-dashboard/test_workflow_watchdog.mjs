@@ -1521,6 +1521,41 @@ test("rotates lookups to an older manual backfill behind newer unrelated runs", 
   assert.ok(calls.some(([action, runId]) => action === "force-cancel" && runId === 1));
 });
 
+test("checks every stale publisher against every replacement slice across sweeps", async () => {
+  const stale = Array.from({ length: 8 }, (_, index) => index + 1);
+  const unrelated = Array.from({ length: 6 }, (_, index) => 20 + index);
+  const backfills = Array.from({ length: 8 }, (_, index) => 40 + index);
+  const runs = [
+    ...stale.map((id) => run(id, "queued",
+      new Date(Date.parse("2026-09-10T09:00:00Z") + id * 60 * 1000).toISOString(),
+      "workflow_dispatch", "pull-request-dashboard-repo-a-1-refresh")),
+    ...unrelated.map((id) => run(id, "pending",
+      new Date(Date.parse("2026-09-10T11:00:00Z") + id * 1000).toISOString(),
+      "workflow_dispatch", `pull-request-dashboard-repo-b-${id}-refresh`)),
+    ...backfills.map((id) => run(id, "pending",
+      new Date(Date.parse("2026-09-10T10:00:00Z") + id * 1000).toISOString(),
+      "workflow_dispatch", "pull-request-dashboard-repo-a-backfill-manual")),
+  ];
+  const jobs = {};
+  for (const id of stale) {
+    jobs[id] = [completedJob(), publisherJob()];
+  }
+  jobs[42] = [publisherJob("run-repo-dashboard-stable (repo-a) / publish-dashboard",
+    "2026-09-10T11:50:00Z", "pending")];
+  const { actions, calls } = fixture({ runs, jobs });
+  let clock = NOW;
+  for (let tick = 0; tick < 12; tick += 1) {
+    await cancelStalledDashboardRuns({
+      actions, now: () => clock, watchedWorkflows: [PUBLISHER_WORKFLOW],
+    });
+    clock += 15 * 60 * 1000;
+  }
+  const cancelled = new Set(calls
+    .filter(([action]) => action === "force-cancel")
+    .map(([, id]) => id));
+  assert.deepEqual([...cancelled].sort((a, b) => a - b), stale);
+});
+
 test("rotates every backlog when workflows compete for the invocation budget", async () => {
   let clock = NOW;
   const watchedWorkflows = Array.from({ length: 4 }, (_, index) => ({

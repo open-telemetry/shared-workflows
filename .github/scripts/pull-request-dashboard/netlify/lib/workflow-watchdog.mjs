@@ -101,8 +101,10 @@ export async function cancelStalledDashboardRuns({
       // Bound the job lookups. Rotate the stale runs fairly, then spend the
       // rest on the newest runs, which are the likeliest replacements. Runs
       // without jobs are never treated as stalled or as replacements.
-      const staleOffset = Math.floor(checkedAt / (WATCHDOG_INTERVAL_MS * workflows.length)) *
-        MAX_CANDIDATES_PER_WORKFLOW % staleRuns.length;
+      const epoch = Math.floor(checkedAt / (WATCHDOG_INTERVAL_MS * workflows.length));
+      const sweepLength = Math.ceil(staleRuns.length / MAX_CANDIDATES_PER_WORKFLOW);
+      const staleOffset = (epoch % sweepLength) * MAX_CANDIDATES_PER_WORKFLOW %
+        staleRuns.length;
       scanned = [
         ...staleRuns.slice(staleOffset),
         ...staleRuns.slice(0, staleOffset),
@@ -114,13 +116,14 @@ export async function cancelStalledDashboardRuns({
           Date.parse(right.created_at) - Date.parse(left.created_at)
         );
       // A replacement can be older than many newer runs, such as a manual
-      // backfill whose publisher was enqueued later, so rotate the rest.
+      // backfill whose publisher was enqueued later, so rotate the rest. The
+      // rest advances only after a complete stale sweep, so every stale run is
+      // eventually checked alongside every replacement slice.
       const rotatingSlots = Math.floor(lookupSlots / 2);
       const newest = unscanned.slice(0, lookupSlots - rotatingSlots);
       const rest = unscanned.slice(newest.length);
       const restOffset = rest.length
-        ? Math.floor(checkedAt / (WATCHDOG_INTERVAL_MS * workflows.length)) *
-          rotatingSlots % rest.length
+        ? Math.floor(epoch / sweepLength) * rotatingSlots % rest.length
         : 0;
       const others = [
         ...newest,
