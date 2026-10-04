@@ -60,14 +60,16 @@ jobs:
         id: data
         env:
           DATA_BRANCH_README: .github/scripts/github-actions-queue/DATA_BRANCH_README.md
+          DATA_BRANCH_SNAPSHOTS: ${{ vars.DATA_BRANCH_SNAPSHOTS }}
         run: |
           set -euo pipefail
           data_dir="$RUNNER_TEMP/github-actions-queue-data"
           expected_sha=
           if git ls-remote --exit-code --heads origin "refs/heads/$DATA_BRANCH" >/dev/null; then
             git fetch --no-tags --depth=1 origin "$DATA_BRANCH"
-            # A head without a snapshot trailer needs its full history so commit-data can reject appended history.
-            if ! git log -1 --format=%B FETCH_HEAD | grep -q '^Data-snapshot-generation:'; then
+            # In snapshot mode, a head without a snapshot trailer needs its full history so commit-data can reject appended history.
+            if [[ "$DATA_BRANCH_SNAPSHOTS" == "true" ]] &&
+              ! git log -1 --format=%B FETCH_HEAD | grep -q '^Data-snapshot-generation:'; then
               git fetch --no-tags --depth=2147483647 origin "$DATA_BRANCH"
             fi
             git worktree add --detach "$data_dir" FETCH_HEAD
