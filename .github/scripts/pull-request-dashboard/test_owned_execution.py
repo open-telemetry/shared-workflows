@@ -80,6 +80,27 @@ class OwnedExecutionTest(unittest.TestCase):
             self.assertNotIn("checkout", [part for command in commands for part in command])
             self.assertNotEqual(code.script_dir, execution_code.SCRIPT_DIR)
 
+    def test_failed_code_preparation_can_be_retried(self) -> None:
+        ref = "b" * 40
+        with tempfile.TemporaryDirectory() as directory:
+            loader = execution_code.ExecutionCodeLoader(Path(directory), mock.Mock(spec=LeaseMonitor), {})
+            with mock.patch.object(loader, "_run", side_effect=RuntimeError("fetch failed")):
+                with self.assertRaises(RuntimeError):
+                    loader.load(ref)
+            (Path(directory) / ref / "leftover").write_text("partial")
+
+            def run(command) -> None:
+                if command[1] == "archive":
+                    with tarfile.open(command[3].removeprefix("--output="), "w") as output:
+                        info = tarfile.TarInfo(f"{execution_code.CODE_PATH}/dashboard.py")
+                        info.size = 1
+                        output.addfile(info, io.BytesIO(b"x"))
+
+            with mock.patch.object(loader, "_run", side_effect=run):
+                code = loader.load(ref)
+            self.assertFalse((Path(directory) / ref / "leftover").exists())
+            self.assertEqual(code.ref, ref)
+
     def test_monotonic_deadline_expires_even_when_heartbeat_is_stuck(self) -> None:
         clock = [10.0]
         client = mock.Mock()

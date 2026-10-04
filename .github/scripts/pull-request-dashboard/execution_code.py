@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import shutil
 import sys
 import tarfile
 from dataclasses import dataclass
@@ -51,6 +52,7 @@ class ExecutionCodeLoader:
         if ref in self.bundles:
             return self.bundles[ref]
         directory = self.root / ref
+        shutil.rmtree(directory, ignore_errors=True)
         directory.mkdir(parents=True)
         archive = directory / "code.tar"
         self._run(["git", "fetch", "--quiet", "--no-tags", "origin", ref])
