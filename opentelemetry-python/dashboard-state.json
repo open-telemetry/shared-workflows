@@ -4787,7 +4787,7 @@
     },
     "5742": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "Matthew-Selvam",
         "author_action_review_thread_urls": [],
@@ -4797,8 +4797,8 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "09b0666d397e777f7b12a6f5d983dd2d3c8123dc1bb2d3048347f2e3f6ce2c6d",
-        "copilot_review_exists": false,
+        "copilot_request_fingerprint": "cc0dba9deb930c654b846ff907871866b14707db7a312e1730430f5da9af57f8",
+        "copilot_review_exists": true,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
         "copilot_review_request_needed": false,
@@ -4810,24 +4810,35 @@
         "dashboard_override_command_id": 0,
         "dashboard_override_command_user": "",
         "dashboard_override_head_sha": "",
-        "head_sha": "145a37a756052bca461ba66e54f18648299ae3d1",
+        "head_sha": "a3f4209cd334008403ea3e1b01e965324469dc52",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-10-05T04:20:32+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-10-05T20:01:25+00:00",
+        "last_approver_activity_at": "2026-10-05T20:01:25+00:00",
         "last_author_activity_at": "2026-10-05T04:19:40+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "herin049",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "2e6c4c386ea31b103bdbb189c8a9d5701c8e554c8e6daf001f59841f3840f54b",
+        "routing_input_fingerprint": "84eebf5ffccca23420d2e2b2bf2a3790fb9b76ef69eedb4a15202f950751ec05",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-10-05T04:19:40+00:00"
       },
       "failed": false,
       "pr_number": 5742,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-python/pull/5742",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "5745": {
