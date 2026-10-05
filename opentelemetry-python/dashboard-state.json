@@ -4362,7 +4362,7 @@
     },
     "5727": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "codedbyadiiii",
         "author_action_review_thread_urls": [],
@@ -4372,7 +4372,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "918f2b584a28d19ea08940325ca1db4df62eb07e66bc2db75d464ba527a0ce32",
+        "copilot_request_fingerprint": "9d7b4d53afaa10728245f1a97e1936eab566ca7518dd48edfc8a7d1b66aaf9ea",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -4388,32 +4388,32 @@
         "head_sha": "03df34444e1e8a872c256da31d004ab653943621",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-10-05T06:33:23+00:00",
-        "last_approver_activity_at": "2026-10-04T19:03:21+00:00",
+        "last_activity_at": "2026-10-05T15:00:45+00:00",
+        "last_approver_activity_at": "2026-10-05T15:00:45+00:00",
         "last_author_activity_at": "2026-10-05T06:33:23+00:00",
         "required_checks_settled": true,
         "reviewers": [
           {
-            "approved": false,
+            "approved": true,
             "approved_non_team": false,
             "changes_requested": false,
             "login": "herin049",
             "open_thread": false,
-            "pending_review": true,
+            "pending_review": false,
             "top_level_feedback": false,
             "unresolved_thread": false
           }
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "e0edd6dc020af1fa50c739fb41a8f37884e76d09cfb572b7bc41666b8d532b2b",
-        "waiting_age_basis": "review_rerequest",
-        "waiting_since": "2026-10-05T06:37:24.989858+00:00"
+        "routing_input_fingerprint": "479af33f7889ede5db4274d55915d01d6fd9d859e9ae4239970ae4a048ec4673",
+        "waiting_age_basis": "last_author_activity",
+        "waiting_since": "2026-10-05T06:33:23+00:00"
       },
       "failed": false,
       "pr_number": 5727,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-python/pull/5727",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {
         "pr-review-5402815870": {
           "evidence": {
