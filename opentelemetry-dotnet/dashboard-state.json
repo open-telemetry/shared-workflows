@@ -298,18 +298,17 @@
     },
     "7804": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "Kielek",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "author_can_act": true,
-        "author_nudge_episode_id": "b3a05d59ed8e4e789fe00737855be9e5",
         "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
-        "ci_pending_count": 1,
+        "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "d22bd9b60335b123d2f519197c760f1a664ed3e00b6f3222cda67ea52d039ffd",
+        "copilot_request_fingerprint": "7991dfd783a48adc062972ea63c0128f5cf26e6d9a299e0c5d2e5983dd0443b7",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
         "copilot_review_outstanding": false,
@@ -325,13 +324,13 @@
         "head_sha": "3c8320d36293b36b0258c515aff402f706327a2f",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-10-05T11:21:54+00:00",
-        "last_approver_activity_at": "2026-09-22T13:00:48+00:00",
+        "last_activity_at": "2026-10-05T11:50:23+00:00",
+        "last_approver_activity_at": "2026-10-05T11:50:23+00:00",
         "last_author_activity_at": "2026-10-05T11:21:54+00:00",
-        "required_checks_settled": false,
+        "required_checks_settled": true,
         "reviewers": [
           {
-            "approved": false,
+            "approved": true,
             "approved_non_team": false,
             "changes_requested": false,
             "login": "martincostello",
@@ -341,17 +340,16 @@
             "unresolved_thread": false
           }
         ],
-        "route_held_for_gates": true,
-        "route_held_since": "2026-10-05T11:23:14.192266+00:00",
+        "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "e1dfe251910378f79f286fb28ec0c1d98337e8b22a7e34754d40be3e04b7f9f5",
-        "waiting_age_basis": "gate_hold",
-        "waiting_since": "2026-10-05T08:04:49+00:00"
+        "routing_input_fingerprint": "606b851c9a28d8dfae22d3288da6261d8fa933f36ddec057669a3757eb57c777",
+        "waiting_age_basis": "gate_release",
+        "waiting_since": "2026-10-05T12:18:21.016358+00:00"
       },
       "failed": false,
       "pr_number": 7804,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-dotnet/pull/7804",
-      "route": "author",
+      "route": "maintainer",
       "top_level_history": {
         "pr-issue-comment-5776315299": {
           "evidence": {
