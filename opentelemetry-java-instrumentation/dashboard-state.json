@@ -2436,21 +2436,19 @@
         "approval_count": 2,
         "assignees": [],
         "author": "trask",
-        "author_action_review_thread_urls": [
-          "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20377#discussion_r4181748898"
-        ],
+        "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "author_can_act": true,
         "author_nudge_episode_id": "ea51ba9726c84c26ac2b61464e0c5eed",
         "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 2,
-        "conflicts": "yes",
-        "copilot_request_fingerprint": "c6c26cfb959e9c1f2bb6d21defb8bc2f0b02401d91e48fd3beeb8ff85251ea3d",
+        "conflicts": "no",
+        "copilot_request_fingerprint": "296be01652d919636c190ae40e5da65c561b36b104b58dd63176f08beaa0c985",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
         "copilot_review_outstanding": true,
-        "copilot_review_request_needed": false,
+        "copilot_review_request_needed": true,
         "copilot_review_requested": false,
         "copilot_review_stale": true,
         "copilot_review_unreported": true,
@@ -2459,12 +2457,12 @@
         "dashboard_override_command_id": 0,
         "dashboard_override_command_user": "",
         "dashboard_override_head_sha": "",
-        "head_sha": "77d43e3f5839ec3d1083c5d42c75c4807fccf757",
+        "head_sha": "77d1ede53befbf5f3311a43bb123d4017a3e912c",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-10-05T16:06:45+00:00",
+        "last_activity_at": "2026-10-05T16:40:43+00:00",
         "last_approver_activity_at": "2026-10-05T07:50:24+00:00",
-        "last_author_activity_at": "2026-10-05T16:06:45+00:00",
+        "last_author_activity_at": "2026-10-05T16:40:43+00:00",
         "required_checks_settled": false,
         "reviewers": [
           {
@@ -2472,10 +2470,10 @@
             "approved_non_team": false,
             "changes_requested": false,
             "login": "laurit",
-            "open_thread": true,
+            "open_thread": false,
             "pending_review": false,
             "top_level_feedback": false,
-            "unresolved_thread": true
+            "unresolved_thread": false
           },
           {
             "approved": true,
@@ -2488,10 +2486,11 @@
             "unresolved_thread": false
           }
         ],
-        "route_held_for_gates": false,
+        "route_held_for_gates": true,
+        "route_held_since": "2026-10-05T16:43:51.173230+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "1aca8b871f86925cc65c43168db85f44a8090e1ad272c9657ae3a2c1cddeb53a",
-        "waiting_age_basis": "oldest_pending_thread",
+        "routing_input_fingerprint": "c633dce5a1224d3f0535e71a1959df061b7d41b7bd93c47d8d719b5cae0daaa8",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-10-05T07:49:33+00:00"
       },
       "failed": false,
