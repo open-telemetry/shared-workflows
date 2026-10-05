@@ -11172,15 +11172,17 @@
         "assignees": [],
         "author": "rluidash",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/51420#pullrequestreview-5421814664"
+        ],
         "author_can_act": true,
         "author_nudge_episode_id": "defa5c3ad6a24137b4ad4fc8c337842a",
         "ci_failing_count": 1,
         "ci_failing_since": "2026-10-05T22:25:13+00:00",
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
-        "conflicts": "no",
-        "copilot_request_fingerprint": "d73a20a32df9c95bb8a93db64c2343125fccb73f6ff69c3dd0cf759faacf0938",
+        "conflicts": "yes",
+        "copilot_request_fingerprint": "c99324abacd0a605ed99284983d93ef264d50c007f64c921b6be8c540987ddd6",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -11196,8 +11198,8 @@
         "head_sha": "a4243c2a16c69b3a99483aad40e4dad275b8decb",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-10-05T22:14:30+00:00",
-        "last_approver_activity_at": "2026-10-05T22:14:30+00:00",
+        "last_activity_at": "2026-10-05T23:15:20+00:00",
+        "last_approver_activity_at": "2026-10-05T23:15:20+00:00",
         "last_author_activity_at": "2026-09-30T16:10:15+00:00",
         "required_checks_settled": true,
         "reviewers": [
@@ -11220,13 +11222,23 @@
             "pending_review": false,
             "top_level_feedback": false,
             "unresolved_thread": false
+          },
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "songy23",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": true,
+            "unresolved_thread": false
           }
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "a051e927e7a4236444076806d8ca7ff81b2be31c4bcdd1019ee5059e8fc0ea1d",
-        "waiting_age_basis": "ci_failure",
-        "waiting_since": "2026-10-05T22:25:13+00:00"
+        "routing_input_fingerprint": "5e94e10015ed58c4c6b3ae0f5e335e8f4a93b41d13d1dd389df74c7e605e7ef7",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-10-05T23:15:20+00:00"
       },
       "failed": false,
       "pr_number": 51420,
