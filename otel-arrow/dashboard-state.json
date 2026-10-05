@@ -2296,7 +2296,7 @@
     },
     "4265": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "JakeDern",
         "author_action_review_thread_urls": [],
@@ -2307,7 +2307,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 1,
         "conflicts": "no",
-        "copilot_request_fingerprint": "0c228ebda5a392a39c9649059a889bd12408c787f7fd8574d000bd47ca78f258",
+        "copilot_request_fingerprint": "2f437aa4e8598c3cba0e03d3852aada6dc171af1f9100889b00ca8d47d83cdad",
         "copilot_review_exists": true,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -2323,16 +2323,27 @@
         "head_sha": "10a0209be4d41d03c71d884a55b286a34be11fdc",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-10-05T18:23:30+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-10-05T18:33:05+00:00",
+        "last_approver_activity_at": "2026-10-05T18:33:05+00:00",
         "last_author_activity_at": "2026-10-05T18:20:04+00:00",
         "required_checks_settled": false,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "drewrelmas",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          }
+        ],
         "route_held_for_gates": true,
         "route_held_since": "2026-10-05T18:31:59.865649+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "adf1ba9c47476e8e97cbb84f4da4eccf9451b45415f4a374902a5ed0ddc282c7",
-        "waiting_age_basis": "created",
+        "routing_input_fingerprint": "459bbdfe8f0dc946c5d91831fa560e8b605d80b3fde630dfecec423d6155c84b",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-10-05T18:23:30+00:00"
       },
       "failed": false,
