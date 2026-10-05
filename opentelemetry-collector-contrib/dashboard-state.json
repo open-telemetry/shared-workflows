@@ -10011,7 +10011,7 @@
     },
     "51072": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "rluidash",
         "author_action_review_thread_urls": [],
@@ -10021,7 +10021,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "3186ee979201825ec3dab2715a5b3ae4c0983f4987397e7e4daa38f6fb9fa4ba",
+        "copilot_request_fingerprint": "c257009ad1c577e47cab44f95622760710f9ae4454ccebef258bc983128a087e",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -10037,8 +10037,8 @@
         "head_sha": "304f8f236a9784efd9241f3c59843a177b63ffcc",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-10-05T13:38:31+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-10-05T22:08:19+00:00",
+        "last_approver_activity_at": "2026-10-05T22:08:19+00:00",
         "last_author_activity_at": "2026-10-01T23:58:31+00:00",
         "required_checks_settled": true,
         "reviewers": [
@@ -10047,6 +10047,16 @@
             "approved_non_team": true,
             "changes_requested": false,
             "login": "ebrdarSplunk",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          },
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "paulojmdias",
             "open_thread": false,
             "pending_review": false,
             "top_level_feedback": false,
@@ -10065,14 +10075,14 @@
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "e61eccc4030932d770e07c7204fd2f37ac039756111a7b924cb841e6db125ed9",
+        "routing_input_fingerprint": "9d1d51bd96f8646d1c4f3d40afd9bf64a57c168d5645a2d95bf3bea8cebafa20",
         "waiting_age_basis": "gate_release",
         "waiting_since": "2026-10-02T00:04:02.196926+00:00"
       },
       "failed": false,
       "pr_number": 51072,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/51072",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {
         "pr-review-5383417554": {
           "evidence": {
