@@ -2388,7 +2388,7 @@
     },
     "4256": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
@@ -2398,7 +2398,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "eeb6223f91e3a76384dbe59801a4f5863f2eccc951b2fb0bce698b2dcc6f3a65",
+        "copilot_request_fingerprint": "680f4ed927785573d9a875048c9cdbd683b4cc8e1334f5777af7eff20c1adae7",
         "copilot_review_exists": true,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -2414,21 +2414,32 @@
         "head_sha": "27df9257e86d9ee9ebf123071688aabde1ed1466",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-10-05T00:42:59+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-10-05T13:27:40+00:00",
+        "last_approver_activity_at": "2026-10-05T13:27:40+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "albertlockett",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "77265397d0efa292f93511e8ab9cf8bb09e66b224af1982b5b5b6639d02362ed",
+        "routing_input_fingerprint": "4c533b2a70cb22f258dcc3d6934232191c1a3ed2f1c8de759066bb8860d5089f",
         "waiting_age_basis": "created",
         "waiting_since": "2026-10-05T00:42:59+00:00"
       },
       "failed": false,
       "pr_number": 4256,
       "pr_url": "https://github.com/open-telemetry/otel-arrow/pull/4256",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "4257": {
