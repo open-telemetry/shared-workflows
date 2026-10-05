@@ -550,17 +550,15 @@
         "approval_count": 1,
         "assignees": [],
         "author": "jack-berg",
-        "author_action_review_thread_urls": [
-          "https://github.com/open-telemetry/opentelemetry-java/pull/8864#discussion_r4174153367"
-        ],
+        "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "author_can_act": true,
         "author_nudge_episode_id": "20336f15b0c543fab70f5b3b15e9d4cc",
         "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
-        "ci_pending_count": 0,
+        "ci_pending_count": 2,
         "conflicts": "no",
-        "copilot_request_fingerprint": "e7a747adb78696893a288f3cab2df0f2286f3d98a49abd986797bcdb2f881c5d",
+        "copilot_request_fingerprint": "fd1949546a342f461d993ef285a0e6380cc903057f3624c17c4a748af87f7223",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -573,32 +571,30 @@
         "dashboard_override_command_id": 0,
         "dashboard_override_command_user": "",
         "dashboard_override_head_sha": "",
-        "head_sha": "c80c1de17ef1c548d88d4bfad3ba2138bb51a896",
+        "head_sha": "c141a22e09ad54f7fb5ff1c73c34a6d89f7b079b",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-10-03T17:36:42+00:00",
+        "last_activity_at": "2026-10-05T18:11:23+00:00",
         "last_approver_activity_at": "2026-10-03T17:36:42+00:00",
-        "last_author_activity_at": "2026-09-25T19:32:57+00:00",
-        "non_blocking_check_failures": [
-          "codecov/patch"
-        ],
-        "required_checks_settled": true,
+        "last_author_activity_at": "2026-10-05T18:11:23+00:00",
+        "required_checks_settled": false,
         "reviewers": [
           {
             "approved": true,
             "approved_non_team": false,
             "changes_requested": false,
             "login": "jkwatson",
-            "open_thread": true,
+            "open_thread": false,
             "pending_review": false,
             "top_level_feedback": false,
-            "unresolved_thread": true
+            "unresolved_thread": false
           }
         ],
-        "route_held_for_gates": false,
+        "route_held_for_gates": true,
+        "route_held_since": "2026-10-05T18:12:33.134907+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "eb984ff90b2b4931ac41432bb5f299220e20f761a2fb0e4f405c072414a4f63f",
-        "waiting_age_basis": "oldest_pending_thread",
+        "routing_input_fingerprint": "bff88ed658358850530d413e34c9a415392cfa651a84d79ed774b0723e873538",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-10-03T17:36:36+00:00"
       },
       "failed": false,
