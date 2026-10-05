@@ -54,7 +54,7 @@
     },
     "443": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
@@ -64,7 +64,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "92850ea49667034c7adc492cf61dcdaf75789c027a9dd35aa27c8521302ad5b0",
+        "copilot_request_fingerprint": "6dc555eb96dc37c770daae16156b5e3388a51cfef255a8bd00ed05100401f7e9",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
         "copilot_review_outstanding": false,
@@ -80,21 +80,32 @@
         "head_sha": "4e0a189cbcaba75229a4c93a5e12f68715f041a2",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-10-05T20:12:59+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-10-05T21:56:22+00:00",
+        "last_approver_activity_at": "2026-10-05T21:56:22+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "trask",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "34f76306beb89144f8687d17bc16feeabc9555a057b2379b2d81f407b46bd2bf",
+        "routing_input_fingerprint": "76cb6403078f72c15c18a8ee6e7889c38eb594762c9878d112b96e48e2dbeb43",
         "waiting_age_basis": "created",
         "waiting_since": "2026-10-05T00:35:49+00:00"
       },
       "failed": false,
       "pr_number": 443,
       "pr_url": "https://github.com/open-telemetry/shared-workflows/pull/443",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     }
   },
