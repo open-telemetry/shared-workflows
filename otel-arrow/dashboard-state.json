@@ -2236,7 +2236,7 @@
     },
     "4258": {
       "facts": {
-        "approval_count": 1,
+        "approval_count": 2,
         "assignees": [],
         "author": "ThomsonTan",
         "author_action_review_thread_urls": [
@@ -2245,12 +2245,11 @@
         "author_action_top_level_feedback_urls": [],
         "author_can_act": true,
         "author_nudge_episode_id": "1930b21fa936409aa997667df3dbf52f",
-        "ci_failing_count": 1,
-        "ci_failing_since": "2026-10-05T02:58:33+00:00",
+        "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
-        "ci_pending_count": 0,
+        "ci_pending_count": 1,
         "conflicts": "no",
-        "copilot_request_fingerprint": "89af43704b0cc59f500e91bce918894653ec92356fa134845caf6dc7863da81e",
+        "copilot_request_fingerprint": "101e0c72cee06b8e0247363db3fe3f91489db614691ba2c77b2096d0f895ac07",
         "copilot_review_exists": true,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -2266,10 +2265,10 @@
         "head_sha": "1792fe2267e74f9c610c9870a8643fef859bf025",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-10-05T15:41:01+00:00",
-        "last_approver_activity_at": "2026-10-05T15:41:01+00:00",
+        "last_activity_at": "2026-10-05T15:43:57+00:00",
+        "last_approver_activity_at": "2026-10-05T15:43:57+00:00",
         "last_author_activity_at": "2026-10-04T21:20:02+00:00",
-        "required_checks_settled": true,
+        "required_checks_settled": false,
         "reviewers": [
           {
             "approved": true,
@@ -2280,13 +2279,23 @@
             "pending_review": false,
             "top_level_feedback": false,
             "unresolved_thread": true
+          },
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "drewrelmas",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
           }
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "515834f5caaa374ee4ded7979b1da4e322c35b8f4056bdbd5e567fd5f87ecd76",
-        "waiting_age_basis": "ci_failure",
-        "waiting_since": "2026-10-05T02:58:33+00:00"
+        "routing_input_fingerprint": "2433a66abf437c864d2cf1515d659bb497a47e88522168d50742af0b6479eb1b",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-10-05T15:40:14+00:00"
       },
       "failed": false,
       "pr_number": 4258,
