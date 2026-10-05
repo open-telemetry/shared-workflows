@@ -290,7 +290,7 @@
     },
     "69": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "lmolkova",
         "author_action_review_thread_urls": [],
@@ -300,7 +300,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "1ef52a67fcaf3b6ebebb44bd41f3535c513f2329b1533a56dc1e4ffca80f71d1",
+        "copilot_request_fingerprint": "bb71f27dad9e43ad550c6af2a16b7717f869021b71d754bcd902ca75899bd196",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -316,21 +316,32 @@
         "head_sha": "c586e2f102e29353c600f42b13abb27efa30b05c",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-10-04T15:28:19+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-10-05T22:32:03+00:00",
+        "last_approver_activity_at": "2026-10-05T22:32:03+00:00",
         "last_author_activity_at": "2026-10-04T15:28:19+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "jsuereth",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "6f1d97a8830e7d7c21a288131b08ba71a583dca841dee06441be1f4a23286fa9",
+        "routing_input_fingerprint": "bdf55518bbe9489e17063066fe26acfb3d2023c33c7ea2fe11e36de231f52a82",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-10-04T15:28:19+00:00"
       },
       "failed": false,
       "pr_number": 69,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-weaver-packages/pull/69",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     }
   },
