@@ -306,7 +306,12 @@
         "approval_count": 1,
         "assignees": [],
         "author": "mariomac",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry-ebpf-instrumentation/pull/3596#discussion_r4186620429",
+          "https://github.com/open-telemetry/opentelemetry-ebpf-instrumentation/pull/3596#discussion_r4186620526",
+          "https://github.com/open-telemetry/opentelemetry-ebpf-instrumentation/pull/3596#discussion_r4186620604",
+          "https://github.com/open-telemetry/opentelemetry-ebpf-instrumentation/pull/3596#discussion_r4186620672"
+        ],
         "author_action_top_level_feedback_urls": [
           "https://github.com/open-telemetry/opentelemetry-ebpf-instrumentation/pull/3596#pullrequestreview-5392002974"
         ],
@@ -316,15 +321,14 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_first_review_missing_since": "2026-10-02T17:02:48.986411+00:00",
-        "copilot_request_fingerprint": "3fd1370a7f9c164f6b2f04e24af47cfe0f1cf276a19ddd72835cea46c06ef498",
-        "copilot_review_exists": false,
-        "copilot_review_needed": false,
+        "copilot_request_fingerprint": "e6ec442f5b518725900d9547df2f42764a26219c425743028f778749313fe71a",
+        "copilot_review_exists": true,
+        "copilot_review_needed": true,
         "copilot_review_outstanding": true,
         "copilot_review_request_needed": false,
-        "copilot_review_requested": true,
+        "copilot_review_requested": false,
         "copilot_review_stale": false,
-        "copilot_review_unreported": true,
+        "copilot_review_unreported": false,
         "created_at": "2026-09-29T12:20:29+00:00",
         "dashboard_command_replies": [],
         "dashboard_override_command_id": 0,
@@ -339,6 +343,16 @@
         "required_checks_settled": true,
         "reviewers": [
           {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "copilot-pull-request-reviewer[bot]",
+            "open_thread": true,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": true
+          },
+          {
             "approved": true,
             "approved_non_team": false,
             "changes_requested": false,
@@ -351,7 +365,7 @@
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "9cd08fc341778139a48661d62890033490f74869e518da7fe6eadc9cfe5c25fd",
+        "routing_input_fingerprint": "22f6320df62572b1d6e4754fea8f576ffbb293a221f7d9cb316e0dbcba011c7f",
         "waiting_age_basis": "oldest_pending_thread",
         "waiting_since": "2026-10-02T12:55:20+00:00"
       },
