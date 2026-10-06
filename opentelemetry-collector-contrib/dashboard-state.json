@@ -14978,7 +14978,7 @@
     },
     "51797": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
@@ -14988,7 +14988,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "fee3e3109301cbb8e7fda475056ac9fdd13d8c9b741740b2d1e1bfa4f4a8c1ea",
+        "copilot_request_fingerprint": "adb13e42d215d6df10c8fbf5987f02ad4d2034e93783e9b39335569b78fb7802",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -15004,8 +15004,8 @@
         "head_sha": "560e3117f07e818c66451ada6ad40b4f7e0555c1",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-10-06T03:23:45+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-10-06T13:05:29+00:00",
+        "last_approver_activity_at": "2026-10-06T13:05:29+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": true,
         "reviewers": [
@@ -15018,18 +15018,28 @@
             "pending_review": false,
             "top_level_feedback": false,
             "unresolved_thread": false
+          },
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "songy23",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
           }
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "c5e8bdd29ce6452d01b30f16159d9667bf327144f47dcba136ebe77ae98996e2",
+        "routing_input_fingerprint": "2c489a3dc42e8ce9469fb04aecd2acdc2bac4d7dc37d34bc7bde735831082fae",
         "waiting_age_basis": "created",
         "waiting_since": "2026-10-06T03:15:53+00:00"
       },
       "failed": false,
       "pr_number": 51797,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/51797",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "51798": {
