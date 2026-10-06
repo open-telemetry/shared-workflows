@@ -3145,9 +3145,10 @@
         ],
         "author_can_act": true,
         "author_nudge_episode_id": "0005295b6a5e4152a632df872c74beff",
-        "ci_failing_count": 0,
+        "ci_failing_count": 1,
+        "ci_failing_since": "2026-10-06T16:00:05+00:00",
         "ci_maintainer_action_required_count": 0,
-        "ci_pending_count": 0,
+        "ci_pending_count": 3,
         "conflicts": "no",
         "copilot_request_fingerprint": "f13141fe3f0f2d2551bcb172085d29c3be789e5896ef92e6e8f2accf81c69e65",
         "copilot_review_exists": false,
@@ -3162,13 +3163,16 @@
         "dashboard_override_command_id": 0,
         "dashboard_override_command_user": "",
         "dashboard_override_head_sha": "",
-        "head_sha": "b489daf7dd4bf61acdb4ed420a79abe66e6a35e9",
+        "head_sha": "382521eb6b69f49169765a815aa25ea26a1139fc",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-10-06T15:26:05+00:00",
+        "last_activity_at": "2026-10-06T15:52:14+00:00",
         "last_approver_activity_at": "",
-        "last_author_activity_at": "2026-10-06T15:26:05+00:00",
-        "required_checks_settled": true,
+        "last_author_activity_at": "2026-10-06T15:52:14+00:00",
+        "non_blocking_check_failures": [
+          "govulncheck (core)"
+        ],
+        "required_checks_settled": false,
         "reviewers": [
           {
             "approved": false,
@@ -3183,7 +3187,7 @@
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "a40d2df673e1fff3545598d812b8586da2eaea508eba85c0972384b21151d247",
+        "routing_input_fingerprint": "085c677e96e7a6dc2870275f4b938ed05511b27ab827ef4fad89f03ab2ca653d",
         "waiting_age_basis": "oldest_pending_thread",
         "waiting_since": "2026-10-06T15:26:05+00:00"
       },
