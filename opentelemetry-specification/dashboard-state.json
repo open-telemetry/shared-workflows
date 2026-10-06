@@ -2063,7 +2063,7 @@
     },
     "5343": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
@@ -2073,7 +2073,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "9bb1b8845ffe47312fc2ffedc20f7ec20311900f675c218c96cc471d9e01c2c9",
+        "copilot_request_fingerprint": "f838fdbabc5a9937dbdc57acf9d3ec901a823ab5a128eb5c70a7ec96661a9769",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -2089,21 +2089,32 @@
         "head_sha": "4ce8353662ba8a7897a20d5dd94bc102eac7b45b",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-10-06T00:54:26+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-10-06T10:30:26+00:00",
+        "last_approver_activity_at": "2026-10-06T10:30:26+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "arminru",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "685542c4a7ec61454c60d85c16978251c17943196d18639141730f893d37396d",
+        "routing_input_fingerprint": "57f0c116718a434fa9f63c16701de05dab51a3bab49ae43aff6b8b7cec0fa135",
         "waiting_age_basis": "created",
         "waiting_since": "2026-10-06T00:54:26+00:00"
       },
       "failed": false,
       "pr_number": 5343,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-specification/pull/5343",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     }
   },
