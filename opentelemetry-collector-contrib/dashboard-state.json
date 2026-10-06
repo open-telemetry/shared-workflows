@@ -13473,10 +13473,12 @@
     },
     "51768": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "paulojmdias",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/51768#discussion_r4201366687"
+        ],
         "author_action_top_level_feedback_urls": [],
         "author_can_act": true,
         "author_nudge_episode_id": "fa1a9428c96d473dbeee738c800f67cf",
@@ -13484,7 +13486,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 1,
         "conflicts": "no",
-        "copilot_request_fingerprint": "3e16b0e196b3ea3575b3dfe7e47db33662c606f7f24433d97cc3d51af48dd58f",
+        "copilot_request_fingerprint": "fdf3c1bb925a2bae8def57d2f9036a27394845cc59baed35426db76d4fe0bb8a",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -13500,28 +13502,28 @@
         "head_sha": "d11b4e55703047aec325fcc30dd566447128fb92",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-10-06T23:10:41+00:00",
-        "last_approver_activity_at": "2026-10-06T18:40:04+00:00",
+        "last_activity_at": "2026-10-06T23:23:11+00:00",
+        "last_approver_activity_at": "2026-10-06T23:23:11+00:00",
         "last_author_activity_at": "2026-10-06T23:10:41+00:00",
         "required_checks_settled": false,
         "reviewers": [
           {
-            "approved": false,
+            "approved": true,
             "approved_non_team": false,
             "changes_requested": false,
             "login": "dmitryax",
-            "open_thread": false,
+            "open_thread": true,
             "pending_review": false,
             "top_level_feedback": false,
-            "unresolved_thread": false
+            "unresolved_thread": true
           }
         ],
-        "route_held_for_gates": true,
+        "route_held_for_gates": false,
         "route_held_since": "2026-10-06T23:10:57.946368+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "89fe1230046712abe9fdf56d2fed841d9326230037fb9400a80092ae13780da2",
-        "waiting_age_basis": "gate_hold",
-        "waiting_since": "2026-10-06T18:35:11+00:00"
+        "routing_input_fingerprint": "f81a5fadb3b627d183b5be00a9e217f2169bbf99180ed65471694cd7431a13ba",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-10-06T23:23:04+00:00"
       },
       "failed": false,
       "pr_number": 51768,
