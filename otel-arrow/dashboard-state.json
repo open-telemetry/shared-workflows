@@ -2107,7 +2107,11 @@
         "approval_count": 0,
         "assignees": [],
         "author": "jmacd",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/otel-arrow/pull/4279#discussion_r4200401573",
+          "https://github.com/open-telemetry/otel-arrow/pull/4279#discussion_r4200401672",
+          "https://github.com/open-telemetry/otel-arrow/pull/4279#discussion_r4200401748"
+        ],
         "author_action_top_level_feedback_urls": [],
         "author_can_act": true,
         "author_nudge_episode_id": "b4b229c529754e37a3bf0596373029d7",
@@ -2116,12 +2120,12 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 1,
         "conflicts": "no",
-        "copilot_request_fingerprint": "508a1dc594c72bce5e0a7c802245f64ab08afced1be777c0e92694191f532e1f",
-        "copilot_review_exists": false,
-        "copilot_review_needed": false,
+        "copilot_request_fingerprint": "54d293faad4e7e35aa213993608c837340e6efcc809f42113dd67fdcc419b053",
+        "copilot_review_exists": true,
+        "copilot_review_needed": true,
         "copilot_review_outstanding": false,
         "copilot_review_request_needed": false,
-        "copilot_review_requested": true,
+        "copilot_review_requested": false,
         "copilot_review_stale": false,
         "copilot_review_unreported": false,
         "created_at": "2026-10-06T20:55:48+00:00",
@@ -2136,10 +2140,21 @@
         "last_approver_activity_at": "",
         "last_author_activity_at": "2026-10-06T20:51:02+00:00",
         "required_checks_settled": false,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "copilot-pull-request-reviewer[bot]",
+            "open_thread": true,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": true
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "5b4f2785be10f9231f7598e23569aad59af92c73577f078905c929020cefc6dd",
+        "routing_input_fingerprint": "0c6be2920b59a928703fd2bab2b38aa5661263867fe5df61915df17683fbf222",
         "waiting_age_basis": "ci_failure",
         "waiting_since": "2026-10-06T20:56:04+00:00"
       },
