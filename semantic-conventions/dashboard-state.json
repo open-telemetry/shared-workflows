@@ -374,11 +374,13 @@
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "author_can_act": true,
-        "ci_failing_count": 0,
+        "author_nudge_episode_id": "47366adbb9d143e1b39537a830641767",
+        "ci_failing_count": 1,
+        "ci_failing_since": "2026-10-06T14:28:18+00:00",
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "dd738d68c0f299c9f599126d815e4b8d8d41e3ab2de37b31f25de3d314c76c13",
+        "copilot_request_fingerprint": "a1dff12ebc166716f8700bbca6f3cee28aa8a5454d6e07411e8db38c39e08b7a",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
         "copilot_review_outstanding": false,
@@ -391,12 +393,12 @@
         "dashboard_override_command_id": 0,
         "dashboard_override_command_user": "",
         "dashboard_override_head_sha": "",
-        "head_sha": "95d6435dff76f893bdfed95130c2ef0a52e576f5",
+        "head_sha": "1623ae2d946b5f3fe8cd8ab714966a39e8775119",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-10-06T09:30:11+00:00",
+        "last_activity_at": "2026-10-06T14:27:53+00:00",
         "last_approver_activity_at": "2026-10-05T22:25:02+00:00",
-        "last_author_activity_at": "2026-10-06T09:30:11+00:00",
+        "last_author_activity_at": "2026-10-06T14:27:53+00:00",
         "required_checks_settled": true,
         "reviewers": [
           {
@@ -417,7 +419,7 @@
             "open_thread": false,
             "pending_review": false,
             "top_level_feedback": false,
-            "unresolved_thread": true
+            "unresolved_thread": false
           },
           {
             "approved": false,
@@ -427,29 +429,19 @@
             "open_thread": false,
             "pending_review": false,
             "top_level_feedback": false,
-            "unresolved_thread": true
-          },
-          {
-            "approved": false,
-            "approved_non_team": false,
-            "changes_requested": false,
-            "login": "svencowart",
-            "open_thread": false,
-            "pending_review": false,
-            "top_level_feedback": false,
-            "unresolved_thread": true
+            "unresolved_thread": false
           }
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "7c7cdfe97bf2fe68395beaf3500124c11d935924960a6d071b2788bd5dfe4fa1",
-        "waiting_age_basis": "oldest_pending_thread",
-        "waiting_since": "2026-10-06T09:30:11+00:00"
+        "routing_input_fingerprint": "17421a26250f410f1daaeb347c547ecd209bc822297f4b7c4d133dfd1839c808",
+        "waiting_age_basis": "ci_failure",
+        "waiting_since": "2026-10-06T14:28:18+00:00"
       },
       "failed": false,
       "pr_number": 3900,
       "pr_url": "https://github.com/open-telemetry/semantic-conventions/pull/3900",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {
         "pr-review-4766174919": {
           "evidence": {
