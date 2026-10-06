@@ -8811,9 +8811,11 @@
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "author_can_act": true,
-        "ci_failing_count": 0,
+        "author_nudge_episode_id": "aa39d2d7b839457bb556452fe95d437f",
+        "ci_failing_count": 1,
+        "ci_failing_since": "2026-10-06T00:04:28+00:00",
         "ci_maintainer_action_required_count": 0,
-        "ci_pending_count": 10,
+        "ci_pending_count": 9,
         "conflicts": "no",
         "copilot_request_fingerprint": "3a21e176cd373187ab62343ce2878e70698ba0fddcfb1e6c2afb45dd1922496d",
         "copilot_review_exists": false,
@@ -8859,14 +8861,14 @@
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "09fdcb982a7870b8839cf33a25ac4faf18dd5329d28c4712cb799749139cfd11",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-10-05T07:00:34+00:00"
+        "routing_input_fingerprint": "c9200ef78c208e4e6c69fc3c5eed91f79d46fddf68de3daf14446f72c6284756",
+        "waiting_age_basis": "ci_failure",
+        "waiting_since": "2026-10-06T00:04:28+00:00"
       },
       "failed": false,
       "pr_number": 50844,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50844",
-      "route": "maintainer",
+      "route": "author",
       "top_level_history": {
         "pr-review-5153554309": {
           "evidence": {
