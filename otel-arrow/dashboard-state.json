@@ -1626,9 +1626,7 @@
         "approval_count": 1,
         "assignees": [],
         "author": "andborja",
-        "author_action_review_thread_urls": [
-          "https://github.com/open-telemetry/otel-arrow/pull/4247#discussion_r4190256525"
-        ],
+        "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "author_can_act": true,
         "author_nudge_episode_id": "42a6a562f56840d29738bf31eec2fc53",
@@ -1636,7 +1634,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 4,
         "conflicts": "no",
-        "copilot_request_fingerprint": "ca9058cde9ebc9af26f32f9cd0a32406eaafe7251cd0b96b7c759a9639c82500",
+        "copilot_request_fingerprint": "20fefc135ff6f9e689402c1c6cd06829307bc8a1b56ddad71a82764010ce1335",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
         "copilot_review_outstanding": false,
@@ -1649,12 +1647,12 @@
         "dashboard_override_command_id": 0,
         "dashboard_override_command_user": "",
         "dashboard_override_head_sha": "",
-        "head_sha": "f7e03bb8abbc00e4adface3223796ab6ccd4f4b6",
+        "head_sha": "01e5bf4f81835b6c5177b05faa168730892e49f9",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-10-06T15:10:46+00:00",
+        "last_activity_at": "2026-10-06T15:16:23+00:00",
         "last_approver_activity_at": "2026-10-06T00:23:49+00:00",
-        "last_author_activity_at": "2026-10-06T15:10:46+00:00",
+        "last_author_activity_at": "2026-10-06T15:16:23+00:00",
         "required_checks_settled": false,
         "reviewers": [
           {
@@ -1672,16 +1670,17 @@
             "approved_non_team": false,
             "changes_requested": false,
             "login": "utpilla",
-            "open_thread": true,
+            "open_thread": false,
             "pending_review": false,
             "top_level_feedback": false,
-            "unresolved_thread": true
+            "unresolved_thread": false
           }
         ],
-        "route_held_for_gates": false,
+        "route_held_for_gates": true,
+        "route_held_since": "2026-10-06T15:17:31.364739+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "e02dfeadd311f59160a6aab48ef588449cd46ca7d85cb17dd31118c55914529a",
-        "waiting_age_basis": "oldest_pending_thread",
+        "routing_input_fingerprint": "72152e6e72309693e4ca6588a68ce0c9d3128b2507259d5f30ef75ce83fd9a32",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-10-06T00:23:49+00:00"
       },
       "failed": false,
