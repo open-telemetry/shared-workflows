@@ -208,11 +208,13 @@ def process_claims(
             monitor.close()
     dead_letters = sum(result["outcome"] == "dead" for result in results)
     retries = sum(result["outcome"] == "retry" for result in results)
+    continues = sum(result["outcome"] == "continue" for result in results)
     return (
         {
             "claims": len(claims),
             "work_items": len(work_items),
-            "successes": len(results) - retries - dead_letters,
+            "successes": len(results) - retries - dead_letters - continues,
+            "continues": continues,
             "retries": retries,
             "dead_letters": dead_letters,
         },
