@@ -14855,7 +14855,7 @@
     },
     "51780": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
@@ -14865,7 +14865,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 7,
         "conflicts": "no",
-        "copilot_request_fingerprint": "85009baed019be08bc0f31fef77fcb0edd64accadd4a52f1803fa2384e9d4b8e",
+        "copilot_request_fingerprint": "3adaf7125ea5f5466f8572d6d3cfc30a00a169d8ca51474af92a0fd1cbf47b98",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -14881,15 +14881,27 @@
         "head_sha": "07f1ee3238e5e4d04b3b8e1d680b4a5b0c5a9ccf",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-10-06T00:58:21+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-10-06T01:00:03+00:00",
+        "last_approver_activity_at": "2026-10-06T01:00:03+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": false,
-        "reviewers": [],
-        "route_held_for_gates": false,
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "songy23",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          }
+        ],
+        "route_held_for_gates": true,
+        "route_held_since": "2026-10-06T01:01:17.055673+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "1bb7c59e9ae2b257cb99712fa668c4111542a5e9ab744b2b0a40e1f7035e1f6c",
-        "waiting_age_basis": "created",
+        "routing_input_fingerprint": "c3e1d8834679cf218e303a93e63e82107554a3b92d983b26c12bb9f5db765050",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-10-06T00:58:21+00:00"
       },
       "failed": false,
