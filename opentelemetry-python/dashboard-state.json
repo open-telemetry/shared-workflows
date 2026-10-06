@@ -3398,7 +3398,7 @@
     },
     "5686": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
@@ -3408,7 +3408,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "3e4dde8e53a2e0f7f8e58b90d01df4c174b041ddcb718fd4af8fd42f7d849b6c",
+        "copilot_request_fingerprint": "fd72e25bf8831c0968dac71c1bd3f3e581bd57cca2158d9aaaa57b464bfbe424",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -3424,21 +3424,32 @@
         "head_sha": "d0ea045201c9eb07583981ac29f5fab850706c65",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-10-06T15:28:37+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-10-06T23:11:28+00:00",
+        "last_approver_activity_at": "2026-10-06T23:11:28+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "emdneto",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "8651b9bd94bb83a05d372268b8a92f93222860e64ea75ea51f2029e7b9ea5848",
+        "routing_input_fingerprint": "301514e2bad3919413073f895396738ba79fb8baaf2fea36dc547100a2bedbda",
         "waiting_age_basis": "created",
         "waiting_since": "2026-09-25T00:40:58+00:00"
       },
       "failed": false,
       "pr_number": 5686,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-python/pull/5686",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "5696": {
