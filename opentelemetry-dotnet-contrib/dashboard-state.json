@@ -74,7 +74,7 @@
     },
     "5430": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [
           "Havret"
         ],
@@ -84,9 +84,9 @@
         "author_can_act": true,
         "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
-        "ci_pending_count": 1,
+        "ci_pending_count": 2,
         "conflicts": "no",
-        "copilot_request_fingerprint": "d24a420c025fe1bbebf297704f7932967cfe29db2a03e33b943a56f491961f90",
+        "copilot_request_fingerprint": "b03faa918f95984c7bdfa1095c2ccb8d6206eac4d037debbe578d7b1e4ad6416",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
         "copilot_review_outstanding": false,
@@ -102,8 +102,8 @@
         "head_sha": "369400b5767b650a7b00a73a89875b81989a3116",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-10-07T17:08:47+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-10-07T18:14:58+00:00",
+        "last_approver_activity_at": "2026-10-07T18:14:58+00:00",
         "last_author_activity_at": "2026-10-01T12:16:36+00:00",
         "required_checks_settled": false,
         "reviewers": [
@@ -116,12 +116,23 @@
             "pending_review": true,
             "top_level_feedback": false,
             "unresolved_thread": false
+          },
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "matt-hensley",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
           }
         ],
-        "route_held_for_gates": false,
+        "route_held_for_gates": true,
+        "route_held_since": "2026-10-07T18:15:50.461761+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "583c94280d691bbeb0668f489ae430c6030413cc1811870767030c21540f2bd6",
-        "waiting_age_basis": "last_author_activity",
+        "routing_input_fingerprint": "b4ce6d8ac0e3920aa5204e160633452198dae8c4af4cbfc69633eba8b3ec4649",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-10-01T12:16:36+00:00"
       },
       "failed": false,
