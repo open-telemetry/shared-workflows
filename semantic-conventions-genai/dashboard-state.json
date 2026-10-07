@@ -4222,10 +4222,9 @@
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "author_can_act": true,
-        "author_nudge_episode_id": "30e856713da74ec2b0f3ec84b57eb84a",
         "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
-        "ci_pending_count": 2,
+        "ci_pending_count": 0,
         "conflicts": "no",
         "copilot_request_fingerprint": "3b1c2fba9e5b897f5f5d25dce86a1722fb002c26fc1b9c61f0f8f8c338ce099c",
         "copilot_review_exists": true,
@@ -4240,13 +4239,13 @@
         "dashboard_override_command_id": 0,
         "dashboard_override_command_user": "",
         "dashboard_override_head_sha": "",
-        "head_sha": "f61875ba7b685bdd5138e7f2dd78d5725981492b",
+        "head_sha": "49247b3ddbacd2ea392f762249b24e913b3dae67",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-10-07T16:27:57+00:00",
+        "last_activity_at": "2026-10-07T16:29:58+00:00",
         "last_approver_activity_at": "2026-10-07T16:03:16+00:00",
-        "last_author_activity_at": "2026-10-07T16:27:57+00:00",
-        "required_checks_settled": false,
+        "last_author_activity_at": "2026-10-07T16:29:58+00:00",
+        "required_checks_settled": true,
         "reviewers": [
           {
             "approved": true,
@@ -4259,17 +4258,16 @@
             "unresolved_thread": false
           }
         ],
-        "route_held_for_gates": true,
-        "route_held_since": "2026-10-07T16:28:56.187808+00:00",
+        "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "19b4fb0efb270ccd7b4fa69ffd402d9d12c204ee728381cee567d80b02f617b4",
-        "waiting_age_basis": "gate_hold",
-        "waiting_since": "2026-10-07T16:02:50+00:00"
+        "routing_input_fingerprint": "82f6b92f48b29fea903481f01c551e84b23b4bc89dd1d557e4a0f6db0e717959",
+        "waiting_age_basis": "gate_release",
+        "waiting_since": "2026-10-07T16:35:44.806550+00:00"
       },
       "failed": false,
       "pr_number": 579,
       "pr_url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/579",
-      "route": "author",
+      "route": "approver",
       "top_level_history": {}
     }
   },
