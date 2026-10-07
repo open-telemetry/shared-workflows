@@ -1784,7 +1784,7 @@
     },
     "5491": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
@@ -1794,7 +1794,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 2,
         "conflicts": "no",
-        "copilot_request_fingerprint": "569432b492e4f9d34eb60ab103eb5eac6f23b5db1887f35157b6813639fa4b16",
+        "copilot_request_fingerprint": "854080f1563e8e001b33380f12fea19e58e876c53d31a8130ea97e92f8cabab4",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -1810,15 +1810,27 @@
         "head_sha": "4a914c55b42a537ac5a6ef049662417be52c3886",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-10-07T08:46:51+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-10-07T08:49:43+00:00",
+        "last_approver_activity_at": "2026-10-07T08:49:43+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": false,
-        "reviewers": [],
-        "route_held_for_gates": false,
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "martincostello",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          }
+        ],
+        "route_held_for_gates": true,
+        "route_held_since": "2026-10-07T08:50:44.057864+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "1e4cabe3dc1c55f54788cf20ce50af8b567b81d359673c29c668aad7b32f0b00",
-        "waiting_age_basis": "created",
+        "routing_input_fingerprint": "195a1ae26d01e0741cea6a256d00c189f51c95b9ca77d75faeb25d1ea222ca07",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-10-07T08:46:51+00:00"
       },
       "failed": false,
