@@ -3452,7 +3452,9 @@
     "7141": {
       "facts": {
         "approval_count": 0,
-        "assignees": [],
+        "assignees": [
+          "pichlermarc"
+        ],
         "author": "overbalance",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
@@ -3460,8 +3462,8 @@
         "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
-        "conflicts": "no",
-        "copilot_request_fingerprint": "aa6f25241cf6fc74cf95d1d786ac2647970429c5c6f76c0462e9ad4c923a07ee",
+        "conflicts": "yes",
+        "copilot_request_fingerprint": "517fa5dee55a17018dff9f1252e62ea8cf3831a82114857d538cfd39fec6367d",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -3481,10 +3483,21 @@
         "last_approver_activity_at": "",
         "last_author_activity_at": "2026-10-05T22:28:42+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "pichlermarc",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "77c68571353a8bf51a2df610c3f6e468185b853fa71b67e8480140e9cba9f79d",
+        "routing_input_fingerprint": "a183b1429daa2170bb1c7c733706d6c1e29cecaa2eea129cc44cdf246a56f703",
         "waiting_age_basis": "gate_release",
         "waiting_since": "2026-10-05T22:24:52.619388+00:00"
       },
