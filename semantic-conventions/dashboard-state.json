@@ -2758,14 +2758,17 @@
         "approval_count": 1,
         "assignees": [],
         "author": "lmolkova",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/semantic-conventions/pull/4166#discussion_r4212385792"
+        ],
         "author_action_top_level_feedback_urls": [],
         "author_can_act": true,
+        "author_nudge_episode_id": "44cc75dfd5244e18ad231e4e1c187941",
         "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "a1aa4765dd8c36668814140d03e14685f96fbc007c143fbb7d62eec487039ec3",
+        "copilot_request_fingerprint": "3ba8a7bca9b8551dc3b7d3ae6cdf43b9733d5f68be1a8a8ed5a75299c2be272c",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
         "copilot_review_outstanding": false,
@@ -2781,11 +2784,21 @@
         "head_sha": "8a268adbcb9c5196100a5ed0f0fc522cacda269e",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-10-06T20:41:12+00:00",
-        "last_approver_activity_at": "2026-10-06T20:41:12+00:00",
+        "last_activity_at": "2026-10-07T21:53:19+00:00",
+        "last_approver_activity_at": "2026-10-07T21:53:19+00:00",
         "last_author_activity_at": "2026-10-04T00:18:19+00:00",
         "required_checks_settled": true,
         "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "kamphaus",
+            "open_thread": true,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": true
+          },
           {
             "approved": true,
             "approved_non_team": false,
@@ -2799,14 +2812,14 @@
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "8605bdaa38ce9c7d66452870f95f3c41bc7504cfc63ff929e36f26c469318e5c",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-10-03T23:50:51+00:00"
+        "routing_input_fingerprint": "6b71bee065a42ed49f259eb7075c3a6ac6cf43a0cac2fc5d2056599771c72db3",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-10-07T21:53:19+00:00"
       },
       "failed": false,
       "pr_number": 4166,
       "pr_url": "https://github.com/open-telemetry/semantic-conventions/pull/4166",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     },
     "4167": {
