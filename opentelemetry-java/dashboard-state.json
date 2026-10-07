@@ -874,7 +874,7 @@
     },
     "8908": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
@@ -885,7 +885,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "c31bcaf009a40dfb47b03070e43f3f13d63b472266cade201a6df817b06eaecb",
+        "copilot_request_fingerprint": "eca12ad428173aff3919988ec906695c7b8d6c33a1cd31ee759dbdcdd22217e4",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -901,21 +901,32 @@
         "head_sha": "7d9b4a0fdda0491b9147159236cfcd2e8440b382",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-10-07T15:00:44+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-10-07T20:09:32+00:00",
+        "last_approver_activity_at": "2026-10-07T20:09:32+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "jack-berg",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "1b42203f8c0badedd4ddb5dce25cbc2a664b5ea5bbcae8dbf3ebaeb11681c9da",
+        "routing_input_fingerprint": "34dba649456f71e90c45c1500f6464266e7a2bb8f516b43d71bc3c26a997e923",
         "waiting_age_basis": "created",
         "waiting_since": "2026-10-06T00:54:10+00:00"
       },
       "failed": false,
       "pr_number": 8908,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-java/pull/8908",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "8911": {
