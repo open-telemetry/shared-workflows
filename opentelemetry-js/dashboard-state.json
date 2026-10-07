@@ -3552,19 +3552,22 @@
     },
     "7154": {
       "facts": {
-        "approval_count": 1,
+        "approval_count": 2,
         "assignees": [
           "trentm"
         ],
         "author": "trentm",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/opentelemetry-js/pull/7154#pullrequestreview-5411503386"
+        ],
         "author_can_act": true,
+        "author_nudge_episode_id": "02f33d91f58048eb901e465f4e284d74",
         "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "25f8a1fe29ee6b50601ad0c5bf5b198a0f3ec389c66c633ac0c1b2c4ba3611d5",
+        "copilot_request_fingerprint": "4bc6a79e1031e372c95b34a6988f1053b7649188593b75cca1dda36e5fc40035",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -3580,8 +3583,8 @@
         "head_sha": "807268f4df99e922b6f1d92eef6c2950d43172f2",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-10-07T00:39:33+00:00",
-        "last_approver_activity_at": "2026-10-05T07:56:16+00:00",
+        "last_activity_at": "2026-10-07T08:49:07+00:00",
+        "last_approver_activity_at": "2026-10-07T08:49:07+00:00",
         "last_author_activity_at": "2026-10-07T00:39:33+00:00",
         "required_checks_settled": true,
         "reviewers": [
@@ -3589,23 +3592,33 @@
             "approved": true,
             "approved_non_team": false,
             "changes_requested": false,
-            "login": "pichlermarc",
+            "login": "david-luna",
             "open_thread": false,
             "pending_review": false,
             "top_level_feedback": false,
+            "unresolved_thread": false
+          },
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "pichlermarc",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": true,
             "unresolved_thread": false
           }
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "d26018d15390b3fdf893ff0e29cdc4b0cceecf4fdaa70850eee4d217d741c006",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-10-07T00:39:33+00:00"
+        "routing_input_fingerprint": "8300d42afdef7e12831446685359acb460306b8062f220c500303192358fed9d",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-10-05T07:56:16+00:00"
       },
       "failed": false,
       "pr_number": 7154,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-js/pull/7154",
-      "route": "maintainer",
+      "route": "author",
       "top_level_history": {}
     },
     "7159": {
