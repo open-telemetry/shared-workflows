@@ -1088,7 +1088,7 @@
     },
     "3665": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "pinoOgni",
         "author_action_review_thread_urls": [],
@@ -1098,7 +1098,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "688703905edb1f7d5d3aede8520cf0597feee4a08a1f84eee40155c68adc92a4",
+        "copilot_request_fingerprint": "4f917c5b76e984df776af207d484f1c02deca5144a9cf3c0cdcf2ede06e26be2",
         "copilot_review_exists": true,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -1114,21 +1114,32 @@
         "head_sha": "443834401917fe384ebc31aa63a0bed964e83ac9",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-10-07T10:40:17+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-10-07T12:57:08+00:00",
+        "last_approver_activity_at": "2026-10-07T12:57:08+00:00",
         "last_author_activity_at": "2026-10-07T10:40:17+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "NimrodAvni78",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "4ddace6ec19b8a0fdba5045d0329121ae6cfc568f406829e7fb361d870dd29a1",
+        "routing_input_fingerprint": "be7415c19e4bd30291eac56424f8cf7921886a355f036d1c059e952ef9f43b06",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-10-07T07:31:28+00:00"
       },
       "failed": false,
       "pr_number": 3665,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-ebpf-instrumentation/pull/3665",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "3667": {
