@@ -11,7 +11,6 @@ from classification_policy import normalize_discussion_action
 from copilot_review import (
     copilot_review_outstanding,
     copilot_review_unreported,
-    set_copilot_first_review_missing_since,
     set_copilot_review_request_needed,
 )
 from dashboard_contracts import DashboardFacts, DashboardRoute
@@ -63,19 +62,6 @@ def reviewer_handoff_active(facts: DashboardFacts) -> bool:
             or facts.dashboard_override_head_sha == facts.head_sha
         )
         and not facts.dashboard_override_cleared_by_feedback
-    )
-
-
-def routing_failure_facts(
-    facts: DashboardFacts,
-    previous_facts: DashboardFacts,
-) -> DashboardFacts:
-    """Return failure-path facts without restarting the first-review clock."""
-    return facts.with_changes(
-        copilot_first_review_missing_since=(
-            previous_facts.copilot_first_review_missing_since
-            or facts.copilot_first_review_missing_since
-        )
     )
 
 
@@ -356,17 +342,10 @@ def resolve_routing(routing_input: RoutingInput) -> RoutingOutcome:
     copilot_review_request_enabled = (
         copilot_review_gate_enabled and facts.conflicts != "yes"
     )
-    facts = set_copilot_first_review_missing_since(
-        facts,
-        routing_input.previous_facts,
-        enabled=copilot_review_request_enabled,
-        now=now,
-    )
     facts = set_copilot_review_request_needed(
         facts,
         route.value,
         enabled=copilot_review_request_enabled,
-        now=now,
     )
     route, facts = _hold_route_until_gates_settle(
         facts,

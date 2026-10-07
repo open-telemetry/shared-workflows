@@ -174,17 +174,9 @@ COPILOT_REVIEWER_LOGIN = "copilot-pull-request-reviewer"
 
 
 def copilot_review_pending(facts: DashboardFacts) -> bool:
-    # "Pending" has to mean a review is genuinely in flight, or the icon shows
-    # on nearly every row and stops carrying information. It also has to mean
-    # the wait is someone's turn, which is what the gate decides. First-time
-    # human review requests are left off the row; human re-reviews are already
-    # marked pending in the stored reviewer facts. Copilot earns a place only
-    # where its review holds the pull request. That scope comes first, and
-    # within it a requested review qualifies, as does a pull request Copilot
-    # has never reviewed, because the automatic first review is not requested
-    # through the dashboard and the hold it causes would otherwise have nothing
-    # on the row to explain it. A hold is not enough on its own: unsettled
-    # checks hold a route too.
+    # Show Copilot's wait only where its review gates the handoff. A missing
+    # first review also qualifies while its request awaits delivery, so the
+    # held row explains the wait before GitHub records the pending reviewer.
     if not facts.copilot_review_outstanding:
         return False
     if facts.copilot_review_requested:

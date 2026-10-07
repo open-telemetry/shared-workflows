@@ -483,26 +483,13 @@ the implementation understandable and operationally cheap.
   outdated after the referenced code moves. A later clean review does not close
   an existing thread. A push makes the review stale and triggers a re-request,
   but the push alone does not prove that a finding was fixed.
-- The other state is a first review that never arrived. The gate otherwise
-  relies entirely on automatic Copilot code review to produce it, so when GitHub
-  silently never starts one, the pull request waits on its author forever for a
-  review nobody has asked for, and only manual intervention recovers it.
-- That wait is timed from `copilot_first_review_missing_since`, set when the
-  gate first observes a non-draft pull request with no Copilot review and
-  carried forward across passes. Becoming a draft resets it, because GitHub
-  starts the automatic review when a pull request becomes ready rather than when
-  it is opened. A push deliberately does not reset it: GitHub does not
-  automatically review a pull request it has never reviewed, so restarting the
-  wait on every push would leave an actively developed pull request waiting
-  forever — exactly the case the recovery exists for.
-- One hour is the grace period. Observed first reviews normally land within
-  twenty minutes and have been seen as late as forty, so an hour clears the
-  normal spread without waiting through another full review cycle. Nothing
-  signals the expiry itself: a pull request stalled on a missing review produces
-  no activity, so no webhook fires and the hourly backfill is what notices.
-  Recording and delivery share a run, so recovery lands within roughly one to
-  two hours of the pull request becoming ready, against a failure that is
-  otherwise unbounded.
+- The other state is a missing first review. The dashboard requests it on the
+  first eligible refresh using its GitHub App installation token. Initial reviews
+  and re-reviews share the same delivery checks and confirmation path.
+- GitHub's quota-exhausted notice is a failed attempt even though GitHub records
+  it as a review of the current head. It does not satisfy the review gate,
+  prevent a new request, or confirm delivery. A genuine current-head review
+  still counts if the PR also has a quota-failure notice.
 - A first-review request is reachable only where a re-request already is — the
   pull request would otherwise route to reviewers or maintainers, and Copilot is
   not already a pending requested reviewer.
