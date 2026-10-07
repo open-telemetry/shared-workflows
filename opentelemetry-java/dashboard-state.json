@@ -1069,7 +1069,7 @@
     },
     "8914": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "jack-berg",
         "author_action_review_thread_urls": [],
@@ -1080,7 +1080,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 2,
         "conflicts": "no",
-        "copilot_request_fingerprint": "6fd0766438c64455ac818dc0a80a15c729e44c2c7e648905668c7bb0f68af48b",
+        "copilot_request_fingerprint": "1022723c63804fb89457fc85431f5c9485762ac62fc4a7fa49bd5a667f8aba98",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -1096,16 +1096,27 @@
         "head_sha": "ba4dfea91647d1ef596975db5d7197681df3c0f5",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-10-07T20:10:56+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-10-07T20:13:06+00:00",
+        "last_approver_activity_at": "2026-10-07T20:13:06+00:00",
         "last_author_activity_at": "2026-10-06T14:08:13+00:00",
         "required_checks_settled": false,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "jkwatson",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          }
+        ],
         "route_held_for_gates": true,
         "route_held_since": "2026-10-07T20:11:58.670116+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "e63a2718f0e13b46bd874547b80f33c2a891837cb988cf6845796c44508363ce",
-        "waiting_age_basis": "created",
+        "routing_input_fingerprint": "1e332e276b494bc2aa60c62b0164f83c16fc9b5b44e345f7306b52d5dfd35711",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-10-07T20:10:56+00:00"
       },
       "failed": false,
