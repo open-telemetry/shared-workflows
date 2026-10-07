@@ -232,9 +232,11 @@
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "author_can_act": true,
-        "ci_failing_count": 0,
+        "author_nudge_episode_id": "8b75b1cd8b2245efaeaa1e31d0a1cf86",
+        "ci_failing_count": 1,
+        "ci_failing_since": "2026-10-07T15:08:27+00:00",
         "ci_maintainer_action_required_count": 0,
-        "ci_pending_count": 5,
+        "ci_pending_count": 0,
         "conflicts": "no",
         "copilot_request_fingerprint": "3ca7b29ff5de90747f05cbe2dbcadc857e8669f2ddcbf7a5b1955818bb787f2b",
         "copilot_review_exists": true,
@@ -255,7 +257,7 @@
         "last_activity_at": "2026-10-07T15:05:15+00:00",
         "last_approver_activity_at": "2026-10-07T15:05:15+00:00",
         "last_author_activity_at": "2026-07-27T15:52:54+00:00",
-        "required_checks_settled": false,
+        "required_checks_settled": true,
         "reviewers": [
           {
             "approved": true,
@@ -268,17 +270,16 @@
             "unresolved_thread": false
           }
         ],
-        "route_held_for_gates": true,
-        "route_held_since": "2026-10-07T15:05:48.648236+00:00",
+        "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "9ee9ee1da4f840a53db329d8142f6afb19c180605111595c1aae2ca0cc35788c",
-        "waiting_age_basis": "gate_hold",
-        "waiting_since": "2026-07-27T15:52:54+00:00"
+        "routing_input_fingerprint": "dfbd69d516ef6fe3110d509ef2fabed84fd48afd186ce026a521e07078a801c2",
+        "waiting_age_basis": "ci_failure",
+        "waiting_since": "2026-10-07T15:08:27+00:00"
       },
       "failed": false,
       "pr_number": 1647,
       "pr_url": "https://github.com/open-telemetry/weaver/pull/1647",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     },
     "1659": {
