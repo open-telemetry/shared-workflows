@@ -8287,7 +8287,7 @@
     },
     "5153": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/otelbot",
         "author_action_review_thread_urls": [],
@@ -8297,7 +8297,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "b3adeabed7230665c78658b92d4ea41637d80f85c0ddfa800d534e0db1efe9de",
+        "copilot_request_fingerprint": "ca1c4d344eccc23c4be976c644a483b82219f4650b06007dfa43a3b4106e8178",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -8313,21 +8313,32 @@
         "head_sha": "f5521e6bef16a307e3976c14b69e0312e5c96df2",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-10-07T16:00:28+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-10-07T16:08:47+00:00",
+        "last_approver_activity_at": "2026-10-07T16:08:47+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "xrmx",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "f058017b063bb990b45e15536c5728c91f4f2b0340bda5bc716c4377bf9616bc",
+        "routing_input_fingerprint": "03aca841a1a05156be80d02fe40b3d242af5b465abaa9bded39fbbfbeb11f713",
         "waiting_age_basis": "created",
         "waiting_since": "2026-10-07T16:00:28+00:00"
       },
       "failed": false,
       "pr_number": 5153,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-python-contrib/pull/5153",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     }
   },
