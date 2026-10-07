@@ -13126,7 +13126,7 @@
     },
     "51829": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/otelbot",
         "author_action_review_thread_urls": [],
@@ -13136,7 +13136,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 1,
         "conflicts": "no",
-        "copilot_request_fingerprint": "6923e41a2d5056102cc03f8935b7b9086840581c4d05b464b111ae0c010bbc86",
+        "copilot_request_fingerprint": "842e00677569d88533901f7bc51a863e4bb247b10dc7f6b30e4441c628899489",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -13152,8 +13152,8 @@
         "head_sha": "af97b071bc9837854d6d8163826b4363b397b30b",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-10-07T14:53:41+00:00",
-        "last_approver_activity_at": "2026-10-07T14:53:41+00:00",
+        "last_activity_at": "2026-10-07T15:01:30+00:00",
+        "last_approver_activity_at": "2026-10-07T15:01:30+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": false,
         "reviewers": [
@@ -13166,12 +13166,23 @@
             "pending_review": true,
             "top_level_feedback": false,
             "unresolved_thread": false
+          },
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "songy23",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
           }
         ],
-        "route_held_for_gates": false,
+        "route_held_for_gates": true,
+        "route_held_since": "2026-10-07T15:03:43.297417+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "7e1655d9f11858fc8a0b2319b9599801ac6cdced9c4ef9b5336157ddb69ca335",
-        "waiting_age_basis": "created",
+        "routing_input_fingerprint": "523d1af135060683b1d675fe2b9e68dc826009c21f6b4f5f228e56e0068c7cfc",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-10-06T19:49:56+00:00"
       },
       "failed": false,
