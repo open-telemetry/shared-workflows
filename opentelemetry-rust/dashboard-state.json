@@ -2473,18 +2473,17 @@
     },
     "3777": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "darkraider01",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "author_can_act": true,
-        "author_nudge_episode_id": "f25ca1971abb4e74a57dca4e09f13c4a",
         "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
-        "ci_pending_count": 5,
+        "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "56946c99e30a8a40367001cfef9a7ef1cecb5b9a02460fb186ef295672b6d0ac",
+        "copilot_request_fingerprint": "c132f630b9bdd501674b7feee3a20f794695b5862275defa7049890e39a0a9c2",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -2500,15 +2499,15 @@
         "head_sha": "eccb4b061d040c3f0785071c135e515835877619",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-10-07T07:29:11+00:00",
-        "last_approver_activity_at": "2026-10-07T07:24:11+00:00",
-        "last_author_activity_at": "2026-10-07T07:29:11+00:00",
-        "required_checks_settled": false,
+        "last_activity_at": "2026-10-07T07:33:21+00:00",
+        "last_approver_activity_at": "2026-10-07T07:33:21+00:00",
+        "last_author_activity_at": "2026-10-07T07:30:33+00:00",
+        "required_checks_settled": true,
         "reviewers": [
           {
-            "approved": false,
+            "approved": true,
             "approved_non_team": false,
-            "changes_requested": true,
+            "changes_requested": false,
             "login": "scottgerring",
             "open_thread": false,
             "pending_review": false,
@@ -2516,25 +2515,18 @@
             "unresolved_thread": false
           }
         ],
-        "route_held_for_gates": true,
-        "route_held_since": "2026-10-07T07:30:20.003432+00:00",
+        "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "dd95f261b4c033f857ab98f87a695ffd6975aae78bf946d5cc394558c38bb709",
-        "waiting_age_basis": "gate_hold",
-        "waiting_since": "2026-10-07T07:24:11+00:00"
+        "routing_input_fingerprint": "0da4ea103aebe7b83d49715186b139b4d34e5b52e46c2551e701894b7b72f548",
+        "waiting_age_basis": "gate_release",
+        "waiting_since": "2026-10-07T07:49:09.241877+00:00"
       },
       "failed": false,
       "pr_number": 3777,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-rust/pull/3777",
-      "route": "author",
+      "route": "maintainer",
       "top_level_history": {
         "pr-issue-comment-6017760504": {
-          "evidence": {
-            "reply": "2026-10-06T14:22:08Z"
-          },
-          "reply_source_id": 6018342456
-        },
-        "pr-review-5427545062": {
           "evidence": {
             "reply": "2026-10-06T14:22:08Z"
           },
