@@ -6740,13 +6740,16 @@
         "assignees": [],
         "author": "eKuG",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50638#issuecomment-5954411141"
+        ],
         "author_can_act": true,
+        "author_nudge_episode_id": "42d916b4efb54dd29ce91a1d415ff4f1",
         "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
-        "conflicts": "no",
-        "copilot_request_fingerprint": "e3d70a037b574b85631b803c3b0a245ecedffc0c62ae66aa8385db3a128149e4",
+        "conflicts": "yes",
+        "copilot_request_fingerprint": "cb3f64d08df6c9341b150cae95746551ee55625d935a143bf0d7561791a108bd",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -6779,20 +6782,20 @@
             "login": "singhvibhanshu",
             "open_thread": false,
             "pending_review": true,
-            "top_level_feedback": false,
+            "top_level_feedback": true,
             "unresolved_thread": false
           }
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "1b30d453bbd951677af5a3afd6623e25327068243a9ab5772ea4aa5681995bd2",
-        "waiting_age_basis": "gate_release",
-        "waiting_since": "2026-10-02T16:28:02.595595+00:00"
+        "routing_input_fingerprint": "05301887f3ff6eb9113cc6ecf499054c85f60763b902bb257229b39877abdb8b",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-10-02T14:13:58+00:00"
       },
       "failed": false,
       "pr_number": 50638,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50638",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     },
     "50667": {
