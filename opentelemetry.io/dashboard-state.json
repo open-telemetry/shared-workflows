@@ -2387,7 +2387,7 @@
     },
     "11869": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "trentm",
         "author_action_review_thread_urls": [],
@@ -2397,7 +2397,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "e012ff414a60724039a142fa5ca5c126607ab983b7895f98c3dad80b112d0951",
+        "copilot_request_fingerprint": "57709705e229a14be85a9ff93c0500cce402c4f5ff0d48fe05b7fe60e34b9f8d",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -2413,11 +2413,21 @@
         "head_sha": "48c5e0b6b1756d1e3fbf9440e453002abcea702e",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-10-07T11:52:46+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-10-07T12:24:17+00:00",
+        "last_approver_activity_at": "2026-10-07T12:24:17+00:00",
         "last_author_activity_at": "2026-10-01T21:58:31+00:00",
         "required_checks_settled": true,
         "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "jaydeluca",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          },
           {
             "approved": false,
             "approved_non_team": true,
@@ -2431,14 +2441,14 @@
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "25dd800a122a77659427131b537ba661b924c42446e5025d52f2d45b5551033b",
+        "routing_input_fingerprint": "629e755f810728a1d0b8635281243f7dd3d3b084921abc6acaddcc4562c849ed",
         "waiting_age_basis": "gate_release",
         "waiting_since": "2026-10-01T22:04:24.275009+00:00"
       },
       "failed": false,
       "pr_number": 11869,
       "pr_url": "https://github.com/open-telemetry/opentelemetry.io/pull/11869",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "11881": {
