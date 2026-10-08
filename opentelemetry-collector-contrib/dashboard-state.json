@@ -3972,8 +3972,11 @@
         "assignees": [],
         "author": "PlateauGao",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50050#pullrequestreview-5245894694"
+        ],
         "author_can_act": true,
+        "author_nudge_episode_id": "2cc6ce42bd984be9a75cf77bac40313c",
         "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
@@ -4006,7 +4009,7 @@
             "login": "ChrsMark",
             "open_thread": false,
             "pending_review": false,
-            "top_level_feedback": false,
+            "top_level_feedback": true,
             "unresolved_thread": false
           },
           {
@@ -4043,25 +4046,19 @@
         "route_held_for_gates": false,
         "route_hold_expired": false,
         "routing_input_fingerprint": "f8861b299e3e46c49aa43b564028e839f66587ca97bad467a67590bcaaf97e65",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-10-07T15:30:18+00:00"
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-09-25T14:52:58+00:00"
       },
       "failed": false,
       "pr_number": 50050,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50050",
-      "route": "maintainer",
+      "route": "author",
       "top_level_history": {
         "pr-issue-comment-5219981412": {
           "evidence": {
             "reply": "2026-08-12T14:05:35Z"
           },
           "reply_source_id": 5267897743
-        },
-        "pr-review-5245894694": {
-          "evidence": {
-            "reply": "2026-09-25T14:52:58Z"
-          },
-          "reply_source_id": 5834448680
         }
       }
     },
