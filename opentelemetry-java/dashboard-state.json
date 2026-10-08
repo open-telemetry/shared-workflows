@@ -432,14 +432,17 @@
         "approval_count": 0,
         "assignees": [],
         "author": "jack-berg",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry-java/pull/8865#discussion_r4222973054"
+        ],
         "author_action_top_level_feedback_urls": [],
         "author_can_act": true,
+        "author_nudge_episode_id": "653b0bc285de453b9635bba587e4f14e",
         "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "cd4dc83678b2a388dbe554c2bccd90c9395b3a587b27caedd3bfea48744c958a",
+        "copilot_request_fingerprint": "0595c6b91382229fa07b4d1f4768765ccf088423a7dd673f3311256caac640a8",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -455,21 +458,32 @@
         "head_sha": "e4d4d2fe81773c651b52406c36ba27f1cce5bd4b",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-29T14:09:09+00:00",
+        "last_activity_at": "2026-10-08T18:58:47+00:00",
         "last_approver_activity_at": "",
         "last_author_activity_at": "2026-09-29T14:09:09+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": true,
+            "changes_requested": false,
+            "login": "jsuereth",
+            "open_thread": true,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": true
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "05b8dca8513fa88b4e62470bb4c818653e79ab4235a6abaf1f05b402bdeef8ca",
-        "waiting_age_basis": "gate_release",
-        "waiting_since": "2026-09-25T22:13:18.054213+00:00"
+        "routing_input_fingerprint": "9d95f0bf8b7eef2bcf63faccbc35c2e29f0e43973cc309a08abbff243f8714f1",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-10-08T18:57:35+00:00"
       },
       "failed": false,
       "pr_number": 8865,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-java/pull/8865",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     },
     "8900": {
