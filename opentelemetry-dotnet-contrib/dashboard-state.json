@@ -824,20 +824,24 @@
     },
     "5497": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [
           "matt-hensley"
         ],
         "author": "matt-hensley",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry-dotnet-contrib/pull/5497#discussion_r4220181567",
+          "https://github.com/open-telemetry/opentelemetry-dotnet-contrib/pull/5497#discussion_r4220189855",
+          "https://github.com/open-telemetry/opentelemetry-dotnet-contrib/pull/5497#discussion_r4220196252"
+        ],
         "author_action_top_level_feedback_urls": [],
         "author_can_act": true,
         "author_nudge_episode_id": "f7f6e9573999489e80a85dcdfaec35f3",
         "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
-        "ci_pending_count": 1,
+        "ci_pending_count": 2,
         "conflicts": "no",
-        "copilot_request_fingerprint": "4d3a7db5ebce2af1f2af38e69f82a51ce177016907bfa5769307259b7836f1d0",
+        "copilot_request_fingerprint": "d2c2f26c169518fab962fd7c5e56b7247d1fe0b6d081fd4e17f6143c7fbe8409",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -853,28 +857,28 @@
         "head_sha": "cc748397bf3e75e2952a3df2da65e879e6d0446d",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-10-08T14:25:44+00:00",
-        "last_approver_activity_at": "2026-10-08T09:01:17+00:00",
+        "last_activity_at": "2026-10-08T14:27:19+00:00",
+        "last_approver_activity_at": "2026-10-08T14:27:19+00:00",
         "last_author_activity_at": "2026-10-08T14:25:44+00:00",
         "required_checks_settled": false,
         "reviewers": [
           {
-            "approved": false,
+            "approved": true,
             "approved_non_team": false,
             "changes_requested": false,
             "login": "martincostello",
-            "open_thread": false,
+            "open_thread": true,
             "pending_review": false,
             "top_level_feedback": false,
-            "unresolved_thread": false
+            "unresolved_thread": true
           }
         ],
-        "route_held_for_gates": true,
+        "route_held_for_gates": false,
         "route_held_since": "2026-10-08T14:26:35.283692+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "97cdb8ffb3628a7ae92073a208b1d62f9dbb2de8ee05ed54275e49c036522b88",
-        "waiting_age_basis": "gate_hold",
-        "waiting_since": "2026-10-08T08:56:39+00:00"
+        "routing_input_fingerprint": "ed31834744680d1be77037c5b51dc94f739d39d8ce3bde8f565ddc5ec75457c4",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-10-08T14:25:45+00:00"
       },
       "failed": false,
       "pr_number": 5497,
