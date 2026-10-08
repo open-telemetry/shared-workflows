@@ -4295,19 +4295,22 @@
         "approval_count": 0,
         "assignees": [],
         "author": "aabmass",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/semantic-conventions-genai/pull/584#discussion_r4214799172"
+        ],
         "author_action_top_level_feedback_urls": [],
         "author_can_act": true,
+        "author_nudge_episode_id": "793cfb607bd84defa8f2c8ed23071a72",
         "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "3e94a21aa9e6fccde12a1f7f4bfcfae611740612bb8f6a6bd0c7ebb7e92e3125",
-        "copilot_review_exists": false,
-        "copilot_review_needed": false,
+        "copilot_request_fingerprint": "c6bb6759ddf6943b070730697f4b92752cee57826eca2bc027e1e2f1a114a705",
+        "copilot_review_exists": true,
+        "copilot_review_needed": true,
         "copilot_review_outstanding": false,
         "copilot_review_request_needed": false,
-        "copilot_review_requested": true,
+        "copilot_review_requested": false,
         "copilot_review_stale": false,
         "copilot_review_unreported": false,
         "created_at": "2026-10-08T04:19:12+00:00",
@@ -4322,17 +4325,28 @@
         "last_approver_activity_at": "",
         "last_author_activity_at": "2026-10-08T04:38:09+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "copilot-pull-request-reviewer[bot]",
+            "open_thread": true,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": true
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "24044c75461775278eff9a3b22b64d5322cafb319d2d73ae8eaeb85c4b32b966",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-10-08T04:38:09+00:00"
+        "routing_input_fingerprint": "54960832590d54ae8986767dcefcb9661d5d7cca7c90ac75b548248635435ee0",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-10-08T04:45:13+00:00"
       },
       "failed": false,
       "pr_number": 584,
       "pr_url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/584",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     },
     "586": {
