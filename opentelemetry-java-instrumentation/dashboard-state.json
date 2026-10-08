@@ -2522,9 +2522,7 @@
           "copilot-pull-request-reviewer[bot]"
         ],
         "author": "trask",
-        "author_action_review_thread_urls": [
-          "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20418#discussion_r4211861168"
-        ],
+        "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "author_can_act": true,
         "author_nudge_episode_id": "6b0a59faa9db4748b6ba38f307c572a2",
@@ -2532,11 +2530,11 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 2,
         "conflicts": "no",
-        "copilot_request_fingerprint": "3506a107ec1a2d5d4eed8210e04e7554c1b00ad050c90ca762fd1b8b9c86f94a",
+        "copilot_request_fingerprint": "5699a331e56985f47377078e3a890406d72c35e78aab8b72a3e529d5833d2161",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
         "copilot_review_outstanding": true,
-        "copilot_review_request_needed": false,
+        "copilot_review_request_needed": true,
         "copilot_review_requested": false,
         "copilot_review_stale": true,
         "copilot_review_unreported": true,
@@ -2558,10 +2556,10 @@
             "approved_non_team": false,
             "changes_requested": false,
             "login": "copilot-pull-request-reviewer[bot]",
-            "open_thread": true,
+            "open_thread": false,
             "pending_review": false,
             "top_level_feedback": false,
-            "unresolved_thread": true
+            "unresolved_thread": false
           },
           {
             "approved": true,
@@ -2574,10 +2572,11 @@
             "unresolved_thread": false
           }
         ],
-        "route_held_for_gates": false,
+        "route_held_for_gates": true,
+        "route_held_since": "2026-10-08T04:56:32.640034+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "82d7734a965286b5fe4d5312dc48df997dd31f8a4a75503f67b658646ab47281",
-        "waiting_age_basis": "oldest_pending_thread",
+        "routing_input_fingerprint": "d402012fa1b1d1558a89ac6ad74b7d66e7f06d448e4ad34bd4af851c631e90b6",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-10-08T04:55:43+00:00"
       },
       "failed": false,
