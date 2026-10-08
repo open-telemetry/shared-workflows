@@ -116,7 +116,6 @@ class DashboardFacts:
     ci_maintainer_action_required_count: int | None = None
     ci_pending_count: int | None = None
     non_blocking_check_failures: tuple[str, ...] = ()
-    copilot_first_review_missing_since: str | None = None
     copilot_review_outstanding: bool = False
     copilot_review_unreported: bool = False
     copilot_review_request_needed: bool = False

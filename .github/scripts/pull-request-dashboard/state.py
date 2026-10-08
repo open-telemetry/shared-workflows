@@ -764,10 +764,6 @@ def decode_dashboard_facts(value: Any) -> DashboardFacts:
             value.get("non_blocking_check_failures", _MISSING),
             "facts.non_blocking_check_failures",
         ),
-        copilot_first_review_missing_since=_optional_string(
-            value.get("copilot_first_review_missing_since"),
-            "facts.copilot_first_review_missing_since",
-        ),
         copilot_review_outstanding=_boolean(
             value.get("copilot_review_outstanding", _MISSING),
             "facts.copilot_review_outstanding",
@@ -893,10 +889,6 @@ def encode_dashboard_facts(facts: DashboardFacts) -> dict[str, Any]:
     if facts.non_blocking_check_failures:
         stored["non_blocking_check_failures"] = list(
             facts.non_blocking_check_failures
-        )
-    if facts.copilot_first_review_missing_since is not None:
-        stored["copilot_first_review_missing_since"] = (
-            facts.copilot_first_review_missing_since
         )
     if facts.route_held_since is not None:
         stored["route_held_since"] = facts.route_held_since

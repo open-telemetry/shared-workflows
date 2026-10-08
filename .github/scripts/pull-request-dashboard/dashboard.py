@@ -149,28 +149,16 @@ Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
                                                   flight and the reviewers
                                                   column shows it as pending.
     copilot_review_exists           bool          Copilot has reviewed this PR
-                                                  at least once.
+                                                  at least once, excluding
+                                                  quota-failure notices.
     copilot_review_stale            bool          Copilot has reviewed this PR,
                                                   but no review covers the
                                                   current head, so a re-review
                                                   would see unreviewed code.
                                                   False when Copilot has never
-                                                  reviewed; that PR is tracked
-                                                  by
-                                                  copilot_first_review_missing_since
-                                                  instead.
-    copilot_first_review_missing_since
-                                    str (iso)     When the gate first observed
-                                                  this non-draft PR with no
-                                                  Copilot review at all. Carried
-                                                  forward across passes, and
-                                                  absent once a review exists,
-                                                  the PR is a draft, or the gate
-                                                  does not apply. Once it is
-                                                  older than the grace period,
-                                                  the automatic first review is
-                                                  presumed lost and the
-                                                  dashboard requests one.
+                                                  reviewed; eligible PRs
+                                                  without a review need an
+                                                  initial review request.
     copilot_review_needed           bool          The review is stale or Copilot
                                                   owns open review threads,
                                                   meaning unresolved threads

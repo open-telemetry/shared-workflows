@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from copy import deepcopy
 from datetime import datetime, timedelta, timezone
 import unittest
 
@@ -11,7 +10,6 @@ from routing_decision import (
     RoutingOutcome,
     resolve_routing,
     reviewer_handoff_active,
-    routing_failure_facts,
 )
 
 
@@ -408,6 +406,45 @@ class RoutingDecisionTest(RoutingTestMixin, unittest.TestCase):
         self.assertTrue(outcome.facts.copilot_review_outstanding)
         self.assertTrue(outcome.facts.route_held_for_gates)
 
+    def test_requests_initial_review_before_handoff(self) -> None:
+        for pending_checks in (0, 1):
+            with self.subTest(pending_checks=pending_checks):
+                outcome = self.resolve(
+                    {
+                        "head_sha": "current-head",
+                        "ci_failing_count": 0,
+                        "ci_pending_count": pending_checks,
+                    },
+                    require_clean_copilot_review=True,
+                )
+
+                self.assertEqual("author", outcome.route)
+                self.assertTrue(outcome.facts.copilot_review_request_needed)
+                self.assertTrue(outcome.facts.copilot_review_unreported)
+                self.assertTrue(outcome.facts.route_held_for_gates)
+
+    def test_author_work_blocks_initial_review_request(self) -> None:
+        for failing_checks, pending_actions in (
+            (1, {}),
+            (0, {"thread": {"action": "author"}}),
+        ):
+            with self.subTest(
+                failing_checks=failing_checks, pending_actions=pending_actions
+            ):
+                outcome = self.resolve(
+                    {
+                        "head_sha": "current-head",
+                        "ci_failing_count": failing_checks,
+                        "ci_pending_count": 0,
+                        "author_can_act": True,
+                    },
+                    pending_actions,
+                    require_clean_copilot_review=True,
+                )
+
+                self.assertEqual("author", outcome.route)
+                self.assertFalse(outcome.facts.copilot_review_request_needed)
+
     def test_required_checks_hold_route_progression_but_not_regression(self) -> None:
         cases = (
             ("author", 0, "approver", "author"),
@@ -629,7 +666,6 @@ class RoutingDecisionTest(RoutingTestMixin, unittest.TestCase):
                 "ci_pending_count": 1,
                 "copilot_review_exists": False,
                 "copilot_review_requested": False,
-                "copilot_first_review_missing_since": "2026-08-16T08:00:00+00:00",
             },
             previous_route="approver",
             previous_facts={
@@ -646,7 +682,6 @@ class RoutingDecisionTest(RoutingTestMixin, unittest.TestCase):
         self.assertTrue(outcome.facts.copilot_review_unreported)
         self.assertTrue(outcome.facts.route_held_for_gates)
         self.assertFalse(outcome.facts.route_hold_expired)
-        self.assertIsNone(outcome.facts.copilot_first_review_missing_since)
         self.assertIsNone(outcome.facts.route_held_since)
 
     def test_reported_copilot_findings_do_not_keep_the_hold_clock(self) -> None:
@@ -1002,49 +1037,6 @@ class RoutingWaitAgeTest(RoutingTestMixin, unittest.TestCase):
 
         self.assertEqual("2026-07-14T01:00:00+00:00", outcome.facts.waiting_since)
         self.assertEqual("oldest_pending_thread", outcome.facts.waiting_age_basis)
-
-
-class RoutingFailureTest(unittest.TestCase):
-    def test_failure_facts_preserve_the_first_review_clock_exactly(self) -> None:
-        facts = dashboard_facts(
-            head_sha="current-head",
-            dashboard_override_head_sha="current-head",
-            copilot_first_review_missing_since="2026-08-16T12:00:00+00:00",
-        )
-        previous_facts = dashboard_facts(
-            head_sha="old-head",
-            copilot_first_review_missing_since="2026-08-11T12:00:00Z",
-        )
-        original_facts = deepcopy(facts)
-        original_previous_facts = deepcopy(previous_facts)
-
-        failed_facts = routing_failure_facts(facts, previous_facts)
-
-        self.assertEqual(
-            dashboard_facts(
-                head_sha="current-head",
-                dashboard_override_head_sha="current-head",
-                copilot_first_review_missing_since="2026-08-11T12:00:00Z",
-            ),
-            failed_facts,
-        )
-        self.assertEqual(original_facts, facts)
-        self.assertEqual(original_previous_facts, previous_facts)
-        self.assertTrue(reviewer_handoff_active(failed_facts))
-
-    def test_failure_does_not_restore_handoff_for_an_old_head(self) -> None:
-        failed_facts = routing_failure_facts(
-            dashboard_facts(
-                dashboard_override_head_sha="old-head",
-                head_sha="new-head",
-            ),
-            dashboard_facts(
-                dashboard_override_head_sha="old-head",
-                head_sha="old-head",
-            ),
-        )
-
-        self.assertFalse(reviewer_handoff_active(failed_facts))
 
 
 if __name__ == "__main__":

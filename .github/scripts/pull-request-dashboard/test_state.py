@@ -377,7 +377,6 @@ class StateTest(unittest.TestCase):
             ci_maintainer_action_required_count=2,
             ci_pending_count=2,
             non_blocking_check_failures=("CodeQL",),
-            copilot_first_review_missing_since="2026-08-16T08:30:00Z",
             copilot_review_outstanding=True,
             copilot_review_unreported=True,
             copilot_review_request_needed=True,
@@ -440,6 +439,20 @@ class StateTest(unittest.TestCase):
                 pr_number_hint=123,
             ).route,
         )
+
+    def test_first_review_clock_in_stored_facts_is_ignored(self) -> None:
+        for value in (None, "2026-08-16T08:30:00Z"):
+            with self.subTest(value=value):
+                facts = decode_dashboard_facts({
+                    "head_sha": "current-head",
+                    "copilot_first_review_missing_since": value,
+                })
+
+                self.assertEqual(dashboard_facts(head_sha="current-head"), facts)
+                self.assertNotIn(
+                    "copilot_first_review_missing_since",
+                    encode_dashboard_facts(facts),
+                )
 
     def test_legacy_state_infers_author_capability(self) -> None:
         persisted = {
@@ -618,7 +631,6 @@ class StateTest(unittest.TestCase):
                 "ci_failing_since": None,
                 "ci_maintainer_action_required_count": None,
                 "ci_pending_count": None,
-                "copilot_first_review_missing_since": None,
                 "route_held_since": None,
                 "author_nudge_episode_id": None,
             }),
@@ -797,6 +809,7 @@ class StateTest(unittest.TestCase):
             "draft_pr_numbers": [],
         }
         expected["prs"]["123"]["facts"]["author_can_act"] = True
+        del expected["prs"]["123"]["facts"]["copilot_first_review_missing_since"]
         self.assertEqual(expected, encode_dashboard_state(decoded))
 
     def test_notification_state_version_is_independent(self) -> None:

@@ -149,9 +149,7 @@ class RenderTest(unittest.TestCase):
 
         self.assertEqual("reviewer&nbsp;✅", cell)
 
-    def test_held_pr_awaiting_the_automatic_first_review_is_pending(self) -> None:
-        # The automatic first review is never requested, so the hold it causes
-        # needs the icon to explain the row.
+    def test_held_pr_awaiting_the_first_review_request_is_pending(self) -> None:
         cell = reviewers_cell_text(dashboard_facts(
             reviewers=[{"login": "reviewer", "approved": True}],
             copilot_review_requested=False,
@@ -162,7 +160,7 @@ class RenderTest(unittest.TestCase):
 
         self.assertEqual("Copilot&nbsp;⏳<br>reviewer&nbsp;✅", cell)
 
-    def test_unheld_pr_awaiting_the_automatic_first_review_is_not_pending(self) -> None:
+    def test_unheld_pr_awaiting_the_first_review_is_not_pending(self) -> None:
         cell = reviewers_cell_text(dashboard_facts(
             reviewers=[{"login": "reviewer", "approved": True}],
             copilot_review_requested=False,
