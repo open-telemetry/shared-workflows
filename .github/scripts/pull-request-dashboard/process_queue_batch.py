@@ -329,6 +329,13 @@ class DashboardBatchProcessor:
     ) -> None:
         self.script_dir = script_dir
         self.base_env = dict(os.environ if env is None else env)
+        # Worktrees share .git/config; state pushes and resets use explicit refs.
+        config_count = int(self.base_env.get("GIT_CONFIG_COUNT", "0"))
+        if config_count < 0:
+            raise ValueError("GIT_CONFIG_COUNT must be non-negative")
+        self.base_env[f"GIT_CONFIG_KEY_{config_count}"] = "branch.autoSetupMerge"
+        self.base_env[f"GIT_CONFIG_VALUE_{config_count}"] = "false"
+        self.base_env["GIT_CONFIG_COUNT"] = str(config_count + 1)
         self.run = run
         self.lease_check = lease_check
         self.python_executable = python_executable

@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 import json
+import os
+import shutil
 import subprocess
 import sys
 import tempfile
+import textwrap
 import threading
 import time
 import unittest
@@ -11,6 +14,7 @@ from pathlib import Path
 from unittest import mock
 
 import process_queue_batch
+from execution_process import subprocess_options
 from process_queue_batch import (
     Claim,
     LeaseMonitor,
@@ -763,6 +767,182 @@ class QueueBatchTest(unittest.TestCase):
             [result["itemKey"] for result in results],
             ["example#pr:2"],
         )
+
+
+class QueueBatchGitTest(unittest.TestCase):
+    def test_subprocess_config_preserves_credentials_and_overrides_auto_tracking(self) -> None:
+        env = {
+            "GH_TOKEN": "repository-token",
+            "GIT_CONFIG_COUNT": "2",
+            "GIT_CONFIG_KEY_0": "http.https://github.com/.extraheader",
+            "GIT_CONFIG_VALUE_0": "AUTHORIZATION: basic test-credential",
+            "GIT_CONFIG_KEY_1": "branch.autoSetupMerge",
+            "GIT_CONFIG_VALUE_1": "true",
+        }
+        original_env = dict(env)
+        with tempfile.TemporaryDirectory() as directory:
+            config = Path(directory) / "repositories.json"
+            config.write_text("[]", encoding="utf-8")
+            processor = process_queue_batch.DashboardBatchProcessor(config, env=env)
+
+        self.assertEqual(env, original_env)
+        for name, value in original_env.items():
+            if name != "GIT_CONFIG_COUNT":
+                self.assertEqual(processor.base_env[name], value)
+        self.assertEqual(processor.base_env["GIT_CONFIG_COUNT"], "3")
+        self.assertEqual(processor.base_env["GIT_CONFIG_KEY_2"], "branch.autoSetupMerge")
+        self.assertEqual(processor.base_env["GIT_CONFIG_VALUE_2"], "false")
+
+    def test_invalid_subprocess_config_count_is_not_silently_replaced(self) -> None:
+        for value in ("invalid", "-1"):
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                process_queue_batch.DashboardBatchProcessor(
+                    Path("unused.json"), env={"GIT_CONFIG_COUNT": value},
+                )
+
+    def test_four_workers_can_check_out_pinned_state_with_shared_config_locked(self) -> None:
+        checkout = textwrap.dedent("""
+            import os
+            import subprocess
+            import sys
+            from pathlib import Path
+
+            sys.path.insert(0, sys.argv[1])
+            import state_branch
+
+            original_run = subprocess.run
+            def run(*args, **kwargs):
+                if os.name == "nt":
+                    kwargs["creationflags"] = subprocess.CREATE_NO_WINDOW
+                check = kwargs.pop("check", False)
+                capture = kwargs.get("capture_output", False)
+                kwargs["capture_output"] = True
+                result = original_run(*args, check=False, **kwargs)
+                if not capture:
+                    sys.stdout.write(result.stdout)
+                    sys.stderr.write(result.stderr)
+                if check:
+                    result.check_returncode()
+                return result
+            subprocess.run = run
+
+            state_branch.checkout_state(Path(sys.argv[2]), sys.argv[3], False)
+        """)
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            env = {
+                name: value for name, value in os.environ.items()
+                if not name.startswith("GIT_CONFIG")
+            }
+            env.update({
+                "GIT_CONFIG_GLOBAL": str(root / "empty-global-config"),
+                "GIT_CONFIG_NOSYSTEM": "1",
+            })
+
+            def git(*args: str, cwd: Path = root, check: bool = True) -> subprocess.CompletedProcess[str]:
+                return subprocess.run(
+                    ["git", *args], cwd=cwd, env=env, check=check,
+                    text=True, capture_output=True, **subprocess_options(),
+                )
+
+            git("init", "--quiet")
+            git("config", "user.name", "Test")
+            git("config", "user.email", "test@example.com")
+            git("config", "branch.autoSetupMerge", "true")
+            git("commit", "--quiet", "--allow-empty", "-m", "Initial state")
+            git("remote", "add", "origin", str(root))
+            initial_oid = git("rev-parse", "HEAD").stdout.strip()
+            repositories = [f"repo-{index}" for index in range(4)]
+            branches = [
+                f"{prefix}/{repository}"
+                for repository in repositories
+                for prefix in (
+                    process_queue_batch.state_branch_git.STATE_BRANCH_PREFIX,
+                    process_queue_batch.state_branch_git.DELIVERY_STATE_BRANCH_PREFIX,
+                )
+            ]
+            for branch in ["baseline", *branches]:
+                git("update-ref", f"refs/heads/{branch}", initial_oid)
+
+            pinned_scripts = root / "immutable-code"
+            pinned_scripts.mkdir()
+            shutil.copyfile(
+                process_queue_batch.SCRIPT_DIR / "state_branch.py",
+                pinned_scripts / "state_branch.py",
+            )
+            config = root / "repositories.json"
+            config.write_text(
+                json.dumps([{"name": name} for name in repositories]), encoding="utf-8",
+            )
+            processor = process_queue_batch.DashboardBatchProcessor(
+                config, script_dir=pinned_scripts, repository_root=root,
+                env=env, lease_check=lambda: None,
+            )
+            config_before = (root / ".git" / "config").read_bytes()
+            config_lock = root / ".git" / "config.lock"
+            config_lock.write_text("another worker holds the lock", encoding="utf-8")
+            baseline = subprocess.run(
+                [
+                    sys.executable, "-c", checkout, str(pinned_scripts),
+                    str(root / "baseline"), "baseline",
+                ],
+                cwd=root, env=env, text=True, capture_output=True,
+                **subprocess_options(),
+            )
+            self.assertNotEqual(baseline.returncode, 0)
+            self.assertIn("could not lock config file", baseline.stderr)
+            self.assertIn("unable to write upstream branch configuration", baseline.stderr)
+
+            barrier = threading.Barrier(4)
+
+            def update(
+                repository: str, _number: int | None, state_branch: str,
+                _config: dict[str, object], worker_env: dict[str, str],
+            ) -> None:
+                barrier.wait(timeout=10)
+                for branch in (
+                    state_branch,
+                    process_queue_batch.state_branch_git.delivery_state_branch(state_branch),
+                ):
+                    processor._run(
+                        [
+                            sys.executable, "-c", checkout, str(pinned_scripts),
+                            str(root / "checkouts" / branch), branch,
+                        ],
+                        env=worker_env,
+                    )
+
+            items = [
+                WorkItem(name, 1, (claim(f"{name}#pr:1", name, pr_number=1),))
+                for name in repositories
+            ]
+            with (
+                mock.patch.object(processor, "_initial_backfill_complete", return_value=True),
+                mock.patch.object(processor, "_update_dashboard", side_effect=update),
+                mock.patch.object(processor, "_deliver", return_value=(True, None, 0)),
+                mock.patch.object(processor, "_publish"),
+            ):
+                results = process_batch(items, processor.process_repository, max_repositories=4)
+
+            self.assertEqual(
+                [(result["itemKey"], result["outcome"]) for result in results],
+                [(f"{name}#pr:1", "success") for name in repositories],
+                results,
+            )
+            self.assertTrue(config_lock.exists())
+            self.assertEqual((root / ".git" / "config").read_bytes(), config_before)
+            for branch in branches:
+                state_dir = root / "checkouts" / branch
+                self.assertEqual(git("rev-parse", "HEAD", cwd=state_dir).stdout.strip(), initial_oid)
+                self.assertEqual(
+                    git("symbolic-ref", "HEAD", cwd=state_dir).stdout.strip(),
+                    f"refs/heads/{branch}",
+                )
+                self.assertEqual(
+                    git("config", "--local", "--get", f"branch.{branch}.remote", check=False).returncode,
+                    1,
+                )
+            config_lock.unlink()
 
 
 if __name__ == "__main__":

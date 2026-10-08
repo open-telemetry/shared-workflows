@@ -100,6 +100,14 @@ commit on main. Stable code comes from the existing promoted pins in
 authority. Repository policy comes from the current worker checkout in both
 channels. Stable repositories do not run main's evaluation or state codecs.
 
+The current worker adds `branch.autoSetupMerge=false` to each processor's
+subprocess Git configuration, preserving inherited configuration entries and
+credentials. State worktrees use explicit fetch, reset, and push refs and do not
+need upstream tracking. This prevents parallel state and delivery checkouts from
+writing upstream configuration to the runner's shared `.git/config`, including
+checkouts performed by immutable stable scripts. Explicit commit-identity
+configuration retains its bounded config-lock retries.
+
 A backfill is one repository item, not a list of queued PRs. It invokes the
 existing bounded `dashboard.py` backfill CLI, including its durable cursor,
 failed-PR tracking, closed-PR cleanup, and full-publication generation.
