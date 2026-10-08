@@ -73,7 +73,6 @@ from routing_decision import (
     RoutingInput,
     resolve_routing,
     reviewer_handoff_active,
-    routing_failure_facts,
 )
 from routing_snapshot import build_routing_snapshot
 from utils import (
@@ -562,7 +561,7 @@ async def evaluate_pull_request(
                 pr_number=number,
                 pr_title=pr.title,
                 pr_url=pr.url,
-                facts=routing_failure_facts(facts, previous_facts),
+                facts=facts,
                 diagnostics=diagnostics,
                 route=DashboardRoute.UNKNOWN,
                 error=(
