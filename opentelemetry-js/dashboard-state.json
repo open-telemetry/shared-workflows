@@ -3556,14 +3556,17 @@
         "approval_count": 0,
         "assignees": [],
         "author": "adityareddy-dev",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry-js/pull/7153#discussion_r4213437448"
+        ],
         "author_action_top_level_feedback_urls": [],
         "author_can_act": true,
+        "author_nudge_episode_id": "43a10428b7a7457f9668ff46cccca010",
         "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
-        "ci_pending_count": 0,
+        "ci_pending_count": 6,
         "conflicts": "no",
-        "copilot_request_fingerprint": "2f0883921c60bb1eeb6ad33bd4a5867a23708951184056b3a3387954f63ebd23",
+        "copilot_request_fingerprint": "d69e8e91d516dbd0177a674498ddf3d804053e4e8e98d1d9b930b1e3b6d6d605",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -3579,20 +3582,20 @@
         "head_sha": "a2d077c2ed065bf1c791bf569b66e59d68ac0aff",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-10-08T00:27:22+00:00",
+        "last_activity_at": "2026-10-08T00:35:01+00:00",
         "last_approver_activity_at": "2026-10-02T23:19:20+00:00",
         "last_author_activity_at": "2026-10-08T00:27:22+00:00",
-        "required_checks_settled": true,
+        "required_checks_settled": false,
         "reviewers": [
           {
             "approved": false,
-            "approved_non_team": false,
-            "changes_requested": true,
+            "approved_non_team": true,
+            "changes_requested": false,
             "login": "overbalance",
-            "open_thread": false,
+            "open_thread": true,
             "pending_review": false,
             "top_level_feedback": false,
-            "unresolved_thread": false
+            "unresolved_thread": true
           },
           {
             "approved": false,
@@ -3607,14 +3610,14 @@
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "6ed2f0291e6783e2a7aefe1e298a48229c6b4f64715135e5ce264a0bd410dede",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-10-08T00:27:22+00:00"
+        "routing_input_fingerprint": "23cead49cedb7d9c97c227500883aa65c83d38162620ca2af888fedbe2864c19",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-10-08T00:34:54+00:00"
       },
       "failed": false,
       "pr_number": 7153,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-js/pull/7153",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {
         "pr-review-5449510837": {
           "evidence": {
