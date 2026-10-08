@@ -381,7 +381,7 @@
     },
     "5452": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [
           "normj",
           "srprash"
@@ -394,7 +394,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "10756404b3520803e2ae04ec22f1f06a35a93ebc02d7b0b44e4cabb02c3b8723",
+        "copilot_request_fingerprint": "3db97ff0df173d3c19fa10054c028bc25303b1f54ae3d13d5b77d48a4736a42b",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
         "copilot_review_outstanding": false,
@@ -410,11 +410,21 @@
         "head_sha": "20d07250f18e88ce380c51f0dfa5505bde07b180",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-10-07T09:30:25+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-10-08T05:02:44+00:00",
+        "last_approver_activity_at": "2026-10-08T05:02:44+00:00",
         "last_author_activity_at": "2026-10-07T09:30:25+00:00",
         "required_checks_settled": true,
         "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "Kielek",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          },
           {
             "approved": false,
             "approved_non_team": false,
@@ -438,14 +448,14 @@
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "b3212e481c25395a167f4f200f0f9389b04ec30e6efa6782e2bad7aa0e6ef0a7",
+        "routing_input_fingerprint": "c336c08b5dc3ea893a48cbf72f4ea79a6e301b9a08ac82a599e30ae2c4d9fbfb",
         "waiting_age_basis": "gate_release",
         "waiting_since": "2026-09-30T13:29:33.130057+00:00"
       },
       "failed": false,
       "pr_number": 5452,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-dotnet-contrib/pull/5452",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "5455": {
