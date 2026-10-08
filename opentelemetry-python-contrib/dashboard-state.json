@@ -4576,12 +4576,8 @@
         "assignees": [],
         "author": "ocelotl",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [
-          "https://github.com/open-telemetry/opentelemetry-python-contrib/pull/5026#issuecomment-5526056402",
-          "https://github.com/open-telemetry/opentelemetry-python-contrib/pull/5026#issuecomment-5528788496"
-        ],
+        "author_action_top_level_feedback_urls": [],
         "author_can_act": true,
-        "author_nudge_episode_id": "bcb3e7d0b1724952b1ad32f8429fc893",
         "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
@@ -4614,7 +4610,7 @@
             "login": "lzchen",
             "open_thread": false,
             "pending_review": false,
-            "top_level_feedback": true,
+            "top_level_feedback": false,
             "unresolved_thread": false
           },
           {
@@ -4624,21 +4620,34 @@
             "login": "xrmx",
             "open_thread": false,
             "pending_review": false,
-            "top_level_feedback": true,
+            "top_level_feedback": false,
             "unresolved_thread": false
           }
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
         "routing_input_fingerprint": "b9db9a253d6eec73862fb97dc999a4793f9b7047bbf83f3942bf81e72d928eec",
-        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-09-10T23:00:45+00:00"
       },
       "failed": false,
       "pr_number": 5026,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-python-contrib/pull/5026",
-      "route": "author",
-      "top_level_history": {}
+      "route": "approver",
+      "top_level_history": {
+        "pr-issue-comment-5526056402": {
+          "evidence": {
+            "reply": "2026-09-03T14:23:31Z"
+          },
+          "reply_source_id": 5527222665
+        },
+        "pr-issue-comment-5528788496": {
+          "evidence": {
+            "reply": "2026-09-10T23:00:45Z"
+          },
+          "reply_source_id": 5626575630
+        }
+      }
     },
     "5029": {
       "facts": {
