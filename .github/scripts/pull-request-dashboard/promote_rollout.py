@@ -22,10 +22,6 @@ USES_LINE = re.compile(
     + re.escape(WORKFLOW_PATH)
     + r"@)([0-9a-f]{40})( # )(v(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*))(\r?\n?)$"
 )
-CODE_REF_LINE = re.compile(
-    r"^(      code_ref: )([0-9a-f]{40})( # )"
-    r"(v(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*))(\r?\n?)$"
-)
 VERSION = re.compile(r"^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$")
 SHA = re.compile(r"^[0-9a-f]{40}$")
 
@@ -71,13 +67,8 @@ def promoted_text(text: str, release: str, target_sha: str) -> str:
         if indexes is None:
             raise PromotionError(f"stable rollout job is missing: {job}")
         uses_index, uses_match = matching_line(lines, indexes, USES_LINE, job)
-        code_index, code_match = matching_line(lines, indexes, CODE_REF_LINE, job)
-        uses_pin = (uses_match.group(2), uses_match.group(4))
-        code_pin = (code_match.group(2), code_match.group(4))
-        if uses_pin != code_pin:
-            raise PromotionError(f"{job} uses and code_ref pins disagree: {uses_pin} != {code_pin}")
-        pins.append(uses_pin)
-        replacements.extend(((uses_index, uses_match), (code_index, code_match)))
+        pins.append((uses_match.group(2), uses_match.group(4)))
+        replacements.append((uses_index, uses_match))
 
     unique_pins = set(pins)
     if len(unique_pins) != 1:

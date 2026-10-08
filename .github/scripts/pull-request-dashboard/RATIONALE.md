@@ -62,10 +62,6 @@ the implementation understandable and operationally cheap.
   self-repository action syntax. The action resolves from the same commit as
   the reusable workflow, so pinned stable jobs cannot mix released workflow
   YAML with scripts from the commit that triggered the run.
-- Stable callers temporarily keep passing `code_ref` because the currently
-  promoted workflow still checks it out. The first release containing the
-  self-repository action accepts but ignores that compatibility input; it can
-  be removed from callers after that release is promoted.
 - Repository configuration is deliberately not staged. `repositories.json` is
   always read from the commit that triggered the run, so opting a repository in
   or changing its settings takes effect immediately in both channels. The cost

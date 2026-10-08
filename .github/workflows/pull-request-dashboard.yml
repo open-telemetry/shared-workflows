@@ -232,13 +232,9 @@ jobs:
   # points every stable job at that release:
   #
   #   uses: open-telemetry/shared-workflows/.github/workflows/pull-request-dashboard-repo.yml@<sha> # vX.Y.Z
-  #   with:
-  #     code_ref: <sha> # vX.Y.Z
   #
   # The reusable workflow loads its scripts with self-repository syntax, so
-  # they resolve from the same commit as the workflow YAML. code_ref remains
-  # during the transition because the currently promoted workflow still uses
-  # it; the first self-action release accepts but ignores it.
+  # they resolve from the same commit as the workflow YAML.
   run-repo-dashboard-canary:
     needs: resolve-targets
     if: needs.resolve-targets.outputs.canary_count != '0'
@@ -273,7 +269,6 @@ jobs:
     uses: open-telemetry/shared-workflows/.github/workflows/pull-request-dashboard-repo.yml@0cc57aeabf2a31cf41114e7b24561f21a04e360b # v0.18.0
     with:
       repository: ${{ matrix.name }}
-      code_ref: 0cc57aeabf2a31cf41114e7b24561f21a04e360b # v0.18.0
     secrets:
       PR_DASHBOARD_PRIVATE_KEY: ${{ secrets.PR_DASHBOARD_PRIVATE_KEY }}
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
@@ -317,7 +312,6 @@ jobs:
     with:
       repository: ${{ inputs.repository }}
       pr_number: ${{ inputs.pr_number }}
-      code_ref: 0cc57aeabf2a31cf41114e7b24561f21a04e360b # v0.18.0
     secrets:
       PR_DASHBOARD_PRIVATE_KEY: ${{ secrets.PR_DASHBOARD_PRIVATE_KEY }}
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
@@ -361,7 +355,6 @@ jobs:
     with:
       repository: ${{ inputs.repository }}
       pr_number: ${{ matrix.pr_number }}
-      code_ref: 0cc57aeabf2a31cf41114e7b24561f21a04e360b # v0.18.0
     secrets:
       PR_DASHBOARD_PRIVATE_KEY: ${{ secrets.PR_DASHBOARD_PRIVATE_KEY }}
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

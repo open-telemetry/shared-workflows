@@ -362,14 +362,14 @@ its settings, takes effect on the next run in both channels.
 4. Run the [Promote pull request dashboard workflow](https://github.com/open-telemetry/shared-workflows/actions/workflows/promote-pull-request-dashboard.yml)
    from `main` and enter the release tag. It accepts only a newer, published,
    non-prerelease version and opens a pull request pointing every stable
-   job at that release's commit, in both the `uses:` ref and the matching
-   `code_ref` input.
+   job's `uses:` ref at that release's commit. The reusable workflow loads its
+   scripts from the same commit automatically.
 5. Review and merge the generated pull request to promote the release. The merge
    automatically redeploys the webhook with queueing enabled for every repository.
 
 The stable refs are deliberately excluded from Renovate because advancing them
-is the production rollout. `test_rollout.py` also fails if the workflow and
-script refs disagree. The promotion workflow uses the repo-specific
+is the production rollout. `test_rollout.py` also fails if the stable jobs'
+workflow refs disagree. The promotion workflow uses the repo-specific
 shared-workflows OTELBOT App to push the branch with workflow-file permissions
 and open the pull request so its normal checks run.
 

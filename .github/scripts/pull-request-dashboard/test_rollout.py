@@ -165,6 +165,7 @@ class RolloutWiringTest(unittest.TestCase):
         refs = set()
         for job in stable_jobs:
             body = self.jobs[job]
+            self.assertNotIn("code_ref:", body)
             match = STABLE_USES.search(body)
             if match is None:
                 # Before the first promotion the stable jobs call the local
@@ -174,16 +175,13 @@ class RolloutWiringTest(unittest.TestCase):
                 continue
             ref = match.group(1)
             refs.add(ref)
-            code_ref = re.compile(rf"^\s*code_ref: {re.escape(ref)}\s*(#.*)?$", re.MULTILINE)
-            self.assertRegex(body, code_ref, f"{job} passes the wrong compatibility ref")
         self.assertEqual(len(refs), 1, f"stable jobs disagree on the rollout ref: {sorted(refs)}")
 
     def test_repo_workflow_loads_code_from_its_own_commit(self) -> None:
         body = REPO_WORKFLOW.read_text(encoding="utf-8")
         action = (SCRIPT_DIR / "action.yml").read_text(encoding="utf-8")
         self.assertNotIn("ref: ${{ inputs.", body)
-        self.assertIn("code_ref:", body)
-        self.assertEqual(body.count("inputs.code_ref"), 0)
+        self.assertNotIn("code_ref", body)
         self.assertEqual(body.count("actions/checkout@"), 2)
         self.assertEqual(body.count("ref: ${{ github.sha }}"), 2)
         self.assertNotIn("path: live-config", body)
