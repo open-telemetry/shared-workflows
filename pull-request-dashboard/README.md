@@ -44,17 +44,28 @@ four repositories concurrently on one runner; pull requests from the same
 repository remain sequential. An event received while its pull request is being
 processed marks that item dirty and schedules one follow-up pass.
 
-New draft pull requests bypass the queue for their first targeted refresh so the
-dashboard status comment is created near the pull request description. Later
-events use the configured queue mode. The hourly publisher checks a bounded
-round-robin batch of open drafts and repairs only missing managed comments.
+With queue-owned execution enabled, draft-open events, manual targeted runs,
+head-SHA refreshes, hourly and manual backfills, and author-reminder write sweeps
+share this queue. The worker keeps ownership through calculation, accepted-state
+persistence, delivery, and issue publication. Failure retries the combined item.
+GitHub concurrency does not own the drain.
 
-Manual targeted runs and hourly backfills bypass the queue. Queue leases recover
-work after interrupted drain runs, and the hourly backfill remains the final
-correctness backstop. Canary and all-mode webhooks do not fall back to direct
-workflow dispatch when queue dependencies fail, because that would recreate the
-runner burst the queue is designed to prevent. The next hourly backfill repairs
-any refresh that could not be persisted.
+An enqueue workflow succeeding means work was accepted, not completed. Its
+summary reports the item key, generation, and request ID. Run the dashboard
+workflow on main with `request_item_key`, `request_generation`, and `request_id`
+to inspect progress.
+
+Stable repositories still use promoted release code; canaries use main.
+Backfills retain their bounded cursor, closed-PR cleanup, initial-population
+rules, and full-publication bookkeeping. Queue leases recover interrupted work,
+and hourly backfills remain the backstop for missed events.
+
+The operator-controlled `PR_DASHBOARD_EXECUTION_MODE` defaults to `legacy`.
+Legacy execution retains direct draft-open refreshes and backfills for migration
+and rollback. Enabling `owned` requires the pause-and-retire procedure in
+[`WEBHOOK_SETUP.md`](../.github/scripts/pull-request-dashboard/WEBHOOK_SETUP.md);
+it does not require promoting a fleet-wide release. Queue errors never fall
+back to an unowned writer.
 
 ## Dashboard columns
 

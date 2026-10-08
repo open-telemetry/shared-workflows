@@ -7,7 +7,7 @@ discussion?
 
 This script checks out the workflow state branch, commits changed dashboard
 state files, and pushes with `git push --force-with-lease` so concurrent runs
-use git refs as the durable compare-and-swap boundary. The publishing job
+use git refs as the durable compare-and-swap boundary. The publisher
 renders markdown from the accepted state branch and the current open PR list.
 
 Usage:
@@ -45,19 +45,19 @@ A run flows like this:
   save_dashboard_state_cache
 
 Status comments, author nudges, Copilot re-review requests, and Slack
-notifications are delivered by delivery.py in one serialized publishing job.
-That job loads the latest accepted dashboard state and delivery ledgers, sends
+notifications are delivered by delivery.py in one serialized processing path.
+That path loads the latest accepted dashboard state and delivery ledgers, sends
 due updates, and pushes successful acknowledgements with the same git CAS
 pattern.
 
 State files are committed and pushed first. Only after that state branch push
-succeeds does a follow-up publishing job fetch the accepted dashboard state,
+succeeds can the combined processor fetch accepted state for delivery,
 render the dashboard body, and publish it to the dashboard issue.
 
 Runs without --pr-number use backfill and store progress in
 backfill-state.json. Every attempted PR advances that cursor. Failures are
 recorded separately from accepted dashboard state, later PRs continue to
-refresh, and the workflow exits nonzero while an open PR is still recorded as
+refresh, and the command exits nonzero while an open PR is still recorded as
 having failed processing. Single-PR runs are
 optimistic-concurrency updates of just one PR slot in the cached state.
 

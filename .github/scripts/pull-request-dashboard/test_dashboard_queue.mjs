@@ -71,6 +71,137 @@ function fixture() {
   };
 }
 
+test("a stranded request cannot prevent a replacement generation from running", async () => {
+  const { queue, advance } = fixture();
+  await queue.enqueue({ repository: "example", prNumber: 1 });
+  const stranded = await queue.requestDispatcher("no-runner");
+  advance(1_001);
+  const recovery = await queue.recoverExpiredLeases();
+  assert.equal(recovery.requested, true);
+  assert.equal(await queue.activateDispatcher({ generation: recovery.generation, workerId: "replacement" }), true);
+  assert.equal(await queue.activateDispatcher({ generation: stranded.generation, workerId: "stranded" }), false);
+  assert.equal(await queue.activateDispatcher({ generation: recovery.generation, workerId: "duplicate" }), false);
+  const [claim] = await queue.claimWave({ generation: recovery.generation, workerId: "replacement" });
+  assert.equal(claim.prNumber, 1);
+  await assert.rejects(queue.claimWave({ generation: stranded.generation, workerId: "stranded" }), /active dispatcher/);
+});
+
+test("recovery can dispatch a replacement before a runnerless request lease expires", async () => {
+  const { queue, advance } = fixture();
+  queue.dispatcherRequestLeaseMs = 60 * 60 * 1_000;
+  await queue.enqueue({ repository: "example", prNumber: 1 });
+  const original = await queue.requestDispatcher("runnerless");
+  advance(15 * 60 * 1_000);
+  const recovery = await queue.recoverExpiredLeases({ redispatchRequested: true });
+  assert.equal(recovery.recoveredDispatcher, false);
+  assert.equal(recovery.requested, true);
+  assert.equal(recovery.replayed, true);
+  assert.equal(recovery.generation, original.generation);
+  assert.equal(await queue.activateDispatcher({ generation: recovery.generation, workerId: "replacement" }), true);
+  assert.equal(await queue.activateDispatcher({ generation: original.generation, workerId: "runnerless" }), false);
+  assert.equal((await queue.claimWave({ generation: recovery.generation, workerId: "replacement" })).length, 1);
+});
+
+test("dispatcher expiry fences acknowledgments even before an item lease expires", async () => {
+  const { queue, advance } = fixture();
+  queue.itemLeaseMs = 10_000;
+  await queue.enqueue({ repository: "example", prNumber: 1 });
+  const dispatcher = await queue.requestDispatcher();
+  await queue.activateDispatcher({ generation: dispatcher.generation, workerId: "worker" });
+  const [claim] = await queue.claimWave({ generation: dispatcher.generation, workerId: "worker" });
+  advance(1_001);
+  assert.deepEqual(await queue.heartbeat({ generation: dispatcher.generation, workerId: "worker" }), { dispatcher: false, items: 0 });
+  await assert.rejects(queue.acknowledge({
+    generation: dispatcher.generation, workerId: "worker", itemKey: claim.itemKey,
+    claimGeneration: claim.claimGeneration, outcome: "success",
+  }), /active dispatcher/);
+});
+
+test("a reused worker identity cannot heartbeat or acknowledge an older generation's items", async () => {
+  const { queue, advance } = fixture();
+  queue.itemLeaseMs = 10_000;
+  await queue.enqueue({ repository: "example", prNumber: 1 });
+  const first = await queue.requestDispatcher();
+  await queue.activateDispatcher({ generation: first.generation, workerId: "worker" });
+  const [claim] = await queue.claimWave({ generation: first.generation, workerId: "worker" });
+  advance(1_001);
+  const replacement = await queue.requestDispatcher();
+  await queue.activateDispatcher({ generation: replacement.generation, workerId: "worker" });
+  assert.equal((await queue.heartbeat({ generation: replacement.generation, workerId: "worker" })).items, 0);
+  await assert.rejects(queue.acknowledge({
+    ...claim, generation: replacement.generation, workerId: "worker", outcome: "success",
+  }), /stale or unauthorized/);
+  assert.equal((await queue.stats()).inflight, 1);
+});
+
+test("backfill continuation survives deployment and completes without consuming retries", async () => {
+  const { queue, store } = fixture();
+  const request = await queue.enqueue({ repository: "example", kind: "backfill", triggerEvent: "workflow_dispatch" });
+  await queue.enqueue({ repository: "example", kind: "backfill", triggerEvent: "schedule" });
+  const dispatcher = await queue.requestDispatcher();
+  await queue.activateDispatcher({ generation: dispatcher.generation, workerId: "worker" });
+  const [claim] = await queue.claimWave({ generation: dispatcher.generation, workerId: "worker" });
+  assert.deepEqual(claim.triggerEvents, ["schedule", "workflow_dispatch"]);
+  assert.equal(claim.kind, "backfill");
+  assert.equal((await queue.acknowledge({
+    ...claim, generation: dispatcher.generation, workerId: "worker", outcome: "continue",
+  })).status, "continued");
+  const redeployed = new DashboardQueue({ store, now: queue.now });
+  const [resumed] = await redeployed.claimWave({ generation: dispatcher.generation, workerId: "worker" });
+  assert.equal(resumed.attempts, 0);
+  await redeployed.acknowledge({
+    ...resumed, generation: dispatcher.generation, workerId: "worker",
+    outcome: "success", operationId: "completed",
+  });
+  assert.equal((await redeployed.itemStatus(request)).status, "completed");
+  const next = await redeployed.enqueue({ repository: "example", kind: "backfill" });
+  assert.ok(next.generation > request.generation);
+  assert.equal((await redeployed.itemStatus(next)).status, "queued");
+});
+
+test("pausing recovery preserves legacy refresh records without dispatching", async () => {
+  const { queue, store, advance } = fixture();
+  await queue.enqueue({ repository: "example", prNumber: 1 });
+  const dispatcher = await queue.requestDispatcher();
+  await queue.activateDispatcher({ generation: dispatcher.generation, workerId: "worker" });
+  await queue.claimWave({ generation: dispatcher.generation, workerId: "worker" });
+  advance(1_001);
+  const recovery = await queue.recoverExpiredLeases({ requestSuccessor: false });
+  assert.equal(recovery.requested, false);
+  const rolledBack = new DashboardQueue({ store, now: queue.now });
+  const replacement = await rolledBack.requestDispatcher();
+  await rolledBack.activateDispatcher({ generation: replacement.generation, workerId: "legacy" });
+  const [claim] = await rolledBack.claimWave({ generation: replacement.generation, workerId: "legacy" });
+  assert.equal(claim.prNumber, 1);
+  assert.equal(claim.kind, undefined);
+});
+
+test("receipt eviction cannot turn later work into completion of an earlier request", async () => {
+  const { queue } = fixture();
+  queue.acknowledgmentReceiptLimit = 0;
+  const original = await queue.enqueue({ repository: "example", prNumber: 1 });
+  const dispatcher = await queue.requestDispatcher();
+  await queue.activateDispatcher({ generation: dispatcher.generation, workerId: "worker" });
+  const [first] = await queue.claimWave({ generation: dispatcher.generation, workerId: "worker" });
+  await queue.acknowledge({ ...first, generation: dispatcher.generation, workerId: "worker", outcome: "success", operationId: "first" });
+  assert.equal((await queue.itemStatus(original)).status, "unknown");
+  const next = await queue.enqueue({ repository: "example", prNumber: 1 });
+  assert.equal(next.generation, original.generation);
+  assert.notEqual(original.requestId, next.requestId);
+  assert.equal((await queue.itemStatus(original)).status, "unknown");
+  queue.acknowledgmentReceiptLimit = 100;
+  const [second] = await queue.claimWave({ generation: dispatcher.generation, workerId: "worker" });
+  await queue.acknowledge({ ...second, generation: dispatcher.generation, workerId: "worker", outcome: "success", operationId: "second" });
+  assert.equal((await queue.itemStatus(next)).status, "completed");
+  assert.equal((await queue.itemStatus(original)).status, "unknown");
+});
+
+test("unknown progress retains request identity even when its shard is absent", async () => {
+  const { queue } = fixture();
+  const request = { itemKey: "example#pr:1", generation: 1, requestId: "missing" };
+  assert.deepEqual(await queue.itemStatus(request), { ...request, status: "unknown" });
+});
+
 test("builds stable PR and head queue keys", () => {
   assert.equal(
     queueItemKey({ repository: "example", prNumber: 123, headSha: "" }),

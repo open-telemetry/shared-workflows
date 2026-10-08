@@ -69,6 +69,75 @@ function fixture() {
 
 const verifyRequest = async () => ({ repository: "open-telemetry/shared-workflows" });
 
+test("manual requests confirm acceptance rather than completion", async () => {
+  const previous = process.env.PR_DASHBOARD_EXECUTION_MODE;
+  process.env.PR_DASHBOARD_EXECUTION_MODE = "owned";
+  try {
+    const { queue } = fixture();
+    const calls = [];
+    queue.enqueue = async (item) => {
+      calls.push(item);
+      return { itemKey: "shared-workflows#backfill", generation: 1, requestId: "request", status: "queued" };
+    };
+    queue.requestDispatcher = async () => ({ acquired: true, generation: 7 });
+    const response = await handleQueueWorkerRequest(request({
+      action: "enqueue", repository: "shared-workflows", kind: "backfill",
+      triggerEvent: "schedule",
+    }), { queue, verifyRequest, dispatchDrain: async (generation) => calls.push(generation) });
+    const result = await response.json();
+    assert.equal(result.accepted, true);
+    assert.equal(result.completed, false);
+    assert.equal(result.itemKey, "shared-workflows#backfill");
+    assert.equal(result.requestId, "request");
+    assert.equal(calls[0].kind, "backfill");
+    assert.equal(calls[1], 7);
+  } finally {
+    if (previous === undefined) delete process.env.PR_DASHBOARD_EXECUTION_MODE;
+    else process.env.PR_DASHBOARD_EXECUTION_MODE = previous;
+  }
+});
+
+test("status requires and forwards the request identity", async () => {
+  const { calls, queue } = fixture();
+  queue.itemStatus = async (input) => {
+    calls.push(input);
+    return { ...input, status: "unknown" };
+  };
+  const body = { action: "status", itemKey: "shared-workflows#pr:1", generation: 1 };
+  await assert.rejects(
+    handleQueueWorkerRequest(request(body), { queue, verifyRequest }),
+    /requestId must be/,
+  );
+  assert.deepEqual(calls, []);
+  const response = await handleQueueWorkerRequest(
+    request({ ...body, requestId: "request" }), { queue, verifyRequest },
+  );
+  assert.deepEqual(await response.json(), {
+    itemKey: body.itemKey, generation: 1, requestId: "request", status: "unknown",
+  });
+});
+
+test("paused execution accepts controls but rejects activation", async () => {
+  const previous = process.env.PR_DASHBOARD_EXECUTION_MODE;
+  process.env.PR_DASHBOARD_EXECUTION_MODE = "paused";
+  try {
+    const { calls, queue } = fixture();
+    queue.enqueue = async () => ({ itemKey: "shared-workflows#reminders", generation: 1, status: "queued" });
+    const response = await handleQueueWorkerRequest(request({
+      action: "enqueue", repository: "shared-workflows", kind: "reminders",
+    }), { queue, verifyRequest });
+    assert.equal((await response.json()).completed, false);
+    const activation = await handleQueueWorkerRequest(request({
+      action: "activate", generation: 1, workerId: "worker",
+    }), { queue, verifyRequest });
+    assert.equal((await activation.json()).activated, false);
+    assert.deepEqual(calls, []);
+  } finally {
+    if (previous === undefined) delete process.env.PR_DASHBOARD_EXECUTION_MODE;
+    else process.env.PR_DASHBOARD_EXECUTION_MODE = previous;
+  }
+});
+
 test("claims a wave after authentication", async () => {
   const { calls, queue } = fixture();
   const response = await handleQueueWorkerRequest(request({
@@ -260,6 +329,7 @@ test("rejects unsupported acknowledgment outcomes as client errors", async () =>
   await assert.rejects(
     handleQueueWorkerRequest(request({
       action: "acknowledge",
+      generation: 1,
       itemKey: "example#pr:1",
       claimGeneration: 1,
       workerId: "worker",

@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 
 import { DashboardQueue } from "../lib/dashboard-queue.mjs";
+import { executionMode } from "../lib/execution-mode.mjs";
 import {
   dispatchDashboardRefresh,
   dispatchQueueDrain,
@@ -64,6 +65,7 @@ export async function handleWebhookRequest(
   }
 
   const config = loadConfig();
+  const mode = executionMode();
   const rawBody = Buffer.from(await request.arrayBuffer());
 
   if (rawBody.length > MAX_WEBHOOK_BYTES) {
@@ -122,11 +124,13 @@ export async function handleWebhookRequest(
     && payload.pull_request?.draft === true
   );
   if (
-    isOpenedDraft
-    || config.queueMode === "off"
-    || (
-      config.queueMode === "canary" &&
-      !QUEUE_CANARY_REPOSITORIES.has(repository.name)
+    mode === "legacy" && (
+      isOpenedDraft
+      || config.queueMode === "off"
+      || (
+        config.queueMode === "canary" &&
+        !QUEUE_CANARY_REPOSITORIES.has(repository.name)
+      )
     )
   ) {
     await dispatchRefresh(inputs);
@@ -149,7 +153,9 @@ export async function handleWebhookRequest(
     triggerEvent: eventName,
   });
   const requestOwner = crypto.randomUUID();
-  const dispatcher = await targetQueue.requestDispatcher(requestOwner);
+  const dispatcher = mode === "paused"
+    ? { acquired: false }
+    : await targetQueue.requestDispatcher(requestOwner);
   if (dispatcher.acquired) {
     try {
       await dispatchDrain(dispatcher.generation);
@@ -169,6 +175,10 @@ export async function handleWebhookRequest(
     head_sha: dispatchHeadSha,
     trigger_event: eventName,
     queue_mode: config.queueMode,
+    item_key: queued.itemKey,
+    generation: queued.generation,
+    request_id: queued.requestId,
+    completed: false,
   });
 }
 
