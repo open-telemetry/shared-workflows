@@ -9,6 +9,12 @@ documented one-time migration. `state.json` tracks live collection, and
 `backfill-state.json` tracks automatic historical collection.
 The files under `migrations/` record completed one-time data cleanups.
 
+With `DATA_BRANCH_SNAPSHOTS=true` in the source repository, each update replaces
+the branch with a parentless commit. Current files retain the historical job
+measurements; previous Git snapshots are not retained. The commit's
+`Data-snapshot-generation` trailer orders snapshots without retaining their
+parents.
+
 `report-state.json.gz` tracks the immutable files included in the hourly
 aggregates. `report-data/manifest.json` and the daily JSON files under
 `report-data/` are compact derived inputs for the

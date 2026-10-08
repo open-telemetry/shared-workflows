@@ -6,6 +6,14 @@ terminal GitHub Actions job in active public repositories under
 `otelbot/github-actions-queue-data` branch in this repository and can be
 queried to find queue-time outliers.
 
+The repository variable `DATA_BRANCH_SNAPSHOTS=true` retains only the latest
+Git snapshot of the data branch. All historical job measurements in the
+current files, collection checkpoints, and report inputs remain intact.
+The variable defaults to disabled and also controls PR dashboard state writers;
+follow the [shared cutover procedure](../.github/scripts/pull-request-dashboard/WEBHOOK_SETUP.md#6-data-branch-snapshot-cutover)
+before enabling it. The hourly collection and Pages deployment schedules do
+not change.
+
 Queue time is measured per job:
 
 ```text

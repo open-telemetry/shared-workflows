@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Manage the dashboard workflow's git-backed state branch."""
+"""Manage Git-backed dashboard state and Actions telemetry snapshots."""
 
 from __future__ import annotations
 
@@ -27,6 +27,15 @@ CONFIG_LOCK_ATTEMPTS = 5
 FETCH_ATTEMPTS = 4
 STATE_BRANCH_PREFIX = "otelbot/pull-request-dashboard-state"
 DELIVERY_STATE_BRANCH_PREFIX = "otelbot/pull-request-dashboard-delivery"
+SNAPSHOT_GENERATION_TRAILER = "Data-snapshot-generation"
+SUBPROCESS_FLAGS = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+
+
+def snapshot_mode() -> bool:
+    value = os.environ.get("DATA_BRANCH_SNAPSHOTS", "")
+    if value not in ("", "false", "true"):
+        raise ValueError("DATA_BRANCH_SNAPSHOTS must be true, false, or empty")
+    return value == "true"
 
 
 def delivery_state_branch(state_branch: str) -> str:
@@ -68,7 +77,9 @@ def accepted_state_dir(state_branch: str, required: bool) -> Iterator[Path | Non
 
 
 def run(cmd: list[str], check: bool = True, cwd: Path | None = None) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(cmd, check=check, cwd=cwd, text=True)
+    return subprocess.run(
+        cmd, check=check, cwd=cwd, text=True, creationflags=SUBPROCESS_FLAGS,
+    )
 
 
 def remote_ref(state_branch: str) -> str:
@@ -129,7 +140,10 @@ def ref_is_ancestor(ancestor: str, descendant: str) -> bool:
         capture_output=True,
         text=True,
         check=False,
+        creationflags=SUBPROCESS_FLAGS,
     )
+    if result.returncode not in (0, 1):
+        raise RuntimeError(f"failed to compare Git refs: {result.stderr.strip()}")
     return result.returncode == 0
 
 
@@ -140,6 +154,7 @@ def ref_oid(ref: str, cwd: Path | None = None) -> str:
         capture_output=True,
         text=True,
         check=False,
+        creationflags=SUBPROCESS_FLAGS,
     )
     if result.returncode != 0:
         message = result.stderr.strip() or result.stdout.strip() or f"exit code {result.returncode}"
@@ -151,6 +166,85 @@ def remote_is_behind_local(state_branch: str, fetched_ref: str) -> bool:
     if not has_state_branch(state_branch):
         return False
     return ref_is_ancestor(fetched_ref, remote_ref(state_branch))
+
+
+def snapshot_generation(ref: str, cwd: Path | None = None) -> int:
+    result = subprocess.run(
+        ["git", "cat-file", "commit", ref],
+        cwd=cwd, capture_output=True, text=True, check=True,
+        creationflags=SUBPROCESS_FLAGS,
+    )
+    headers, _, message = result.stdout.partition("\n\n")
+    has_parents = any(line.startswith("parent ") for line in headers.splitlines())
+    trailers = [
+        line for line in message.splitlines()
+        if line.startswith(f"{SNAPSHOT_GENERATION_TRAILER}:")
+    ]
+    if not trailers:
+        return 0
+    if (
+        has_parents
+        or len(trailers) != 1
+        or re.fullmatch(rf"{SNAPSHOT_GENERATION_TRAILER}: [1-9][0-9]*", trailers[0]) is None
+    ):
+        raise RuntimeError(f"invalid data snapshot commit: {ref}")
+    return int(trailers[0].split(": ", 1)[1])
+
+
+def has_snapshot_ancestor(oid: str, cwd: Path | None = None) -> bool:
+    result = subprocess.run(
+        [
+            "git", "log", "-n1", "--format=%H", "-E",
+            f"--grep=^{SNAPSHOT_GENERATION_TRAILER}:", oid,
+        ],
+        cwd=cwd, capture_output=True, text=True, check=False,
+        creationflags=SUBPROCESS_FLAGS,
+    )
+    if result.returncode != 0:
+        raise RuntimeError(f"failed to inspect Git history for {oid}: {result.stderr.strip()}")
+    return bool(result.stdout.strip())
+
+
+def update_snapshot_ref(state_branch: str, fetched_ref: str) -> None:
+    destination = remote_ref(state_branch)
+    fetched_oid = ref_oid(fetched_ref)
+    fetched_generation = snapshot_generation(fetched_oid)
+    # A fresh checkout has no local ref, so detect history appended to a snapshot from the commits themselves.
+    if not fetched_generation and has_snapshot_ancestor(fetched_oid):
+        raise RuntimeError(f"history restored after data snapshot for {state_branch}")
+    for _ in range(FETCH_ATTEMPTS):
+        local_oid = ref_oid(destination) if has_state_branch(state_branch) else ""
+        if local_oid == fetched_oid:
+            return
+        if local_oid:
+            local_generation = snapshot_generation(local_oid)
+            if local_generation and fetched_generation:
+                if local_generation == fetched_generation:
+                    raise RuntimeError(f"conflicting data snapshot generation for {state_branch}")
+                newer = fetched_generation > local_generation
+            elif fetched_generation:
+                if ref_is_ancestor(fetched_oid, local_oid):
+                    raise RuntimeError(f"history restored after data snapshot for {state_branch}")
+                newer = True
+            elif local_generation:
+                if ref_is_ancestor(local_oid, fetched_oid):
+                    raise RuntimeError(f"history restored after data snapshot for {state_branch}")
+                newer = False
+            else:
+                newer = ref_is_ancestor(local_oid, fetched_oid)
+                if not newer and not ref_is_ancestor(fetched_oid, local_oid):
+                    raise RuntimeError(f"fetched state branch {state_branch} diverged from the local ref")
+            if not newer:
+                print(f"remote {state_branch} is behind the local ref; keeping the local ref", file=sys.stderr)
+                return
+        # A concurrent fetch must not replace a newer local snapshot.
+        result = run(
+            ["git", "update-ref", destination, fetched_oid, local_oid],
+            check=False,
+        )
+        if result.returncode == 0:
+            return
+    raise RuntimeError(f"could not update local snapshot ref for {state_branch}")
 
 
 def fetch_state_branch(state_branch: str, required: bool) -> bool:
@@ -168,6 +262,7 @@ def fetch_state_branch(state_branch: str, required: bool) -> bool:
                 capture_output=True,
                 text=True,
                 check=False,
+                creationflags=SUBPROCESS_FLAGS,
             )
             if proc.returncode == 0:
                 break
@@ -183,6 +278,10 @@ def fetch_state_branch(state_branch: str, required: bool) -> bool:
                     f"failed to fetch {kind} state branch {state_branch}: {message}"
                 )
             time.sleep(retry_delay_seconds(attempt))
+
+        if snapshot_mode():
+            update_snapshot_ref(state_branch, fetched_ref)
+            return True
 
         destination = remote_ref(state_branch)
         if not has_state_branch(state_branch) or ref_is_ancestor(destination, fetched_ref):
@@ -217,15 +316,16 @@ def remove_existing_state_dir(state_dir: Path) -> None:
         state_dir.unlink()
 
 
-def checkout_state(state_dir: Path, state_branch: str, require_existing: bool) -> None:
+def checkout_state(state_dir: Path, state_branch: str, require_existing: bool) -> str:
     remove_existing_state_dir(state_dir)
     fetch_state_branch(state_branch, required=require_existing)
     if has_state_branch(state_branch):
         run(["git", "worktree", "add", "-B", state_branch, str(state_dir), f"origin/{state_branch}"])
-        return
+        return ref_oid("HEAD", cwd=state_dir)
     run(["git", "worktree", "add", "--detach", str(state_dir), "HEAD"])
     run(["git", "switch", "--orphan", state_branch], cwd=state_dir)
     run(["git", "rm", "-rf", "."], cwd=state_dir, check=False)
+    return ""
 
 
 def reset_state(state_dir: Path, state_branch: str) -> bool:
@@ -235,7 +335,7 @@ def reset_state(state_dir: Path, state_branch: str) -> bool:
     return True
 
 
-def push_state(state_dir: Path, state_branch: str) -> bool:
+def push_state(state_dir: Path, state_branch: str, expected_sha: str) -> bool:
     env = dict(os.environ)
     token = os.environ.get("GITHUB_TOKEN")
     if token:
@@ -243,8 +343,48 @@ def push_state(state_dir: Path, state_branch: str) -> bool:
         env["GIT_CONFIG_COUNT"] = "1"
         env["GIT_CONFIG_KEY_0"] = "http.https://github.com/.extraheader"
         env["GIT_CONFIG_VALUE_0"] = f"AUTHORIZATION: basic {credential}"
-    cmd = ["git", "push", "--force-with-lease", "origin", state_branch]
-    return subprocess.run(cmd, cwd=state_dir, check=False, text=True, env=env).returncode == 0
+    cmd = [
+        "git", "push", f"--force-with-lease=refs/heads/{state_branch}:{expected_sha}",
+        "origin", f"HEAD:refs/heads/{state_branch}",
+    ]
+    return subprocess.run(
+        cmd, cwd=state_dir, check=False, text=True, env=env,
+        creationflags=SUBPROCESS_FLAGS,
+    ).returncode == 0
+
+
+def commit_staged_state(state_dir: Path, message: str, expected_sha: str) -> bool:
+    enabled = snapshot_mode()
+    generation = snapshot_generation(expected_sha, cwd=state_dir) if expected_sha else 0
+    if generation and not enabled:
+        raise RuntimeError("DATA_BRANCH_SNAPSHOTS must remain true for snapshot branches")
+    if enabled and expected_sha and not generation and has_snapshot_ancestor(expected_sha, cwd=state_dir):
+        raise RuntimeError("history restored after data snapshot")
+    diff = run(
+        ["git", "diff", "--cached", "--quiet"], cwd=state_dir, check=False,
+    )
+    if diff.returncode not in (0, 1):
+        raise RuntimeError(f"failed to check staged data: exit code {diff.returncode}")
+    unchanged = diff.returncode == 0
+    if unchanged and (not enabled or generation):
+        print("no state changes to push", file=sys.stderr)
+        return False
+    if not enabled:
+        run(["git", "commit", "-m", message], cwd=state_dir)
+        return True
+
+    tree = subprocess.run(
+        ["git", "write-tree"], cwd=state_dir, capture_output=True,
+        text=True, check=True, creationflags=SUBPROCESS_FLAGS,
+    ).stdout.strip()
+    snapshot = subprocess.run(
+        ["git", "commit-tree", tree],
+        input=f"{message}\n\n{SNAPSHOT_GENERATION_TRAILER}: {generation + 1}\n",
+        cwd=state_dir, capture_output=True, text=True, check=True,
+        creationflags=SUBPROCESS_FLAGS,
+    ).stdout.strip()
+    run(["git", "update-ref", "HEAD", snapshot, expected_sha], cwd=state_dir)
+    return True
 
 
 def configure_git() -> None:
@@ -269,6 +409,7 @@ def set_git_config(name: str, value: str) -> None:
             check=False,
             text=True,
             capture_output=True,
+            creationflags=SUBPROCESS_FLAGS,
         )
         if proc.returncode == 0:
             return
@@ -306,7 +447,7 @@ def push_state_changes(
     retry_snapshots: list[tuple[Path, Path]] | None = None,
 ) -> int:
     configure_git()
-    checkout_state(state_dir, state_branch, require_existing=False)
+    expected_sha = checkout_state(state_dir, state_branch, require_existing=False)
     paths_to_add = add_paths or ["."]
     snapshots = retry_snapshots or []
 
@@ -326,14 +467,12 @@ def push_state_changes(
                 ["git", "add", "--update", "--", ".publisher-lock.json"],
                 cwd=state_dir,
             )
-        if run(["git", "diff", "--cached", "--quiet"], cwd=state_dir, check=False).returncode == 0:
-            print("no state changes to push", file=sys.stderr)
+        if not commit_staged_state(state_dir, commit_message, expected_sha):
             return 0
 
-        run(["git", "commit", "-m", commit_message], cwd=state_dir)
         copy_snapshots(snapshots)
 
-        if push_state(state_dir, state_branch):
+        if push_state(state_dir, state_branch, expected_sha):
             print(f"state pushed on attempt {attempt}", file=sys.stderr)
             return 0
 
@@ -349,6 +488,7 @@ def push_state_changes(
         time.sleep(delay)
         if not reset_state(state_dir, state_branch):
             return 1
+        expected_sha = ref_oid("HEAD", cwd=state_dir)
     return 1
 
 
@@ -358,11 +498,24 @@ def main() -> int:
     checkout = subparsers.add_parser("checkout", help="check out the accepted state branch")
     checkout.add_argument("--state-branch", required=True)
     checkout.add_argument("--state-dir", type=Path, required=True)
+    commit = subparsers.add_parser("commit-data", help="commit and push a collected data tree")
+    commit.add_argument("--state-branch", required=True)
+    commit.add_argument("--state-dir", type=Path, required=True)
+    commit.add_argument("--expected-sha", required=True)
+    commit.add_argument("--message", required=True)
     args = parser.parse_args()
 
     if args.command == "checkout":
         configure_git()
         checkout_state(args.state_dir, args.state_branch, require_existing=True)
+        return 0
+    if args.command == "commit-data":
+        run(["git", "add", "--all"], cwd=args.state_dir)
+        if not commit_staged_state(args.state_dir, args.message, args.expected_sha):
+            return 0
+        if not push_state(args.state_dir, args.state_branch, args.expected_sha):
+            print("data push rejected; collection will resume from the accepted checkpoint", file=sys.stderr)
+            return 1
         return 0
     parser.error(f"unknown command: {args.command}")
     return 2

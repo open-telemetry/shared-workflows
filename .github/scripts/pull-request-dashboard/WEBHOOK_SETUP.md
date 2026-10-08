@@ -268,3 +268,86 @@ Direct dispatch notes:
   using them. `trigger_event` only selects a concurrency group, so it is
   validated on the backfill path only; the bridge is what restricts it to known
   event names.
+
+## 6. Data branch snapshot cutover
+
+`DATA_BRANCH_SNAPSHOTS` is a repository-level GitHub Actions variable shared by
+the dashboard and Actions queue collector. Empty or `false` retains ordinary
+Git history. `true` writes parentless snapshots with the complete current tree,
+including historical CI records and delivery acknowledgements. Other values
+fail explicitly.
+
+Snapshot commits have a monotonically increasing `Data-snapshot-generation`
+trailer. Dashboard fetches use it to reject stale snapshots, and every push
+uses the exact SHA loaded before processing as its force-with-lease expectation.
+A rejected dashboard update refetches and reapplies its changes. A rejected
+collector push fails the job; the next run resumes from the accepted checkpoint.
+Unchanged snapshots do not create commits. The first snapshot compacts a legacy
+branch even when its files have not changed.
+
+### Deployment order
+
+1. Merge the snapshot-capable code with the variable unset. Release and promote
+   it through `promote-pull-request-dashboard.yml` so every stable workflow pin
+   loads the new reader and writer. Verify the queue drain, author reminder
+   sweep, and CI collector also run the new code. Do not rerun older workflow
+   attempts after activation.
+2. Disable `pull-request-dashboard.yml`, `pull-request-dashboard-drain.yml`,
+   `pull-request-dashboard-refresh-author-nudges.yml`, and
+   `github-actions-queue-collector.yml` temporarily. Wait for every queued and
+   in-progress writer to finish or cancel it before taking the backup. Leave
+   the Netlify functions and stalled-run watchdog unchanged.
+3. From a dedicated maintenance clone, fetch the latest generated branches.
+   Record each branch's head and tree SHA, and create a verified Git bundle
+   backup outside this repository. Never push backup branches or tags here:
+   any ref to old commits keeps that history reachable to clones.
+4. Set the repository variable while writers are paused:
+
+   ```sh
+   gh variable set DATA_BRANCH_SNAPSHOTS --body true --repo open-telemetry/shared-workflows
+   ```
+
+5. Compact `otelbot/github-actions-queue-data` and every
+   `otelbot/pull-request-dashboard-state/*` and
+   `otelbot/pull-request-dashboard-delivery/*` branch. For each branch, use a
+   clean temporary worktree at its recorded head and the helper from the new
+   source checkout. Configure its Git author and authenticated `origin`, then:
+
+   ```sh
+   DATA_BRANCH_SNAPSHOTS=true python3 "$SOURCE_CHECKOUT/.github/scripts/pull-request-dashboard/state_branch.py" commit-data \
+     --state-dir "$DATA_DIRECTORY" \
+     --state-branch "$BRANCH" \
+     --expected-sha "$RECORDED_HEAD" \
+     --message "Compact generated data"
+   ```
+
+   `SOURCE_CHECKOUT` contains the promoted code, `DATA_DIRECTORY` is that
+   branch's temporary worktree, and `RECORDED_HEAD` is the exact backed-up SHA.
+   The helper snapshots the index and working tree, so verify they are clean
+   before invoking it. A lease failure means a writer or operator changed the
+   branch; stop and reconcile it rather than refreshing the lease blindly.
+6. Verify every compacted remote head has no parents and its tree SHA matches
+   the recorded tree. Make a fresh normal clone and measure its object storage.
+   Other branches or tags that reference the old data can still retain history.
+   Reenable the paused workflows and confirm collection, dashboard publication,
+   and delivery acknowledgements continue from their existing state.
+
+### Recovery and clone size
+
+Keep `DATA_BRANCH_SNAPSHOTS=true` after cutover. Turning it off cannot safely
+restore the ancestry-based protocol; the new writer rejects a snapshot branch
+when the variable is disabled. Older workflow code cannot participate in the
+snapshot protocol.
+
+If cutover fails before writers resume, keep them paused, restore the recorded
+heads from the external backup with explicit leases against the compacted
+heads, verify their trees, and unset the variable before starting fresh runs.
+After processing resumes, restoring an old backup can discard CI checkpoints
+or repeat notifications. Recover the latest accepted state instead, with a
+snapshot generation higher than the current head.
+
+Compaction removes old history from the generated branch refs, not from
+existing clones. A fresh clone avoids that history once no advertised branch
+or tag retains it. Existing clones also retain local refs, reflogs, and packed
+objects; a fresh clone is the safest way to reclaim that space. GitHub may
+retain unreachable objects and pull request refs separately.
