@@ -9737,12 +9737,8 @@
         "assignees": [],
         "author": "gdivya-nr",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [
-          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/51415#pullrequestreview-5358535831",
-          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/51415#pullrequestreview-5427332672"
-        ],
+        "author_action_top_level_feedback_urls": [],
         "author_can_act": true,
-        "author_nudge_episode_id": "8b60c89543aa4454bf6986d51443eb4f",
         "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
@@ -9775,21 +9771,34 @@
             "login": "ebrdarSplunk",
             "open_thread": false,
             "pending_review": true,
-            "top_level_feedback": true,
+            "top_level_feedback": false,
             "unresolved_thread": false
           }
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
         "routing_input_fingerprint": "aa183e5e62f669763877a1854ef38520a335b937ecc4ebc9c3e8d2d76d95f812",
-        "waiting_age_basis": "oldest_pending_thread",
-        "waiting_since": "2026-09-29T21:12:49+00:00"
+        "waiting_age_basis": "last_author_activity",
+        "waiting_since": "2026-10-08T09:38:06+00:00"
       },
       "failed": false,
       "pr_number": 51415,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/51415",
-      "route": "author",
-      "top_level_history": {}
+      "route": "approver",
+      "top_level_history": {
+        "pr-review-5358535831": {
+          "evidence": {
+            "reply": "2026-10-02T02:04:05Z"
+          },
+          "reply_source_id": 5944142924
+        },
+        "pr-review-5427332672": {
+          "evidence": {
+            "reply": "2026-10-08T09:38:06Z"
+          },
+          "reply_source_id": 6057038386
+        }
+      }
     },
     "51422": {
       "facts": {
