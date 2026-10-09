@@ -25,8 +25,9 @@ Save a Netlify personal access token as a GitHub Actions secret named
 `PR_DASHBOARD_EXECUTION_MODE` is an operator-controlled repository variable with
 three values: `legacy`, `paused`, and `owned`. The default is `legacy`, which
 retains the existing rollout. `paused` accepts work but starts no new execution.
-`owned` routes all normal entry points through the combined drain. The deploy
-workflow syncs this variable to Netlify, and its optional `execution_mode` input
+`owned` routes normal entry points through independent live and maintenance
+drains using the same processor. The deploy workflow syncs this variable to
+Netlify, and its optional `execution_mode` input
 allows the bridge to pause before changing GitHub's mode.
 
 In owned mode, canaries use the drain's immutable triggering commit on main.
@@ -41,8 +42,11 @@ The `shared-workflows` Actions token needs `contents: write` so workers can push
 permissions do not change.
 
 The queue uses the site-wide `pr-dashboard-queue` store with strong reads and
-ETag-conditional writes. Netlify creates the store on its first write. The drain
-workflow authenticates claim, heartbeat, acknowledgment, and finish calls with
+ETag-conditional writes. Live refreshes use the `dispatcher` lease; repository
+backfills and reminder sweeps use `maintenance-dispatcher`. Existing item keys,
+generations, and request IDs stay in the same shards. Netlify creates the store
+on its first write. The drain workflow authenticates claim, heartbeat,
+acknowledgment, and finish calls with
 a short-lived GitHub OIDC token restricted to:
 
 - `open-telemetry/shared-workflows`
@@ -54,18 +58,21 @@ a short-lived GitHub OIDC token restricted to:
 The main dashboard workflow and author-reminder sweep can authenticate enqueue,
 status, and stats requests with the same main-branch, protected-environment
 restrictions. They cannot activate, claim, heartbeat, acknowledge, or finish a
-dispatcher. No Netlify runtime token is shared with these workflows. The existing
-`NETLIFY_AUTH_TOKEN` remains limited to deployment and environment
+dispatcher or acquire/release repository delivery ownership. No Netlify runtime
+token is shared with these workflows. The existing `NETLIFY_AUTH_TOKEN` remains
+limited to deployment and environment
 configuration.
 
 The `dashboard-queue-recover` scheduled function reclaims expired worker and
-dispatcher leases. A new event normally requests the singleton drain immediately;
-scheduled recovery runs every five minutes as a failure backstop and also
+dispatcher leases independently for each lane. Events normally request their
+lane's drain immediately. Scheduled recovery runs every five minutes as a
+failure backstop and also
 requests a drain once a retry backoff (`notBefore`) has elapsed. An item whose lease expires
 repeatedly without an acknowledgment is moved to the shard's dead letters
 instead of being requeued forever. Recovery logs include queued and inflight
 counts, retry and dead-letter counts, pending backfills and reminder sweeps,
-oldest unfinished work, and the dispatcher lease deadline.
+oldest unfinished work, and the dispatcher lease deadline, labeled by lane.
+Recovery of one lane is attempted even when the other fails.
 In owned mode, recovery also redispatches a requested generation that has not
 activated after 15 minutes. This does not renew its lease or grant ownership.
 The first run to receive a runner must still win activation; the others are
@@ -77,6 +84,13 @@ calculation, state persistence, delivery, publication, and receipt updates.
 Success acknowledges that combined path, not a workflow dispatch. Retries repeat
 the item with existing accepted state and delivery receipts. An event during
 processing requests a dirty follow-up generation.
+
+Calculation and accepted-state persistence can overlap across lanes. Delivery,
+publication, receipt updates, and reminder writes acquire a shared per-repository
+lease after calculation and read current accepted state under that lease.
+Heartbeats renew this ownership alongside dispatcher and item leases. Its expiry
+and generation fence stale releases; waiting for it still observes the worker's
+lease and processing deadlines. No GitHub concurrency group blocks a replacement.
 
 The `dashboard-workflow-watchdog` scheduled function runs every 15 minutes. It
 force-cancels an automated dashboard run after 30 minutes when a newer run is
@@ -265,16 +279,23 @@ Deploy contexts:
 ## 5. Workflow dispatch contract
 
 Owned execution always queues webhooks, regardless of the legacy queue mode.
+Webhooks and targeted PR/head runs use the live lane.
 Manual and scheduled dashboard runs enqueue repository backfills when both
-`pr_number` and `head_sha` are empty. A repository backfill invokes the existing
-bounded cursor-based CLI, not a queue entry for every open PR. It retains
+`pr_number` and `head_sha` are empty, in the maintenance lane. A repository
+backfill invokes the existing bounded cursor-based CLI, not a queue entry for
+every open PR. It retains
 closed-PR cleanup, initial population, full-publication generations, and large
 repository rendering. Initial population can continue through multiple claims;
 later backfills keep the existing bounded round-robin behavior.
 
 Only scheduled backfills prepare due author nudges. A scheduled request that
 coalesces with manual work preserves that scheduling intent. The reminder
-workflow queues its write sweeps and keeps dry-run sweeps read-only.
+workflow queues its write sweeps in maintenance and keeps dry-run sweeps read-only.
+
+Drain dispatches include `queue_lane`, either `live` or `maintenance`, along with
+`dispatcher_generation`. Omitted lanes default to `live` for legacy refresh
+dispatches. Enqueue and status entry points derive the lane from the item kind
+or key; progress queries do not need a new input.
 
 An enqueue run's summary says "Work accepted, not completed" and reports an item
 key, generation, and request ID. To inspect progress, use all three values
@@ -379,6 +400,18 @@ The stable rollout pins remain unchanged throughout.
 5. Follow a canary request and a stable request through completion. Confirm the
    logged immutable code refs, delivery receipts, full-publication progress,
    and queue age. No fleet-wide release promotion is needed.
+
+### Upgrade an owned installation
+
+Before merging or deploying a change to execution lanes or delivery ownership,
+pause the bridge and GitHub with the commands above, then let every pre-upgrade
+drain finish, including runs waiting for a runner. Do not run workers with
+different ownership rules concurrently.
+
+Deploy the bridge with both lanes while paused. Queued items, request IDs, generations, and
+completion receipts remain in their existing shards; no item migration is
+needed. Resume GitHub and the bridge in owned mode only after all pre-upgrade drains
+have retired. Scheduled recovery can then start each lane independently.
 
 ### Return to legacy execution
 

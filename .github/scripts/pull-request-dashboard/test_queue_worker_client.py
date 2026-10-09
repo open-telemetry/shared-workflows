@@ -31,6 +31,25 @@ class Response(io.BytesIO):
 
 
 class QueueWorkerClientTest(unittest.TestCase):
+    def test_maintenance_requests_include_the_lane(self) -> None:
+        requests = []
+        responses = [
+            Response(json.dumps({"value": "oidc-token"}).encode()),
+            Response(json.dumps({"activated": True}).encode()),
+        ]
+
+        def opener(request, timeout):
+            requests.append(request)
+            return responses.pop(0)
+
+        client = QueueWorkerClient(
+            "https://example.test/worker", lane="maintenance",
+            oidc_request_url="https://token.actions.test/request",
+            oidc_request_token="request-token", opener=opener,
+        )
+        client.call("activate", generation=1, workerId="hourly")
+        self.assertEqual(json.loads(requests[-1].data)["lane"], "maintenance")
+
     def test_requests_a_fresh_oidc_token_before_the_worker_call(self) -> None:
         requests = []
         responses = [
@@ -66,7 +85,7 @@ class QueueWorkerClientTest(unittest.TestCase):
         )
         self.assertEqual(
             json.loads(worker_request.data),
-            {"action": "activate", "generation": 1, "workerId": "worker"},
+            {"action": "activate", "lane": "live", "generation": 1, "workerId": "worker"},
         )
 
     def test_requires_https_for_the_worker_endpoint(self) -> None:

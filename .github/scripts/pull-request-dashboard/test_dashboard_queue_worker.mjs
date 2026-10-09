@@ -69,6 +69,63 @@ function fixture() {
 
 const verifyRequest = async () => ({ repository: "open-telemetry/shared-workflows" });
 
+test("entry points select independent lanes and dispatch the selected lane", async () => {
+  const previous = process.env.PR_DASHBOARD_EXECUTION_MODE;
+  process.env.PR_DASHBOARD_EXECUTION_MODE = "owned";
+  try {
+    for (const [body, expectedLane] of [
+      [{ action: "enqueue", repository: "shared-workflows", kind: "backfill" }, "maintenance"],
+      [{ action: "enqueue", repository: "shared-workflows", kind: "reminders" }, "maintenance"],
+      [{ action: "enqueue", repository: "shared-workflows", prNumber: 1 }, "live"],
+      [{ action: "activate", generation: 1, workerId: "hourly", lane: "maintenance" }, "maintenance"],
+      [{ action: "status", itemKey: "shared-workflows#backfill", generation: 1, requestId: "request" }, "maintenance"],
+    ]) {
+      const selected = [];
+      const dispatches = [];
+      const { queue } = fixture();
+      queue.enqueue = async () => ({ status: "queued" });
+      queue.requestDispatcher = async () => ({ acquired: true, generation: 1 });
+      queue.itemStatus = async () => ({ status: "queued" });
+      await handleQueueWorkerRequest(request(body), {
+        verifyRequest,
+        createQueue: (lane) => { selected.push(lane); return queue; },
+        dispatchDrain: async (...args) => dispatches.push(args),
+      });
+      assert.deepEqual(selected, [expectedLane]);
+      if (body.action === "enqueue") assert.deepEqual(dispatches, [[1, expectedLane]]);
+    }
+    await assert.rejects(handleQueueWorkerRequest(request({
+      action: "enqueue", repository: "shared-workflows", kind: "backfill", lane: "live",
+    }), { verifyRequest }), /lane does not match/);
+  } finally {
+    if (previous === undefined) delete process.env.PR_DASHBOARD_EXECUTION_MODE;
+    else process.env.PR_DASHBOARD_EXECUTION_MODE = previous;
+  }
+});
+
+test("delivery ownership actions require drain authentication and forward fencing identities", async () => {
+  const { queue } = fixture();
+  const calls = [];
+  const verified = [];
+  queue.acquireDeliveryLease = async (lease) => { calls.push(lease); return { acquired: true, leaseGeneration: 2 }; };
+  queue.releaseDeliveryLease = async (lease) => { calls.push(lease); return { released: true }; };
+  const identity = { repository: "shared-workflows", generation: 1, workerId: "hourly", lane: "maintenance" };
+  const verify = async (_request, options) => verified.push(options.workflowRef);
+  const acquired = await handleQueueWorkerRequest(request({
+    action: "acquire-delivery", ...identity,
+  }), { queue, verifyRequest: verify });
+  assert.equal((await acquired.json()).leaseGeneration, 2);
+  await handleQueueWorkerRequest(request({
+    action: "release-delivery", ...identity, leaseGeneration: 2,
+  }), { queue, verifyRequest: verify });
+  assert.equal(verified.length, 4);
+  assert.equal(typeof verified[1], "string");
+  assert.deepEqual(calls, [
+    { repository: "shared-workflows", generation: 1, workerId: "hourly" },
+    { repository: "shared-workflows", generation: 1, workerId: "hourly", leaseGeneration: 2 },
+  ]);
+});
+
 test("manual requests confirm acceptance rather than completion", async () => {
   const previous = process.env.PR_DASHBOARD_EXECUTION_MODE;
   process.env.PR_DASHBOARD_EXECUTION_MODE = "owned";

@@ -93,7 +93,15 @@ the implementation understandable and operationally cheap.
 
 ## Queue and Workflow Concurrency
 
-- In `canary` and `all` queue modes, the Netlify bridge coalesces webhook
+- In owned execution, live PR/head refreshes and maintenance backfills/reminder
+  sweeps have independent dispatcher leases and runners. A maintenance batch
+  cannot occupy live processing slots. Both lanes use the same combined processor
+  and acknowledge only after persistence, delivery, and publication finish.
+- Repository delivery leases serialize side effects across lanes without holding
+  ownership during classification. State compare-and-swap and PR-slot acceptance
+  still reconcile overlapping calculations; dispatcher heartbeats renew delivery
+  ownership and stale lease generations cannot release a replacement's lease.
+- In legacy `canary` and `all` queue modes, the Netlify bridge coalesces webhook
   refreshes by target repository and PR before it starts GitHub Actions. One
   singleton drain claims a bounded batch. An event that arrives during
   processing marks the item dirty and schedules one follow-up pass.

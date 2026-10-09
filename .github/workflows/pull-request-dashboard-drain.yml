@@ -1,5 +1,7 @@
 name: Pull request dashboard queue drain
 
+run-name: Pull request dashboard ${{ inputs.queue_lane || 'live' }} queue drain
+
 on:
   workflow_dispatch:
     inputs:
@@ -7,6 +9,14 @@ on:
         description: Netlify queue dispatcher generation.
         required: true
         type: string
+      queue_lane:
+        description: Independent queue lane to drain.
+        required: true
+        default: live
+        type: choice
+        options:
+          - live
+          - maintenance
 
 permissions: {}
 
@@ -22,6 +32,7 @@ jobs:
     timeout-minutes: 50
     env:
       DISPATCHER_GENERATION: ${{ inputs.dispatcher_generation }}
+      PR_DASHBOARD_QUEUE_LANE: ${{ inputs.queue_lane || 'live' }}
       PR_DASHBOARD_QUEUE_ENDPOINT: https://otel-pull-request-dashboard.netlify.app/.netlify/functions/dashboard-queue-worker
       WORKER_ID: ${{ github.run_id }}-${{ github.run_attempt }}
       CANARY_REPOSITORIES: '["opentelemetry-java-instrumentation", "shared-workflows"]'
@@ -88,6 +99,7 @@ jobs:
     timeout-minutes: 50
     env:
       DISPATCHER_GENERATION: ${{ inputs.dispatcher_generation }}
+      PR_DASHBOARD_QUEUE_LANE: ${{ inputs.queue_lane || 'live' }}
       PR_DASHBOARD_QUEUE_ENDPOINT: https://otel-pull-request-dashboard.netlify.app/.netlify/functions/dashboard-queue-worker
       WORKER_ID: ${{ github.run_id }}-${{ github.run_attempt }}
       CANARY_REPOSITORIES: '["opentelemetry-java-instrumentation", "shared-workflows"]'

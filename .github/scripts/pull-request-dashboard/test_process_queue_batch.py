@@ -7,6 +7,7 @@ import tempfile
 import threading
 import time
 import unittest
+from contextlib import contextmanager
 from pathlib import Path
 from unittest import mock
 
@@ -51,6 +52,93 @@ class QueueBatchTest(unittest.TestCase):
                 "example", 7, "otelbot/pull-request-dashboard-state/example", {}, {},
             )
         self.assertEqual("false", run.call_args.kwargs["env"]["COPILOT_REVIEW_FALLBACK_AVAILABLE"])
+
+    def test_owned_processor_acknowledges_only_after_leased_delivery_finishes(self) -> None:
+        for failure in (None, "acquire-delivery", "release-delivery"):
+            with self.subTest(failure=failure), tempfile.TemporaryDirectory() as directory:
+                lifecycle = []
+                acknowledgments = []
+
+                class Client:
+                    def call(self, action: str, **payload: object) -> dict[str, object]:
+                        lifecycle.append(action)
+                        if action == failure:
+                            raise RuntimeError("delivery ownership unavailable")
+                        if action == "heartbeat":
+                            return {"dispatcher": True, "leaseDurationMs": 900_000}
+                        if action == "acquire-delivery":
+                            return {"acquired": True, "leaseGeneration": 7}
+                        if action == "release-delivery":
+                            return {"released": True}
+                        acknowledgments.append(payload)
+                        return {"status": "removed"}
+
+                def run(command: list[str], _lease_check, **_kwargs):
+                    script = Path(command[1]).name
+                    lifecycle.append(script)
+                    if script == "delivery.py":
+                        output = Path(command[command.index("--github-output") + 1])
+                        output.write_text("active=true\nfull_publish_generation=0\n", encoding="utf-8")
+                    return subprocess.CompletedProcess(
+                        command, 0, stdout="true\n" if script == "state.py" else "", stderr=""
+                    )
+
+                config = Path(directory) / "repositories.json"
+                config.write_text('[{"name":"example"}]', encoding="utf-8")
+                with mock.patch.object(process_queue_batch, "run_monitored", side_effect=run):
+                    summary, _results = process_claims(
+                        [claim("example#pr:1", "example", pr_number=1)],
+                        Path(directory) / "results.json", Client(), 1, "live",
+                        config_path=config,
+                    )
+                self.assertLess(lifecycle.index("dashboard.py"), lifecycle.index("acquire-delivery"))
+                self.assertEqual(
+                    acknowledgments[0]["outcome"], "success" if failure is None else "retry"
+                )
+                self.assertEqual(summary["successes"], 1 if failure is None else 0)
+                if failure == "acquire-delivery":
+                    self.assertNotIn("delivery.py", lifecycle)
+                else:
+                    self.assertLess(lifecycle.index("publish_dashboard.py"), lifecycle.index("release-delivery"))
+                    self.assertLess(lifecycle.index("release-delivery"), lifecycle.index("acknowledge"))
+
+    def test_delivery_lease_waits_for_ownership_and_releases_its_generation(self) -> None:
+        client = mock.Mock()
+        client.call.side_effect = [
+            {"acquired": False},
+            {"acquired": True, "leaseGeneration": 7},
+            {"released": True},
+        ]
+        monitor = LeaseMonitor(client, 3, "live", now=lambda: 100)
+        monitor.valid_until = 900
+        with mock.patch.object(monitor.stop_event, "wait", return_value=False):
+            with monitor.delivery_lease("example"):
+                self.assertEqual(client.call.call_count, 2)
+        self.assertEqual(
+            client.call.call_args,
+            mock.call(
+                "release-delivery", repository="example", generation=3,
+                workerId="live", leaseGeneration=7,
+            ),
+        )
+
+    def test_waiting_for_delivery_stops_when_execution_ownership_is_lost(self) -> None:
+        client = mock.Mock()
+        client.call.return_value = {"acquired": False}
+        monitor = LeaseMonitor(client, 3, "live", now=lambda: 100)
+        monitor.valid_until = 900
+
+        def lose_ownership(_seconds: float) -> bool:
+            monitor.lost_event.set()
+            return False
+
+        with mock.patch.object(monitor.stop_event, "wait", side_effect=lose_ownership):
+            with self.assertRaisesRegex(RuntimeError, "heartbeat failed"):
+                with monitor.delivery_lease("example"):
+                    self.fail("delivery must not start without ownership")
+        client.call.assert_called_once_with(
+            "acquire-delivery", repository="example", generation=3, workerId="live",
+        )
 
     def test_lease_monitor_reports_heartbeat_loss(self) -> None:
         class Client:
@@ -426,8 +514,17 @@ class QueueBatchTest(unittest.TestCase):
             delivery_commands[0],
         )
 
-    def test_repository_delivery_and_publication_do_not_use_a_shared_lock(self) -> None:
+    def test_repository_delivery_is_leased_without_blocking_calculation(self) -> None:
         lifecycle: list[str] = []
+
+        @contextmanager
+        def delivery_lease(repository: str):
+            self.assertEqual(repository, "example")
+            lifecycle.append("acquire")
+            try:
+                yield
+            finally:
+                lifecycle.append("release")
 
         with tempfile.TemporaryDirectory() as directory:
             config_path = Path(directory) / "repositories.json"
@@ -435,7 +532,9 @@ class QueueBatchTest(unittest.TestCase):
                 json.dumps([{"name": "example"}]),
                 encoding="utf-8",
             )
-            processor = process_queue_batch.DashboardBatchProcessor(config_path)
+            processor = process_queue_batch.DashboardBatchProcessor(
+                config_path, delivery_lease=delivery_lease
+            )
             items = [
                 WorkItem(
                     "example",
@@ -477,12 +576,39 @@ class QueueBatchTest(unittest.TestCase):
             [
                 "update-1",
                 "update-2",
+                "acquire",
                 "deliver-1",
                 "deliver-2",
                 "publish",
+                "release",
             ],
         )
         self.assertEqual([result["outcome"] for result in results], ["success", "success"])
+
+    def test_delivery_lease_release_failure_retries_instead_of_acknowledging_success(self) -> None:
+        @contextmanager
+        def delivery_lease(_repository: str):
+            yield
+            raise RuntimeError("delivery ownership lost")
+
+        with tempfile.TemporaryDirectory() as directory:
+            config = Path(directory) / "repositories.json"
+            config.write_text('[{"name":"example"}]', encoding="utf-8")
+            processor = process_queue_batch.DashboardBatchProcessor(
+                config, delivery_lease=delivery_lease
+            )
+            item = WorkItem("example", 1, (claim("example#pr:1", "example", pr_number=1),))
+            with (
+                mock.patch.object(processor, "_initial_backfill_complete", return_value=True),
+                mock.patch.object(processor, "_update_dashboard"),
+                mock.patch.object(processor, "_deliver", return_value=(True, None, 0)),
+                mock.patch.object(processor, "_publish"),
+            ):
+                results = process_queue_batch.coalesce_acknowledgments(
+                    processor.process_repository("example", [item])
+                )
+        self.assertEqual(results[0]["outcome"], "retry")
+        self.assertIn("ownership lost", results[0]["error"])
 
     def test_queue_skips_issue_publication_already_completed_by_full_delivery(self) -> None:
         for deliveries, expected_generations in (

@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import { validateQueueLane } from "./dashboard-queue.mjs";
 
 const GITHUB_API_VERSION = "2022-11-28";
 const OWNER = "open-telemetry";
@@ -36,6 +37,7 @@ export async function dispatchDashboardRefresh(inputs, config = loadDispatcherCo
 
 export async function dispatchQueueDrain(
   dispatcherGeneration,
+  lane = "live",
   config = loadDispatcherConfig(),
 ) {
   if (!Number.isInteger(dispatcherGeneration) || dispatcherGeneration < 1) {
@@ -43,7 +45,7 @@ export async function dispatchQueueDrain(
   }
   return dispatchWorkflow(
     DRAIN_WORKFLOW_ID,
-    { dispatcher_generation: String(dispatcherGeneration) },
+    { dispatcher_generation: String(dispatcherGeneration), queue_lane: validateQueueLane(lane) },
     config,
   );
 }

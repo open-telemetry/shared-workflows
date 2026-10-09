@@ -44,11 +44,17 @@ four repositories concurrently on one runner; pull requests from the same
 repository remain sequential. An event received while its pull request is being
 processed marks that item dirty and schedules one follow-up pass.
 
-With queue-owned execution enabled, draft-open events, manual targeted runs,
-head-SHA refreshes, hourly and manual backfills, and author-reminder write sweeps
-share this queue. The worker keeps ownership through calculation, accepted-state
-persistence, delivery, and issue publication. Failure retries the combined item.
+With queue-owned execution enabled, webhook events, draft opens, and targeted
+PR/head refreshes use the live lane. Hourly/manual backfills and author-reminder
+write sweeps use an independent maintenance lane. Each lane has its own
+dispatcher lease and runner, so a maintenance batch cannot occupy live processing
+slots. Both use the same processor and keep ownership through calculation,
+accepted-state persistence, delivery, and issue publication. Failure retries the combined item.
 GitHub concurrency does not own the drain.
+
+The lanes can calculate and persist classifications concurrently. Delivery and
+publication share a renewable per-repository lease, held only after calculation,
+to serialize comments, notifications, reminder writes, and dashboard publication.
 
 An enqueue workflow succeeding means work was accepted, not completed. Its
 summary reports the item key, generation, and request ID. Run the dashboard

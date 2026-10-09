@@ -105,6 +105,19 @@ class RolloutWiringTest(unittest.TestCase):
         self.jobs = job_blocks(self.text)
         self.canary = canary_repositories(self.text)
 
+    def test_each_drain_job_receives_the_selected_lane_without_github_concurrency(self) -> None:
+        text = DRAIN_WORKFLOW.read_text(encoding="utf-8")
+        self.assertIn("queue_lane:", text)
+        self.assertIn("default: live", text)
+        self.assertNotIn("concurrency:", text)
+        jobs = job_blocks(text)
+        for name in ("owned-drain", "drain"):
+            with self.subTest(job=name):
+                self.assertIn(
+                    "PR_DASHBOARD_QUEUE_LANE: ${{ inputs.queue_lane || 'live' }}",
+                    jobs[name],
+                )
+
     def test_both_classifier_entry_paths_install_the_sdk_runtime(self) -> None:
         for path, requirements in (
             (REPO_WORKFLOW, '"$DASHBOARD_CODE/requirements.txt"'),

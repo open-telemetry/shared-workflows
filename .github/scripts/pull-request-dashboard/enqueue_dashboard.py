@@ -61,11 +61,11 @@ def main() -> None:
     status_values = (args.status_item_key, args.status_generation, args.status_request_id)
     if any(status_values) and not all(status_values):
         parser.error("request item key, generation, and request ID must be provided together")
-    client = QueueWorkerClient(args.endpoint)
     if args.status_item_key:
         if re.fullmatch(r"[1-9][0-9]*", args.status_generation) is None:
             parser.error("request generation must be a positive integer")
-        results = [client.call(
+        lane = "maintenance" if args.status_item_key.endswith(("#backfill", "#reminders")) else "live"
+        results = [QueueWorkerClient(args.endpoint, lane=lane).call(
             "status", itemKey=args.status_item_key, generation=int(args.status_generation),
             requestId=args.status_request_id,
         )]
@@ -76,6 +76,8 @@ def main() -> None:
         )
         results = []
         for item in work:
+            lane = "live" if item["kind"] == "refresh" else "maintenance"
+            client = QueueWorkerClient(args.endpoint, lane=lane)
             result = client.call("enqueue", **item)
             if (
                 result.get("accepted") is not True or result.get("completed") is not False

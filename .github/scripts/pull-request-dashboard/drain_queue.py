@@ -627,7 +627,7 @@ def load_configured_repositories(
 
 
 def run_owned_drain(args: argparse.Namespace) -> int:
-    client = QueueWorkerClient(args.endpoint)
+    client = QueueWorkerClient(args.endpoint, lane=args.lane)
     activation = client.call("activate", generation=args.generation, workerId=args.worker)
     if activation.get("activated") is not True:
         print("Dispatcher activation was rejected; this run owns no work.")
@@ -707,6 +707,10 @@ def main() -> int:
     parser.add_argument("--worker", required=True)
     parser.add_argument("--endpoint", required=True)
     parser.add_argument(
+        "--lane", choices=("live", "maintenance"),
+        default=os.environ.get("PR_DASHBOARD_QUEUE_LANE", "live"),
+    )
+    parser.add_argument(
         "--canary-repositories-json",
         dest="canary_repositories",
         type=parse_canary_repositories,
@@ -722,7 +726,7 @@ def main() -> int:
         parser.error("--claims is required for a legacy drain")
     initial_claims = load_claims(args.claims)
     configured_repositories = load_configured_repositories()
-    client = QueueWorkerClient(args.endpoint)
+    client = QueueWorkerClient(args.endpoint, lane=args.lane)
     client_id, private_key = take_github_app_credentials()
     token_client = GitHubAppTokenClient(client_id, private_key)
     workflow_dispatcher = DashboardWorkflowDispatcher(

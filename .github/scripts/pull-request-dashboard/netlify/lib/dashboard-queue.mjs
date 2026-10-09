@@ -20,8 +20,29 @@ export const DEFAULT_SHARD_CONCURRENCY = 8;
 
 const SCHEMA_VERSION = 1;
 const DISPATCHER_KEY = "dispatcher";
+const DELIVERY_LEASES_KEY = "delivery-leases";
 const REPOSITORY_PATTERN = /^[A-Za-z0-9_.-]+$/;
 const SHA_PATTERN = /^[0-9a-f]{40}$/;
+
+export function queueLane(kind = "refresh") {
+  if (kind === "refresh") return "live";
+  if (kind === "backfill" || kind === "reminders") return "maintenance";
+  throw new Error("queue item kind is invalid");
+}
+
+export function validateQueueLane(lane) {
+  if (!["live", "maintenance"].includes(lane)) {
+    throw new Error("queue lane must be live or maintenance");
+  }
+  return lane;
+}
+
+export function queueItemLane(itemKey) {
+  if (typeof itemKey !== "string" || !itemKey) {
+    throw new Error("queue item key must be a non-empty string");
+  }
+  return itemKey.endsWith("#backfill") || itemKey.endsWith("#reminders") ? "maintenance" : "live";
+}
 
 export function openQueueStore(name = QUEUE_STORE_NAME) {
   const store = getStore({
@@ -85,6 +106,7 @@ export function queueShardKey(itemKey, shardCount = DEFAULT_SHARD_COUNT) {
 export class DashboardQueue {
   constructor({
     store = openQueueStore(),
+    lane = "live",
     now = () => Date.now(),
     randomId = () => crypto.randomUUID(),
     shardCount = DEFAULT_SHARD_COUNT,
@@ -98,6 +120,8 @@ export class DashboardQueue {
     finishReceiptLimit = DEFAULT_FINISH_RECEIPT_LIMIT,
   } = {}) {
     this.store = store;
+    this.lane = validateQueueLane(lane);
+    this.dispatcherKey = lane === "live" ? DISPATCHER_KEY : "maintenance-dispatcher";
     this.now = now;
     this.randomId = randomId;
     this.shardCount = shardCount;
@@ -112,6 +136,9 @@ export class DashboardQueue {
   }
 
   async enqueue({ repository, prNumber, headSha, triggerEvent, kind = "refresh" }) {
+    if (queueLane(kind) !== this.lane) {
+      throw new Error("queue item belongs to another lane");
+    }
     const itemKey = queueItemKey({ repository, prNumber, headSha, kind });
     const shardKey = queueShardKey(itemKey, this.shardCount);
     const observedAt = this.#isoNow();
@@ -194,7 +221,7 @@ export class DashboardQueue {
   async requestDispatcher(requestOwner = this.randomId(), { replayExisting = false } = {}) {
     const requestedAt = this.#isoNow();
     const expiresAt = this.#isoAfter(this.dispatcherRequestLeaseMs);
-    const mutation = await this.#mutate(DISPATCHER_KEY, emptyDispatcher, (dispatcher) => {
+    const mutation = await this.#mutate(this.dispatcherKey, emptyDispatcher, (dispatcher) => {
       validateDispatcher(dispatcher);
       if (
         replayExisting &&
@@ -244,7 +271,7 @@ export class DashboardQueue {
   }
 
   async releaseRequestedDispatcher({ generation, requestOwner }) {
-    const mutation = await this.#mutate(DISPATCHER_KEY, emptyDispatcher, (dispatcher) => {
+    const mutation = await this.#mutate(this.dispatcherKey, emptyDispatcher, (dispatcher) => {
       validateDispatcher(dispatcher);
       if (
         dispatcher.phase !== "requested" ||
@@ -261,7 +288,7 @@ export class DashboardQueue {
 
   async activateDispatcher({ generation, workerId }) {
     validateWorkerId(workerId);
-    const mutation = await this.#mutate(DISPATCHER_KEY, emptyDispatcher, (dispatcher) => {
+    const mutation = await this.#mutate(this.dispatcherKey, emptyDispatcher, (dispatcher) => {
       validateDispatcher(dispatcher);
       if (
         dispatcher.phase !== "requested" ||
@@ -281,7 +308,7 @@ export class DashboardQueue {
 
   async heartbeat({ generation, workerId }) {
     validateWorkerId(workerId);
-    const dispatcher = await this.#mutate(DISPATCHER_KEY, emptyDispatcher, (state) => {
+    const dispatcher = await this.#mutate(this.dispatcherKey, emptyDispatcher, (state) => {
       validateDispatcher(state);
       if (
         state.phase !== "active" ||
@@ -308,6 +335,7 @@ export class DashboardQueue {
         for (const [itemKey, item] of Object.entries(shard.items)) {
           validateItem(itemKey, item);
           if (
+            queueLane(item.kind) === this.lane &&
             item.phase === "inflight" && item.leaseOwner === workerId &&
             (item.dispatcherGeneration === undefined || item.dispatcherGeneration === generation)
           ) {
@@ -326,6 +354,19 @@ export class DashboardQueue {
     for (const count of counts) {
       itemCount += count;
     }
+    await this.#mutate(DELIVERY_LEASES_KEY, emptyDeliveryLeases, (state) => {
+      validateDeliveryLeases(state);
+      let changed = false;
+      for (const lease of Object.values(state.leases)) {
+        if (!this.#ownsDeliveryLease(lease, generation, workerId)) continue;
+        if (isExpired(lease.leaseExpiresAt, this.now())) {
+          throw new Error("repository delivery lease expired");
+        }
+        lease.leaseExpiresAt = this.#isoAfter(this.dispatcherActiveLeaseMs);
+        changed = true;
+      }
+      return { changed };
+    });
     return {
       dispatcher: true,
       items: itemCount,
@@ -371,6 +412,7 @@ export class DashboardQueue {
       for (const [itemKey, item] of Object.entries(entry.value.items)) {
         validateItem(itemKey, item);
         if (
+          queueLane(item.kind) === this.lane &&
           item.phase === "queued" &&
           !excluded.has(itemKey) &&
           (!item.notBefore || Date.parse(item.notBefore) <= this.now())
@@ -412,6 +454,7 @@ export class DashboardQueue {
           const item = shard.items[itemKey];
           if (
             !item ||
+            queueLane(item.kind) !== this.lane ||
             item.phase !== "queued" ||
             (item.notBefore && Date.parse(item.notBefore) > this.now())
           ) {
@@ -457,6 +500,9 @@ export class DashboardQueue {
     operationId = "",
   }) {
     validateWorkerId(workerId);
+    if (queueItemLane(itemKey) !== this.lane) {
+      throw new Error("queue item belongs to another lane");
+    }
     if (!["success", "retry", "dead", "continue"].includes(outcome)) {
       throw new Error(`unsupported acknowledgment outcome ${outcome}`);
     }
@@ -589,7 +635,7 @@ export class DashboardQueue {
   async finishDispatcher({ generation, workerId, requestSuccessor = true }) {
     validateWorkerId(workerId);
     const receiptKey = operationKey([generation, workerId]);
-    const released = await this.#mutate(DISPATCHER_KEY, emptyDispatcher, (dispatcher) => {
+    const released = await this.#mutate(this.dispatcherKey, emptyDispatcher, (dispatcher) => {
       validateDispatcher(dispatcher);
       const receipt = dispatcher.finishes?.[receiptKey];
       if (receipt) {
@@ -639,7 +685,7 @@ export class DashboardQueue {
         requestOwner: request.requestOwner,
       };
     }
-    const completed = await this.#mutate(DISPATCHER_KEY, emptyDispatcher, (dispatcher) => {
+    const completed = await this.#mutate(this.dispatcherKey, emptyDispatcher, (dispatcher) => {
       validateDispatcher(dispatcher);
       const receipt = dispatcher.finishes?.[receiptKey];
       if (!receipt) {
@@ -658,7 +704,7 @@ export class DashboardQueue {
 
   async claimFinishDispatch({ generation, workerId }) {
     const receiptKey = operationKey([generation, workerId]);
-    const mutation = await this.#mutate(DISPATCHER_KEY, emptyDispatcher, (dispatcher) => {
+    const mutation = await this.#mutate(this.dispatcherKey, emptyDispatcher, (dispatcher) => {
       validateDispatcher(dispatcher);
       const receipt = dispatcher.finishes?.[receiptKey];
       if (receipt?.dispatchState === "dispatched") {
@@ -697,7 +743,7 @@ export class DashboardQueue {
     { generation: dispatchGeneration, requestOwner },
   ) {
     const receiptKey = operationKey([finishGeneration, workerId]);
-    const mutation = await this.#mutate(DISPATCHER_KEY, emptyDispatcher, (dispatcher) => {
+    const mutation = await this.#mutate(this.dispatcherKey, emptyDispatcher, (dispatcher) => {
       validateDispatcher(dispatcher);
       const receipt = dispatcher.finishes?.[receiptKey];
       if (!receipt || receipt.dispatchState !== "dispatching") {
@@ -725,7 +771,7 @@ export class DashboardQueue {
       }
       validateShard(entry.value);
       return Object.values(entry.value.items).some(
-        (item) => item.phase === "queued" &&
+        (item) => queueLane(item.kind) === this.lane && item.phase === "queued" &&
           (!item.notBefore || Date.parse(item.notBefore) <= this.now()),
       );
     });
@@ -746,6 +792,7 @@ export class DashboardQueue {
         for (const [itemKey, item] of Object.entries(shard.items)) {
           validateItem(itemKey, item);
           if (
+            queueLane(item.kind) !== this.lane ||
             item.phase !== "inflight" ||
             !isExpired(item.leaseExpiresAt, this.now())
           ) {
@@ -788,7 +835,7 @@ export class DashboardQueue {
       abandonedItems += abandoned;
     }
 
-    const dispatcher = await this.#mutate(DISPATCHER_KEY, emptyDispatcher, (state) => {
+    const dispatcher = await this.#mutate(this.dispatcherKey, emptyDispatcher, (state) => {
       validateDispatcher(state);
       if (state.phase === "idle" || !isExpired(state.leaseExpiresAt, this.now())) {
         return { changed: false, result: false };
@@ -850,7 +897,8 @@ export class DashboardQueue {
         queued: 0,
         inflight: 0,
         dirty: 0,
-        deadLetters: Object.keys(entry.value.deadLetters).length,
+        deadLetters: Object.values(entry.value.deadLetters)
+          .filter((item) => queueLane(item.kind) === this.lane).length,
         oldestQueuedAt: null,
         oldestUnfinishedAt: null,
         retries: 0,
@@ -859,6 +907,7 @@ export class DashboardQueue {
       };
       for (const [itemKey, item] of Object.entries(entry.value.items)) {
         validateItem(itemKey, item);
+        if (queueLane(item.kind) !== this.lane) continue;
         shard[item.phase] += 1;
         shard.retries += item.attempts > 0 ? 1 : 0;
         shard.backfills += item.kind === "backfill" ? 1 : 0;
@@ -910,7 +959,7 @@ export class DashboardQueue {
   }
 
   async #readDispatcher() {
-    const entry = await this.store.get(DISPATCHER_KEY);
+    const entry = await this.store.get(this.dispatcherKey);
     const dispatcher = entry ? entry.value : emptyDispatcher();
     validateDispatcher(dispatcher);
     return dispatcher;
@@ -927,6 +976,71 @@ export class DashboardQueue {
       throw new Error("worker does not own the active dispatcher");
     }
     return dispatcher;
+  }
+
+  async acquireDeliveryLease({ repository, generation, workerId }) {
+    validateRepository(repository);
+    validateWorkerId(workerId);
+    const ownership = await this.assertDispatcher({ generation, workerId });
+    const mutation = await this.#mutate(DELIVERY_LEASES_KEY, emptyDeliveryLeases, (state) => {
+      validateDeliveryLeases(state);
+      if (isExpired(ownership.leaseExpiresAt, this.now())) {
+        throw new Error("worker does not own the active dispatcher");
+      }
+      const lease = state.leases[repository];
+      const owned = lease && this.#ownsDeliveryLease(lease, generation, workerId);
+      if (lease?.workerId && !owned && !isExpired(lease.leaseExpiresAt, this.now())) {
+        return { changed: false, result: { acquired: false } };
+      }
+      if (owned && isExpired(lease.leaseExpiresAt, this.now())) {
+        throw new Error("repository delivery lease expired");
+      }
+      const leaseGeneration = owned ? lease.generation : (lease?.generation || 0) + 1;
+      state.leases[repository] = {
+        generation: leaseGeneration,
+        dispatcherGeneration: generation,
+        lane: this.lane,
+        workerId,
+        leaseExpiresAt: this.#isoAfter(this.dispatcherActiveLeaseMs),
+      };
+      return {
+        changed: true,
+        result: { acquired: true, leaseGeneration },
+      };
+    });
+    return mutation.result;
+  }
+
+  async releaseDeliveryLease({ repository, generation, workerId, leaseGeneration }) {
+    validateRepository(repository);
+    validateWorkerId(workerId);
+    const mutation = await this.#mutate(DELIVERY_LEASES_KEY, emptyDeliveryLeases, (state) => {
+      validateDeliveryLeases(state);
+      const lease = state.leases[repository];
+      if (
+        lease?.generation === leaseGeneration && lease.workerId === null &&
+        lease.releasedBy === workerId && lease.lane === this.lane &&
+        lease.dispatcherGeneration === generation
+      ) {
+        return { changed: false, result: { released: true } };
+      }
+      if (
+        !lease || !this.#ownsDeliveryLease(lease, generation, workerId) ||
+        lease.generation !== leaseGeneration || isExpired(lease.leaseExpiresAt, this.now())
+      ) {
+        return { changed: false, result: { released: false } };
+      }
+      lease.workerId = null;
+      lease.releasedBy = workerId;
+      lease.leaseExpiresAt = null;
+      return { changed: true, result: { released: true } };
+    });
+    return mutation.result;
+  }
+
+  #ownsDeliveryLease(lease, generation, workerId) {
+    return lease.lane === this.lane &&
+      lease.dispatcherGeneration === generation && lease.workerId === workerId;
   }
 
   async itemStatus({ itemKey, generation, requestId }) {
@@ -964,7 +1078,7 @@ export class DashboardQueue {
 
   async #setFinishDispatchState(generation, workerId, expected, next) {
     const receiptKey = operationKey([generation, workerId]);
-    const mutation = await this.#mutate(DISPATCHER_KEY, emptyDispatcher, (dispatcher) => {
+    const mutation = await this.#mutate(this.dispatcherKey, emptyDispatcher, (dispatcher) => {
       validateDispatcher(dispatcher);
       const receipt = dispatcher.finishes?.[receiptKey];
       if (!receipt || receipt.dispatchState !== expected) {
@@ -1054,6 +1168,30 @@ function emptyDispatcher() {
     updatedAt: null,
     finishes: {},
   };
+}
+
+function emptyDeliveryLeases() {
+  return { schema: SCHEMA_VERSION, leases: {} };
+}
+
+function validateDeliveryLeases(state) {
+  if (!state || state.schema !== SCHEMA_VERSION || !isPlainObject(state.leases)) {
+    throw new Error("repository delivery leases have an unsupported schema");
+  }
+  for (const [repository, lease] of Object.entries(state.leases)) {
+    validateRepository(repository);
+    if (
+      !lease || !Number.isInteger(lease.generation) || lease.generation < 1 ||
+      !Number.isInteger(lease.dispatcherGeneration) || lease.dispatcherGeneration < 1 ||
+      !["live", "maintenance"].includes(lease.lane) ||
+      (lease.workerId !== null && (
+        typeof lease.workerId !== "string" || !lease.workerId ||
+        !Number.isFinite(Date.parse(lease.leaseExpiresAt))
+      ))
+    ) {
+      throw new Error("repository delivery lease has an invalid shape");
+    }
+  }
 }
 
 function validateRepository(repository) {

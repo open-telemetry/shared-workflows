@@ -10,7 +10,8 @@ import tempfile
 import threading
 import time
 from collections import defaultdict
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
+from contextlib import AbstractContextManager, contextmanager, nullcontext
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -89,6 +90,33 @@ class LeaseMonitor:
         # Stop before the server can hand ownership to a replacement. Network
         # time belongs to the lease, not to this worker's execution allowance.
         self.valid_until = started_at + duration / 1000 - 60
+
+    @contextmanager
+    def delivery_lease(self, repository: str) -> Iterator[None]:
+        common = {
+            "repository": repository,
+            "generation": self.generation,
+            "workerId": self.worker_id,
+        }
+        while True:
+            self.assert_valid()
+            result = self.client.call("acquire-delivery", **common)
+            if result.get("acquired") is True:
+                lease_generation = required_positive_int(result, "leaseGeneration")
+                break
+            if result.get("acquired") is not False:
+                raise RuntimeError("queue did not confirm repository delivery ownership")
+            if self.stop_event.wait(2):
+                raise RuntimeError("queue lease monitor stopped while waiting for delivery")
+        try:
+            self.assert_valid()
+            yield
+        finally:
+            result = self.client.call(
+                "release-delivery", leaseGeneration=lease_generation, **common
+            )
+            if result.get("released") is not True:
+                raise RuntimeError("repository delivery lease release was rejected")
 
 
 @dataclass(frozen=True)
@@ -190,6 +218,7 @@ def process_claims(
             config_path,
             env=processor_env,
             lease_check=monitor.assert_valid,
+            delivery_lease=monitor.delivery_lease,
             script_dir=script_dir,
             python_executable=python_executable,
             repository_root=repository_root,
@@ -324,6 +353,7 @@ class DashboardBatchProcessor:
         env: dict[str, str] | None = None,
         run: Callable[..., subprocess.CompletedProcess[str]] = subprocess.run,
         lease_check: Callable[[], None] | None = None,
+        delivery_lease: Callable[[str], AbstractContextManager[None]] = nullcontext,
         python_executable: str = sys.executable,
         repository_root: Path = SCRIPT_DIR.parents[2],
     ) -> None:
@@ -331,6 +361,7 @@ class DashboardBatchProcessor:
         self.base_env = dict(os.environ if env is None else env)
         self.run = run
         self.lease_check = lease_check
+        self.delivery_lease = delivery_lease
         self.python_executable = python_executable
         self.repository_root = repository_root
         config = json.loads(config_path.read_text(encoding="utf-8"))
@@ -446,6 +477,31 @@ class DashboardBatchProcessor:
                         if initial_backfill_complete:
                             ready.append(item)
 
+        if ready or reminders:
+            try:
+                with self.delivery_lease(repository):
+                    results.extend(self._deliver_repository(
+                        repository, state_branch, config, env, ready, reminders, failed_updates
+                    ))
+            except Exception as error:
+                results.extend(
+                    result
+                    for item in ready + reminders
+                    for result in failure_acknowledgments(item.claims, error)
+                )
+        return results
+
+    def _deliver_repository(
+        self,
+        repository: str,
+        state_branch: str,
+        config: dict[str, Any],
+        env: dict[str, str],
+        ready: list[WorkItem],
+        reminders: list[WorkItem],
+        failed_updates: set[tuple[str, int | None]],
+    ) -> list[dict[str, Any]]:
+        results: list[dict[str, Any]] = []
         successful: list[WorkItem] = []
         publish_needed = False
         for item in ready:
@@ -749,10 +805,14 @@ def main() -> int:
     parser.add_argument("--queue-endpoint", required=True)
     parser.add_argument("--dispatcher-generation", type=int, required=True)
     parser.add_argument("--worker-id", required=True)
+    parser.add_argument(
+        "--lane", choices=("live", "maintenance"),
+        default=os.environ.get("PR_DASHBOARD_QUEUE_LANE", "live"),
+    )
     args = parser.parse_args()
 
     claims = load_claims(args.claims)
-    client = QueueWorkerClient(args.queue_endpoint)
+    client = QueueWorkerClient(args.queue_endpoint, lane=args.lane)
     summary, _results = process_claims(
         claims,
         args.results,

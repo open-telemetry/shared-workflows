@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { generateKeyPairSync } from "node:crypto";
 import test from "node:test";
 
-import { createGitHubActionsClient } from "./netlify/lib/github-dispatch.mjs";
+import { createGitHubActionsClient, dispatchQueueDrain } from "./netlify/lib/github-dispatch.mjs";
 import { cancelStalledDashboardRuns } from "./netlify/lib/workflow-watchdog.mjs";
 
 function mockClient(t, jobPages, onRequest) {
@@ -30,11 +30,29 @@ function mockClient(t, jobPages, onRequest) {
     }
     throw new Error(`unexpected GitHub API path: ${request.pathname}`);
   });
+  const config = { clientId: "test", privateKey };
   return {
-    client: createGitHubActionsClient({ clientId: "test", privateKey }),
+    config,
+    client: createGitHubActionsClient(config),
     requestedPages,
   };
 }
+
+test("drain dispatches carry the independently owned lane", async (t) => {
+  const dispatched = [];
+  const { config, client } = mockClient(t, [], (path, options) => {
+    assert.equal(path, "/repos/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard-drain.yml/dispatches");
+    dispatched.push(JSON.parse(options.body));
+    return new Response(null, { status: 204 });
+  });
+  await client;
+  await dispatchQueueDrain(7, "live", config);
+  await dispatchQueueDrain(11, "maintenance", config);
+  assert.deepEqual(dispatched, [
+    { ref: "main", inputs: { dispatcher_generation: "7", queue_lane: "live" } },
+    { ref: "main", inputs: { dispatcher_generation: "11", queue_lane: "maintenance" } },
+  ]);
+});
 
 test("does not cancel when an active job is on a later page", async (t) => {
   const firstPage = Array.from({ length: 100 }, (_, index) => ({
