@@ -1857,17 +1857,13 @@
         "assignees": [],
         "author": "darkraider01",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [
-          "https://github.com/open-telemetry/opentelemetry-rust/pull/3741#issuecomment-5954961005",
-          "https://github.com/open-telemetry/opentelemetry-rust/pull/3741#issuecomment-6062442302"
-        ],
+        "author_action_top_level_feedback_urls": [],
         "author_can_act": true,
-        "author_nudge_episode_id": "18de1432efd848e8871f786fc90dd023",
         "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "aa912015e032573476f1d965a742326b7b2caae00c4b83d4cbaf0fc5556f0f47",
+        "copilot_request_fingerprint": "1251333e9c67f406ccb1a5049050d4115e54242b55663d6d1483f0bef5cc2c09",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -1878,15 +1874,24 @@
         "created_at": "2026-09-16T17:57:28+00:00",
         "dashboard_command_replies": [
           {
-            "comment_id": 6085087216,
-            "kind": "unknown_command",
-            "subcommand": "route:",
+            "comment_id": 6085187749,
+            "head_sha": "2d0623b314e14e6215a755b56b3c6ef46f37c60b",
+            "held_gates": "",
+            "kind": "routed",
+            "persistent_handoff": true,
+            "route": "approver",
+            "since": "2026-10-09T16:42:13Z",
+            "top_level_feedback_cutoff": "2026-10-09T16:42:13Z",
             "user": "darkraider01"
           }
         ],
-        "dashboard_override_command_id": 0,
-        "dashboard_override_command_user": "",
-        "dashboard_override_head_sha": "",
+        "dashboard_override_bound_command_id": 6085187749,
+        "dashboard_override_command_id": 6085187749,
+        "dashboard_override_command_user": "darkraider01",
+        "dashboard_override_head_sha": "2d0623b314e14e6215a755b56b3c6ef46f37c60b",
+        "dashboard_override_persistent": true,
+        "dashboard_override_since": "2026-10-09T16:42:13Z",
+        "dashboard_top_level_feedback_cutoff": "2026-10-09T16:42:13Z",
         "head_sha": "2d0623b314e14e6215a755b56b3c6ef46f37c60b",
         "is_draft": false,
         "is_maintenance_bot": false,
@@ -1912,7 +1917,7 @@
             "login": "cijothomas",
             "open_thread": false,
             "pending_review": false,
-            "top_level_feedback": true,
+            "top_level_feedback": false,
             "unresolved_thread": false
           },
           {
@@ -1948,14 +1953,14 @@
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "6dd225388a7fd0091408885d07de9fbed83dbbe860f6ff555e9716fe07aedc0b",
-        "waiting_age_basis": "oldest_pending_thread",
-        "waiting_since": "2026-10-02T14:47:58+00:00"
+        "routing_input_fingerprint": "ccb0ac6e0daa4c7f70078dad9871758554104609386a276fbcbc288baa57c2da",
+        "waiting_age_basis": "last_author_activity",
+        "waiting_since": "2026-10-09T16:35:49+00:00"
       },
       "failed": false,
       "pr_number": 3741,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-rust/pull/3741",
-      "route": "author",
+      "route": "approver",
       "top_level_history": {
         "pr-issue-comment-5706890465": {
           "evidence": {
