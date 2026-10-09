@@ -12197,7 +12197,7 @@
     },
     "51803": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "IsharaEkanayaka",
         "author_action_review_thread_urls": [],
@@ -12207,7 +12207,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 9,
         "conflicts": "no",
-        "copilot_request_fingerprint": "1a9a38d8797adafb67e5e57507a2ddb5c5be9e90cc167b22c201cb1a856f5aa7",
+        "copilot_request_fingerprint": "cd225ac487d34e2d6c41e5ea7934ee9c4e1467783bcca442b9dfee1b0a87bacb",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -12223,11 +12223,21 @@
         "head_sha": "64577aae67d4e66f0b3321bb24ffeff13368d396",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-10-09T03:48:58+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-10-09T16:53:23+00:00",
+        "last_approver_activity_at": "2026-10-09T16:53:23+00:00",
         "last_author_activity_at": "2026-10-06T04:41:53+00:00",
         "required_checks_settled": false,
         "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "codeboten",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          },
           {
             "approved": false,
             "approved_non_team": true,
@@ -12249,10 +12259,11 @@
             "unresolved_thread": false
           }
         ],
-        "route_held_for_gates": false,
+        "route_held_for_gates": true,
+        "route_held_since": "2026-10-09T16:54:05.771126+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "e8e98f0d67fa6c8b359fd8c4afeae9a5a6d09119d55439695e39e6c0fa4d6934",
-        "waiting_age_basis": "last_author_activity",
+        "routing_input_fingerprint": "5d4208e6cb6aba0584f193635bbf9ae79ab8b4d86369acf06de3027b4d7372d7",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-10-06T04:41:53+00:00"
       },
       "failed": false,
