@@ -83,6 +83,13 @@ class ReviewerSummary:
 
 
 @dataclass(frozen=True)
+class CopilotReviewFallback:
+    quota_failure_ids: tuple[int, ...]
+    attempted_at: str
+    exhausted: bool = False
+
+
+@dataclass(frozen=True)
 class DashboardFacts:
     author: str = ""
     assignees: tuple[str, ...] = ()
@@ -100,6 +107,8 @@ class DashboardFacts:
     dashboard_command_replies: tuple[DashboardCommandReply, ...] = ()
     copilot_review_requested: bool = False
     copilot_review_quota_exhausted: bool = False
+    copilot_review_fallback_available: bool = False
+    copilot_review_fallback_exhausted: bool = False
     copilot_review_exists: bool = False
     copilot_review_stale: bool = False
     copilot_review_needed: bool = False

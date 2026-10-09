@@ -24,6 +24,8 @@ on:
         required: true
       SLACK_WEBHOOK_URL:
         required: true
+      COPILOT_REVIEW_FALLBACK_TOKEN:
+        required: false
 
 permissions:
   contents: read
@@ -153,6 +155,7 @@ jobs:
           # The classifier receives only the Actions token granted copilot-requests: write,
           # never the GitHub App installation token used for repository reads.
           COPILOT_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COPILOT_REVIEW_FALLBACK_AVAILABLE: ${{ secrets.COPILOT_REVIEW_FALLBACK_TOKEN != '' }}
           DASHBOARD_CODE: ${{ steps.dashboard-code.outputs.path }}
           PR_DASHBOARD_TOKEN: ${{ steps.dashboard-token.outputs.token }}
           REPO_NAME: ${{ steps.config.outputs.name }}
@@ -300,6 +303,7 @@ jobs:
         env:
           DASHBOARD_CODE: ${{ steps.dashboard-code.outputs.path }}
           GH_TOKEN: ${{ steps.dashboard-token.outputs.token }}
+          COPILOT_REVIEW_FALLBACK_TOKEN: ${{ secrets.COPILOT_REVIEW_FALLBACK_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
           SLACK_CHANNEL: ${{ steps.config.outputs.slack_channel }}

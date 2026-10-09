@@ -36,6 +36,7 @@ class DrainQueueTest(unittest.TestCase):
             "ACTIONS_ID_TOKEN_REQUEST_TOKEN": "oidc",
             "ACTIONS_ID_TOKEN_REQUEST_URL": "https://oidc.example",
             "COPILOT_GITHUB_TOKEN": "copilot",
+            "COPILOT_REVIEW_FALLBACK_TOKEN": "request-token",
             "GITHUB_TOKEN": "github",
             "PR_DASHBOARD_PRIVATE_KEY": "key",
             "SLACK_WEBHOOK_URL": "https://slack.example",

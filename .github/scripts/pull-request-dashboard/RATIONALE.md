@@ -487,11 +487,9 @@ the implementation understandable and operationally cheap.
   first eligible refresh using its GitHub App installation token. Initial reviews
   and re-reviews share the same delivery checks and confirmation path.
 - GitHub's quota-exhausted notice is a failed attempt even though GitHub records
-  it as a review of the current head. Retrying cannot restore the requester's
-  quota, so a notice disables automatic requests and the Copilot review gate
-  for that PR, including after new pushes. The failure is not counted as a
-  completed review. Manual requests remain possible, and required checks and
-  actionable feedback, including open Copilot findings, still affect routing.
+  it as a review of the current head. It does not satisfy the review gate
+  or confirm delivery. A genuine current-head review still counts if the PR
+  also has a quota-failure notice.
 - A first-review request is reachable only where a re-request already is — the
   pull request would otherwise route to reviewers or maintainers, and Copilot is
   not already a pending requested reviewer.
@@ -506,9 +504,8 @@ the implementation understandable and operationally cheap.
   and a request made while CI runs would otherwise be discarded by the next
   check to finish, one pass at a time, for as long as the suite lasted.
 - Delivery re-validates the review state against live data and discards the
-  request when Copilot has reported quota exhaustion or a review already covers
-  the current head. This catches either outcome when it lands between the
-  observation and delivery.
+  request when a review already covers the current head, which is what
+  happens when one lands between the observation and the delivery.
 - A request counts as delivered only once GitHub shows Copilot as a pending
   reviewer. The mutation answers with success even when GitHub records nothing:
   on one pull request it accepted the same request every hour for nineteen

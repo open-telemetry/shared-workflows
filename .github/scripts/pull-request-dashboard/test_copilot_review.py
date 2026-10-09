@@ -4,11 +4,17 @@ from contextlib import redirect_stderr
 from dataclasses import replace
 from datetime import datetime, timezone
 import io
+import os
+from pathlib import Path
+import tempfile
 import unittest
 from unittest.mock import patch
 
 from copilot_review import (
     REQUEST_CONFIRMATION_ATTEMPTS,
+    copilot_fallback_exhausted,
+    copilot_review_outstanding,
+    copilot_review_unreported,
     copilot_review_status,
     is_copilot_quota_failure,
     open_copilot_finding_urls,
@@ -26,6 +32,12 @@ from dashboard_test_support import (
     review_thread,
     review_thread_comment,
     stored_dashboard_result,
+)
+from dashboard_contracts import CopilotReviewFallback
+from state import (
+    load_copilot_review_fallbacks,
+    load_copilot_review_requests,
+    save_copilot_review_requests,
 )
 from routing_snapshot import build_routing_snapshot
 from pull_request_source import normalize_pull_request_source
@@ -216,12 +228,38 @@ class CopilotFirstReviewRequestTest(unittest.TestCase):
                         copilot_review_quota_exhausted=True,
                         copilot_review_exists=exists,
                         copilot_review_stale=exists,
+                        copilot_review_needed=exists,
                     ),
                     "approver",
                     enabled=True,
                 )
 
                 self.assertFalse(facts.copilot_review_request_needed)
+
+    def test_available_fallback_keeps_gate_and_requests_enabled(self) -> None:
+        for exhausted in (False, True):
+            for exists in (False, True):
+                with self.subTest(exhausted=exhausted, exists=exists):
+                    facts = self.base_facts(
+                        copilot_review_quota_exhausted=True,
+                        copilot_review_fallback_available=True,
+                        copilot_review_fallback_exhausted=exhausted,
+                        copilot_review_exists=exists,
+                        copilot_review_stale=exists,
+                        copilot_review_needed=exists,
+                    )
+                    self.assertEqual(
+                        not exhausted,
+                        set_copilot_review_request_needed(
+                            facts, "approver", enabled=True
+                        ).copilot_review_request_needed,
+                    )
+                    self.assertEqual(
+                        not exhausted, copilot_review_outstanding(facts, enabled=True)
+                    )
+                    self.assertEqual(
+                        not exhausted, copilot_review_unreported(facts, enabled=True)
+                    )
 
     def test_unsettled_checks_do_not_hold_the_first_review_request(self) -> None:
         facts = self.base_facts(
@@ -242,6 +280,166 @@ class CopilotFirstReviewRequestTest(unittest.TestCase):
         )
 
         self.assertFalse(facts.copilot_review_request_needed)
+
+
+class CopilotFallbackDeliveryTest(unittest.TestCase):
+    def setUp(self) -> None:
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        for mock in (
+            patch("state._state_dir", Path(directory.name)),
+            patch("state._using_delivery_state", False),
+            patch.dict(os.environ, {"COPILOT_REVIEW_FALLBACK_TOKEN": "request-token"}),
+        ):
+            mock.start()
+            self.addCleanup(mock.stop)
+        self.snapshot = routing_snapshot(
+            copilot_request_fingerprint="accepted-fingerprint"
+        )
+        self.reviews = []
+        self.request = self.enterContext(patch("copilot_review_delivery.request_copilot_review"))
+        self.enterContext(patch(
+            "copilot_review_delivery.fetch_routing_snapshot",
+            side_effect=lambda *_: self.snapshot,
+        ))
+        self.enterContext(patch(
+            "copilot_review_delivery.fetch_pr_reviews",
+            side_effect=lambda *_: self.reviews,
+        ))
+        self.landed = self.enterContext(patch(
+            "copilot_review_delivery.copilot_review_request_landed", return_value=True
+        ))
+        self.enqueue()
+
+    def enqueue(self, *, quota_exhausted: bool = False) -> None:
+        record_copilot_review_observation(
+            7,
+            review_result(
+                head_sha=self.snapshot.head_sha,
+                copilot_review_request_needed=True,
+                copilot_review_quota_exhausted=quota_exhausted,
+                copilot_request_fingerprint="accepted-fingerprint",
+            ),
+            NOW,
+        )
+
+    def quota_notice(self, review_id: int) -> dict:
+        return {
+            "id": review_id,
+            "user": {"login": "copilot"},
+            "commit_id": "current-head",
+            "body": QUOTA_FAILURE_BODY,
+        }
+
+    def deliver(self) -> list[str]:
+        return deliver_copilot_review_requests("open-telemetry/example", NOW)
+
+    def test_uses_app_until_a_live_quota_notice_arrives(self) -> None:
+        self.assertEqual([], self.deliver())
+        self.request.assert_called_once_with("PR_node")
+        self.assertEqual({}, load_copilot_review_fallbacks())
+
+        self.enqueue()
+        self.reviews = [self.quota_notice(10), self.quota_notice(11)]
+        self.assertEqual([], self.deliver())
+        self.assertEqual(
+            CopilotReviewFallback((10, 11), format_ts(NOW)),
+            load_copilot_review_fallbacks()["7"],
+        )
+        self.request.assert_called_with("PR_node", token="request-token")
+        self.assertEqual(format_ts(NOW), load_copilot_review_requests()["7"]["requested_at"])
+
+    def test_new_push_retains_fallback_after_receipt_intent_is_cleared(self) -> None:
+        self.reviews = [self.quota_notice(10)]
+        self.assertEqual([], self.deliver())
+        save_copilot_review_requests({})
+        self.snapshot = replace(self.snapshot, head_sha="next-head")
+        self.reviews = []
+        self.enqueue()
+        self.assertEqual([], self.deliver())
+        self.assertEqual(2, self.request.call_count)
+        self.request.assert_called_with("PR_node", token="request-token")
+
+    def test_new_notice_stops_fallback_without_repeating_requests(self) -> None:
+        self.reviews = [self.quota_notice(10)]
+        self.landed.return_value = False
+        self.assertEqual([], self.deliver())
+        self.reviews.append(self.quota_notice(11))
+        self.assertEqual([], self.deliver())
+        self.assertTrue(load_copilot_review_fallbacks()["7"].exhausted)
+        self.assertEqual({}, load_copilot_review_requests())
+        self.snapshot = replace(self.snapshot, head_sha="next-head")
+        self.reviews = []
+        self.enqueue()
+        self.assertEqual([], self.deliver())
+        self.request.assert_called_once_with("PR_node", token="request-token")
+
+    def test_old_notices_do_not_stop_a_retry(self) -> None:
+        self.reviews = [self.quota_notice(10)]
+        self.landed.return_value = False
+        self.assertEqual([], self.deliver())
+        self.assertEqual([], self.deliver())
+        self.assertEqual(2, self.request.call_count)
+        self.assertFalse(load_copilot_review_fallbacks()["7"].exhausted)
+
+    def test_request_error_is_reported_without_disabling_fallback(self) -> None:
+        self.reviews = [self.quota_notice(10)]
+        self.request.side_effect = RuntimeError("HTTP 403")
+        self.assertEqual(["PR #7: HTTP 403"], self.deliver())
+        self.assertFalse(load_copilot_review_fallbacks()["7"].exhausted)
+        self.assertEqual("", load_copilot_review_requests()["7"]["requested_at"])
+        self.request.side_effect = None
+        self.assertEqual([], self.deliver())
+
+    def test_missing_secret_disables_requests(self) -> None:
+        self.reviews = [self.quota_notice(10)]
+        with patch.dict(os.environ, {"COPILOT_REVIEW_FALLBACK_TOKEN": ""}):
+            self.assertEqual([], self.deliver())
+        self.request.assert_not_called()
+        self.assertEqual({}, load_copilot_review_fallbacks())
+
+    def test_stored_quota_flag_can_start_fallback_without_original_notice(self) -> None:
+        self.enqueue(quota_exhausted=True)
+        self.assertTrue(load_copilot_review_requests()["7"]["quota_exhausted"])
+        self.assertEqual([], self.deliver())
+        self.request.assert_called_once_with("PR_node", token="request-token")
+
+    def test_pending_request_and_completed_review_do_not_duplicate_requests(self) -> None:
+        self.reviews = [self.quota_notice(10)]
+        self.snapshot = replace(
+            self.snapshot,
+            review_requests=normalize_pull_request_source({
+                "review_requests": [{"__typename": "Bot", "login": "copilot"}]
+            }).review_requests,
+        )
+        self.assertEqual([], self.deliver())
+        self.request.assert_not_called()
+        self.snapshot = replace(self.snapshot, review_requests=())
+        self.enqueue()
+        self.reviews.append({
+            "id": 11,
+            "user": {"login": "copilot"},
+            "commit_id": "current-head",
+            "body": "No issues found.",
+        })
+        self.assertEqual([], self.deliver())
+        self.request.assert_not_called()
+        self.assertEqual({}, load_copilot_review_fallbacks())
+
+    def test_quota_notice_without_id_is_an_error_not_an_unbounded_retry(self) -> None:
+        self.reviews = [self.quota_notice(0)]
+        self.assertEqual(
+            ["PR #7: GitHub returned a Copilot quota notice without a review ID"],
+            self.deliver(),
+        )
+        self.request.assert_not_called()
+
+    def test_only_new_copilot_quota_notices_exhaust_fallback(self) -> None:
+        fallback = CopilotReviewFallback((10,), format_ts(NOW))
+        old = review_source(database_id=10, actor=actor("copilot"), body=QUOTA_FAILURE_BODY)
+        human = replace(old, database_id=11, actor=actor("reviewer"))
+        self.assertFalse(copilot_fallback_exhausted(fallback, (old, human)))
+        self.assertTrue(copilot_fallback_exhausted(fallback, (old, replace(old, database_id=12))))
 
 
 class CopilotReviewRequestStateTest(unittest.TestCase):

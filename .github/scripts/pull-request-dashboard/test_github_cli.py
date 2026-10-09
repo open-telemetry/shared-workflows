@@ -74,6 +74,18 @@ def _rollup_page(nodes):
 
 
 class RunGhJsonTest(unittest.TestCase):
+    @patch("github_cli.subprocess.run")
+    def test_explicit_token_is_scoped_to_a_hidden_subprocess(self, run) -> None:
+        run.return_value = subprocess.CompletedProcess(["gh"], 0, "{}", "")
+        with (
+            patch("github_cli.os.name", "nt"),
+            patch("github_cli.subprocess.CREATE_NO_WINDOW", 0x08000000, create=True),
+        ):
+            run_gh_json(["gh", "api", "/test"], token="request-token")
+        self.assertEqual("request-token", run.call_args.kwargs["env"]["GH_TOKEN"])
+        self.assertEqual(0x08000000, run.call_args.kwargs["creationflags"])
+        self.assertNotIn("request-token", run.call_args.args[0])
+
     @patch("github_cli.sleep_for_retry")
     @patch("github_cli.subprocess.run")
     def test_recovers_from_http_499(self, run, sleep) -> None:
@@ -354,11 +366,18 @@ class GithubCliTest(unittest.TestCase):
                 "pullRequestId": "PR_node_id",
                 "botId": "BOT_kgDOCnlnWA",
             },
+            token=None,
         )
         mutation = graphql.call_args.args[0]
         self.assertIn("requestReviews", mutation)
         self.assertIn("botIds: [$botId]", mutation)
         self.assertIn("union: true", mutation)
+
+    @patch("github_cli.gh_graphql")
+    def test_request_copilot_review_uses_explicit_token(self, graphql) -> None:
+        request_copilot_review("PR_node_id", token="request-token")
+
+        self.assertEqual("request-token", graphql.call_args.kwargs["token"])
 
     @patch("github_cli.gh_graphql")
     def test_fetch_pr_issue_comments_paginates(self, graphql) -> None:

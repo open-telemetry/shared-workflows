@@ -93,6 +93,7 @@ def _run_gh(
             encoding="utf-8",
             errors="replace",
             env=env,
+            creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0,
         )
         if proc.returncode in allowed_exit_codes:
             try:
@@ -154,7 +155,7 @@ def gh_api(path: str, paginate: bool = False, token: str | None = None) -> Any:
     return data
 
 
-def request_copilot_review(pull_request_id: str) -> None:
+def request_copilot_review(pull_request_id: str, token: str | None = None) -> None:
     # Success here only means GitHub accepted the mutation. It does not mean
     # GitHub recorded the reviewer, so callers have to read the pull request
     # back to find out whether the request landed.
@@ -164,6 +165,7 @@ def request_copilot_review(pull_request_id: str) -> None:
             "pullRequestId": pull_request_id,
             "botId": COPILOT_REVIEWER_BOT_ID,
         },
+        token=token,
     )
 
 

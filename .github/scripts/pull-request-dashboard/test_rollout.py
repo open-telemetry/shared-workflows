@@ -70,6 +70,27 @@ def canary_repositories(text: str) -> list[str]:
 
 
 class RolloutWiringTest(unittest.TestCase):
+    def test_optional_review_token_is_wired_without_changing_stable_callers(self) -> None:
+        jobs = job_blocks(REPO_WORKFLOW.read_text(encoding="utf-8"))
+        self.assertIn(
+            "COPILOT_REVIEW_FALLBACK_AVAILABLE: ${{ secrets.COPILOT_REVIEW_FALLBACK_TOKEN != '' }}",
+            jobs["update-dashboard"],
+        )
+        self.assertNotIn(
+            "COPILOT_REVIEW_FALLBACK_TOKEN: ${{", jobs["update-dashboard"],
+        )
+        self.assertIn(
+            "COPILOT_REVIEW_FALLBACK_TOKEN: ${{ secrets.COPILOT_REVIEW_FALLBACK_TOKEN }}",
+            jobs["publish-dashboard"],
+        )
+        for name, body in job_blocks(DRAIN_WORKFLOW.read_text(encoding="utf-8")).items():
+            with self.subTest(job=name):
+                self.assertIn(
+                    "COPILOT_REVIEW_FALLBACK_TOKEN: ${{ secrets.COPILOT_REVIEW_FALLBACK_TOKEN }}",
+                    body,
+                )
+        self.assertNotIn("COPILOT_REVIEW_FALLBACK_TOKEN", workflow_text())
+
     def setUp(self) -> None:
         self.text = workflow_text()
         self.jobs = job_blocks(self.text)
