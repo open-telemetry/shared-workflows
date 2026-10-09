@@ -67,35 +67,39 @@
     "5433": {
       "facts": {
         "approval_count": 1,
-        "assignees": [],
+        "assignees": [
+          "Oberon00",
+          "normj",
+          "rypdal"
+        ],
         "author": "martincostello",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "author_can_act": true,
         "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
-        "ci_pending_count": 0,
+        "ci_pending_count": 1,
         "conflicts": "no",
-        "copilot_request_fingerprint": "7232936ee219e9c851789fcd7c62d0356ab7931b100ba310488924943927829e",
+        "copilot_request_fingerprint": "02216c0f00e76dc1cde89fef15c4b93ee8e191f44958908f99956357339074f5",
         "copilot_review_exists": true,
-        "copilot_review_needed": false,
+        "copilot_review_needed": true,
         "copilot_review_outstanding": false,
         "copilot_review_request_needed": false,
         "copilot_review_requested": false,
-        "copilot_review_stale": false,
+        "copilot_review_stale": true,
         "copilot_review_unreported": false,
         "created_at": "2026-09-30T10:30:07+00:00",
         "dashboard_command_replies": [],
         "dashboard_override_command_id": 0,
         "dashboard_override_command_user": "",
         "dashboard_override_head_sha": "",
-        "head_sha": "30dc7680b06f732dcada6eabe3e180af485e9a56",
+        "head_sha": "a614c75d78d0ef9cde480e6dc2dd5c9b55fb18f7",
         "is_draft": false,
         "is_maintenance_bot": false,
         "last_activity_at": "2026-10-09T13:57:44+00:00",
         "last_approver_activity_at": "2026-10-09T13:57:44+00:00",
         "last_author_activity_at": "2026-09-30T13:52:39+00:00",
-        "required_checks_settled": true,
+        "required_checks_settled": false,
         "reviewers": [
           {
             "approved": true,
@@ -106,13 +110,43 @@
             "pending_review": false,
             "top_level_feedback": false,
             "unresolved_thread": false
+          },
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "normj",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          },
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "Oberon00",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          },
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "rypdal",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
           }
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "1bc6ca31f6a32d5cc94f8c536a1016dbce02c8953f1753b6a277d9ee45ba7c07",
-        "waiting_age_basis": "gate_release",
-        "waiting_since": "2026-09-30T14:01:19.837900+00:00"
+        "routing_input_fingerprint": "ceb9b40964bd4728af28274e122371b79c7a68cad3a27b8f8d53cf6b570f687c",
+        "waiting_age_basis": "last_author_activity",
+        "waiting_since": "2026-09-30T13:52:39+00:00"
       },
       "failed": false,
       "pr_number": 5433,
