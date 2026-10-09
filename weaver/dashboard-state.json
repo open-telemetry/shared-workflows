@@ -761,7 +761,7 @@
     },
     "1813": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "jsuereth",
         "author_action_review_thread_urls": [],
@@ -771,7 +771,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "c5dfd5ed508a0e4c30eeadada869147276a21f5b7617a282c646fbe08683b0a8",
+        "copilot_request_fingerprint": "9eb6f643b0fd5e23fa67a3b5a8483d51bf0ba6d9650f2f6240a93e28794bf752",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -787,21 +787,32 @@
         "head_sha": "1cb3fc8016e01e8797990a0a0d18772da19f8eda",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-10-08T18:41:36+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-10-09T03:10:45+00:00",
+        "last_approver_activity_at": "2026-10-09T03:10:45+00:00",
         "last_author_activity_at": "2026-10-08T18:41:36+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "lmolkova",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "c09a6b9161ccfed352e0858f9be365882e01e304acdb76b661dfbdab7aa2da2a",
+        "routing_input_fingerprint": "ad67e519d4aeffbb5f8f061af9b7401c8826b3d3f7f71864b13c0aa8eeb0a228",
         "waiting_age_basis": "gate_release",
         "waiting_since": "2026-10-08T13:06:05.144366+00:00"
       },
       "failed": false,
       "pr_number": 1813,
       "pr_url": "https://github.com/open-telemetry/weaver/pull/1813",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "845": {
