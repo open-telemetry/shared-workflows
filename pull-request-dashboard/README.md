@@ -160,9 +160,13 @@ timeout. Only the Copilot gate is released: required-check gates and actionable
 feedback, including unresolved, non-outdated Copilot threads, still apply.
 
 Maintainers can optionally configure the `COPILOT_REVIEW_FALLBACK_TOKEN` workflow
-secret with a token allowed to request Copilot reviews. After the first quota
-notice, the dashboard switches review requests to this fallback requester and
-keeps the Copilot gate active under its normal rules. Existing quota notices do
+secret with a token allowed to request Copilot reviews. The legacy workflow
+forwards it to same-ref canary callers for backfills, targeted refreshes, and
+head-SHA refreshes; callers pinned to an older workflow remain unchanged until
+that workflow supports the secret and their secret mappings are updated.
+After the first quota notice, the dashboard switches review requests to this
+fallback requester and keeps the Copilot gate active under its normal rules.
+Existing quota notices do
 not exhaust the fallback; a new quota notice after the fallback attempt does.
 Once the fallback is exhausted, automatic requests stop and the Copilot gate is
 immediately released for that PR, including after later pushes. Required checks

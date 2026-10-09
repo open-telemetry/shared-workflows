@@ -89,7 +89,16 @@ class RolloutWiringTest(unittest.TestCase):
                     "COPILOT_REVIEW_FALLBACK_TOKEN: ${{ secrets.COPILOT_REVIEW_FALLBACK_TOKEN }}",
                     body,
                 )
-        self.assertNotIn("COPILOT_REVIEW_FALLBACK_TOKEN", workflow_text())
+        for prefix in ENTRY_PATHS:
+            with self.subTest(entry_path=prefix):
+                self.assertIn(
+                    "COPILOT_REVIEW_FALLBACK_TOKEN: ${{ secrets.COPILOT_REVIEW_FALLBACK_TOKEN }}",
+                    self.jobs[f"{prefix}-canary"],
+                )
+                self.assertNotIn(
+                    "COPILOT_REVIEW_FALLBACK_TOKEN",
+                    self.jobs[f"{prefix}-stable"],
+                )
 
     def setUp(self) -> None:
         self.text = workflow_text()
