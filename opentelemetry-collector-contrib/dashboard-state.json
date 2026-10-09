@@ -5307,13 +5307,16 @@
         "assignees": [],
         "author": "kangyili",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50392#pullrequestreview-5460033245"
+        ],
         "author_can_act": true,
+        "author_nudge_episode_id": "b9e1fdff192c4bddbbff0849468fba54",
         "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
-        "conflicts": "no",
-        "copilot_request_fingerprint": "b12956b206b1c25fd74e25ebba376f9379682c8b59cb36e4b30d06030631bb4f",
+        "conflicts": "yes",
+        "copilot_request_fingerprint": "fd23cf2be7f3088a3a85396cb4acf95226098e30fffeb4e4750e24bd547b1dbf",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -5351,20 +5354,20 @@
             "login": "krisztianfekete",
             "open_thread": false,
             "pending_review": false,
-            "top_level_feedback": false,
+            "top_level_feedback": true,
             "unresolved_thread": false
           }
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "f36bf1362c116070f3004324af67c552c77e8b013287eaa1534137cd26399386",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-10-08T17:12:56+00:00"
+        "routing_input_fingerprint": "2be7017a5a864e7ea97c5459544996b820cae60576465687b310bde4ce8bfb44",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-10-08T16:48:16+00:00"
       },
       "failed": false,
       "pr_number": 50392,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50392",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     },
     "50396": {
