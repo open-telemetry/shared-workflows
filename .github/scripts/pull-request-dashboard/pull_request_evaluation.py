@@ -22,6 +22,7 @@ from classification_policy import (
 )
 from copilot_review import (
     copilot_review_status,
+    is_copilot_quota_failure,
     is_copilot_reviewer,
     open_copilot_finding_urls,
 )
@@ -262,6 +263,10 @@ def _compute_facts(
         copilot_review_requested=any(
             is_copilot_reviewer(request)
             for request in snapshot.review_requests
+        ),
+        copilot_review_quota_exhausted=(
+            previous_facts.copilot_review_quota_exhausted
+            or any(is_copilot_quota_failure(review) for review in source.reviews)
         ),
         copilot_review_exists=copilot_review_exists,
         copilot_review_stale=copilot_review_stale,

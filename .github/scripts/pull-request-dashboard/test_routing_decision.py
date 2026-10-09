@@ -61,6 +61,46 @@ class RoutingTestMixin:
 
 
 class RoutingDecisionTest(RoutingTestMixin, unittest.TestCase):
+    def test_quota_failure_releases_only_the_copilot_gate(self) -> None:
+        for approval_count, expected_route in (
+            (0, DashboardRoute.APPROVER),
+            (1, DashboardRoute.MAINTAINER),
+        ):
+            for blocker in ("none", "pending-checks", "failing-checks", "feedback"):
+                with self.subTest(approval_count=approval_count, blocker=blocker):
+                    outcome = self.resolve(
+                        dashboard_facts(
+                            head_sha="current-head",
+                            approval_count=approval_count,
+                            copilot_review_quota_exhausted=True,
+                            ci_pending_count=1 if blocker == "pending-checks" else 0,
+                            ci_failing_count=1 if blocker == "failing-checks" else 0,
+                        ),
+                        pending_actions=(
+                            {"thread": {"action": "author"}}
+                            if blocker == "feedback" else {}
+                        ),
+                        previous_route=DashboardRoute.AUTHOR,
+                        previous_facts=dashboard_facts(
+                            head_sha="current-head",
+                            route_held_since="2026-08-16T11:59:00Z",
+                            route_held_for_gates=True,
+                        ),
+                        require_clean_copilot_review=True,
+                    )
+
+                    self.assertEqual(
+                        expected_route if blocker == "none" else DashboardRoute.AUTHOR,
+                        outcome.route,
+                    )
+                    self.assertFalse(outcome.facts.copilot_review_request_needed)
+                    self.assertFalse(outcome.facts.copilot_review_outstanding)
+                    self.assertFalse(outcome.facts.copilot_review_unreported)
+                    self.assertEqual(
+                        blocker == "pending-checks",
+                        outcome.facts.route_held_for_gates,
+                    )
+
     def test_normal_route_has_the_complete_expected_outcome(self) -> None:
         facts = {
             "approval_count": 0,

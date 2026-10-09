@@ -44,6 +44,13 @@ def is_copilot_reviewer(
     return actor.is_copilot_reviewer
 
 
+def is_copilot_quota_failure(review: Review) -> bool:
+    return (
+        is_copilot_reviewer(review)
+        and review.body.strip() == COPILOT_QUOTA_FAILURE_BODY
+    )
+
+
 def open_copilot_findings(
     review_threads: Sequence[ReviewThread],
 ) -> tuple[ReviewThread, ...]:
@@ -90,7 +97,7 @@ def copilot_review_status(
         review
         for review in reviews
         if is_copilot_reviewer(review)
-        and review.body.strip() != COPILOT_QUOTA_FAILURE_BODY
+        and not is_copilot_quota_failure(review)
     ]
     if not copilot_reviews:
         return False, False, False
@@ -106,7 +113,7 @@ def copilot_review_status(
 
 
 def copilot_review_outstanding(facts: DashboardFacts, *, enabled: bool) -> bool:
-    if not enabled:
+    if not enabled or facts.copilot_review_quota_exhausted:
         return False
     return not facts.copilot_review_exists or facts.copilot_review_needed
 
@@ -117,7 +124,7 @@ def copilot_review_unreported(facts: DashboardFacts, *, enabled: bool) -> bool:
     # leave are the author's to clear, and the dashboard already routes the
     # pull request to the author for them. Only a review that is missing or
     # that covers older code is a report that has not arrived.
-    if not enabled:
+    if not enabled or facts.copilot_review_quota_exhausted:
         return False
     return not facts.copilot_review_exists or facts.copilot_review_stale
 
@@ -142,6 +149,7 @@ def set_copilot_review_request_needed(
             or facts.copilot_review_stale
         )
         and not facts.copilot_review_requested
+        and not facts.copilot_review_quota_exhausted
     ))
 
 

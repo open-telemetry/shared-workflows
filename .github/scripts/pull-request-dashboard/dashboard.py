@@ -148,6 +148,10 @@ Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
                                                   reviewer, so a review is in
                                                   flight and the reviewers
                                                   column shows it as pending.
+    copilot_review_quota_exhausted  bool          Copilot reported quota exhaustion
+                                                  on this PR. Automatic requests
+                                                  and its review gate stay
+                                                  disabled across pushes.
     copilot_review_exists           bool          Copilot has reviewed this PR
                                                   at least once, excluding
                                                   quota-failure notices.

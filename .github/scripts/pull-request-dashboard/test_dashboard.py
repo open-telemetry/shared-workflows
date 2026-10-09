@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from argparse import Namespace
 from copy import deepcopy
+from dataclasses import replace
 from datetime import datetime, timezone
 from pathlib import Path
 import tempfile
@@ -433,13 +434,76 @@ class PullRequestEvaluationTest(unittest.IsolatedAsyncioTestCase):
                     assert isinstance(result, EvaluationSuccess)
                     self.assertFalse(result.facts.copilot_review_exists)
                     self.assertEqual(
-                        base_branch == "main",
+                        quota_failure,
+                        result.facts.copilot_review_quota_exhausted,
+                    )
+                    self.assertEqual(
+                        base_branch == "main" and not quota_failure,
                         result.facts.copilot_review_request_needed,
                     )
                     self.assertEqual(
-                        base_branch == "main",
+                        base_branch == "main" and not quota_failure,
                         result.facts.copilot_review_unreported,
                     )
+                    self.assertEqual(
+                        DashboardRoute.APPROVER
+                        if quota_failure or base_branch != "main"
+                        else DashboardRoute.AUTHOR,
+                        result.route,
+                    )
+
+    @patch("pull_request_evaluation.fetch_pull_request_source")
+    async def test_quota_failure_disables_requests_and_gate_across_pushes(
+        self, fetch_raw: Mock
+    ) -> None:
+        for reviews in (
+            (review_source(
+                actor=actor("copilot"),
+                commit_id="old-head",
+                body=(
+                    "Copilot was unable to review this pull request because "
+                    "the user who requested the review has reached their quota limit."
+                ),
+            ),),
+            (),
+            (review_source(
+                actor=actor("copilot"),
+                commit_id="old-head",
+                body="No issues found.",
+            ),),
+        ):
+            with self.subTest(reviews=reviews):
+                fetch_raw.return_value = pull_request_source(
+                    pull_request=pull_request_metadata(
+                        head_sha="new-head",
+                        base_branch="main",
+                    ),
+                    reviews=reviews,
+                )
+                result = await evaluate_pr(
+                    {"number": 7},
+                    previous_result=stored_dashboard_result(
+                        7,
+                        "author",
+                        facts=dashboard_facts(
+                            head_sha="old-head",
+                            copilot_review_quota_exhausted=True,
+                            route_held_since="2026-08-16T11:59:00Z",
+                            route_held_for_gates=True,
+                        ),
+                    ),
+                    require_clean_copilot_review_branches=["main"],
+                )
+
+                self.assertIsInstance(result, EvaluationSuccess)
+                assert isinstance(result, EvaluationSuccess)
+                self.assertTrue(result.facts.copilot_review_quota_exhausted)
+                self.assertFalse(result.facts.copilot_review_request_needed)
+                self.assertFalse(result.facts.copilot_review_outstanding)
+                self.assertFalse(result.facts.copilot_review_unreported)
+                self.assertFalse(result.facts.route_held_for_gates)
+                self.assertIsNone(result.facts.route_held_since)
+                self.assertEqual(DashboardRoute.APPROVER, result.route)
 
     def test_compute_facts_uses_prepared_approval_count(self) -> None:
         raw = self.raw_pr()
@@ -679,6 +743,35 @@ class PullRequestEvaluationTest(unittest.IsolatedAsyncioTestCase):
                 unresolved_thread=True,
             ),
             ungated_result.facts.reviewers,
+        )
+
+        fetch_raw.return_value = replace(
+            fetch_raw.return_value,
+            reviews=(
+                *fetch_raw.return_value.reviews,
+                review_source(
+                    actor=actor("copilot"),
+                    body=(
+                        "Copilot was unable to review this pull request because "
+                        "the user who requested the review has reached their quota limit."
+                    ),
+                ),
+            ),
+        )
+        quota_result = await evaluate_pr(
+            {"number": 7},
+            require_clean_copilot_review_branches=["main"],
+            classification_service=classifier,
+        )
+
+        self.assertIsInstance(quota_result, EvaluationSuccess)
+        assert isinstance(quota_result, EvaluationSuccess)
+        self.assertTrue(quota_result.facts.copilot_review_quota_exhausted)
+        self.assertFalse(quota_result.facts.copilot_review_outstanding)
+        self.assertEqual(DashboardRoute.AUTHOR, quota_result.route)
+        self.assertEqual(
+            (thread_url,),
+            quota_result.facts.author_action_review_thread_urls,
         )
 
     @patch("pull_request_evaluation.fetch_pull_request_source")
@@ -2515,8 +2608,9 @@ class CopilotReviewGateTest(unittest.TestCase):
 
         self.assertFalse(facts.copilot_review_exists)
         self.assertFalse(facts.copilot_review_stale)
+        self.assertTrue(facts.copilot_review_quota_exhausted)
         facts = set_copilot_review_request_needed(facts, "approver", enabled=True)
-        self.assertTrue(facts.copilot_review_request_needed)
+        self.assertFalse(facts.copilot_review_request_needed)
 
     def test_pending_first_review_request_is_not_duplicated(self) -> None:
         facts = dashboard_facts(

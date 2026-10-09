@@ -10,6 +10,7 @@ from unittest.mock import patch
 from copilot_review import (
     REQUEST_CONFIRMATION_ATTEMPTS,
     copilot_review_status,
+    is_copilot_quota_failure,
     open_copilot_finding_urls,
     set_copilot_review_request_needed,
     stale_request_reason,
@@ -114,6 +115,22 @@ class CopilotFindingLifecycleTest(unittest.TestCase):
 
 
 class CopilotReviewStatusTest(unittest.TestCase):
+    def test_quota_failure_requires_the_copilot_actor_and_exact_notice(self) -> None:
+        failure = review_source(
+            actor=actor("copilot"),
+            body=QUOTA_FAILURE_BODY,
+        )
+        self.assertTrue(is_copilot_quota_failure(failure))
+        self.assertTrue(is_copilot_quota_failure(
+            replace(failure, body=f"\n{QUOTA_FAILURE_BODY}\n")
+        ))
+        self.assertFalse(is_copilot_quota_failure(
+            replace(failure, actor=actor("reviewer"))
+        ))
+        self.assertFalse(is_copilot_quota_failure(
+            replace(failure, body=f"Handle this failure:\n> {QUOTA_FAILURE_BODY}")
+        ))
+
     def test_quota_failures_do_not_count_as_completed_reviews(self) -> None:
         quota_failure = review_source(
             actor=actor("copilot-pull-request-reviewer[bot]"),
@@ -190,6 +207,21 @@ class CopilotFirstReviewRequestTest(unittest.TestCase):
         )
 
         self.assertFalse(facts.copilot_review_request_needed)
+
+    def test_quota_failure_disables_initial_requests_and_re_reviews(self) -> None:
+        for exists in (False, True):
+            with self.subTest(review_exists=exists):
+                facts = set_copilot_review_request_needed(
+                    self.base_facts(
+                        copilot_review_quota_exhausted=True,
+                        copilot_review_exists=exists,
+                        copilot_review_stale=exists,
+                    ),
+                    "approver",
+                    enabled=True,
+                )
+
+                self.assertFalse(facts.copilot_review_request_needed)
 
     def test_unsettled_checks_do_not_hold_the_first_review_request(self) -> None:
         facts = self.base_facts(
@@ -412,22 +444,16 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
             },
         })
 
-    def test_requests_review_after_quota_failure_and_confirms_delivery(self) -> None:
+    def test_quota_failure_discards_queued_requests_even_after_a_push(self) -> None:
         entry = {
             "head_sha": "current-head",
             "observed_at": "2026-07-20T01:00:00+00:00",
             "requested_at": "",
             "copilot_request_fingerprint": "accepted-fingerprint",
         }
-        failed_reviews = [{
-            "user": {"login": "copilot-pull-request-reviewer[bot]"},
-            "commit_id": "current-head",
-            "state": "COMMENTED",
-            "body": QUOTA_FAILURE_BODY,
-        }]
-        for pending in (True, False):
+        for failed_head in ("current-head", "old-head"):
             with (
-                self.subTest(pending=pending),
+                self.subTest(failed_head=failed_head),
                 patch(
                     "copilot_review_delivery.load_copilot_review_requests",
                     return_value={"7": entry},
@@ -443,23 +469,16 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
                 ),
                 patch(
                     "copilot_review_delivery.fetch_pr_reviews",
-                    return_value=failed_reviews,
+                    return_value=[{
+                        "user": {"login": "copilot-pull-request-reviewer[bot]"},
+                        "commit_id": failed_head,
+                        "state": "COMMENTED",
+                        "body": QUOTA_FAILURE_BODY,
+                    }],
                 ),
                 patch(
                     "copilot_review_delivery.request_copilot_review",
                 ) as request_review,
-                patch(
-                    "copilot_review.fetch_review_requests",
-                    return_value=(
-                        [{"__typename": "Bot", "login": "copilot-pull-request-reviewer"}]
-                        if pending else []
-                    ),
-                ),
-                patch(
-                    "copilot_review.fetch_pr_reviews",
-                    return_value=failed_reviews,
-                ),
-                patch("copilot_review.sleep_for_retry"),
                 redirect_stderr(io.StringIO()) as stderr,
             ):
                 errors = deliver_copilot_review_requests(
@@ -467,18 +486,13 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
                 )
 
                 self.assertEqual([], errors)
-                request_review.assert_called_once_with("PR_node")
-                save_requests.assert_called_once_with({
-                    "7": {
-                        **entry,
-                        "requested_at": format_ts(NOW) if pending else "",
-                    },
-                })
-                if not pending:
-                    self.assertIn(
-                        "GitHub did not record the Copilot review request",
-                        stderr.getvalue(),
-                    )
+                request_review.assert_not_called()
+                save_requests.assert_called_once_with({})
+                self.assertIn(
+                    "Copilot reported quota exhaustion; automatic requests "
+                    "are disabled for this pull request",
+                    stderr.getvalue(),
+                )
 
     @patch("copilot_review_delivery.request_copilot_review")
     @patch("copilot_review_delivery.fetch_pr_reviews")

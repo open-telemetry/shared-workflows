@@ -99,6 +99,7 @@ class DashboardFacts:
     dashboard_override_cleared_by_feedback: bool = False
     dashboard_command_replies: tuple[DashboardCommandReply, ...] = ()
     copilot_review_requested: bool = False
+    copilot_review_quota_exhausted: bool = False
     copilot_review_exists: bool = False
     copilot_review_stale: bool = False
     copilot_review_needed: bool = False

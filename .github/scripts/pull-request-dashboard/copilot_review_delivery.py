@@ -9,6 +9,7 @@ import sys
 from copilot_review import (
     copilot_review_request_landed,
     copilot_review_status,
+    is_copilot_quota_failure,
     is_copilot_reviewer,
     stale_request_reason,
 )
@@ -90,6 +91,15 @@ def deliver_copilot_review_requests(
             reviews = normalize_reviews(
                 fetch_pr_reviews(owner, repo_name, pr_number)
             )
+            if any(is_copilot_quota_failure(review) for review in reviews):
+                print(
+                    f"discarding Copilot review request for PR #{pr_number}: "
+                    "Copilot reported quota exhaustion; automatic requests "
+                    "are disabled for this pull request",
+                    file=sys.stderr,
+                )
+                requests.pop(key, None)
+                continue
             review_exists, review_stale, _review_findings = (
                 copilot_review_status(
                     reviews,

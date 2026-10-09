@@ -694,6 +694,10 @@ def decode_dashboard_facts(value: Any) -> DashboardFacts:
             value.get("copilot_review_requested", _MISSING),
             "facts.copilot_review_requested",
         ),
+        copilot_review_quota_exhausted=_boolean(
+            value.get("copilot_review_quota_exhausted", _MISSING),
+            "facts.copilot_review_quota_exhausted",
+        ),
         copilot_review_exists=_boolean(
             value.get("copilot_review_exists", _MISSING),
             "facts.copilot_review_exists",
@@ -862,6 +866,8 @@ def encode_dashboard_facts(facts: DashboardFacts) -> dict[str, Any]:
             for reviewer in facts.reviewers
         ],
     }
+    if facts.copilot_review_quota_exhausted:
+        stored["copilot_review_quota_exhausted"] = True
     if facts.dashboard_override_bound_command_id:
         stored["dashboard_override_bound_command_id"] = (
             facts.dashboard_override_bound_command_id

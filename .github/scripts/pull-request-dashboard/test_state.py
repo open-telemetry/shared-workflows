@@ -360,6 +360,7 @@ class StateTest(unittest.TestCase):
                 ),
             ),
             copilot_review_requested=True,
+            copilot_review_quota_exhausted=True,
             copilot_review_exists=True,
             copilot_review_stale=True,
             copilot_review_needed=True,
@@ -438,6 +439,11 @@ class StateTest(unittest.TestCase):
                 },
                 pr_number_hint=123,
             ).route,
+        )
+
+    def test_legacy_facts_do_not_invent_copilot_quota_exhaustion(self) -> None:
+        self.assertFalse(
+            decode_dashboard_facts({}).copilot_review_quota_exhausted
         )
 
     def test_first_review_clock_in_stored_facts_is_ignored(self) -> None:
