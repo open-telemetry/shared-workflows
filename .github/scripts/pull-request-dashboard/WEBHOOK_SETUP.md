@@ -403,6 +403,12 @@ The stable rollout pins remain unchanged throughout.
 
 ### Upgrade an owned installation
 
+Git checkout isolation is supplied by the current drain worker, including for
+pinned stable scripts. It needs no release promotion or queue migration. For
+that worker upgrade, use the same pause-and-retire sequence below; all
+pre-upgrade drains in both lanes must retire before resuming with isolated
+checkouts.
+
 Before merging or deploying a change to execution lanes or delivery ownership,
 pause the bridge and GitHub with the commands above, then let every pre-upgrade
 drain finish, including runs waiting for a runner. Do not run workers with
