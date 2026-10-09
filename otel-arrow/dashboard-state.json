@@ -656,7 +656,9 @@
         "approval_count": 0,
         "assignees": [],
         "author": "ngowran",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/otel-arrow/pull/4186#discussion_r4233394976"
+        ],
         "author_action_top_level_feedback_urls": [],
         "author_can_act": true,
         "author_nudge_episode_id": "1d82d76384ba4cac801f56e782737ccd",
@@ -664,13 +666,13 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 1,
         "conflicts": "no",
-        "copilot_request_fingerprint": "12f4194025cfc50288b553bb70ec0ee919007e1161f718f691ed2fb6736d55de",
+        "copilot_request_fingerprint": "48688f1c357a07190e6af2d1ddbb817c028e18904cdda0321147806701a4201f",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
         "copilot_review_outstanding": false,
         "copilot_review_request_needed": false,
-        "copilot_review_requested": true,
-        "copilot_review_stale": true,
+        "copilot_review_requested": false,
+        "copilot_review_stale": false,
         "copilot_review_unreported": false,
         "created_at": "2026-09-29T15:12:34+00:00",
         "dashboard_command_replies": [],
@@ -684,13 +686,24 @@
         "last_approver_activity_at": "",
         "last_author_activity_at": "2026-10-09T18:31:13+00:00",
         "required_checks_settled": false,
-        "reviewers": [],
-        "route_held_for_gates": true,
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "copilot-pull-request-reviewer[bot]",
+            "open_thread": true,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": true
+          }
+        ],
+        "route_held_for_gates": false,
         "route_held_since": "2026-10-09T18:31:53.001042+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "30bf0e876b383d6e92da89339e154fee6584426060ee2a7b6ec5b83b313d3303",
-        "waiting_age_basis": "gate_hold",
-        "waiting_since": "2026-10-09T15:02:29+00:00"
+        "routing_input_fingerprint": "7754025c53be7f87cdfd184c6039f0d9f0628a3a02d8e8108113d7007c684215",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-10-09T18:37:02+00:00"
       },
       "failed": false,
       "pr_number": 4186,
