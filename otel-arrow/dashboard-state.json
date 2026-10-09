@@ -1537,7 +1537,7 @@
     },
     "4332": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "adgrieco",
         "author_action_review_thread_urls": [],
@@ -1547,7 +1547,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "9b2e495f44546e2ec223c502417b9b7475ad971485507ef2752a7d53f0225e10",
+        "copilot_request_fingerprint": "70ba4317d8c31e47f8b495bbceaf77ca6f04bc34f969452cacb1df2afc2a62dd",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
         "copilot_review_outstanding": false,
@@ -1563,21 +1563,32 @@
         "head_sha": "8157e15596154a421d687424ae6ca69918cd0b3d",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-10-09T20:00:07+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-10-09T20:34:11+00:00",
+        "last_approver_activity_at": "2026-10-09T20:34:11+00:00",
         "last_author_activity_at": "2026-10-09T20:00:07+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "utpilla",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "f805d240b49a1419b54d3fcb7239d88e18fbbdd5a9263455f330704bbfb4bf1f",
+        "routing_input_fingerprint": "72f0ce66f42c004d2c028c46f543fc2f46ebf138fe63f559d80911927321a4d9",
         "waiting_age_basis": "gate_release",
         "waiting_since": "2026-10-09T19:44:18.507195+00:00"
       },
       "failed": false,
       "pr_number": 4332,
       "pr_url": "https://github.com/open-telemetry/otel-arrow/pull/4332",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "4333": {
