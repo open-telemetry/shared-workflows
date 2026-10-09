@@ -2947,10 +2947,9 @@
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "author_can_act": true,
-        "author_nudge_episode_id": "3bfbcc9c1f024a27b56f8d3f86ab6b65",
         "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
-        "ci_pending_count": 1,
+        "ci_pending_count": 0,
         "conflicts": "no",
         "copilot_request_fingerprint": "a7d2989bf41062df23802c466adec68e050c32cdcc99fc603735bb2f0320ea98",
         "copilot_review_exists": true,
@@ -2971,7 +2970,7 @@
         "last_activity_at": "2026-10-09T19:00:33+00:00",
         "last_approver_activity_at": "",
         "last_author_activity_at": "2026-10-09T19:00:33+00:00",
-        "required_checks_settled": false,
+        "required_checks_settled": true,
         "reviewers": [
           {
             "approved": false,
@@ -2984,17 +2983,16 @@
             "unresolved_thread": false
           }
         ],
-        "route_held_for_gates": true,
-        "route_held_since": "2026-10-09T19:01:29.782833+00:00",
+        "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "cb74282c4d3456afead1f5a4cb113e0fc56f80a497b07237bd1b4b12fc8ecd2e",
-        "waiting_age_basis": "gate_hold",
-        "waiting_since": "2026-10-09T19:00:33+00:00"
+        "routing_input_fingerprint": "c1961a0bc18321907dcbffcf7a0129ff81969c882bd6334380dd3bded4af297c",
+        "waiting_age_basis": "gate_release",
+        "waiting_since": "2026-10-09T19:23:36.684419+00:00"
       },
       "failed": false,
       "pr_number": 20478,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20478",
-      "route": "author",
+      "route": "approver",
       "top_level_history": {}
     },
     "20481": {
