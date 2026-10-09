@@ -836,7 +836,9 @@
         "approval_count": 1,
         "assignees": [],
         "author": "MrAlias",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry-ebpf-instrumentation/pull/3679#discussion_r4225902356"
+        ],
         "author_action_top_level_feedback_urls": [
           "https://github.com/open-telemetry/opentelemetry-ebpf-instrumentation/pull/3679#issuecomment-6072639163"
         ],
@@ -846,14 +848,14 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "bb5fb370bfa7d4c06633f53659a25f19415188fa8251634f3263693b0ae7fa25",
-        "copilot_review_exists": false,
-        "copilot_review_needed": false,
+        "copilot_request_fingerprint": "d443256e4fae90d9a36b3dd52d3c65e1a5828def7da5cdacf057daf06b2f5566",
+        "copilot_review_exists": true,
+        "copilot_review_needed": true,
         "copilot_review_outstanding": true,
         "copilot_review_request_needed": false,
-        "copilot_review_requested": true,
+        "copilot_review_requested": false,
         "copilot_review_stale": false,
-        "copilot_review_unreported": true,
+        "copilot_review_unreported": false,
         "created_at": "2026-10-07T20:23:41+00:00",
         "dashboard_command_replies": [],
         "dashboard_override_command_id": 0,
@@ -867,6 +869,16 @@
         "last_author_activity_at": "2026-10-08T15:24:04+00:00",
         "required_checks_settled": true,
         "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "copilot-pull-request-reviewer[bot]",
+            "open_thread": true,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": true
+          },
           {
             "approved": true,
             "approved_non_team": false,
@@ -889,9 +901,8 @@
           }
         ],
         "route_held_for_gates": false,
-        "route_held_since": "2026-10-08T20:10:41.630815+00:00",
-        "route_hold_expired": true,
-        "routing_input_fingerprint": "e1a662d425d02aa03ec00099a50ddf7de74c2b0b1e4cf83dc6866384db64234d",
+        "route_hold_expired": false,
+        "routing_input_fingerprint": "07edd4eb355ce0c409736ccd33dc5c474a7cab01a97d6e7b6f8014808d483b11",
         "waiting_age_basis": "oldest_pending_thread",
         "waiting_since": "2026-10-09T01:53:07+00:00"
       },
