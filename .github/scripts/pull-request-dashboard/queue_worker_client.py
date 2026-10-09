@@ -17,7 +17,9 @@ from pathlib import Path
 from typing import Any
 
 OIDC_AUDIENCE = "otel-pr-dashboard-queue"
-RETRYABLE_ACTIONS = frozenset({"acknowledge", "finish", "heartbeat", "stats"})
+RETRYABLE_ACTIONS = frozenset({
+    "acknowledge", "finish", "heartbeat", "stats", "acquire-delivery", "release-delivery",
+})
 RETRYABLE_HTTP_STATUSES = frozenset({502, 503, 504})
 MAX_ATTEMPTS = 4
 INITIAL_BACKOFF_SECONDS = 1.0
@@ -29,6 +31,7 @@ class QueueWorkerClient:
         self,
         endpoint: str,
         *,
+        lane: str = "live",
         oidc_request_url: str | None = None,
         oidc_request_token: str | None = None,
         opener: Any = urllib.request.urlopen,
@@ -37,6 +40,9 @@ class QueueWorkerClient:
         operation_id_factory: Any = lambda: uuid.uuid4().hex,
     ) -> None:
         self.endpoint = endpoint
+        if lane not in {"live", "maintenance"}:
+            raise ValueError("queue lane must be live or maintenance")
+        self.lane = lane
         self.oidc_request_url = oidc_request_url or os.environ.get("ACTIONS_ID_TOKEN_REQUEST_URL", "")
         self.oidc_request_token = oidc_request_token or os.environ.get(
             "ACTIONS_ID_TOKEN_REQUEST_TOKEN", ""
@@ -51,7 +57,7 @@ class QueueWorkerClient:
             raise ValueError("GitHub OIDC request configuration is missing")
 
     def call(self, action: str, **payload: Any) -> dict[str, Any]:
-        request_payload = {"action": action, **payload}
+        request_payload = {"action": action, "lane": self.lane, **payload}
         if action == "acknowledge":
             if "operationId" not in request_payload:
                 request_payload["operationId"] = self.operation_id_factory()
@@ -187,6 +193,10 @@ def acknowledge_results(
 def main() -> int:
     parser = argparse.ArgumentParser(description="Call the Netlify dashboard queue worker API.")
     parser.add_argument("--endpoint", default=os.environ.get("PR_DASHBOARD_QUEUE_ENDPOINT", ""))
+    parser.add_argument(
+        "--lane", choices=("live", "maintenance"),
+        default=os.environ.get("PR_DASHBOARD_QUEUE_LANE", "live"),
+    )
     parser.add_argument("--generation", type=int, required=True)
     parser.add_argument("--worker-id", required=True)
     subparsers = parser.add_subparsers(dest="action", required=True)
@@ -210,7 +220,7 @@ def main() -> int:
     stats.add_argument("--output", type=Path)
 
     args = parser.parse_args()
-    client = QueueWorkerClient(args.endpoint)
+    client = QueueWorkerClient(args.endpoint, lane=args.lane)
     common = {
         "generation": args.generation,
         "workerId": args.worker_id,

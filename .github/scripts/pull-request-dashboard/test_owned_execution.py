@@ -43,7 +43,7 @@ class OwnedExecutionTest(unittest.TestCase):
     def test_rejected_activation_claims_nothing_and_does_not_mint_credentials(self) -> None:
         client = mock.Mock()
         client.call.return_value = {"activated": False}
-        args = argparse.Namespace(endpoint="https://example.test", generation=1, worker="old")
+        args = argparse.Namespace(endpoint="https://example.test", lane="live", generation=1, worker="old")
         with (
             mock.patch.object(drain_queue, "QueueWorkerClient", return_value=client),
             mock.patch.object(drain_queue, "take_github_app_credentials") as credentials,
@@ -209,6 +209,30 @@ class OwnedExecutionTest(unittest.TestCase):
                 "status", itemKey="example#pr:1", generation=1, requestId="request",
             )
             self.assertIn("| `request` | unknown |", summary.read_text(encoding="utf-8"))
+
+    def test_enqueue_and_progress_use_the_work_lane(self) -> None:
+        for flags, expected_lane in [
+            (["--repository", "shared-workflows", "--trigger-event", "schedule"], "maintenance"),
+            (["--repository", "shared-workflows", "--reminders"], "maintenance"),
+            (["--repository", "shared-workflows", "--pr-number", "1"], "live"),
+            ([
+                "--status-item-key", "shared-workflows#backfill",
+                "--status-generation", "1", "--status-request-id", "request",
+            ], "maintenance"),
+        ]:
+            with self.subTest(lane=expected_lane, flags=flags):
+                client = mock.Mock()
+                client.call.return_value = {
+                    "accepted": True, "completed": False, "requestId": "request",
+                }
+                with (
+                    mock.patch.dict(os.environ, {}, clear=True),
+                    mock.patch.object(sys, "argv", ["enqueue_dashboard.py", *flags]),
+                    mock.patch.object(sys, "stdout", io.StringIO()),
+                    mock.patch.object(enqueue_dashboard, "QueueWorkerClient", return_value=client) as factory,
+                ):
+                    enqueue_dashboard.main()
+                factory.assert_called_once_with("", lane=expected_lane)
 
     def test_enqueue_requires_a_trackable_acceptance(self) -> None:
         client = mock.Mock()
