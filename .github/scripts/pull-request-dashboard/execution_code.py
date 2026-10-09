@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import re
 import shutil
+import subprocess
 import sys
 import tarfile
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -45,6 +47,32 @@ class ExecutionCodeLoader:
         self.env = env
         self.repository_root = repository_root
         self.bundles: dict[str, ExecutionCode] = {}
+        self.checkouts: dict[str, Path] = {}
+
+    def checkout(self, repository: str) -> Path:
+        if re.fullmatch(r"[A-Za-z0-9_.-]+", repository) is None or repository in {".", ".."}:
+            raise ValueError("dashboard execution requires a repository name")
+        self.monitor.assert_valid()
+        if repository in self.checkouts:
+            return self.checkouts[repository]
+        origin = self._run(["git", "remote", "get-url", "origin"]).stdout.strip()
+        checkout_root = self.root / "checkouts"
+        checkout_root.mkdir(parents=True, exist_ok=True)
+        directory = Path(tempfile.mkdtemp(prefix=f"{repository}-", dir=checkout_root))
+        # Transport cloning copies objects without sharing worktree metadata or alternates.
+        self._run([
+            "git", "clone", "--quiet", "--no-checkout", "--no-local", "--depth=1",
+            "--single-branch", "--no-tags", "--", str(self.repository_root.resolve()), str(directory),
+        ])
+        self._run(["git", "-C", str(directory), "remote", "set-url", "origin", origin])
+        # Force-with-lease must resolve the tracking ref for every state branch.
+        self._run([
+            "git", "-C", str(directory), "config", "--replace-all", "remote.origin.fetch",
+            "+refs/heads/*:refs/remotes/origin/*",
+        ])
+        self.checkouts[repository] = directory
+        print(f"Prepared isolated dashboard Git checkout for {repository}")
+        return directory
 
     def load(self, ref: str) -> ExecutionCode:
         if SHA.fullmatch(ref) is None:
@@ -75,7 +103,7 @@ class ExecutionCodeLoader:
         print(f"Prepared immutable dashboard execution code {ref}")
         return result
 
-    def _run(self, command: list[str]) -> None:
+    def _run(self, command: list[str]) -> subprocess.CompletedProcess[str]:
         completed = run_monitored(
             command, self.monitor.assert_valid, cwd=self.repository_root, env=self.env
         )
@@ -83,3 +111,4 @@ class ExecutionCodeLoader:
             raise RuntimeError(
                 f"dashboard code preparation failed: {command[0]}: {completed.stderr}"
             )
+        return completed

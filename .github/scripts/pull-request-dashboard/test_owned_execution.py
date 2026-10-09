@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import concurrent.futures
 import json
 import io
 import os
@@ -8,6 +9,8 @@ import subprocess
 import sys
 import tempfile
 import tarfile
+import textwrap
+import threading
 import time
 import unittest
 from pathlib import Path
@@ -285,15 +288,134 @@ class OwnedExecutionTest(unittest.TestCase):
                     [claim], result_path, client, 1, "worker", token_client,
                     canary_repositories=frozenset(), configured_repositories=frozenset({"example"}),
                     resolve_stable_head=mock.Mock(), dispatch_stable=dispatch,
-                    execution_code={"example": code}, lease_monitor=monitor,
+                    execution_code={"example": code},
+                    repository_roots={"example": Path("isolated-checkout")},
+                    lease_monitor=monitor,
                     report_limits=mock.Mock(),
                 )
             dispatch.assert_not_called()
             self.assertEqual(process.call_args.kwargs["script_dir"], Path("promoted-code"))
             self.assertEqual(process.call_args.kwargs["python_executable"], "promoted-python")
+            self.assertEqual(process.call_args.kwargs["repository_root"], Path("isolated-checkout"))
             # Omitting config_path deliberately uses the current worker's configuration.
             self.assertNotIn("config_path", process.call_args.kwargs)
             self.assertNotIn("PR_DASHBOARD_PRIVATE_KEY", process.call_args.kwargs["processor_env"])
+
+    def test_owned_wave_requires_an_isolated_checkout_before_processing(self) -> None:
+        claim = Claim("example#pr:1", 1, "example", 1, "", 0)
+        code = ExecutionCode("a" * 40, Path("promoted-code"), "promoted-python")
+        for codes, roots in (
+            ({"example": code}, None),
+            ({"example": code}, {}),
+            ({}, {"example": Path("isolated-checkout")}),
+        ):
+            with (
+                self.subTest(codes=codes, roots=roots),
+                mock.patch.object(drain_queue, "process_repository_claims") as process,
+                self.assertRaisesRegex(RuntimeError, "requires isolated Git checkouts"),
+            ):
+                drain_queue.process_claim_wave(
+                    [claim], Path("unused.json"), mock.Mock(), 1, "worker", mock.Mock(),
+                    canary_repositories=frozenset(), configured_repositories=frozenset({"example"}),
+                    resolve_stable_head=mock.Mock(), dispatch_stable=mock.Mock(),
+                    execution_code=codes, repository_roots=roots,
+                )
+            process.assert_not_called()
+
+    def test_owned_waves_preserve_code_selection_and_clean_up_checkouts(self) -> None:
+        client = mock.Mock()
+        claims = [
+            {"itemKey": f"{repository}#pr:1", "repository": repository, "claimGeneration": 1, "prNumber": 1}
+            for repository in ("canary", "stable")
+        ]
+        waves = iter([claims, claims, []])
+        client.call.side_effect = lambda action, **_kwargs: (
+            {"activated": True} if action == "activate"
+            else {"claims": next(waves)} if action == "claim"
+            else {}
+        )
+        monitor = mock.Mock(spec=LeaseMonitor)
+        monitor.lost_event = mock.Mock()
+        monitor.lost_event.is_set.return_value = False
+        monitor.now = mock.Mock(return_value=0)
+        monitor.valid_until = 1000
+        loader = mock.Mock()
+        loader.load.side_effect = lambda ref: ExecutionCode(ref, Path(ref), "python")
+        checkout_paths = {}
+
+        def make_loader(root, *_args):
+            def checkout(repository):
+                path = root / "checkouts" / repository
+                path.mkdir(parents=True, exist_ok=True)
+                checkout_paths[repository] = path
+                return path
+
+            loader.checkout.side_effect = checkout
+            return loader
+
+        args = argparse.Namespace(
+            endpoint="https://example.test", generation=1, worker="worker", lane="live",
+            deadline=int(time.time()) + 3600, canary_code_ref="a" * 40,
+            canary_repositories=frozenset({"canary"}),
+        )
+        with (
+            mock.patch.object(drain_queue, "QueueWorkerClient", return_value=client),
+            mock.patch.object(drain_queue, "LeaseMonitor", return_value=monitor),
+            mock.patch.object(drain_queue, "take_github_app_credentials", return_value=("client", "key")),
+            mock.patch.object(drain_queue, "GitHubAppTokenClient"),
+            mock.patch.object(drain_queue, "ExecutionCodeLoader", side_effect=make_loader),
+            mock.patch.object(drain_queue, "stable_code_ref", return_value="b" * 40),
+            mock.patch.object(drain_queue, "load_configured_repositories", return_value=frozenset({"canary", "stable"})),
+            mock.patch.object(drain_queue, "process_claim_wave", return_value=drain_queue.WaveResult(0, ())) as process,
+        ):
+            self.assertEqual(drain_queue.run_owned_drain(args), 0)
+        self.assertEqual(process.call_count, 2)
+        for call in process.call_args_list:
+            self.assertEqual(call.kwargs["execution_code"]["canary"].ref, "a" * 40)
+            self.assertEqual(call.kwargs["execution_code"]["stable"].ref, "b" * 40)
+            self.assertEqual(call.kwargs["repository_roots"], checkout_paths)
+        self.assertTrue(all(not path.exists() for path in checkout_paths.values()))
+        monitor.close.assert_called_once()
+
+    def test_failed_checkout_preparation_retries_without_starting_processors(self) -> None:
+        client = mock.Mock()
+        waves = iter([[
+            {"itemKey": "stable#backfill", "repository": "stable", "claimGeneration": 1, "kind": "backfill"},
+        ], []])
+        client.call.side_effect = lambda action, **_kwargs: (
+            {"activated": True} if action == "activate"
+            else {"claims": next(waves)} if action == "claim"
+            else {}
+        )
+        monitor = mock.Mock(spec=LeaseMonitor)
+        monitor.lost_event = mock.Mock()
+        monitor.lost_event.is_set.return_value = False
+        monitor.now = mock.Mock(return_value=0)
+        monitor.valid_until = 1000
+        loader = mock.Mock()
+        loader.checkout.side_effect = RuntimeError("clone failed")
+        args = argparse.Namespace(
+            endpoint="https://example.test", generation=1, worker="worker", lane="maintenance",
+            deadline=int(time.time()) + 3600, canary_code_ref="a" * 40,
+            canary_repositories=frozenset(),
+        )
+        with (
+            mock.patch.object(drain_queue, "QueueWorkerClient", return_value=client),
+            mock.patch.object(drain_queue, "LeaseMonitor", return_value=monitor),
+            mock.patch.object(drain_queue, "take_github_app_credentials", return_value=("client", "key")),
+            mock.patch.object(drain_queue, "GitHubAppTokenClient"),
+            mock.patch.object(drain_queue, "ExecutionCodeLoader", return_value=loader),
+            mock.patch.object(drain_queue, "stable_code_ref", return_value="b" * 40),
+            mock.patch.object(drain_queue, "load_configured_repositories", return_value=frozenset({"stable"})),
+            mock.patch.object(drain_queue, "acknowledge_results") as acknowledge,
+            mock.patch.object(drain_queue, "process_claim_wave") as process,
+        ):
+            self.assertEqual(drain_queue.run_owned_drain(args), 0)
+        process.assert_not_called()
+        result = acknowledge.call_args.args[1][0]
+        self.assertEqual(result["itemKey"], "stable#backfill")
+        self.assertEqual(result["outcome"], "retry")
+        self.assertEqual(result["error"], "clone failed")
 
     def test_publication_failure_repeats_calculation_and_delivery_before_success(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -384,6 +506,203 @@ class OwnedExecutionTest(unittest.TestCase):
         self.assertEqual(Path(commands[-1][1]).name, "refresh_author_nudges.py")
         self.assertNotIn("--dry-run", commands[-1])
         self.assertEqual(results[0]["outcome"], "success")
+
+
+class ExecutionCheckoutTest(unittest.TestCase):
+    def setUp(self) -> None:
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        self.root = Path(temporary.name)
+        self.env = {
+            **os.environ,
+            "GIT_CONFIG_NOSYSTEM": "1",
+            "GIT_CONFIG_GLOBAL": os.devnull,
+            "GIT_CONFIG_COUNT": "2",
+            "GIT_CONFIG_KEY_0": "user.name",
+            "GIT_CONFIG_VALUE_0": "Test",
+            "GIT_CONFIG_KEY_1": "user.email",
+            "GIT_CONFIG_VALUE_1": "test@example.com",
+        }
+        for name in ("GIT_DIR", "GIT_WORK_TREE", "GIT_COMMON_DIR", "GITHUB_TOKEN"):
+            self.env.pop(name, None)
+        self.source = self.root / "source"
+        self.source.mkdir()
+        self.remote = self.root / "remote"
+        self.git(self.root, "init", "--quiet", "--bare", str(self.remote))
+        self.git(self.source, "init", "--quiet", "--initial-branch=main")
+        (self.source / "seed").write_text("seed", encoding="utf-8")
+        self.git(self.source, "add", "seed")
+        for index in range(3):
+            self.git(self.source, "commit", "--quiet", "--allow-empty", "-m", f"Seed {index}")
+        self.git(self.source, "remote", "add", "origin", self.remote.as_uri())
+        self.git(self.source, "push", "--quiet", "origin", "main")
+        self.monitor = mock.Mock(spec=LeaseMonitor)
+        self.loader = execution_code.ExecutionCodeLoader(
+            self.root / "execution", self.monitor, self.env, repository_root=self.source,
+        )
+
+    def git(self, directory: Path, *args: str, check: bool = True) -> subprocess.CompletedProcess[str]:
+        return subprocess.run(
+            ["git", *args], cwd=directory, env=self.env, check=check,
+            capture_output=True, text=True,
+            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+        )
+
+    def test_checkout_is_independent_shallow_and_reused_across_waves(self) -> None:
+        first = self.loader.checkout("first")
+        second = self.loader.checkout("second")
+        self.assertEqual(self.loader.checkout("first"), first)
+        self.assertNotEqual(first, second)
+        self.assertTrue((first / ".git").is_dir())
+        self.assertTrue((second / ".git").is_dir())
+        self.assertFalse((first / ".git" / "objects" / "info" / "alternates").exists())
+        self.assertEqual(self.git(first, "rev-list", "--count", "HEAD").stdout.strip(), "1")
+        self.assertEqual(
+            self.git(first, "rev-parse", "HEAD").stdout,
+            self.git(self.source, "rev-parse", "HEAD").stdout,
+        )
+        self.assertEqual(self.git(first, "remote", "get-url", "origin").stdout.strip(), self.remote.as_uri())
+        self.assertEqual(
+            self.git(first, "config", "--get-all", "remote.origin.fetch").stdout.strip(),
+            "+refs/heads/*:refs/remotes/origin/*",
+        )
+        self.assertFalse((first / "seed").exists())
+        self.git(first, "config", "isolation.marker", "first")
+        self.assertEqual(self.git(second, "config", "--get", "isolation.marker", check=False).returncode, 1)
+        self.assertEqual(self.git(self.source, "config", "--get", "isolation.marker", check=False).returncode, 1)
+
+    def test_incomplete_worktree_registration_cannot_break_another_processor(self) -> None:
+        broken = self.loader.checkout("first")
+        healthy = self.loader.checkout("second")
+        metadata = broken / ".git" / "worktrees" / "state"
+        metadata.mkdir(parents=True)
+        pending = self.root / "pending" / "state"
+        pending.mkdir(parents=True)
+        (pending / ".git").write_text(f"gitdir: {metadata.as_posix()}\n", encoding="utf-8")
+        (metadata / "gitdir").write_text(f"{pending.as_posix()}/.git\n", encoding="utf-8")
+        (metadata / "locked").write_text("initializing\n", encoding="utf-8")
+        (metadata / "HEAD").write_text(self.git(broken, "rev-parse", "HEAD").stdout, encoding="utf-8")
+        (metadata / "commondir").write_bytes(b"")
+        target = self.root / "other" / "state"
+        baseline = self.git(
+            broken, "worktree", "add", "-B", "other", str(target), "HEAD", check=False,
+        )
+        self.assertEqual(baseline.returncode, 128)
+        self.assertIn("failed to read", baseline.stderr)
+        self.assertIn("commondir", baseline.stderr)
+        self.git(healthy, "worktree", "add", "-B", "other", str(target), "HEAD")
+        self.git(healthy, "worktree", "remove", "--force", str(target))
+        self.assertEqual((metadata / "commondir").read_bytes(), b"")
+
+    def test_four_processors_fetch_and_push_state_without_shared_registrations(self) -> None:
+        repositories = [f"repo-{index}" for index in range(4)]
+        checkouts = {repository: self.loader.checkout(repository) for repository in repositories}
+        oid = self.git(self.source, "rev-parse", "HEAD").stdout.strip()
+        for repository in repositories[:-1]:
+            self.git(
+                self.remote, "update-ref",
+                f"refs/heads/otelbot/pull-request-dashboard-state/{repository}", oid,
+            )
+        script = textwrap.dedent("""
+            import os
+            import subprocess
+            import sys
+            if os.name == "nt":
+                run = subprocess.run
+                def hidden_run(*args, **kwargs):
+                    kwargs["creationflags"] = subprocess.CREATE_NO_WINDOW
+                    forward = not any(
+                        name in kwargs for name in ("capture_output", "stdout", "stderr")
+                    )
+                    if forward:
+                        kwargs["capture_output"] = True
+                    result = run(*args, **kwargs)
+                    if forward:
+                        print(result.stdout, end="")
+                        print(result.stderr, end="", file=sys.stderr)
+                    return result
+                subprocess.run = hidden_run
+            sys.path.insert(0, sys.argv[1])
+            import state_branch
+            accepted_branch = sys.argv[2]
+            for iteration in range(3):
+                for branch in (
+                    accepted_branch, state_branch.delivery_state_branch(accepted_branch),
+                ):
+                    def update():
+                        (target / "value").write_text(str(iteration), encoding="utf-8")
+                        return 0
+                    with state_branch.temporary_state_dir() as target:
+                        status = state_branch.push_state_changes(
+                            target, "Update fixture", update, state_branch=branch,
+                        )
+                        if status != 0:
+                            raise RuntimeError("State update failed")
+                        with state_branch.accepted_state_dir(branch, required=True) as accepted:
+                            if (accepted / "value").read_text(encoding="utf-8") != str(iteration):
+                                raise AssertionError("Accepted state did not match")
+        """)
+        barrier = threading.Barrier(4)
+
+        def process(repository):
+            barrier.wait(timeout=30)
+            result = execution_process.run_monitored(
+                [
+                    sys.executable, "-c", script, str(execution_code.SCRIPT_DIR),
+                    f"otelbot/pull-request-dashboard-state/{repository}",
+                ],
+                self.monitor.assert_valid, cwd=checkouts[repository], env=self.env,
+            )
+            self.assertEqual(result.returncode, 0, f"{result.stderr}\n{result.stdout}")
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
+            list(executor.map(process, repositories))
+        for repository, checkout in checkouts.items():
+            for prefix in ("state", "delivery"):
+                self.assertEqual(
+                    self.git(
+                        self.remote, "show",
+                        f"otelbot/pull-request-dashboard-{prefix}/{repository}:value",
+                    ).stdout,
+                    "2",
+                )
+            registrations = checkout / ".git" / "worktrees"
+            self.assertFalse(registrations.exists() and any(registrations.iterdir()))
+        self.assertFalse((self.source / ".git" / "worktrees").exists())
+
+    def test_failed_checkout_is_not_cached_and_can_be_retried(self) -> None:
+        run = execution_code.run_monitored
+        failed = False
+
+        def fail_first_clone(command, *args, **kwargs):
+            nonlocal failed
+            if command[1] == "clone" and not failed:
+                failed = True
+                return subprocess.CompletedProcess(command, 1, "", "clone failed")
+            return run(command, *args, **kwargs)
+
+        with mock.patch.object(execution_code, "run_monitored", side_effect=fail_first_clone):
+            with self.assertRaisesRegex(RuntimeError, "clone failed"):
+                self.loader.checkout("example")
+            self.assertNotIn("example", self.loader.checkouts)
+            checkout = self.loader.checkout("example")
+        self.assertEqual(self.loader.checkout("example"), checkout)
+        self.assertTrue((checkout / ".git").is_dir())
+
+    def test_lease_loss_prevents_preparation_or_reuse(self) -> None:
+        checkout = self.loader.checkout("example")
+        self.monitor.assert_valid.side_effect = RuntimeError("lease lost")
+        with mock.patch.object(self.loader, "_run") as run:
+            for repository in ("example", "another"):
+                with self.subTest(repository=repository), self.assertRaisesRegex(RuntimeError, "lease lost"):
+                    self.loader.checkout(repository)
+            run.assert_not_called()
+        self.assertEqual(self.loader.checkouts, {"example": checkout})
+
+    def test_checkout_rejects_path_components(self) -> None:
+        for repository in ("", ".", "..", "../other", "owner/repository", r"owner\repository"):
+            with self.subTest(repository=repository), self.assertRaisesRegex(ValueError, "repository name"):
+                self.loader.checkout(repository)
 
 
 if __name__ == "__main__":

@@ -369,8 +369,17 @@ def process_claim_wave(
     dispatch_stable: Callable[[Claim], None],
     report_limits: Callable[..., None] = report_rate_limits,
     execution_code: dict[str, ExecutionCode] | None = None,
+    repository_roots: dict[str, Path] | None = None,
     lease_monitor: LeaseMonitor | None = None,
 ) -> WaveResult:
+    if execution_code is not None and (
+        repository_roots is None
+        or any(
+            claim.repository not in repository_roots or claim.repository not in execution_code
+            for claim in claims
+        )
+    ):
+        raise RuntimeError("owned dashboard execution requires isolated Git checkouts")
     if execution_code is None and any(claim.kind != "refresh" for claim in claims):
         raise RuntimeError(
             "backfill and reminder queue items require owned execution; "
@@ -499,7 +508,11 @@ def process_claim_wave(
                     token_client,
                     lease_monitor=monitor,
                     report_limits=report_limits,
-                    execution_code=execution_code.get(repository) if execution_code else None,
+                    execution_code=execution_code[repository] if execution_code is not None else None,
+                    repository_root=(
+                        repository_roots[repository] if repository_roots is not None
+                        else SCRIPT_DIR.parents[2]
+                    ),
                 ): repository
                 for index, (repository, repository_claims) in enumerate(
                     sorted(claims_by_repository.items())
@@ -543,6 +556,7 @@ def process_repository_claims(
     lease_monitor: LeaseMonitor,
     report_limits: Callable[..., None] = report_rate_limits,
     execution_code: ExecutionCode | None = None,
+    repository_root: Path = SCRIPT_DIR.parents[2],
 ) -> list[dict[str, Any]]:
     token: str | None = None
     common = {"generation": generation, "workerId": worker_id}
@@ -567,6 +581,7 @@ def process_repository_claims(
             worker_id,
             processor_env=processor_env,
             lease_monitor=lease_monitor,
+            repository_root=repository_root,
             **execution_options,
         )
     except Exception as error:
@@ -660,6 +675,9 @@ def run_owned_drain(args: argparse.Namespace) -> int:
                         )
                         for repository in sorted({claim.repository for claim in claims})
                     }
+                    repository_roots = {
+                        repository: loader.checkout(repository) for repository in codes
+                    }
                 except Exception as error:
                     failures = [
                         result for claim in claims
@@ -682,6 +700,7 @@ def run_owned_drain(args: argparse.Namespace) -> int:
                     resolve_stable_head=lambda *_args: (),
                     dispatch_stable=lambda _claim: None,
                     execution_code=codes,
+                    repository_roots=repository_roots,
                     lease_monitor=monitor,
                 )
 
