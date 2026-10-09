@@ -1703,7 +1703,7 @@
     },
     "4340": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "JakeDern",
         "author_action_review_thread_urls": [],
@@ -1713,7 +1713,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "d41d084fb7d22690781d0550fd9bff44db34daeeac99c73945aaa642db809087",
+        "copilot_request_fingerprint": "f6285c816347af4f4a47ad8fee54ab3dce1342809917c55347af74cccc8726a7",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -1729,21 +1729,32 @@
         "head_sha": "090c2428d374c94c96b289ef2dcc0ce3d0e3d32c",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-10-09T21:42:12+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-10-09T21:45:39+00:00",
+        "last_approver_activity_at": "2026-10-09T21:45:39+00:00",
         "last_author_activity_at": "2026-10-09T21:38:27+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "lquerel",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "ff099a349a79964bb9f01964944c43bedf12cf186fef125a263da4936663d5d1",
+        "routing_input_fingerprint": "14c67f8bfd5060c322b83319cb6e59d8d02c7de358dfab15a79b746a6ca0cdd2",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-10-09T21:38:27+00:00"
       },
       "failed": false,
       "pr_number": 4340,
       "pr_url": "https://github.com/open-telemetry/otel-arrow/pull/4340",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     }
   },
