@@ -35,8 +35,11 @@ from dashboard_test_support import (
 )
 from dashboard_contracts import CopilotReviewFallback
 from state import (
+    copilot_review_fallback_state_path,
+    copilot_review_request_state_path,
     load_copilot_review_fallbacks,
     load_copilot_review_requests,
+    save_copilot_review_fallbacks,
     save_copilot_review_requests,
 )
 from routing_snapshot import build_routing_snapshot
@@ -381,6 +384,59 @@ class CopilotFallbackDeliveryTest(unittest.TestCase):
         self.assertEqual([], self.deliver())
         self.assertEqual(2, self.request.call_count)
         self.assertFalse(load_copilot_review_fallbacks()["7"].exhausted)
+
+    def test_cas_retry_persists_fallback_when_receipt_skips_delivery(self) -> None:
+        baseline_requests = load_copilot_review_requests()
+        self.reviews = [self.quota_notice(10)]
+        self.assertEqual([], self.deliver())
+        fallback = load_copilot_review_fallbacks()["7"]
+        with tempfile.TemporaryDirectory() as directory:
+            retry_snapshot = Path(directory) / "prior-copilot-review-request-state.json"
+            retry_snapshot.write_bytes(copilot_review_request_state_path().read_bytes())
+            retry_snapshot.with_suffix(".fallback.json").write_bytes(
+                copilot_review_fallback_state_path().read_bytes()
+            )
+            # A rejected CAS push restores the remote state, not the retry snapshots.
+            save_copilot_review_requests(baseline_requests)
+            save_copilot_review_fallbacks({})
+            self.assertEqual([], deliver_copilot_review_requests(
+                "open-telemetry/example", NOW, retry_snapshot
+            ))
+            self.assertEqual(fallback, load_copilot_review_fallbacks()["7"])
+            self.assertEqual(
+                format_ts(NOW), load_copilot_review_requests()["7"]["requested_at"]
+            )
+            self.request.assert_called_once_with("PR_node", token="request-token")
+
+        self.reviews.append(self.quota_notice(11))
+        self.snapshot = replace(self.snapshot, head_sha="next-head")
+        self.enqueue()
+        self.assertEqual([], self.deliver())
+        self.assertTrue(load_copilot_review_fallbacks()["7"].exhausted)
+        self.assertEqual({}, load_copilot_review_requests())
+        self.request.assert_called_once_with("PR_node", token="request-token")
+
+    def test_cas_retry_persists_exhaustion_without_queued_requests(self) -> None:
+        fallback = CopilotReviewFallback((10,), format_ts(NOW), exhausted=True)
+        save_copilot_review_fallbacks({"7": fallback})
+        save_copilot_review_requests({})
+        with tempfile.TemporaryDirectory() as directory:
+            retry_snapshot = Path(directory) / "prior-copilot-review-request-state.json"
+            retry_snapshot.write_bytes(copilot_review_request_state_path().read_bytes())
+            retry_snapshot.with_suffix(".fallback.json").write_bytes(
+                copilot_review_fallback_state_path().read_bytes()
+            )
+            save_copilot_review_fallbacks({})
+            self.assertEqual([], deliver_copilot_review_requests(
+                "open-telemetry/example", NOW, retry_snapshot
+            ))
+            self.assertEqual(fallback, load_copilot_review_fallbacks()["7"])
+
+        self.snapshot = replace(self.snapshot, head_sha="next-head")
+        self.enqueue()
+        self.assertEqual([], self.deliver())
+        self.assertEqual({}, load_copilot_review_requests())
+        self.request.assert_not_called()
 
     def test_request_error_is_reported_without_disabling_fallback(self) -> None:
         self.reviews = [self.quota_notice(10)]

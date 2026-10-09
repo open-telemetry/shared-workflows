@@ -76,6 +76,8 @@ def deliver_copilot_review_requests(
         )
         if token else {}
     )
+    if token and retry_snapshot_path is not None:
+        save_copilot_review_fallbacks(fallbacks)
     owner, repo_name = repo.split("/", 1)
     errors: list[str] = []
     for key, entry in sorted(
