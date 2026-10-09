@@ -495,9 +495,17 @@ the implementation understandable and operationally cheap.
   first eligible refresh using its GitHub App installation token. Initial reviews
   and re-reviews share the same delivery checks and confirmation path.
 - GitHub's quota-exhausted notice is a failed attempt even though GitHub records
-  it as a review of the current head. It does not satisfy the review gate,
-  prevent a new request, or confirm delivery. A genuine current-head review
-  still counts if the PR also has a quota-failure notice.
+  it as a review of the current head. It does not count as a completed review
+  or confirm delivery. Without a configured fallback token, it immediately
+  releases the Copilot gate and disables automatic requests for that PR,
+  including after later pushes. Required checks and actionable feedback still
+  apply, including unresolved, non-outdated Copilot threads.
+- The optional `COPILOT_REVIEW_FALLBACK_TOKEN` changes the requester after quota
+  exhaustion and keeps the Copilot gate active under its normal rules. The
+  fallback records existing quota notice IDs before requesting, so only a new
+  notice exhausts it. An exhausted fallback permanently stops automatic
+  requests for that PR and immediately releases only the Copilot gate. A genuine
+  current-head review still counts if the PR also has a quota-failure notice.
 - A first-review request is reachable only where a re-request already is — the
   pull request would otherwise route to reviewers or maintainers, and Copilot is
   not already a pending requested reviewer.
@@ -512,9 +520,8 @@ the implementation understandable and operationally cheap.
   and a request made while CI runs would otherwise be discarded by the next
   check to finish, one pass at a time, for as long as the suite lasted.
 - Delivery re-validates the review state against live data and discards the
-  request only when a review already covers the current head, which is what
-  happens when one lands between the observation and the delivery. A review that
-  is still missing is a reason to request, not to discard.
+  request when a review already covers the current head, which is what
+  happens when one lands between the observation and the delivery.
 - A request counts as delivered only once GitHub shows Copilot as a pending
   reviewer. The mutation answers with success even when GitHub records nothing:
   on one pull request it accepted the same request every hour for nineteen

@@ -145,7 +145,7 @@ Fields:
 | `required_approvals` | no | Number of active approvals required for an open PR to be marked ready to merge. An approval stops counting while that reviewer has a pending re-review request. Defaults to `1`. |
 | `labels_to_display` | no | Case-sensitive shell-style label name patterns to display inline after PR titles. Exact names such as `breaking change` and wildcard patterns such as `size/*` are supported. Defaults to `[]`, which displays no labels. |
 | `non_blocking_check_patterns` | no | Check-name globs for non-required checks whose failures should be identified in the live PR status comment. When the PR is waiting on the author, matching failures are reported only when at least one required check is failing and are noted alongside those failures. On other routes, matching failures are shown separately. Matching checks remain informational and do not affect routing or the dashboard CI column. |
-| `require_clean_copilot_review_branches` | no | List of base branch names for which a Copilot review of the current head with no open Copilot review threads is required before automatically routing a PR to reviewers or maintainers. An effective `/dashboard route:reviewers` break-glass override bypasses this gate and every other routing blocker for the current head. A thread counts as open while it is unresolved and GitHub has not marked it outdated, so a thread whose code the author has since rewritten stops holding the PR even if nobody resolved it. The live PR status links every open Copilot thread until it is resolved or outdated, including threads where the author has already replied. The dashboard requests the first review on the first eligible refresh and re-requests review when a push has left the previous review stale. It does not duplicate a pending request. GitHub's quota-exhausted review notice does not count as a completed review. A request counts as delivered only once GitHub confirms Copilot is a pending reviewer or finds a completed Copilot review of the current head, so one that GitHub accepts but does not record in either form is sent again on the next pass. A gate that never reports holds the PR for at most four hours; after that the PR routes anyway, its status comment says which gate the dashboard stopped waiting for, and the run reports the stall. A conflict resets this clock because GitHub may not start checks or reviews until the conflict is resolved. PRs targeting unlisted branches are never gated. Defaults to `[]` (no branches gated). |
+| `require_clean_copilot_review_branches` | no | List of base branch names for which a Copilot review of the current head with no open Copilot review threads is normally required before automatically routing a PR to reviewers or maintainers. An effective `/dashboard route:reviewers` break-glass override bypasses this gate and every other routing blocker for the current head. A thread counts as open while it is unresolved and GitHub has not marked it outdated, so a thread whose code the author has since rewritten stops holding the PR even if nobody resolved it. The live PR status links every open Copilot thread until it is resolved or outdated, including threads where the author has already replied. The dashboard requests the first review on the first eligible refresh and re-requests review when a push has left the previous review stale. It does not duplicate a pending request. GitHub's quota-exhausted review notice does not count as a completed review, but it immediately releases the Copilot gate when no fallback token is configured or the fallback requester is exhausted; see the quota behavior below. A request counts as delivered only once GitHub confirms Copilot is a pending reviewer or finds a completed Copilot review of the current head. A gate that never reports holds the PR for at most four hours; after that the PR routes anyway, its status comment says which gate the dashboard stopped waiting for, and the run reports the stall. A conflict resets this clock because GitHub may not start checks or reviews until the conflict is resolved. PRs targeting unlisted branches are never gated. Defaults to `[]` (no branches gated). |
 | `slack_channel` | no | Slack channel for notifications. Omit to skip Slack processing for this repository. |
 | `slack_user_mapping` | no | Map of GitHub login to Slack user ID for at-mentions. |
 | `large_repo` | no | If `true`, apply rendering presets that keep the dashboard body under GitHub's 65,536-character issue-body limit: cap each section (each *Waiting on …* table and the *Draft pull requests* table) at 100 rows, and omit the *Draft pull requests* section entirely. Truncated sections get a `_More X PRs not shown_` footer. Defaults to `false` (no cap, drafts shown). Enable this for very large repos with hundreds of PRs. |
@@ -157,9 +157,26 @@ re-reviews using its GitHub App installation token with pull-request write
 permission. An open, non-draft PR with no completed review is eligible on the
 first dashboard refresh where it would otherwise route to reviewers or
 maintainers. Conflicts, failing required checks, author-action feedback, and
-manual reviewer handoffs block requests; pending checks do not. GitHub's
-quota-exhausted review notice is a failed attempt, so the dashboard can request
-a real review without waiting for a new commit.
+manual reviewer handoffs block requests; pending checks do not.
+
+When Copilot reports quota exhaustion and no fallback token is configured, the
+dashboard immediately stops automatic review requests for that PR and releases
+the Copilot review gate without waiting for a completed review or the four-hour
+timeout. Only the Copilot gate is released: required-check gates and actionable
+feedback, including unresolved, non-outdated Copilot threads, still apply.
+
+Maintainers can optionally configure the `COPILOT_REVIEW_FALLBACK_TOKEN` workflow
+secret with a token allowed to request Copilot reviews. The legacy workflow
+forwards it to same-ref canary callers for backfills, targeted refreshes, and
+head-SHA refreshes; callers pinned to an older workflow remain unchanged until
+that workflow supports the secret and their secret mappings are updated.
+After the first quota notice, the dashboard switches review requests to this
+fallback requester and keeps the Copilot gate active under its normal rules.
+Existing quota notices do
+not exhaust the fallback; a new quota notice after the fallback attempt does.
+Once the fallback is exhausted, automatic requests stop and the Copilot gate is
+immediately released for that PR, including after later pushes. Required checks
+and actionable feedback are not bypassed in either case.
 
 Ask a maintainer or admin to add the repository under [Repository access](https://github.com/organizations/open-telemetry/settings/installations/133550497).
 

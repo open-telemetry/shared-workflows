@@ -63,6 +63,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           COPILOT_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COPILOT_REVIEW_FALLBACK_TOKEN: ${{ secrets.COPILOT_REVIEW_FALLBACK_TOKEN }}
           PR_DASHBOARD_CLIENT_ID: ${{ vars.PR_DASHBOARD_CLIENT_ID }}
           PR_DASHBOARD_PRIVATE_KEY: ${{ secrets.PR_DASHBOARD_PRIVATE_KEY }}
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
@@ -165,6 +166,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           COPILOT_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COPILOT_REVIEW_FALLBACK_TOKEN: ${{ secrets.COPILOT_REVIEW_FALLBACK_TOKEN }}
           PR_DASHBOARD_CLIENT_ID: ${{ vars.PR_DASHBOARD_CLIENT_ID }}
           PR_DASHBOARD_PRIVATE_KEY: ${{ secrets.PR_DASHBOARD_PRIVATE_KEY }}
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

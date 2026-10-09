@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import Any
 
-from dashboard_contracts import DashboardFacts
+from dashboard_contracts import CopilotReviewFallback, DashboardFacts
 from github_cli import (
     fetch_pr_reviews,
     fetch_review_requests,
@@ -42,6 +42,37 @@ def is_copilot_reviewer(
         return value.is_copilot_reviewer
     actor = value.actor if isinstance(value, Review) else value
     return actor.is_copilot_reviewer
+
+
+def is_copilot_quota_failure(review: Review) -> bool:
+    return (
+        is_copilot_reviewer(review)
+        and review.body.strip() == COPILOT_QUOTA_FAILURE_BODY
+    )
+
+
+def copilot_quota_failure_ids(reviews: Sequence[Review]) -> tuple[int, ...]:
+    failures = [review for review in reviews if is_copilot_quota_failure(review)]
+    if any(review.database_id <= 0 for review in failures):
+        raise RuntimeError("GitHub returned a Copilot quota notice without a review ID")
+    return tuple(sorted({review.database_id for review in failures}))
+
+
+def copilot_fallback_exhausted(
+    fallback: CopilotReviewFallback | None,
+    reviews: Sequence[Review],
+) -> bool:
+    return fallback is not None and (
+        fallback.exhausted
+        or bool(set(copilot_quota_failure_ids(reviews)) - set(fallback.quota_failure_ids))
+    )
+
+
+def copilot_reviews_disabled(facts: DashboardFacts) -> bool:
+    return facts.copilot_review_fallback_exhausted or (
+        facts.copilot_review_quota_exhausted
+        and not facts.copilot_review_fallback_available
+    )
 
 
 def open_copilot_findings(
@@ -90,7 +121,7 @@ def copilot_review_status(
         review
         for review in reviews
         if is_copilot_reviewer(review)
-        and review.body.strip() != COPILOT_QUOTA_FAILURE_BODY
+        and not is_copilot_quota_failure(review)
     ]
     if not copilot_reviews:
         return False, False, False
@@ -106,7 +137,7 @@ def copilot_review_status(
 
 
 def copilot_review_outstanding(facts: DashboardFacts, *, enabled: bool) -> bool:
-    if not enabled:
+    if not enabled or copilot_reviews_disabled(facts):
         return False
     return not facts.copilot_review_exists or facts.copilot_review_needed
 
@@ -117,7 +148,7 @@ def copilot_review_unreported(facts: DashboardFacts, *, enabled: bool) -> bool:
     # leave are the author's to clear, and the dashboard already routes the
     # pull request to the author for them. Only a review that is missing or
     # that covers older code is a report that has not arrived.
-    if not enabled:
+    if not enabled or copilot_reviews_disabled(facts):
         return False
     return not facts.copilot_review_exists or facts.copilot_review_stale
 
@@ -142,6 +173,7 @@ def set_copilot_review_request_needed(
             or facts.copilot_review_stale
         )
         and not facts.copilot_review_requested
+        and not copilot_reviews_disabled(facts)
     ))
 
 

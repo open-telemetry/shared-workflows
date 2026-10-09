@@ -70,6 +70,36 @@ def canary_repositories(text: str) -> list[str]:
 
 
 class RolloutWiringTest(unittest.TestCase):
+    def test_optional_review_token_is_wired_without_changing_stable_callers(self) -> None:
+        jobs = job_blocks(REPO_WORKFLOW.read_text(encoding="utf-8"))
+        self.assertIn(
+            "COPILOT_REVIEW_FALLBACK_AVAILABLE: ${{ secrets.COPILOT_REVIEW_FALLBACK_TOKEN != '' }}",
+            jobs["update-dashboard"],
+        )
+        self.assertNotIn(
+            "COPILOT_REVIEW_FALLBACK_TOKEN: ${{", jobs["update-dashboard"],
+        )
+        self.assertIn(
+            "COPILOT_REVIEW_FALLBACK_TOKEN: ${{ secrets.COPILOT_REVIEW_FALLBACK_TOKEN }}",
+            jobs["publish-dashboard"],
+        )
+        for name, body in job_blocks(DRAIN_WORKFLOW.read_text(encoding="utf-8")).items():
+            with self.subTest(job=name):
+                self.assertIn(
+                    "COPILOT_REVIEW_FALLBACK_TOKEN: ${{ secrets.COPILOT_REVIEW_FALLBACK_TOKEN }}",
+                    body,
+                )
+        for prefix in ENTRY_PATHS:
+            with self.subTest(entry_path=prefix):
+                self.assertIn(
+                    "COPILOT_REVIEW_FALLBACK_TOKEN: ${{ secrets.COPILOT_REVIEW_FALLBACK_TOKEN }}",
+                    self.jobs[f"{prefix}-canary"],
+                )
+                self.assertNotIn(
+                    "COPILOT_REVIEW_FALLBACK_TOKEN",
+                    self.jobs[f"{prefix}-stable"],
+                )
+
     def setUp(self) -> None:
         self.text = workflow_text()
         self.jobs = job_blocks(self.text)

@@ -35,6 +35,24 @@ def claim(
 
 
 class QueueBatchTest(unittest.TestCase):
+    def test_fallback_token_is_only_available_to_delivery(self) -> None:
+        processor = process_queue_batch.DashboardBatchProcessor(Path("repositories.json"))
+        env = {"GH_TOKEN": "app-token", "COPILOT_REVIEW_FALLBACK_TOKEN": "request-token"}
+        with mock.patch.object(processor, "_run") as run:
+            processor._update_dashboard(
+                "example", 7, "otelbot/pull-request-dashboard-state/example", {}, env,
+            )
+        update_env = run.call_args.kwargs["env"]
+        self.assertNotIn("COPILOT_REVIEW_FALLBACK_TOKEN", update_env)
+        self.assertEqual("true", update_env["COPILOT_REVIEW_FALLBACK_AVAILABLE"])
+        self.assertEqual("app-token", update_env["GH_TOKEN"])
+        self.assertEqual("request-token", env["COPILOT_REVIEW_FALLBACK_TOKEN"])
+        with mock.patch.object(processor, "_run") as run:
+            processor._update_dashboard(
+                "example", 7, "otelbot/pull-request-dashboard-state/example", {}, {},
+            )
+        self.assertEqual("false", run.call_args.kwargs["env"]["COPILOT_REVIEW_FALLBACK_AVAILABLE"])
+
     def test_owned_processor_acknowledges_only_after_leased_delivery_finishes(self) -> None:
         for failure in (None, "acquire-delivery", "release-delivery"):
             with self.subTest(failure=failure), tempfile.TemporaryDirectory() as directory:

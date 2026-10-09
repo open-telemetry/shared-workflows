@@ -83,6 +83,7 @@ class CopilotSdkModelRunnerTest(unittest.IsolatedAsyncioTestCase):
         with (
             patch.dict(os.environ, {
                 "GH_TOKEN": "app-token",
+                "COPILOT_REVIEW_FALLBACK_TOKEN": "request-token",
                 "PR_DASHBOARD_PRIVATE_KEY": "private-key",
                 "SLACK_WEBHOOK_URL": "slack-secret",
                 "COPILOT_CLI_PATH": "ambient-runtime",

@@ -258,6 +258,7 @@ jobs:
       repository: ${{ matrix.name }}
     secrets:
       PR_DASHBOARD_PRIVATE_KEY: ${{ secrets.PR_DASHBOARD_PRIVATE_KEY }}
+      COPILOT_REVIEW_FALLBACK_TOKEN: ${{ secrets.COPILOT_REVIEW_FALLBACK_TOKEN }}
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
   run-repo-dashboard-stable:
@@ -297,6 +298,7 @@ jobs:
       pr_number: ${{ inputs.pr_number }}
     secrets:
       PR_DASHBOARD_PRIVATE_KEY: ${{ secrets.PR_DASHBOARD_PRIVATE_KEY }}
+      COPILOT_REVIEW_FALLBACK_TOKEN: ${{ secrets.COPILOT_REVIEW_FALLBACK_TOKEN }}
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
   run-targeted-dashboard-stable:
@@ -342,6 +344,7 @@ jobs:
       pr_number: ${{ matrix.pr_number }}
     secrets:
       PR_DASHBOARD_PRIVATE_KEY: ${{ secrets.PR_DASHBOARD_PRIVATE_KEY }}
+      COPILOT_REVIEW_FALLBACK_TOKEN: ${{ secrets.COPILOT_REVIEW_FALLBACK_TOKEN }}
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
   run-head-sha-dashboard-stable:
