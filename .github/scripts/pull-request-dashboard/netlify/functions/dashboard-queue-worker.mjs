@@ -1,5 +1,5 @@
 import repositories from "../../repositories.json" with { type: "json" };
-import { DashboardQueue } from "../lib/dashboard-queue.mjs";
+import { DashboardQueue, queueItemLane, queueLane } from "../lib/dashboard-queue.mjs";
 import { executionMode } from "../lib/execution-mode.mjs";
 import { dispatchQueueDrain } from "../lib/github-dispatch.mjs";
 import { ENQUEUE_WORKFLOW_REFS, EXPECTED_WORKFLOW_REF, verifyGitHubOidcRequest } from "../lib/github-oidc.mjs";
@@ -23,7 +23,8 @@ export default async (request) => {
 export async function handleQueueWorkerRequest(
   request,
   {
-    queue = new DashboardQueue(),
+    queue,
+    createQueue = (lane) => new DashboardQueue({ lane }),
     verifyRequest = verifyGitHubOidcRequest,
     dispatchDrain = dispatchQueueDrain,
   } = {},
@@ -39,6 +40,18 @@ export async function handleQueueWorkerRequest(
   if (!["enqueue", "status", "stats"].includes(action)) {
     await verifyRequest(request, { workflowRef: EXPECTED_WORKFLOW_REF });
   }
+  if (action === "enqueue" && !["refresh", "backfill", "reminders"].includes(body.kind || "refresh")) {
+    throw requestError(400, "queue item kind is invalid");
+  }
+  const expectedLane = action === "enqueue" ? queueLane(body.kind || "refresh")
+    : ["status", "acknowledge"].includes(action)
+      ? queueItemLane(nonEmptyString(body.itemKey, "itemKey", 500))
+      : null;
+  const lane = body.lane || expectedLane || "live";
+  if (!["live", "maintenance"].includes(lane) || (expectedLane && expectedLane !== lane)) {
+    throw requestError(400, "queue lane does not match the requested work");
+  }
+  queue ||= createQueue(lane);
   const mode = executionMode();
   switch (action) {
     case "enqueue": {
@@ -59,7 +72,7 @@ export async function handleQueueWorkerRequest(
       const dispatcher = mode === "owned" ? await queue.requestDispatcher() : { acquired: false };
       if (dispatcher.acquired) {
         try {
-          await dispatchDrain(dispatcher.generation);
+          await dispatchDrain(dispatcher.generation, lane);
         } catch (error) {
           await queue.releaseRequestedDispatcher({
             generation: dispatcher.generation,
@@ -108,6 +121,24 @@ export async function handleQueueWorkerRequest(
         generation: positiveInteger(body.generation, "generation"),
         workerId: workerId(body.workerId),
       }));
+    case "acquire-delivery":
+    case "release-delivery": {
+      const repository = nonEmptyString(body.repository, "repository", 100);
+      if (!REPOSITORIES.has(repository)) {
+        throw requestError(400, "repository is not configured");
+      }
+      const lease = {
+        repository,
+        generation: positiveInteger(body.generation, "generation"),
+        workerId: workerId(body.workerId),
+      };
+      return jsonResponse(action === "acquire-delivery"
+        ? await queue.acquireDeliveryLease(lease)
+        : await queue.releaseDeliveryLease({
+          ...lease,
+          leaseGeneration: positiveInteger(body.leaseGeneration, "leaseGeneration"),
+        }));
+    }
     case "acknowledge":
       return jsonResponse(await queue.acknowledge({
         generation: positiveInteger(body.generation, "generation"),
@@ -146,7 +177,7 @@ export async function handleQueueWorkerRequest(
       }
       if (dispatch === "claimed") {
         try {
-          await dispatchDrain(result.generation);
+          await dispatchDrain(result.generation, lane);
         } catch (error) {
           if (error.statusCode) {
             await queue.failFinishDispatchWithRelease(finish, {

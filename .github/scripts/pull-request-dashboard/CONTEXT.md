@@ -74,7 +74,13 @@ queries. The request ID prevents a later use of the same item key from looking
 like completion of an earlier request. Receipts are bounded; an unavailable
 receipt produces `unknown`, never assumed success.
 
-The singleton dispatcher lease is the execution owner. A requested generation
+Live PR/head refreshes and maintenance backfills/reminder sweeps have independent
+dispatcher leases and processing capacity. Items retain their existing shard
+keys and request identities; their kind determines the lane. The live dispatcher
+uses `dispatcher`, and maintenance uses `maintenance-dispatcher` in the same Blob
+store. Claims, heartbeats, recovery, successors, and queue health are lane-specific.
+
+Each lane's dispatcher lease is its execution owner. A requested generation
 deduplicates dispatches but is not active execution ownership. A drain activates
 it after acquiring a runner. Expired requested generations can be replaced;
 recovery can replay a runnerless requested generation after 15 minutes without
@@ -91,6 +97,14 @@ full-publication receipt updates. Coalesced publication must succeed before
 affected claims receive success. Ordinary errors retry the whole item with
 bounded backoff and dead letters. Accepted state, pending intents, and delivery
 receipts survive those retries; there is no separate publication queue.
+
+Both lanes may calculate and persist state for the same repository concurrently.
+After calculation, the processor acquires a shared repository delivery lease
+before delivery, issue publication, receipt updates, or reminder writes. These
+commands read accepted state after acquiring ownership. Dispatcher heartbeats
+renew the delivery lease, and the same local safety deadline fences subprocesses.
+Waiting for delivery ownership does not block the other lane's calculations.
+Release retries are idempotent and cannot release a newer lease generation.
 
 `execution_code.py` loads scripts from immutable commit archives into temporary
 directories without replacing the worker checkout. Each ref has its own Python
@@ -124,8 +138,8 @@ live-state reconciliation, and delivery ledgers suppress ordinary duplicates,
 but cannot eliminate that external-success/receipt-loss window.
 
 `paused` accepts work but prevents activation, claims, and successor dispatch.
-Already claimed work can finish under its existing heartbeat. Recovery logs
-queue counts, retries, dead letters, pending backfills and sweeps, dispatcher
+Already claimed work can finish under its existing heartbeat. Recovery logs each
+lane's queue counts, retries, dead letters, pending backfills and sweeps, dispatcher
 expiry, and the oldest unfinished timestamp. In `owned` mode the watchdog
 only monitors webhook deployment, not dashboard processing. Legacy publisher
 jobs and matching remain gated for migration and rollback; they must not run
