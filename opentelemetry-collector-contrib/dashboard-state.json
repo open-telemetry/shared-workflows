@@ -13656,12 +13656,11 @@
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "author_can_act": true,
-        "author_nudge_episode_id": "97006954479e41d78f6546af43255bd8",
         "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
-        "ci_pending_count": 2,
+        "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "69e79a9501bd727690fe0f179f01908cc2ddbdf0018e7661a082cdd992edaa1b",
+        "copilot_request_fingerprint": "aa8bd00b494723e8f3b699062d4ba298336e075de51249b6d56104f56ce76bb6",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -13677,10 +13676,10 @@
         "head_sha": "bed31dd1b027dd190d2c387d2077c9177de21670",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-10-09T16:14:59+00:00",
+        "last_activity_at": "2026-10-09T16:21:04+00:00",
         "last_approver_activity_at": "",
         "last_author_activity_at": "2026-10-09T16:10:04+00:00",
-        "required_checks_settled": false,
+        "required_checks_settled": true,
         "reviewers": [
           {
             "approved": false,
@@ -13691,19 +13690,28 @@
             "pending_review": false,
             "top_level_feedback": false,
             "unresolved_thread": false
+          },
+          {
+            "approved": false,
+            "approved_non_team": true,
+            "changes_requested": false,
+            "login": "singhvibhanshu",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
           }
         ],
-        "route_held_for_gates": true,
-        "route_held_since": "2026-10-09T16:13:51.584840+00:00",
+        "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "62b9e3e50bda597b0a4bf4ab17246798f75509e6c220f1ac103369593a6599d1",
-        "waiting_age_basis": "gate_hold",
-        "waiting_since": "2026-10-09T16:11:22+00:00"
+        "routing_input_fingerprint": "b434098f78fce494cfc97f1ce18393972ac27a7c27de10c04227ebdbcbb99459",
+        "waiting_age_basis": "gate_release",
+        "waiting_since": "2026-10-09T16:23:36.771955+00:00"
       },
       "failed": false,
       "pr_number": 51926,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/51926",
-      "route": "author",
+      "route": "approver",
       "top_level_history": {}
     }
   },
