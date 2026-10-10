@@ -1246,13 +1246,16 @@
         "assignees": [],
         "author": "AgentGymLeader",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/semantic-conventions-genai/pull/368#pullrequestreview-5480228873"
+        ],
         "author_can_act": true,
+        "author_nudge_episode_id": "91c0ef5edb614f61bc7819851d61158a",
         "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "b61ec371f19dd5b6b34fd20e1512c7cb97687e6964c14b15071abb8fc9912d96",
+        "copilot_request_fingerprint": "3a96445c4b57f2ece47f4b0d95e55f9acb1ec452115fa7642eeaa4e82a548549",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
         "copilot_review_outstanding": false,
@@ -1268,8 +1271,8 @@
         "head_sha": "31653a72aba59ffdb4fdf1de756fb0343d9631c2",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-10-10T02:38:35+00:00",
-        "last_approver_activity_at": "2026-07-07T00:37:45+00:00",
+        "last_activity_at": "2026-10-10T18:06:10+00:00",
+        "last_approver_activity_at": "2026-10-10T18:06:10+00:00",
         "last_author_activity_at": "2026-10-07T02:50:56+00:00",
         "required_checks_settled": true,
         "reviewers": [
@@ -1279,21 +1282,21 @@
             "changes_requested": true,
             "login": "lmolkova",
             "open_thread": false,
-            "pending_review": true,
-            "top_level_feedback": false,
+            "pending_review": false,
+            "top_level_feedback": true,
             "unresolved_thread": false
           }
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "6ce6e05cc491b677b07e96115f16376c3c71d0253b72a17378b9a47072b02357",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-09-23T05:16:14+00:00"
+        "routing_input_fingerprint": "3d6c6e5b205407245702e3c073cdfad56a85d5cad106081f9abe916d1a690f24",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-10-10T18:06:10+00:00"
       },
       "failed": false,
       "pr_number": 368,
       "pr_url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/368",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {
         "pr-issue-comment-4988369421": {
           "evidence": {
