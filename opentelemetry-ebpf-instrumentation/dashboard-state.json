@@ -79,7 +79,9 @@
         "approval_count": 2,
         "assignees": [],
         "author": "immanuwell",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry-ebpf-instrumentation/pull/3523#discussion_r4237027534"
+        ],
         "author_action_top_level_feedback_urls": [],
         "author_can_act": true,
         "author_nudge_episode_id": "ba521162f8254899a3d228b665cb1df2",
@@ -87,14 +89,14 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "4ce775c925e66ad025bf7d0fe8e237666de593cc1a82f6367ef6aca781b161cc",
-        "copilot_review_exists": false,
-        "copilot_review_needed": false,
+        "copilot_request_fingerprint": "906c067591191269f8b83c62544eb68e7f0cb6d12bf9d2fdc317699445fd2153",
+        "copilot_review_exists": true,
+        "copilot_review_needed": true,
         "copilot_review_outstanding": true,
         "copilot_review_request_needed": false,
-        "copilot_review_requested": true,
+        "copilot_review_requested": false,
         "copilot_review_stale": false,
-        "copilot_review_unreported": true,
+        "copilot_review_unreported": false,
         "created_at": "2026-09-22T10:24:12+00:00",
         "dashboard_command_replies": [],
         "dashboard_override_command_id": 0,
@@ -108,6 +110,16 @@
         "last_author_activity_at": "2026-10-10T08:19:05+00:00",
         "required_checks_settled": true,
         "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "copilot-pull-request-reviewer[bot]",
+            "open_thread": true,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": true
+          },
           {
             "approved": true,
             "approved_non_team": false,
@@ -139,12 +151,11 @@
             "unresolved_thread": false
           }
         ],
-        "route_held_for_gates": true,
-        "route_held_since": "2026-10-10T08:22:24.420719+00:00",
+        "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "a499c93314d8d72ebd6930b4039c3cb3483e1a7f04a145b1ca07534bde513045",
-        "waiting_age_basis": "gate_hold",
-        "waiting_since": "2026-09-22T18:11:16+00:00"
+        "routing_input_fingerprint": "35797e4c54d574302de81261d9de884f05a1a6679049a97485d47cbbc2403bd9",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-10-10T08:25:48+00:00"
       },
       "failed": false,
       "pr_number": 3523,
