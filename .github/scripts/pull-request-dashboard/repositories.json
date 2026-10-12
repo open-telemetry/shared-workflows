@@ -120,7 +120,8 @@
     "name": "opentelemetry-ebpf-instrumentation",
     "approver_teams": ["ebpf-instrumentation-approvers"],
     "labels_to_display": ["breaking change", "dependencies", "do-not-merge", "blocked"],
-    "non_blocking_check_patterns": ["codecov/*"]
+    "non_blocking_check_patterns": ["codecov/*"],
+    "require_clean_copilot_review_branches": ["main"]
   },
   {
     "name": "opentelemetry-ecosystem-explorer",

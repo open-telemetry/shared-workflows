@@ -50,26 +50,276 @@ class MemoryStore {
   }
 }
 
-function fixture() {
+function fixture(lane = "live") {
   let now = Date.parse("2026-08-19T20:00:00Z");
   let sequence = 0;
   const store = new MemoryStore();
-  const queue = new DashboardQueue({
+  const createQueue = (queueLane) => new DashboardQueue({
     store,
+    lane: queueLane,
     now: () => now,
     randomId: () => `id-${++sequence}`,
     itemLeaseMs: 1_000,
     dispatcherRequestLeaseMs: 1_000,
     dispatcherActiveLeaseMs: 1_000,
   });
+  const queue = createQueue(lane);
   return {
     queue,
     store,
+    createQueue,
     advance(milliseconds) {
       now += milliseconds;
     },
   };
 }
+
+test("live refreshes run while an older maintenance batch owns its dispatcher", async () => {
+  const { queue: live, createQueue, advance } = fixture();
+  const maintenance = createQueue("maintenance");
+  const backfill = await maintenance.enqueue({ repository: "example", kind: "backfill" });
+  const hourly = await maintenance.requestDispatcher();
+  await maintenance.activateDispatcher({ generation: hourly.generation, workerId: "hourly" });
+  const [hourlyClaim] = await maintenance.claimWave({ generation: hourly.generation, workerId: "hourly" });
+  advance(100);
+  await live.enqueue({ repository: "example", prNumber: 1 });
+  const event = await live.requestDispatcher();
+  assert.equal(event.acquired, true);
+  await live.activateDispatcher({ generation: event.generation, workerId: "live" });
+  const [liveClaim] = await live.claimWave({ generation: event.generation, workerId: "live" });
+  assert.equal(liveClaim.prNumber, 1);
+  await live.acknowledge({
+    ...liveClaim, generation: event.generation, workerId: "live", outcome: "success",
+  });
+  assert.equal((await maintenance.itemStatus(backfill)).status, "inflight");
+  await assert.rejects(live.acknowledge({
+    ...hourlyClaim, generation: event.generation, workerId: "live", outcome: "success",
+  }), /another lane/);
+  assert.equal((await live.finishDispatcher({
+    generation: event.generation, workerId: "live",
+  })).requested, false);
+  assert.equal((await maintenance.stats()).inflight, 1);
+  assert.equal((await live.stats()).inflight, 0);
+});
+
+test("a runnerless maintenance dispatcher does not block live ownership or recovery", async () => {
+  const { queue: live, createQueue, advance } = fixture();
+  const maintenance = createQueue("maintenance");
+  await maintenance.enqueue({ repository: "example", kind: "backfill" });
+  const stranded = await maintenance.requestDispatcher();
+  advance(500);
+  await live.enqueue({ repository: "example", prNumber: 1 });
+  const event = await live.requestDispatcher();
+  await live.activateDispatcher({ generation: event.generation, workerId: "live" });
+  await live.claimWave({ generation: event.generation, workerId: "live" });
+  advance(501);
+  const recovery = await maintenance.recoverExpiredLeases();
+  assert.equal(recovery.requested, true);
+  assert.ok(recovery.generation > stranded.generation);
+  assert.equal((await live.stats()).dispatcher.leaseOwner, "live");
+  assert.equal((await live.stats()).inflight, 1);
+  assert.equal((await live.heartbeat({ generation: event.generation, workerId: "live" })).items, 1);
+});
+
+test("lanes can claim existing shard records without changing their request identities", async () => {
+  const { queue: live, createQueue, store } = fixture();
+  const maintenance = createQueue("maintenance");
+  const request = await maintenance.enqueue({ repository: "example", kind: "backfill" });
+  const before = structuredClone(store.entries.get(request.shardKey).value.items[request.itemKey]);
+  const liveDispatcher = await live.requestDispatcher();
+  await live.activateDispatcher({ generation: liveDispatcher.generation, workerId: "live" });
+  assert.deepEqual(await live.claimWave({ generation: liveDispatcher.generation, workerId: "live" }), []);
+  assert.deepEqual(store.entries.get(request.shardKey).value.items[request.itemKey], before);
+  const hourly = await maintenance.requestDispatcher();
+  await maintenance.activateDispatcher({ generation: hourly.generation, workerId: "hourly" });
+  await maintenance.claimWave({ generation: hourly.generation, workerId: "hourly" });
+  assert.equal((await maintenance.itemStatus(request)).requestId, request.requestId);
+});
+
+test("repository delivery ownership is shared across lanes and fenced by its generation", async () => {
+  const { queue: live, createQueue } = fixture();
+  const maintenance = createQueue("maintenance");
+  const hourly = await maintenance.requestDispatcher();
+  const event = await live.requestDispatcher();
+  await maintenance.activateDispatcher({ generation: hourly.generation, workerId: "hourly" });
+  await live.activateDispatcher({ generation: event.generation, workerId: "live" });
+  const hourlyOwner = { repository: "example", generation: hourly.generation, workerId: "hourly" };
+  const liveOwner = { repository: "example", generation: event.generation, workerId: "live" };
+  const lease = await maintenance.acquireDeliveryLease(hourlyOwner);
+  assert.equal(lease.acquired, true);
+  assert.deepEqual(await maintenance.acquireDeliveryLease(hourlyOwner), lease);
+  assert.deepEqual(await live.acquireDeliveryLease(liveOwner), { acquired: false });
+  assert.equal((await live.acquireDeliveryLease({ ...liveOwner, repository: "other" })).acquired, true);
+  assert.equal((await maintenance.releaseDeliveryLease({
+    ...hourlyOwner, leaseGeneration: lease.leaseGeneration,
+  })).released, true);
+  assert.equal((await maintenance.releaseDeliveryLease({
+    ...hourlyOwner, leaseGeneration: lease.leaseGeneration,
+  })).released, true);
+  const next = await live.acquireDeliveryLease(liveOwner);
+  assert.equal(next.acquired, true);
+  assert.ok(next.leaseGeneration > lease.leaseGeneration);
+  assert.equal((await maintenance.releaseDeliveryLease({
+    ...hourlyOwner, leaseGeneration: lease.leaseGeneration,
+  })).released, false);
+});
+
+test("heartbeats renew delivery ownership and abandonment allows another lane to acquire it", async () => {
+  const { queue: live, createQueue, advance } = fixture();
+  const maintenance = createQueue("maintenance");
+  const event = await live.requestDispatcher();
+  const hourly = await maintenance.requestDispatcher();
+  await live.activateDispatcher({ generation: event.generation, workerId: "live" });
+  await maintenance.activateDispatcher({ generation: hourly.generation, workerId: "hourly" });
+  const liveOwner = { repository: "example", generation: event.generation, workerId: "live" };
+  const hourlyOwner = { repository: "example", generation: hourly.generation, workerId: "hourly" };
+  const lease = await live.acquireDeliveryLease(liveOwner);
+  advance(800);
+  await live.heartbeat(liveOwner);
+  await maintenance.heartbeat(hourlyOwner);
+  advance(400);
+  assert.deepEqual(await maintenance.acquireDeliveryLease(hourlyOwner), { acquired: false });
+  advance(500);
+  await maintenance.heartbeat(hourlyOwner);
+  advance(200);
+  const replacement = await maintenance.acquireDeliveryLease(hourlyOwner);
+  assert.equal(replacement.acquired, true);
+  assert.equal((await live.releaseDeliveryLease({
+    ...liveOwner, leaseGeneration: lease.leaseGeneration,
+  })).released, false);
+  await assert.rejects(live.acquireDeliveryLease(liveOwner), /active dispatcher/);
+});
+
+test("a stranded request cannot prevent a replacement generation from running", async () => {
+  const { queue, advance } = fixture();
+  await queue.enqueue({ repository: "example", prNumber: 1 });
+  const stranded = await queue.requestDispatcher("no-runner");
+  advance(1_001);
+  const recovery = await queue.recoverExpiredLeases();
+  assert.equal(recovery.requested, true);
+  assert.equal(await queue.activateDispatcher({ generation: recovery.generation, workerId: "replacement" }), true);
+  assert.equal(await queue.activateDispatcher({ generation: stranded.generation, workerId: "stranded" }), false);
+  assert.equal(await queue.activateDispatcher({ generation: recovery.generation, workerId: "duplicate" }), false);
+  const [claim] = await queue.claimWave({ generation: recovery.generation, workerId: "replacement" });
+  assert.equal(claim.prNumber, 1);
+  await assert.rejects(queue.claimWave({ generation: stranded.generation, workerId: "stranded" }), /active dispatcher/);
+});
+
+test("recovery can dispatch a replacement before a runnerless request lease expires", async () => {
+  const { queue, advance } = fixture();
+  queue.dispatcherRequestLeaseMs = 60 * 60 * 1_000;
+  await queue.enqueue({ repository: "example", prNumber: 1 });
+  const original = await queue.requestDispatcher("runnerless");
+  advance(15 * 60 * 1_000);
+  const recovery = await queue.recoverExpiredLeases({ redispatchRequested: true });
+  assert.equal(recovery.recoveredDispatcher, false);
+  assert.equal(recovery.requested, true);
+  assert.equal(recovery.replayed, true);
+  assert.equal(recovery.generation, original.generation);
+  assert.equal(await queue.activateDispatcher({ generation: recovery.generation, workerId: "replacement" }), true);
+  assert.equal(await queue.activateDispatcher({ generation: original.generation, workerId: "runnerless" }), false);
+  assert.equal((await queue.claimWave({ generation: recovery.generation, workerId: "replacement" })).length, 1);
+});
+
+test("dispatcher expiry fences acknowledgments even before an item lease expires", async () => {
+  const { queue, advance } = fixture();
+  queue.itemLeaseMs = 10_000;
+  await queue.enqueue({ repository: "example", prNumber: 1 });
+  const dispatcher = await queue.requestDispatcher();
+  await queue.activateDispatcher({ generation: dispatcher.generation, workerId: "worker" });
+  const [claim] = await queue.claimWave({ generation: dispatcher.generation, workerId: "worker" });
+  advance(1_001);
+  assert.deepEqual(await queue.heartbeat({ generation: dispatcher.generation, workerId: "worker" }), { dispatcher: false, items: 0 });
+  await assert.rejects(queue.acknowledge({
+    generation: dispatcher.generation, workerId: "worker", itemKey: claim.itemKey,
+    claimGeneration: claim.claimGeneration, outcome: "success",
+  }), /active dispatcher/);
+});
+
+test("a reused worker identity cannot heartbeat or acknowledge an older generation's items", async () => {
+  const { queue, advance } = fixture();
+  queue.itemLeaseMs = 10_000;
+  await queue.enqueue({ repository: "example", prNumber: 1 });
+  const first = await queue.requestDispatcher();
+  await queue.activateDispatcher({ generation: first.generation, workerId: "worker" });
+  const [claim] = await queue.claimWave({ generation: first.generation, workerId: "worker" });
+  advance(1_001);
+  const replacement = await queue.requestDispatcher();
+  await queue.activateDispatcher({ generation: replacement.generation, workerId: "worker" });
+  assert.equal((await queue.heartbeat({ generation: replacement.generation, workerId: "worker" })).items, 0);
+  await assert.rejects(queue.acknowledge({
+    ...claim, generation: replacement.generation, workerId: "worker", outcome: "success",
+  }), /stale or unauthorized/);
+  assert.equal((await queue.stats()).inflight, 1);
+});
+
+test("backfill continuation survives deployment and completes without consuming retries", async () => {
+  const { queue, store } = fixture("maintenance");
+  const request = await queue.enqueue({ repository: "example", kind: "backfill", triggerEvent: "workflow_dispatch" });
+  await queue.enqueue({ repository: "example", kind: "backfill", triggerEvent: "schedule" });
+  const dispatcher = await queue.requestDispatcher();
+  await queue.activateDispatcher({ generation: dispatcher.generation, workerId: "worker" });
+  const [claim] = await queue.claimWave({ generation: dispatcher.generation, workerId: "worker" });
+  assert.deepEqual(claim.triggerEvents, ["schedule", "workflow_dispatch"]);
+  assert.equal(claim.kind, "backfill");
+  assert.equal((await queue.acknowledge({
+    ...claim, generation: dispatcher.generation, workerId: "worker", outcome: "continue",
+  })).status, "continued");
+  const redeployed = new DashboardQueue({ store, now: queue.now, lane: "maintenance" });
+  const [resumed] = await redeployed.claimWave({ generation: dispatcher.generation, workerId: "worker" });
+  assert.equal(resumed.attempts, 0);
+  await redeployed.acknowledge({
+    ...resumed, generation: dispatcher.generation, workerId: "worker",
+    outcome: "success", operationId: "completed",
+  });
+  assert.equal((await redeployed.itemStatus(request)).status, "completed");
+  const next = await redeployed.enqueue({ repository: "example", kind: "backfill" });
+  assert.ok(next.generation > request.generation);
+  assert.equal((await redeployed.itemStatus(next)).status, "queued");
+});
+
+test("pausing recovery preserves legacy refresh records without dispatching", async () => {
+  const { queue, store, advance } = fixture();
+  await queue.enqueue({ repository: "example", prNumber: 1 });
+  const dispatcher = await queue.requestDispatcher();
+  await queue.activateDispatcher({ generation: dispatcher.generation, workerId: "worker" });
+  await queue.claimWave({ generation: dispatcher.generation, workerId: "worker" });
+  advance(1_001);
+  const recovery = await queue.recoverExpiredLeases({ requestSuccessor: false });
+  assert.equal(recovery.requested, false);
+  const rolledBack = new DashboardQueue({ store, now: queue.now });
+  const replacement = await rolledBack.requestDispatcher();
+  await rolledBack.activateDispatcher({ generation: replacement.generation, workerId: "legacy" });
+  const [claim] = await rolledBack.claimWave({ generation: replacement.generation, workerId: "legacy" });
+  assert.equal(claim.prNumber, 1);
+  assert.equal(claim.kind, undefined);
+});
+
+test("receipt eviction cannot turn later work into completion of an earlier request", async () => {
+  const { queue } = fixture();
+  queue.acknowledgmentReceiptLimit = 0;
+  const original = await queue.enqueue({ repository: "example", prNumber: 1 });
+  const dispatcher = await queue.requestDispatcher();
+  await queue.activateDispatcher({ generation: dispatcher.generation, workerId: "worker" });
+  const [first] = await queue.claimWave({ generation: dispatcher.generation, workerId: "worker" });
+  await queue.acknowledge({ ...first, generation: dispatcher.generation, workerId: "worker", outcome: "success", operationId: "first" });
+  assert.equal((await queue.itemStatus(original)).status, "unknown");
+  const next = await queue.enqueue({ repository: "example", prNumber: 1 });
+  assert.equal(next.generation, original.generation);
+  assert.notEqual(original.requestId, next.requestId);
+  assert.equal((await queue.itemStatus(original)).status, "unknown");
+  queue.acknowledgmentReceiptLimit = 100;
+  const [second] = await queue.claimWave({ generation: dispatcher.generation, workerId: "worker" });
+  await queue.acknowledge({ ...second, generation: dispatcher.generation, workerId: "worker", outcome: "success", operationId: "second" });
+  assert.equal((await queue.itemStatus(next)).status, "completed");
+  assert.equal((await queue.itemStatus(original)).status, "unknown");
+});
+
+test("unknown progress retains request identity even when its shard is absent", async () => {
+  const { queue } = fixture();
+  const request = { itemKey: "example#pr:1", generation: 1, requestId: "missing" };
+  assert.deepEqual(await queue.itemStatus(request), { ...request, status: "unknown" });
+});
 
 test("builds stable PR and head queue keys", () => {
   assert.equal(
