@@ -1,9 +1,12 @@
-import { DashboardQueue } from "../lib/dashboard-queue.mjs";
+import repositories from "../../repositories.json" with { type: "json" };
+import { DashboardQueue, queueItemLane, queueLane } from "../lib/dashboard-queue.mjs";
+import { executionMode } from "../lib/execution-mode.mjs";
 import { dispatchQueueDrain } from "../lib/github-dispatch.mjs";
-import { verifyGitHubOidcRequest } from "../lib/github-oidc.mjs";
+import { ENQUEUE_WORKFLOW_REFS, EXPECTED_WORKFLOW_REF, verifyGitHubOidcRequest } from "../lib/github-oidc.mjs";
 
 const MAX_REQUEST_BYTES = 64 * 1024;
-const ACKNOWLEDGMENT_OUTCOMES = new Set(["success", "retry", "dead"]);
+const ACKNOWLEDGMENT_OUTCOMES = new Set(["success", "retry", "dead", "continue"]);
+const REPOSITORIES = new Set(repositories.map((entry) => entry.name));
 
 export default async (request) => {
   try {
@@ -20,7 +23,8 @@ export default async (request) => {
 export async function handleQueueWorkerRequest(
   request,
   {
-    queue = new DashboardQueue(),
+    queue,
+    createQueue = (lane) => new DashboardQueue({ lane }),
     verifyRequest = verifyGitHubOidcRequest,
     dispatchDrain = dispatchQueueDrain,
   } = {},
@@ -28,11 +32,67 @@ export async function handleQueueWorkerRequest(
   if (request.method !== "POST") {
     return Response.json({ error: "method not allowed" }, { status: 405 });
   }
-  await verifyRequest(request);
+  await verifyRequest(request, {
+    workflowRef: [EXPECTED_WORKFLOW_REF, ...ENQUEUE_WORKFLOW_REFS],
+  });
   const body = await readJsonBody(request);
   const action = body.action;
+  if (!["enqueue", "status", "stats"].includes(action)) {
+    await verifyRequest(request, { workflowRef: EXPECTED_WORKFLOW_REF });
+  }
+  if (action === "enqueue" && !["refresh", "backfill", "reminders"].includes(body.kind || "refresh")) {
+    throw requestError(400, "queue item kind is invalid");
+  }
+  const expectedLane = action === "enqueue" ? queueLane(body.kind || "refresh")
+    : ["status", "acknowledge"].includes(action)
+      ? queueItemLane(nonEmptyString(body.itemKey, "itemKey", 500))
+      : null;
+  const lane = body.lane || expectedLane || "live";
+  if (!["live", "maintenance"].includes(lane) || (expectedLane && expectedLane !== lane)) {
+    throw requestError(400, "queue lane does not match the requested work");
+  }
+  queue ||= createQueue(lane);
+  const mode = executionMode();
   switch (action) {
+    case "enqueue": {
+      if (mode === "legacy") {
+        return Response.json({ error: "queue-owned execution is not enabled" }, { status: 409 });
+      }
+      const repository = nonEmptyString(body.repository, "repository", 100);
+      if (!REPOSITORIES.has(repository)) {
+        throw requestError(400, "repository is not configured");
+      }
+      const queued = await queue.enqueue({
+        repository,
+        prNumber: optionalPositiveInteger(body.prNumber, "prNumber"),
+        headSha: body.headSha || "",
+        kind: body.kind || "refresh",
+        triggerEvent: body.triggerEvent || "workflow_dispatch",
+      });
+      const dispatcher = mode === "owned" ? await queue.requestDispatcher() : { acquired: false };
+      if (dispatcher.acquired) {
+        try {
+          await dispatchDrain(dispatcher.generation, lane);
+        } catch (error) {
+          await queue.releaseRequestedDispatcher({
+            generation: dispatcher.generation,
+            requestOwner: dispatcher.requestOwner,
+          });
+          throw error;
+        }
+      }
+      return jsonResponse({ accepted: true, completed: false, ...queued, dispatcher });
+    }
+    case "status":
+      return jsonResponse(await queue.itemStatus({
+        itemKey: nonEmptyString(body.itemKey, "itemKey", 500),
+        generation: positiveInteger(body.generation, "generation"),
+        requestId: nonEmptyString(body.requestId, "requestId", 100),
+      }));
     case "activate":
+      if (mode === "paused") {
+        return jsonResponse({ activated: false });
+      }
       return jsonResponse({
         activated: await queue.activateDispatcher({
           generation: positiveInteger(body.generation, "generation"),
@@ -40,6 +100,9 @@ export async function handleQueueWorkerRequest(
         }),
       });
     case "claim":
+      if (mode === "paused") {
+        throw requestError(409, "queue-owned execution is paused");
+      }
       return jsonResponse({
         claims: await queue.claimWave({
           generation: positiveInteger(body.generation, "generation"),
@@ -58,8 +121,27 @@ export async function handleQueueWorkerRequest(
         generation: positiveInteger(body.generation, "generation"),
         workerId: workerId(body.workerId),
       }));
+    case "acquire-delivery":
+    case "release-delivery": {
+      const repository = nonEmptyString(body.repository, "repository", 100);
+      if (!REPOSITORIES.has(repository)) {
+        throw requestError(400, "repository is not configured");
+      }
+      const lease = {
+        repository,
+        generation: positiveInteger(body.generation, "generation"),
+        workerId: workerId(body.workerId),
+      };
+      return jsonResponse(action === "acquire-delivery"
+        ? await queue.acquireDeliveryLease(lease)
+        : await queue.releaseDeliveryLease({
+          ...lease,
+          leaseGeneration: positiveInteger(body.leaseGeneration, "leaseGeneration"),
+        }));
+    }
     case "acknowledge":
       return jsonResponse(await queue.acknowledge({
+        generation: positiveInteger(body.generation, "generation"),
         itemKey: nonEmptyString(body.itemKey, "itemKey", 500),
         claimGeneration: positiveInteger(
           body.claimGeneration,
@@ -81,8 +163,10 @@ export async function handleQueueWorkerRequest(
         generation: positiveInteger(body.generation, "generation"),
         workerId: workerId(body.workerId),
       };
-      const result = await queue.finishDispatcher(finish);
-      const dispatch = result.requested
+      const result = await queue.finishDispatcher(
+        mode === "paused" ? { ...finish, requestSuccessor: false } : finish,
+      );
+      const dispatch = result.requested && mode !== "paused"
         ? await queue.claimFinishDispatch(finish)
         : "completed";
       if (dispatch === "in_progress" || dispatch === "unavailable") {
@@ -93,7 +177,7 @@ export async function handleQueueWorkerRequest(
       }
       if (dispatch === "claimed") {
         try {
-          await dispatchDrain(result.generation);
+          await dispatchDrain(result.generation, lane);
         } catch (error) {
           if (error.statusCode) {
             await queue.failFinishDispatchWithRelease(finish, {
@@ -139,7 +223,7 @@ function workerId(value) {
 
 function acknowledgmentOutcome(value) {
   if (!ACKNOWLEDGMENT_OUTCOMES.has(value)) {
-    throw requestError(400, "outcome must be one of: success, retry, dead");
+    throw requestError(400, "outcome must be one of: success, retry, dead, continue");
   }
   return value;
 }

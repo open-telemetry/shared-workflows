@@ -1,8 +1,7 @@
-"""Track Copilot re-review requests for delivery by the publisher job."""
+"""Track Copilot review requests for delivery by the publisher job."""
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
 from collections.abc import Sequence
 from typing import Any
 
@@ -22,18 +21,12 @@ from pull_request_source import (
     normalize_review_requests,
     normalize_reviews,
 )
-from utils import (
-    format_ts,
-    parse_ts,
-    utc_now,
+
+
+COPILOT_QUOTA_FAILURE_BODY = (
+    "Copilot was unable to review this pull request because the user who "
+    "requested the review has reached their quota limit."
 )
-
-
-# How long the automatic first review is given to arrive before the dashboard
-# requests one itself. Measured against observed first reviews, which normally
-# land within twenty minutes and have been seen as late as forty; an hour
-# clears that without waiting through the whole first review cycle again.
-FIRST_REVIEW_GRACE = timedelta(hours=1)
 
 
 # How many times the pull request is read back before a request counts as
@@ -97,6 +90,7 @@ def copilot_review_status(
         review
         for review in reviews
         if is_copilot_reviewer(review)
+        and review.body.strip() != COPILOT_QUOTA_FAILURE_BODY
     ]
     if not copilot_reviews:
         return False, False, False
@@ -128,67 +122,24 @@ def copilot_review_unreported(facts: DashboardFacts, *, enabled: bool) -> bool:
     return not facts.copilot_review_exists or facts.copilot_review_stale
 
 
-def set_copilot_first_review_missing_since(
-    facts: DashboardFacts,
-    previous_facts: DashboardFacts,
-    *,
-    enabled: bool,
-    now: datetime,
-) -> DashboardFacts:
-    # How long this pull request has been waiting on a first review that GitHub
-    # was expected to start automatically. The clock runs only while the wait is
-    # real: the gate applies, the pull request is out of draft, and Copilot has
-    # never reviewed it. Draft resets it because GitHub starts the automatic
-    # review when a pull request becomes ready, not when it is opened. A push
-    # deliberately does not reset it, because GitHub does not automatically
-    # review a pull request it has never reviewed, so restarting the wait on
-    # every push would leave an actively developed pull request waiting forever.
-    if not enabled or facts.is_draft or facts.copilot_review_exists:
-        return facts.with_changes(copilot_first_review_missing_since=None)
-    return facts.with_changes(
-        copilot_first_review_missing_since=(
-            previous_facts.copilot_first_review_missing_since
-            or format_ts(now)
-        )
-    )
-
-
-def copilot_first_review_overdue(facts: DashboardFacts, now: datetime) -> bool:
-    missing_since = parse_ts(facts.copilot_first_review_missing_since)
-    if missing_since is None:
-        return False
-    return now - missing_since >= FIRST_REVIEW_GRACE
-
-
 def set_copilot_review_request_needed(
     facts: DashboardFacts,
     route: str,
     *,
     enabled: bool,
-    now: datetime | None = None,
 ) -> DashboardFacts:
-    # Only two states are worth a request. A stale review means the author
-    # pushed, which is the one change a re-review can respond to; findings on
-    # the current head sit on unchanged code, so re-reviewing would reach the
-    # same verdict and be requested again on every pass. A review GitHub should
-    # have started automatically and never did is the other: the gate would
-    # otherwise hold the pull request on its author indefinitely, waiting for a
-    # review nobody has asked for.
+    # Missing and stale reviews need a request. Findings on the current head
+    # belong to the author; reviewing unchanged code again cannot resolve them.
     #
     # Pending checks do not hold the request back, so the review and the checks
     # run at once. Failing checks still do, because they route the pull request
     # to its author and only a reviewer route reaches here.
-    now = now or utc_now()
-    review_missing = not facts.copilot_review_exists
     return facts.with_changes(copilot_review_request_needed=(
         enabled
         and route in ("approver", "maintainer")
         and (
-            (
-                facts.copilot_review_exists
-                and facts.copilot_review_stale
-            )
-            or (review_missing and copilot_first_review_overdue(facts, now))
+            not facts.copilot_review_exists
+            or facts.copilot_review_stale
         )
         and not facts.copilot_review_requested
     ))
