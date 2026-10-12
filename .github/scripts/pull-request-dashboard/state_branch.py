@@ -256,6 +256,7 @@ def fetch_state_branch(state_branch: str, required: bool) -> bool:
                     "git",
                     "fetch",
                     "--no-write-fetch-head",
+                    "--refmap=",
                     "origin",
                     f"{state_branch}:{fetched_ref}",
                 ],

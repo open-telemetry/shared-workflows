@@ -150,6 +150,18 @@ class DataSnapshotTest(unittest.TestCase):
             self.assertTrue(state_branch.fetch_state_branch("data", required=True))
         self.assertEqual("", run_git(self.worker, "for-each-ref", "--format=%(refname)", "refs/pull-request-dashboard-fetch").stdout)
 
+    def test_fetch_preserves_newer_local_snapshot_when_remote_is_stale(self) -> None:
+        first = self.snapshot(self.worker, self.legacy)
+        self.assertTrue(state_branch.push_state(self.worker, "data", self.legacy))
+        (self.worker / "jobs.json").write_text('{"jobs":[1,2]}\n', encoding="utf-8")
+        second = self.snapshot(self.worker, first)
+        run_git(self.worker, "update-ref", state_branch.remote_ref("data"), second)
+
+        with working_directory(self.worker):
+            self.assertTrue(state_branch.fetch_state_branch("data", required=True))
+
+        self.assertEqual(second, run_git(self.worker, "rev-parse", state_branch.remote_ref("data")).stdout.strip())
+
     def test_fetch_replaces_legacy_ref_with_snapshot_and_accepts_newer_generation(self) -> None:
         first = self.snapshot(self.worker, self.legacy)
         (self.worker / "jobs.json").write_text('{"jobs":[1,2]}\n', encoding="utf-8")
