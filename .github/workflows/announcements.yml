@@ -1,0 +1,95 @@
+# Reusable workflow -- see /announcements/README.md for consumer documentation.
+name: Announcements
+
+on:
+  workflow_call:
+    inputs:
+      announcement:
+        description: JSON object with title, text, url, and optional per-channel overrides
+        required: true
+        type: string
+      channels:
+        description: JSON array selecting linkedin, bluesky, mastodon, slack, or groupsio
+        required: true
+        type: string
+      targets:
+        description: JSON object mapping channels to arrays of destination IDs
+        required: true
+        type: string
+      mode:
+        description: check (validate and render only), draft (native drafts or previews), or publish
+        default: check
+        type: string
+      wait_for_url_minutes:
+        description: Minutes to wait for the announcement URL to return 200 before approval (0 skips, at most 120)
+        default: 0
+        type: number
+      environment:
+        description: Caller environment for approval rules and environment secrets
+        default: announcements
+        type: string
+      groupsio_host:
+        description: Groups.io API host (lists.cncf.io or groups.io)
+        default: lists.cncf.io
+        type: string
+      report_name:
+        description: Unique artifact label when calling this workflow more than once in a run
+        default: announcements
+        type: string
+    secrets:
+      BUFFER_API_KEY:
+        required: false
+      SLACK_WEBHOOK_URL:
+        required: false
+      GROUPSIO_API_KEY:
+        required: false
+
+permissions: {}
+
+jobs:
+  # Runs without the environment or secrets: validation and waiting for the page
+  # happen before anyone is asked to approve, and work for pull requests.
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 125
+    steps:
+      - name: Validate announcement and wait for its URL
+        uses: $/.github/scripts/announcements
+        with:
+          announcement: ${{ inputs.announcement }}
+          channels: ${{ inputs.channels }}
+          targets: ${{ inputs.targets }}
+          mode: ${{ inputs.mode }}
+          stage: check
+          wait-minutes: ${{ inputs.wait_for_url_minutes }}
+
+  deliver:
+    needs: check
+    if: ${{ inputs.mode != 'check' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    environment: ${{ inputs.environment }}
+    steps:
+      - name: Deliver announcement
+        uses: $/.github/scripts/announcements
+        with:
+          announcement: ${{ inputs.announcement }}
+          channels: ${{ inputs.channels }}
+          targets: ${{ inputs.targets }}
+          mode: ${{ inputs.mode }}
+          groupsio-host: ${{ inputs.groupsio_host }}
+          stage: deliver
+          report-directory: ${{ runner.temp }}/announcements
+        env:
+          BUFFER_API_KEY: ${{ secrets.BUFFER_API_KEY }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          GROUPSIO_API_KEY: ${{ secrets.GROUPSIO_API_KEY }}
+
+      - name: Upload delivery report
+        if: ${{ always() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ${{ inputs.report_name }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/announcements/report.json
+          if-no-files-found: error
+          retention-days: 14

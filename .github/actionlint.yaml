@@ -2,3 +2,6 @@ paths:
   .github/workflows/*.{yml,yaml}:
     ignore:
       - 'unknown permission scope "copilot-requests"'
+      # GitHub supports self-repository action references (`uses: $/...`);
+      # actionlint 1.7.12 does not yet.
+      - 'specifying action "\$/[^"]+" in invalid format because ref is missing'

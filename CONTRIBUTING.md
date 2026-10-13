@@ -34,6 +34,10 @@ Shared workflows in this repo come in two shapes. Pick the one that fits your us
 
 .github/workflows/
   <workflow-name>.yml                      # the reusable workflow (must live here)
+
+.github/scripts/<workflow-name>/          # optional supporting code
+  action.yml                              # self-repository composite action
+  <workflow scripts...>
 ```
 
 Callers reference the workflow at its real location, e.g.:
@@ -41,6 +45,11 @@ Callers reference the workflow at its real location, e.g.:
 ```yaml
 uses: open-telemetry/shared-workflows/.github/workflows/<workflow-name>.yml@<sha-or-tag>
 ```
+
+Reusable workflows with supporting code can use a self-repository action
+(`uses: $/.github/scripts/<workflow-name>`) to load that code from the workflow's
+exact commit, without checking out the calling repository. See
+[`announcements.yml`](./.github/workflows/announcements.yml) for an example.
 
 #### Centrally-executed workflow
 

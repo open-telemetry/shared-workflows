@@ -1,0 +1,45 @@
+name: Deliver announcements
+description: Execute announcement code from the reusable workflow's exact commit
+
+inputs:
+  announcement:
+    description: JSON object containing title, text, url, and optional channel overrides
+    required: true
+  channels:
+    description: JSON array of selected delivery channels
+    required: true
+  targets:
+    description: JSON object mapping channels to destination arrays
+    required: true
+  mode:
+    description: check, draft, or publish
+    default: check
+  stage:
+    description: check (validate and wait, no credentials) or deliver
+    default: deliver
+  wait-minutes:
+    description: In the check stage, minutes to wait for the URL to return 200 (0 skips)
+    default: "0"
+  groupsio-host:
+    description: Groups.io API host (lists.cncf.io or groups.io)
+    default: lists.cncf.io
+  report-directory:
+    description: Absolute directory for the JSON delivery report (deliver stage)
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - name: Validate and deliver
+      shell: bash
+      env:
+        CODE_PATH: ${{ github.action_path }}
+        ANNOUNCEMENT: ${{ inputs.announcement }}
+        ANNOUNCEMENT_CHANNELS: ${{ inputs.channels }}
+        ANNOUNCEMENT_TARGETS: ${{ inputs.targets }}
+        ANNOUNCEMENT_MODE: ${{ inputs.mode }}
+        ANNOUNCEMENT_STAGE: ${{ inputs.stage }}
+        ANNOUNCEMENT_WAIT_MINUTES: ${{ inputs.wait-minutes }}
+        GROUPSIO_HOST: ${{ inputs.groupsio-host }}
+        ANNOUNCEMENT_REPORT_DIR: ${{ inputs.report-directory }}
+      run: python3 "$CODE_PATH/publish.py"

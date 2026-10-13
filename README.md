@@ -8,6 +8,7 @@ See [`CONTRIBUTING.md`](./CONTRIBUTING.md) for how to propose a new shared workf
 
 | Name | Description | How to use |
 | ---- | ----------- | ---------- |
+| [Announcements](./announcements/) | Distributes news to LinkedIn, Bluesky, and Mastodon via Buffer, Slack, and CNCF mailing lists via Groups.io, with destination selection, pull request checks, and native drafts. | Call via `uses:` with prepared content and selected destinations. See the [Announcements README](./announcements/README.md), including an `opentelemetry.io` caller example. |
 | [Changelog](./chloggen/) | Reusable workflow that enforces the chloggen-style changelog process: blocks direct `CHANGELOG*.md` edits, requires a `.chloggen/*.yaml` entry, validates it, and link-checks its rendered preview. | Call via `uses:` from your repo's `pull_request` workflow. See the [Changelog README](./chloggen/README.md) for the snippet. |
 | [First-time contributor](./first-time-pr/) | Reusable workflow that welcomes first-time contributors on `pull_request_target: opened`: applies a label and posts a customizable welcome comment. | Call via `uses:` from your repo's `pull_request_target` workflow. See the [First-time contributor README](./first-time-pr/README.md) for the snippet. |
 | [GitHub Actions queue data](./github-actions-queue/) | Centrally collects per-job queue timing data for active public repositories in the OpenTelemetry organization. | Configure the read-only GitHub App described in the [GitHub Actions queue data README](./github-actions-queue/README.md). |
