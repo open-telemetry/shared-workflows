@@ -580,6 +580,10 @@ class DashboardBatchProcessor:
         config: dict[str, Any],
         env: dict[str, str],
     ) -> None:
+        env = dict(env)
+        env["COPILOT_REVIEW_FALLBACK_AVAILABLE"] = (
+            "true" if env.pop("COPILOT_REVIEW_FALLBACK_TOKEN", "") else "false"
+        )
         with tempfile.TemporaryDirectory() as directory:
             github_output = Path(directory) / "output"
             command = [

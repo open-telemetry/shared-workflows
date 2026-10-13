@@ -9,6 +9,7 @@ import unittest
 from unittest.mock import patch
 
 from dashboard_contracts import (
+    CopilotReviewFallback,
     DashboardCommandReply,
     DashboardRoute,
     DashboardState,
@@ -32,6 +33,7 @@ from state import (
     author_nudge_state_path,
     backfill_state_path,
     copilot_review_request_state_path,
+    copilot_review_fallback_state_path,
     claim_delivery_versions,
     current_delivery_versions,
     full_publish_needed_path,
@@ -52,6 +54,8 @@ from state import (
     load_author_nudges,
     load_backfill_state,
     load_copilot_review_requests,
+    load_copilot_review_fallbacks,
+    load_copilot_review_fallbacks_file,
     load_dashboard_state_cache,
     load_delivery_versions,
     load_state_file,
@@ -62,6 +66,7 @@ from state import (
     save_state_file,
     save_author_nudges,
     save_copilot_review_requests,
+    save_copilot_review_fallbacks,
     save_dashboard_state_cache,
     save_notifications,
     save_status_comment_rollout_state,
@@ -75,6 +80,74 @@ from state import (
 
 
 class StateTest(unittest.TestCase):
+    def test_fallback_state_survives_new_intents_and_receipt_reconciliation(self) -> None:
+        with (
+            tempfile.TemporaryDirectory() as directory,
+            patch("state._state_dir", Path(directory)),
+            patch("state._using_delivery_state", False),
+        ):
+            self.assertEqual({}, load_copilot_review_fallbacks())
+            records = {"7": CopilotReviewFallback((10, 11), "2026-08-16T11:59:00Z")}
+            save_copilot_review_fallbacks(records)
+            save_copilot_review_requests({})
+            save_copilot_review_requests({"7": {"head_sha": "next-head"}})
+            self.assertEqual(records, load_copilot_review_fallbacks())
+            self.assertEqual(records, load_copilot_review_fallbacks_file(
+                copilot_review_fallback_state_path()
+            ))
+
+    def test_fallback_retry_snapshot_retains_terminal_state(self) -> None:
+        with (
+            tempfile.TemporaryDirectory() as directory,
+            patch("state._state_dir", Path(directory)),
+        ):
+            save_copilot_review_fallbacks({
+                "7": CopilotReviewFallback((10,), "2026-08-16T11:59:00Z", True),
+            })
+            retry = Path(directory) / "retry.json"
+            retry.write_bytes(copilot_review_fallback_state_path().read_bytes())
+            save_copilot_review_fallbacks({
+                "7": CopilotReviewFallback((10,), "2026-08-16T12:00:00Z"),
+                "8": CopilotReviewFallback((20,), "2026-08-16T12:00:00Z"),
+            })
+            self.assertEqual({
+                "7": CopilotReviewFallback((10,), "2026-08-16T12:00:00Z", True),
+                "8": CopilotReviewFallback((20,), "2026-08-16T12:00:00Z"),
+            }, load_copilot_review_fallbacks(retry))
+            save_copilot_review_fallbacks({})
+            self.assertTrue(load_copilot_review_fallbacks(retry)["7"].exhausted)
+
+    def test_malformed_fallback_state_fails_explicitly(self) -> None:
+        with (
+            tempfile.TemporaryDirectory() as directory,
+            patch("state._state_dir", Path(directory)),
+        ):
+            path = copilot_review_fallback_state_path()
+            for value in (
+                {"version": 99, "prs": {}},
+                {"version": 1, "prs": {"7": {}}},
+                {"version": 1, "prs": {"7": {
+                    "quota_failure_ids": [True], "attempted_at": "now",
+                }}},
+            ):
+                with self.subTest(value=value):
+                    path.write_text(json.dumps(value), encoding="utf-8")
+                    with self.assertRaises(ValueError):
+                        load_copilot_review_fallbacks()
+            path.write_text("invalid", encoding="utf-8")
+            with self.assertRaises(json.JSONDecodeError):
+                load_copilot_review_fallbacks()
+
+    def test_fallback_facts_round_trip_and_default_to_disabled(self) -> None:
+        facts = dashboard_facts(
+            copilot_review_quota_exhausted=True,
+            copilot_review_fallback_available=True,
+            copilot_review_fallback_exhausted=True,
+        )
+        self.assertEqual(facts, decode_dashboard_facts(encode_dashboard_facts(facts)))
+        self.assertFalse(decode_dashboard_facts({}).copilot_review_fallback_available)
+        self.assertFalse(decode_dashboard_facts({}).copilot_review_fallback_exhausted)
+
     def test_backfill_preserves_generations_with_extra_marker_metadata(self) -> None:
         with (
             tempfile.TemporaryDirectory() as temp_dir,
@@ -360,6 +433,7 @@ class StateTest(unittest.TestCase):
                 ),
             ),
             copilot_review_requested=True,
+            copilot_review_quota_exhausted=True,
             copilot_review_exists=True,
             copilot_review_stale=True,
             copilot_review_needed=True,
@@ -438,6 +512,11 @@ class StateTest(unittest.TestCase):
                 },
                 pr_number_hint=123,
             ).route,
+        )
+
+    def test_legacy_facts_do_not_invent_copilot_quota_exhaustion(self) -> None:
+        self.assertFalse(
+            decode_dashboard_facts({}).copilot_review_quota_exhausted
         )
 
     def test_first_review_clock_in_stored_facts_is_ignored(self) -> None:

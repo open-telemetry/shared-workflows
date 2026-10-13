@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from dashboard_contracts import (
+    CopilotReviewFallback,
     DashboardCommandReply,
     DashboardFacts,
     DashboardRoute,
@@ -28,6 +29,7 @@ DASHBOARD_MARKDOWN_FILE = "pull-request-dashboard.md"
 BACKFILL_STATE_FILE = "backfill-state.json"
 AUTHOR_NUDGE_STATE_FILE = "author-nudge-state.json"
 COPILOT_REVIEW_REQUEST_STATE_FILE = "copilot-review-request-state.json"
+COPILOT_REVIEW_FALLBACK_STATE_FILE = "copilot-review-fallback-state.json"
 STATUS_COMMENT_ROLLOUT_STATE_FILE = "status-comment-rollout-state.json"
 DELIVERY_VERSIONS_FILE = "delivery-versions.json"
 DELIVERY_STATE_FILE = "delivery-state.json"
@@ -52,6 +54,7 @@ NOTIFICATION_STATE_VERSION = 3
 AUTHOR_NUDGE_STATE_VERSION = 4
 # copilot-review-request-state.json: pending and delivered review requests.
 COPILOT_REVIEW_REQUEST_STATE_VERSION = 7
+COPILOT_REVIEW_FALLBACK_STATE_VERSION = 1
 # status-comment-rollout-state.json: target/completed renderer revisions and queue.
 STATUS_COMMENT_ROLLOUT_STATE_VERSION = 3
 # Rendered status-comment behavior. Increment when existing comments need to
@@ -110,6 +113,10 @@ def author_nudge_state_path() -> Path:
 
 def copilot_review_request_state_path() -> Path:
     return state_dir() / COPILOT_REVIEW_REQUEST_STATE_FILE
+
+
+def copilot_review_fallback_state_path() -> Path:
+    return state_dir() / COPILOT_REVIEW_FALLBACK_STATE_FILE
 
 
 def backfill_state_path() -> Path:
@@ -694,6 +701,18 @@ def decode_dashboard_facts(value: Any) -> DashboardFacts:
             value.get("copilot_review_requested", _MISSING),
             "facts.copilot_review_requested",
         ),
+        copilot_review_quota_exhausted=_boolean(
+            value.get("copilot_review_quota_exhausted", _MISSING),
+            "facts.copilot_review_quota_exhausted",
+        ),
+        copilot_review_fallback_available=_boolean(
+            value.get("copilot_review_fallback_available", _MISSING),
+            "facts.copilot_review_fallback_available",
+        ),
+        copilot_review_fallback_exhausted=_boolean(
+            value.get("copilot_review_fallback_exhausted", _MISSING),
+            "facts.copilot_review_fallback_exhausted",
+        ),
         copilot_review_exists=_boolean(
             value.get("copilot_review_exists", _MISSING),
             "facts.copilot_review_exists",
@@ -862,6 +881,12 @@ def encode_dashboard_facts(facts: DashboardFacts) -> dict[str, Any]:
             for reviewer in facts.reviewers
         ],
     }
+    if facts.copilot_review_quota_exhausted:
+        stored["copilot_review_quota_exhausted"] = True
+    if facts.copilot_review_fallback_available:
+        stored["copilot_review_fallback_available"] = True
+    if facts.copilot_review_fallback_exhausted:
+        stored["copilot_review_fallback_exhausted"] = True
     if facts.dashboard_override_bound_command_id:
         stored["dashboard_override_bound_command_id"] = (
             facts.dashboard_override_bound_command_id
@@ -1286,6 +1311,69 @@ def save_copilot_review_requests(requests: dict[str, Any]) -> None:
         copilot_review_request_state_path(),
         {"prs": requests},
         COPILOT_REVIEW_REQUEST_STATE_VERSION,
+    )
+
+
+def load_copilot_review_fallbacks_file(path: Path) -> dict[str, CopilotReviewFallback]:
+    if not path.exists():
+        return {}
+    data = json.loads(path.read_text(encoding="utf-8"))
+    if (
+        not isinstance(data, dict)
+        or data.get("version") != COPILOT_REVIEW_FALLBACK_STATE_VERSION
+        or not isinstance(data.get("prs"), dict)
+    ):
+        raise ValueError(f"incompatible Copilot request state: {path}")
+    fallbacks: dict[str, CopilotReviewFallback] = {}
+    for key, entry in data["prs"].items():
+        if not isinstance(entry, dict):
+            raise ValueError(f"invalid Copilot request record for PR {key}")
+        ids = entry.get("quota_failure_ids")
+        attempted_at = entry.get("attempted_at")
+        exhausted = entry.get("exhausted", False)
+        if (
+            not isinstance(ids, list)
+            or any(type(value) is not int or value <= 0 for value in ids)
+            or not isinstance(attempted_at, str)
+            or not attempted_at
+            or not isinstance(exhausted, bool)
+        ):
+            raise ValueError(f"invalid Copilot request record for PR {key}")
+        fallbacks[key] = CopilotReviewFallback(tuple(ids), attempted_at, exhausted)
+    return fallbacks
+
+
+def load_copilot_review_fallbacks(
+    retry_snapshot_path: Path | None = None,
+) -> dict[str, CopilotReviewFallback]:
+    fallbacks = load_copilot_review_fallbacks_file(copilot_review_fallback_state_path())
+    if retry_snapshot_path is not None:
+        for key, retry in load_copilot_review_fallbacks_file(retry_snapshot_path).items():
+            current = fallbacks.get(key)
+            if current is None:
+                fallbacks[key] = retry
+            else:
+                latest = max((current, retry), key=lambda entry: entry.attempted_at)
+                fallbacks[key] = CopilotReviewFallback(
+                    latest.quota_failure_ids,
+                    latest.attempted_at,
+                    current.exhausted or retry.exhausted,
+                )
+    return fallbacks
+
+
+def save_copilot_review_fallbacks(fallbacks: dict[str, CopilotReviewFallback]) -> None:
+    save_state_file(
+        copilot_review_fallback_state_path(),
+        {"prs": {
+            key: {
+                "quota_failure_ids": list(entry.quota_failure_ids),
+                "attempted_at": entry.attempted_at,
+                "exhausted": entry.exhausted,
+            }
+            for key, entry in fallbacks.items()
+        }},
+        COPILOT_REVIEW_FALLBACK_STATE_VERSION,
     )
 
 

@@ -31,12 +31,14 @@ from pr_status_comment import (
 from state import (
     AUTHOR_NUDGE_STATE_FILE,
     COPILOT_REVIEW_REQUEST_STATE_FILE,
+    COPILOT_REVIEW_FALLBACK_STATE_FILE,
     DELIVERY_STATE_FILE,
     DELIVERY_VERSIONS_FILE,
     STATUS_COMMENT_ROLLOUT_STATE_FILE,
     author_nudge_state_path,
     claim_delivery_versions,
     copilot_review_request_state_path,
+    copilot_review_fallback_state_path,
     full_publish_delivered_path,
     full_publish_needed_path,
     notification_state_path,
@@ -55,6 +57,7 @@ LEGACY_DELIVERY_FILES = (
     "notification-state.json",
     AUTHOR_NUDGE_STATE_FILE,
     COPILOT_REVIEW_REQUEST_STATE_FILE,
+    COPILOT_REVIEW_FALLBACK_STATE_FILE,
     STATUS_COMMENT_ROLLOUT_STATE_FILE,
     DELIVERY_VERSIONS_FILE,
 )
@@ -288,6 +291,7 @@ def deliver_with_state(
         retry_snapshots=[
             (author_nudge_state_path(), author_retry),
             (copilot_review_request_state_path(), copilot_retry),
+            (copilot_review_fallback_state_path(), copilot_retry.with_suffix(".fallback.json")),
             (notification_state_path(), notification_retry),
         ],
     )
