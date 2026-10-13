@@ -40,6 +40,25 @@ class OwnedExecutionTest(unittest.TestCase):
             with self.subTest(ref=ref), self.assertRaisesRegex(ValueError, "immutable"):
                 loader.load(ref)
 
+    def test_stable_pin_rejects_invalid_workflow_pins(self) -> None:
+        workflow = execution_code.SCRIPT_DIR.parents[1] / "workflows" / "pull-request-dashboard.yml"
+        text = workflow.read_text(encoding="utf-8")
+        current = stable_code_ref(workflow)
+        pin_line = next(line for line in text.splitlines() if f"@{current} #" in line)
+        cases = {
+            "missing": text.replace(pin_line + "\n", "", 1),
+            "mismatched": text.replace(f"@{current} #", f"@{'b' * 40} #", 1),
+            "mutable": text.replace(f"@{current} #", "@main #", 1),
+            "duplicate": text + "\n" + pin_line + "\n",
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            invalid = Path(directory) / "workflow.yml"
+            for case, body in cases.items():
+                with self.subTest(case=case):
+                    invalid.write_text(body, encoding="utf-8")
+                    with self.assertRaisesRegex(ValueError, "three identical immutable workflow pins"):
+                        stable_code_ref(invalid)
+
     def test_rejected_activation_claims_nothing_and_does_not_mint_credentials(self) -> None:
         client = mock.Mock()
         client.call.return_value = {"activated": False}

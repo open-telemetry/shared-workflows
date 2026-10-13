@@ -12,13 +12,6 @@ on:
         required: false
         default: ""
         type: string
-      # Kept temporarily so stable callers pinned to a pre-self-action release
-      # can pass the ref that those releases still check out. This workflow
-      # loads its code through the self-repository action and ignores the input.
-      code_ref:
-        required: false
-        default: ""
-        type: string
     secrets:
       PR_DASHBOARD_PRIVATE_KEY:
         required: true
