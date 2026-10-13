@@ -114,10 +114,6 @@ These limits leave room below the App's 15,000-request hourly quota and the
 workflow's 50-minute timeout. A stopped run commits its records and checkpoints
 before the next schedule resumes it.
 
-When a run performs the one-time migration, collection has a 30-minute limit
-to leave time for the migration, full report rebuild, and data-branch push
-within the workflow timeout. Later runs use the normal 40-minute limit.
-
 Runs that have not reached a terminal state are saved in `state.json`. Later
 collections revisit them and emit their jobs only after every returned job is
 terminal. Job listing uses `filter=all`, so actual executions from every
@@ -127,10 +123,8 @@ created by partial reruns are not stored.
 The collector tracks the installation's REST quota. If it exhausts the quota,
 it commits the partial checkpoint and resumes during the next scheduled run.
 
-The one-time data migration streams collection files and validates them before
-removing runnerless and negative-queue records. It retains job IDs and
-per-file counts during validation, then records completion under
-`migrations/` on the data branch.
+The completed runnerless and negative-queue cleanup is recorded in
+`migrations/remove-unmeasurable-jobs-v1.json` on the data branch.
 
 GitHub limits a filtered workflow-run search to 1,000 results. The collector
 splits busy one-hour windows into smaller ranges until each result can be
