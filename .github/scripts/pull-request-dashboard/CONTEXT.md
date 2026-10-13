@@ -114,6 +114,16 @@ commit on main. Stable code comes from the existing promoted pins in
 authority. Repository policy comes from the current worker checkout in both
 channels. Stable repositories do not run main's evaluation or state codecs.
 
+Owned processors use an independent shallow Git clone per target repository,
+reused across waves within a drain. Each clone has its own configuration, refs,
+objects, and worktree registrations, with `origin` pointing to shared-workflows
+for accepted-state and delivery transactions. Clones are seeded locally from the
+worker checkout; immutable scripts and dependency environments remain shared by
+code ref. Worktree creation and removal in one processor cannot expose incomplete
+metadata to another. Both lanes retain four-repository parallelism and their
+existing cross-run state compare-and-swap and delivery leases. Preparation is
+lease-monitored, and temporary checkouts are removed when the drain exits.
+
 A backfill is one repository item, not a list of queued PRs. It invokes the
 existing bounded `dashboard.py` backfill CLI, including its durable cursor,
 failed-PR tracking, closed-PR cleanup, and full-publication generation.
