@@ -64,7 +64,9 @@ delivery receipts retain their existing Git compare-and-swap transactions.
 `PR_DASHBOARD_EXECUTION_MODE` must explicitly select `paused` or `owned`.
 The Netlify bridge rejects missing or invalid values. Its deployment override
 can keep the bridge paused independently of GitHub's repository setting.
-`WEBHOOK_SETUP.md` describes the pause, retirement, and deployment sequence.
+`WEBHOOK_SETUP.md` describes deployment and the pause procedure for incompatible
+ownership changes or manual maintenance. Removing retired legacy execution
+does not require pausing compatible owned workers.
 
 In `owned` mode, webhooks, manual PR and head-SHA refreshes, hourly and manual
 backfills, and author-reminder write sweeps enter the existing Blob queue.

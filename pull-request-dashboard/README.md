@@ -85,8 +85,10 @@ and hourly backfills remain the backstop for missed events.
 
 The operator-controlled `PR_DASHBOARD_EXECUTION_MODE` must be `owned` or `paused`.
 Pausing accepts work but prevents new claims and successor dispatches.
-Execution upgrades require the pause-and-retire procedure in
+Incompatible ownership changes and manual writes outside the queue require the
+pause-and-retire procedure in
 [`WEBHOOK_SETUP.md`](../.github/scripts/pull-request-dashboard/WEBHOOK_SETUP.md).
+Removing retired legacy execution does not require another pause.
 There is no direct-dispatch fallback or return-to-legacy execution mode.
 
 ## Dashboard columns

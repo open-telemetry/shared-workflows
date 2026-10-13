@@ -352,10 +352,25 @@ data compatibility. Existing GitHub comments, nudge episodes, delivery receipts,
 and accepted-state JSON remain intact. Schema 1 PR/head refresh records remain
 readable and claimable by owned workers.
 
-### Retire old workers and deploy
+### Deploy the legacy execution cleanup
 
-Before merging this retirement or deploying a change to execution lanes,
-delivery ownership, or acknowledgment fencing:
+Production already uses owned execution, and legacy writers have retired.
+This cleanup does not require another pause-and-retire window. Current owned
+workers already send dispatcher generations and use the same ownership
+contract. In-flight owned workers can finish during deployment.
+
+The main-branch merge automatically deploys the bridge using the repository's
+execution mode. After deployment, remove obsolete `PR_DASHBOARD_QUEUE_MODE`
+Netlify values. Keep `DATA_BRANCH_SNAPSHOTS=true` and its owned-worker environment
+injection while stable processors remain pinned to v0.20.0. Keep existing queued
+items, request IDs, generations, control items, and completion receipts in their
+shards. No migration, deletion, release, or promotion is needed.
+
+### Pause for incompatible ownership changes or manual maintenance
+
+Use this procedure before an incompatible change to execution lanes, delivery
+ownership, or acknowledgment fencing, or before a standalone command writes
+without queue ownership:
 
 1. Pause the bridge first, independently of GitHub's current mode:
 
@@ -382,20 +397,18 @@ delivery ownership, or acknowledgment fencing:
    not only enqueue completion. Retiring a specific old run requires separate
    cancellation approval. Do not run workers with different ownership rules
    concurrently or rerun retired workflow attempts.
-4. Merge the retirement only after those writers have retired. A main-branch
-   merge that changes bridge files automatically deploys the bridge using the
-   paused repository setting. Confirm that deployment completed in paused mode;
-   if a separate deployment is needed, use the `execution_mode=paused` override.
+4. Deploy the incompatible change only after those writers have retired.
+   A main-branch merge that changes bridge files automatically deploys the bridge
+   using the paused repository setting. Confirm that deployment completed in
+   paused mode; if a separate deployment is needed, use the `execution_mode=paused`
+   override. For manual maintenance, keep execution paused until the command exits.
    Keep existing queued items, request IDs, generations, control items, and
    completion receipts in their shards. No migration or deletion is needed.
-5. Remove obsolete `PR_DASHBOARD_QUEUE_MODE` Netlify values after deployment.
-   Keep `DATA_BRANCH_SNAPSHOTS=true` and its owned-worker environment injection
-   while stable processors remain pinned to v0.20.0.
-6. Restore GitHub's repository variable to `owned`, then deploy the bridge with
+5. Restore GitHub's repository variable to `owned`, then deploy the bridge with
    `execution_mode=owned`. The paused bridge accepts work during that interval
    but grants no new claims. A new enqueue or scheduled recovery starts each
    lane independently.
-7. Follow live and maintenance work in both release channels through completion.
+6. Follow live and maintenance work in both release channels through completion.
    Confirm immutable code refs, delivery receipts, full-publication progress,
    and queue age. Do not release or promote dashboard code for this retirement.
 
