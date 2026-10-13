@@ -18,7 +18,8 @@ EXISTING_ERROR = (
 KEYS = (
     ("OTELBOT_SHARED_WORKFLOWS_CLIENT_ID", "client-id", False),
     ("OTELBOT_SHARED_WORKFLOWS_PRIVATE_KEY_BASE64", "private-key-value", True),
-    ("PR_DASHBOARD_QUEUE_MODE", "all", False),
+    ("PR_DASHBOARD_EXECUTION_MODE", "owned", False),
+    ("PR_DASHBOARD_EXECUTION_MODE", "paused", False),
 )
 
 

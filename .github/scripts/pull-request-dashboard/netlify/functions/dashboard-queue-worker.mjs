@@ -55,9 +55,6 @@ export async function handleQueueWorkerRequest(
   const mode = executionMode();
   switch (action) {
     case "enqueue": {
-      if (mode === "legacy") {
-        return Response.json({ error: "queue-owned execution is not enabled" }, { status: 409 });
-      }
       const repository = nonEmptyString(body.repository, "repository", 100);
       if (!REPOSITORIES.has(repository)) {
         throw requestError(400, "repository is not configured");

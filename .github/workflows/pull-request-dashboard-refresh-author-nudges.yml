@@ -27,9 +27,7 @@ env:
 
 jobs:
   enqueue:
-    if: >-
-      inputs.dry_run == false &&
-      (vars.PR_DASHBOARD_EXECUTION_MODE == 'owned' || vars.PR_DASHBOARD_EXECUTION_MODE == 'paused')
+    if: github.repository == 'open-telemetry/shared-workflows' && inputs.dry_run == false
     runs-on: ubuntu-latest
     environment: protected
     permissions:
@@ -48,7 +46,7 @@ jobs:
   resolve-targets:
     if: >-
       github.repository == 'open-telemetry/shared-workflows' &&
-      (inputs.dry_run || vars.PR_DASHBOARD_EXECUTION_MODE == '' || vars.PR_DASHBOARD_EXECUTION_MODE == 'legacy')
+      inputs.dry_run
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -83,17 +81,14 @@ jobs:
   sweep:
     needs: resolve-targets
     concurrency:
-      group: ${{ inputs.dry_run && format('pull-request-dashboard-dry-run-{0}-{1}', github.run_id, matrix.name) || format('pull-request-dashboard-publish-{0}', matrix.name) }}
+      group: pull-request-dashboard-dry-run-${{ github.run_id }}-${{ matrix.name }}
       cancel-in-progress: false
     strategy:
       fail-fast: false
-      # Every reminder the sweep touches is a write against one repository's
-      # comments, so it walks a few repositories at a time to stay well inside
-      # the app's secondary rate limits.
       max-parallel: 4
       matrix: ${{ fromJSON(needs.resolve-targets.outputs.matrix) }}
     permissions:
-      contents: write
+      contents: read
     environment: protected
     runs-on: ubuntu-latest
     timeout-minutes: 60
@@ -109,22 +104,17 @@ jobs:
           private-key: ${{ secrets.PR_DASHBOARD_PRIVATE_KEY }}
           owner: open-telemetry
           repositories: ${{ matrix.name }}
-          permission-issues: ${{ inputs.dry_run && 'read' || 'write' }}
+          permission-issues: read
           permission-pull-requests: read
 
       - name: Refresh author reminders
         env:
           GH_TOKEN: ${{ steps.dashboard-token.outputs.token }}
           TARGET_REPOSITORY: ${{ matrix.name }}
-          DRY_RUN: ${{ inputs.dry_run }}
         working-directory: .github/scripts/pull-request-dashboard
         run: |
           set -euo pipefail
-          args=(--repo "$TARGET_REPOSITORY")
-          if [[ "$DRY_RUN" != "false" ]]; then
-            args+=(--dry-run)
-          fi
-          python3 refresh_author_nudges.py "${args[@]}"
+          python3 refresh_author_nudges.py --repo "$TARGET_REPOSITORY" --dry-run
 
       - name: Report GitHub App rate limits
         if: always()

@@ -4,31 +4,22 @@ import argparse
 import concurrent.futures
 import json
 import os
-import re
 import subprocess
 import tempfile
 import time
-import urllib.error
-import urllib.parse
-import urllib.request
 from collections import defaultdict
 from collections.abc import Callable
-from dataclasses import asdict, dataclass, replace
+from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
-from head_resolution import matching_open_pr_numbers
 from process_queue_batch import (
     SCRIPT_DIR,
     Claim,
     LeaseMonitor,
-    acknowledgment,
-    coalesce_acknowledgments,
     failure_acknowledgments,
-    load_claims,
     parse_claims,
     process_claims,
-    resolve_work_items,
 )
 from queue_worker_client import QueueWorkerClient, acknowledge_results
 from report_rate_limits import report_rate_limits
@@ -42,10 +33,6 @@ MAXIMUM_EXCLUSIONS = 500
 MAXIMUM_EXCLUSION_BYTES = 60 * 1024
 MAXIMUM_REPOSITORIES = 4
 TOKEN_HELPER = SCRIPT_DIR / "github_app_token.mjs"
-DASHBOARD_WORKFLOW_DISPATCH_URL = (
-    "https://api.github.com/repos/open-telemetry/shared-workflows/"
-    "actions/workflows/pull-request-dashboard.yml/dispatches"
-)
 CANARY_REPOSITORIES_EXAMPLE = '["opentelemetry-java-instrumentation"]'
 
 
@@ -166,130 +153,6 @@ class GitHubAppTokenClient:
         return result
 
 
-class DashboardWorkflowDispatcher:
-    def __init__(
-        self,
-        token: str,
-        *,
-        opener: Callable[..., Any] = urllib.request.urlopen,
-    ) -> None:
-        if not token:
-            raise ValueError("GITHUB_TOKEN is required to dispatch stable dashboard work")
-        self.token = token
-        self.opener = opener
-
-    def _fetch_head_page(
-        self,
-        url: str,
-        token: str,
-    ) -> tuple[list[dict[str, Any]], str]:
-        request = urllib.request.Request(
-            url,
-            headers={
-                "Accept": "application/vnd.github+json",
-                "Authorization": f"Bearer {token}",
-                "User-Agent": "pull-request-dashboard-queue-drain",
-                "X-GitHub-Api-Version": "2022-11-28",
-            },
-        )
-        try:
-            with self.opener(request, timeout=30) as response:
-                if response.status != 200:
-                    raise RuntimeError(
-                        "head pull request lookup returned "
-                        f"unexpected HTTP status {response.status}"
-                    )
-                pull_requests = json.load(response)
-                link = response.headers.get("Link", "")
-        except urllib.error.HTTPError as error:
-            body = error.read().decode("utf-8", errors="replace")[:1000]
-            raise RuntimeError(
-                f"head pull request lookup failed with HTTP {error.code}: {body}"
-            ) from error
-        if not isinstance(pull_requests, list):
-            raise RuntimeError("head pull request lookup returned invalid JSON")
-        next_page = re.search(r'<([^>]+)>;\s*rel="next"', link)
-        return pull_requests, next_page.group(1) if next_page else ""
-
-    def resolve_head(
-        self,
-        repository: str,
-        head_sha: str,
-        token: str,
-    ) -> tuple[int, ...]:
-        base = f"https://api.github.com/repos/open-telemetry/{repository}"
-
-        def fetch(url: str) -> list[dict[str, Any]]:
-            pull_requests: list[dict[str, Any]] = []
-            while url:
-                page, next_page = self._fetch_head_page(url, token)
-                pull_requests.extend(page)
-                if next_page:
-                    parsed = urllib.parse.urlsplit(next_page)
-                    if (
-                        parsed.scheme != "https"
-                        or parsed.netloc != "api.github.com"
-                        or (
-                            parsed.path != f"/repos/open-telemetry/{repository}/pulls"
-                            and re.fullmatch(
-                                r"/repositories/[1-9]\d*/pulls", parsed.path
-                            )
-                            is None
-                        )
-                    ):
-                        raise RuntimeError(
-                            "head pull request lookup returned invalid next page"
-                        )
-                url = next_page
-            return pull_requests
-
-        return matching_open_pr_numbers(
-            fetch(f"{base}/pulls?state=open&per_page=100"),
-            head_sha,
-        )
-
-    def dispatch(self, claim: Claim) -> None:
-        payload = json.dumps(
-            {
-                "ref": "main",
-                "inputs": {
-                    "repository": claim.repository,
-                    "pr_number": str(claim.pr_number or ""),
-                    "head_sha": claim.head_sha,
-                    "trigger_event": (
-                        claim.trigger_events[0]
-                        if claim.trigger_events
-                        else "pull_request"
-                    ),
-                },
-            }
-        ).encode()
-        request = urllib.request.Request(
-            DASHBOARD_WORKFLOW_DISPATCH_URL,
-            data=payload,
-            method="POST",
-            headers={
-                "Accept": "application/vnd.github+json",
-                "Authorization": f"Bearer {self.token}",
-                "Content-Type": "application/json",
-                "User-Agent": "pull-request-dashboard-queue-drain",
-                "X-GitHub-Api-Version": "2022-11-28",
-            },
-        )
-        try:
-            with self.opener(request, timeout=30) as response:
-                if response.status != 204:
-                    raise RuntimeError(
-                        "dashboard workflow dispatch returned "
-                        f"unexpected HTTP status {response.status}"
-                    )
-        except urllib.error.HTTPError as error:
-            body = error.read().decode("utf-8", errors="replace")[:1000]
-            raise RuntimeError(
-                f"dashboard workflow dispatch failed with HTTP {error.code}: {body}"
-            ) from error
-
-
 PREPARATION_SECRET_NAMES = frozenset({
     "ACTIONS_ID_TOKEN_REQUEST_TOKEN",
     "ACTIONS_ID_TOKEN_REQUEST_URL",
@@ -364,35 +227,23 @@ def process_claim_wave(
     worker_id: str,
     token_client: GitHubAppTokenClient,
     *,
-    canary_repositories: frozenset[str],
-    configured_repositories: frozenset[str],
-    resolve_stable_head: Callable[[str, str, str], tuple[int, ...]],
-    dispatch_stable: Callable[[Claim], None],
+    execution_code: dict[str, ExecutionCode],
+    repository_roots: dict[str, Path],
     report_limits: Callable[..., None] = report_rate_limits,
-    execution_code: dict[str, ExecutionCode] | None = None,
-    repository_roots: dict[str, Path] | None = None,
     lease_monitor: LeaseMonitor | None = None,
 ) -> WaveResult:
-    if execution_code is not None and (
-        repository_roots is None
+    if (
+        execution_code is None
+        or repository_roots is None
         or any(
             claim.repository not in repository_roots or claim.repository not in execution_code
             for claim in claims
         )
     ):
         raise RuntimeError("owned dashboard execution requires isolated Git checkouts")
-    if execution_code is None and any(claim.kind != "refresh" for claim in claims):
-        raise RuntimeError(
-            "backfill and reminder queue items require owned execution; "
-            "keep the queue paused until migration or rollback is complete"
-        )
     claims_by_repository: dict[str, list[Claim]] = defaultdict(list)
-    stable_claims: list[Claim] = []
     for claim in claims:
-        if execution_code is not None or claim.repository in canary_repositories:
-            claims_by_repository[claim.repository].append(claim)
-        else:
-            stable_claims.append(claim)
+        claims_by_repository[claim.repository].append(claim)
 
     monitor = lease_monitor or LeaseMonitor(client, generation, worker_id)
     owns_monitor = lease_monitor is None
@@ -417,82 +268,6 @@ def process_claim_wave(
     results: list[dict[str, Any]] = []
     failures: dict[str, Exception] = {}
     try:
-        stable_results = [
-            acknowledgment(
-                claim,
-                "dead",
-                f"repository is not configured: {claim.repository}",
-            )
-            for claim in stable_claims
-            if claim.repository not in configured_repositories
-        ]
-        configured_stable_claims = [
-            claim
-            for claim in stable_claims
-            if claim.repository in configured_repositories
-        ]
-
-        resolution_tokens: dict[str, str] = {}
-        try:
-            def resolve_head(repository: str, head_sha: str) -> tuple[int, ...]:
-                monitor.assert_valid()
-                token = resolution_tokens.get(repository)
-                if token is None:
-                    token = token_client.mint([repository])
-                    resolution_tokens[repository] = token
-                    print(f"::add-mask::{token}")
-                return resolve_stable_head(repository, head_sha, token)
-
-            stable_work, resolved_stable = resolve_work_items(
-                configured_stable_claims,
-                resolve_head,
-            )
-        finally:
-            for token in resolution_tokens.values():
-                try:
-                    report_limits(20, token=token)
-                except Exception as error:
-                    print(
-                        "::warning::GitHub App rate-limit reporting failed: "
-                        f"{error}"
-                    )
-                try:
-                    token_client.revoke(token)
-                except Exception as error:
-                    print(f"::warning::GitHub App token revocation failed: {error}")
-        stable_results.extend(resolved_stable)
-        for item in stable_work:
-            try:
-                monitor.assert_valid()
-                trigger_events = tuple(
-                    dict.fromkeys(
-                        event
-                        for claim in item.claims
-                        for event in claim.trigger_events
-                    )
-                )
-                dispatch_stable(
-                    replace(
-                        item.claims[0],
-                        pr_number=item.pr_number,
-                        head_sha="",
-                        trigger_events=trigger_events,
-                    )
-                )
-            except Exception as error:
-                stable_results.extend(failure_acknowledgments(item.claims, error))
-            else:
-                stable_results.extend(
-                    acknowledgment(claim, "success") for claim in item.claims
-                )
-        stable_results = coalesce_acknowledgments(stable_results)
-        acknowledge_results(
-            client,
-            stable_results,
-            {"generation": generation, "workerId": worker_id},
-        )
-        results.extend(stable_results)
-
         with concurrent.futures.ThreadPoolExecutor(
             max_workers=MAXIMUM_REPOSITORIES
         ) as executor:
@@ -509,11 +284,8 @@ def process_claim_wave(
                     token_client,
                     lease_monitor=monitor,
                     report_limits=report_limits,
-                    execution_code=execution_code[repository] if execution_code is not None else None,
-                    repository_root=(
-                        repository_roots[repository] if repository_roots is not None
-                        else SCRIPT_DIR.parents[2]
-                    ),
+                    execution_code=execution_code[repository],
+                    repository_root=repository_roots[repository],
                 ): repository
                 for index, (repository, repository_claims) in enumerate(
                     sorted(claims_by_repository.items())
@@ -555,9 +327,9 @@ def process_repository_claims(
     token_client: GitHubAppTokenClient,
     *,
     lease_monitor: LeaseMonitor,
+    execution_code: ExecutionCode,
+    repository_root: Path,
     report_limits: Callable[..., None] = report_rate_limits,
-    execution_code: ExecutionCode | None = None,
-    repository_root: Path = SCRIPT_DIR.parents[2],
 ) -> list[dict[str, Any]]:
     token: str | None = None
     common = {"generation": generation, "workerId": worker_id}
@@ -567,13 +339,7 @@ def process_repository_claims(
         print(f"::add-mask::{token}")
         processor_env = child_process_environment()
         processor_env.update({"GH_TOKEN": token, "PR_DASHBOARD_TOKEN": token})
-        execution_options: dict[str, Any] = {}
-        if execution_code is not None:
-            execution_options = {
-                "script_dir": execution_code.script_dir,
-                "python_executable": execution_code.python,
-            }
-            print(f"{claims[0].repository}: processing with {execution_code.ref}")
+        print(f"{claims[0].repository}: processing with {execution_code.ref}")
         _summary, results = process_claims(
             claims,
             results_path,
@@ -583,7 +349,8 @@ def process_repository_claims(
             processor_env=processor_env,
             lease_monitor=lease_monitor,
             repository_root=repository_root,
-            **execution_options,
+            script_dir=execution_code.script_dir,
+            python_executable=execution_code.python,
         )
     except Exception as error:
         results = read_results(results_path)
@@ -630,17 +397,6 @@ def parse_canary_repositories(value: str) -> frozenset[str]:
     return frozenset(repositories)
 
 
-def load_configured_repositories(
-    path: Path = SCRIPT_DIR / "repositories.json",
-) -> frozenset[str]:
-    config = json.loads(path.read_text(encoding="utf-8"))
-    return frozenset(
-        entry["name"]
-        for entry in config
-        if isinstance(entry, dict) and isinstance(entry.get("name"), str)
-    )
-
-
 def run_owned_drain(args: argparse.Namespace) -> int:
     client = QueueWorkerClient(args.endpoint, lane=args.lane)
     activation = client.call("activate", generation=args.generation, workerId=args.worker)
@@ -657,8 +413,7 @@ def run_owned_drain(args: argparse.Namespace) -> int:
         with tempfile.TemporaryDirectory(prefix="dashboard-execution-") as directory:
             root = Path(directory)
             loader = ExecutionCodeLoader(root / "code", monitor, code_preparation_environment())
-            stable_ref = stable_code_ref(SCRIPT_DIR.parents[1] / "workflows" / "pull-request-dashboard.yml")
-            configured = load_configured_repositories()
+            stable_ref = stable_code_ref()
 
             def claim_wave(_wave: int, excluded: list[str]) -> list[Claim]:
                 monitor.assert_valid()
@@ -694,12 +449,6 @@ def run_owned_drain(args: argparse.Namespace) -> int:
                 return process_claim_wave(
                     claims, root / f"results-{wave}.json", client, args.generation,
                     args.worker, token_client,
-                    canary_repositories=args.canary_repositories,
-                    configured_repositories=configured,
-                    # Owned execution resolves heads in the selected code's
-                    # combined processor, never through a workflow dispatch.
-                    resolve_stable_head=lambda *_args: (),
-                    dispatch_stable=lambda _claim: None,
                     execution_code=codes,
                     repository_roots=repository_roots,
                     lease_monitor=monitor,
@@ -718,9 +467,7 @@ def run_owned_drain(args: argparse.Namespace) -> int:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Drain dashboard queue waves.")
-    parser.add_argument("--claims", type=Path)
-    parser.add_argument("--owned", action="store_true")
-    parser.add_argument("--canary-code-ref")
+    parser.add_argument("--canary-code-ref", required=True)
     parser.add_argument("--deadline", type=int, required=True)
     parser.add_argument("--generation", type=int, required=True)
     parser.add_argument("--worker", required=True)
@@ -737,55 +484,7 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    if args.owned:
-        if not args.canary_code_ref:
-            parser.error("--owned requires --canary-code-ref")
-        return run_owned_drain(args)
-    if args.claims is None:
-        parser.error("--claims is required for a legacy drain")
-    initial_claims = load_claims(args.claims)
-    configured_repositories = load_configured_repositories()
-    client = QueueWorkerClient(args.endpoint, lane=args.lane)
-    client_id, private_key = take_github_app_credentials()
-    token_client = GitHubAppTokenClient(client_id, private_key)
-    workflow_dispatcher = DashboardWorkflowDispatcher(
-        os.environ.get("GITHUB_TOKEN", "")
-    )
-    with tempfile.TemporaryDirectory(prefix="dashboard-waves-") as directory:
-        temporary_directory = Path(directory)
-
-        def claim_wave(_wave: int, excluded: list[str]) -> list[Claim]:
-            response = client.call(
-                "claim",
-                generation=args.generation,
-                workerId=args.worker,
-                limit=WAVE_LIMIT,
-                excludeItemKeys=excluded,
-            )
-            return parse_claims(response.get("claims"))
-
-        def process_wave(claims: list[Claim], wave: int) -> WaveResult:
-            return process_claim_wave(
-                claims,
-                temporary_directory / f"results-{wave}.json",
-                client,
-                args.generation,
-                args.worker,
-                token_client,
-                canary_repositories=args.canary_repositories,
-                configured_repositories=configured_repositories,
-                resolve_stable_head=workflow_dispatcher.resolve_head,
-                dispatch_stable=workflow_dispatcher.dispatch,
-            )
-
-        result = drain_queue(
-            initial_claims,
-            args.deadline,
-            claim_wave,
-            process_wave,
-        )
-    print(json.dumps(asdict(result), sort_keys=True))
-    return 1 if result.dead_letters else 0
+    return run_owned_drain(args)
 
 
 if __name__ == "__main__":

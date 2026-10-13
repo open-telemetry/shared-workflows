@@ -28,7 +28,7 @@ from promote_rollout import promoted_text
 
 class OwnedExecutionTest(unittest.TestCase):
     def test_immutable_stable_pin_follows_existing_promotion_tool(self) -> None:
-        workflow = execution_code.SCRIPT_DIR.parents[1] / "workflows" / "pull-request-dashboard.yml"
+        workflow = execution_code.DEFAULT_CONFIG
         current = stable_code_ref(workflow)
         self.assertRegex(current, r"^[0-9a-f]{40}$")
         with tempfile.TemporaryDirectory() as directory:
@@ -43,23 +43,23 @@ class OwnedExecutionTest(unittest.TestCase):
             with self.subTest(ref=ref), self.assertRaisesRegex(ValueError, "immutable"):
                 loader.load(ref)
 
-    def test_stable_pin_rejects_invalid_workflow_pins(self) -> None:
-        workflow = execution_code.SCRIPT_DIR.parents[1] / "workflows" / "pull-request-dashboard.yml"
+    def test_stable_pin_rejects_invalid_release_configuration(self) -> None:
+        workflow = execution_code.DEFAULT_CONFIG
         text = workflow.read_text(encoding="utf-8")
         current = stable_code_ref(workflow)
-        pin_line = next(line for line in text.splitlines() if f"@{current} #" in line)
         cases = {
-            "missing": text.replace(pin_line + "\n", "", 1),
-            "mismatched": text.replace(f"@{current} #", f"@{'b' * 40} #", 1),
-            "mutable": text.replace(f"@{current} #", "@main #", 1),
-            "duplicate": text + "\n" + pin_line + "\n",
+            "missing": "{}",
+            "mutable": text.replace(current, "main"),
+            "uppercase": text.replace(current, current.upper()),
+            "invalid release": text.replace('"release": "', '"release": "invalid-'),
+            "duplicate": text.replace('"sha":', f'"sha": "{current}", "sha":'),
         }
         with tempfile.TemporaryDirectory() as directory:
             invalid = Path(directory) / "workflow.yml"
             for case, body in cases.items():
                 with self.subTest(case=case):
                     invalid.write_text(body, encoding="utf-8")
-                    with self.assertRaisesRegex(ValueError, "three identical immutable workflow pins"):
+                    with self.assertRaises(ValueError):
                         stable_code_ref(invalid)
 
     def test_rejected_activation_claims_nothing_and_does_not_mint_credentials(self) -> None:
@@ -176,20 +176,6 @@ class OwnedExecutionTest(unittest.TestCase):
         ])
         self.assertEqual([item.kind for item in claims], ["backfill", "reminders", "refresh"])
 
-    def test_legacy_waves_reject_controls_before_starting_writers(self) -> None:
-        client = mock.Mock()
-        tokens = mock.Mock()
-        with self.assertRaisesRegex(RuntimeError, "require owned execution"):
-            drain_queue.process_claim_wave(
-                [Claim("example#backfill", 1, "example", None, "", 0, (), "backfill")],
-                Path("unused.json"), client, 1, "legacy", tokens,
-                canary_repositories=frozenset({"example"}),
-                configured_repositories=frozenset({"example"}),
-                resolve_stable_head=mock.Mock(), dispatch_stable=mock.Mock(),
-            )
-        client.call.assert_not_called()
-        tokens.mint.assert_not_called()
-
     def test_partial_progress_inputs_cannot_enqueue_work(self) -> None:
         fields = [
             ["--status-item-key", "example#pr:1"],
@@ -303,17 +289,13 @@ class OwnedExecutionTest(unittest.TestCase):
                 mock.patch.object(drain_queue, "acknowledge_results"),
                 mock.patch.dict(os.environ, {"DATA_BRANCH_SNAPSHOTS": "true"}, clear=True),
             ):
-                dispatch = mock.Mock()
                 drain_queue.process_claim_wave(
                     [claim], result_path, client, 1, "worker", token_client,
-                    canary_repositories=frozenset(), configured_repositories=frozenset({"example"}),
-                    resolve_stable_head=mock.Mock(), dispatch_stable=dispatch,
                     execution_code={"example": code},
                     repository_roots={"example": Path("isolated-checkout")},
                     lease_monitor=monitor,
                     report_limits=mock.Mock(),
                 )
-            dispatch.assert_not_called()
             self.assertEqual(process.call_args.kwargs["script_dir"], Path("promoted-code"))
             self.assertEqual(process.call_args.kwargs["python_executable"], "promoted-python")
             self.assertEqual(process.call_args.kwargs["repository_root"], Path("isolated-checkout"))
@@ -337,8 +319,6 @@ class OwnedExecutionTest(unittest.TestCase):
             ):
                 drain_queue.process_claim_wave(
                     [claim], Path("unused.json"), mock.Mock(), 1, "worker", mock.Mock(),
-                    canary_repositories=frozenset(), configured_repositories=frozenset({"example"}),
-                    resolve_stable_head=mock.Mock(), dispatch_stable=mock.Mock(),
                     execution_code=codes, repository_roots=roots,
                 )
             process.assert_not_called()
@@ -386,7 +366,6 @@ class OwnedExecutionTest(unittest.TestCase):
             mock.patch.object(drain_queue, "GitHubAppTokenClient"),
             mock.patch.object(drain_queue, "ExecutionCodeLoader", side_effect=make_loader),
             mock.patch.object(drain_queue, "stable_code_ref", return_value="b" * 40),
-            mock.patch.object(drain_queue, "load_configured_repositories", return_value=frozenset({"canary", "stable"})),
             mock.patch.object(drain_queue, "process_claim_wave", return_value=drain_queue.WaveResult(0, ())) as process,
         ):
             self.assertEqual(drain_queue.run_owned_drain(args), 0)
@@ -397,6 +376,11 @@ class OwnedExecutionTest(unittest.TestCase):
             self.assertEqual(call.kwargs["repository_roots"], checkout_paths)
         self.assertTrue(all(not path.exists() for path in checkout_paths.values()))
         monitor.close.assert_called_once()
+        for call in client.call.call_args_list:
+            if call.args == ("claim",):
+                self.assertEqual(call.kwargs["limit"], 16)
+                self.assertEqual(call.kwargs["generation"], 1)
+                self.assertEqual(call.kwargs["workerId"], "worker")
 
     def test_failed_checkout_preparation_retries_without_starting_processors(self) -> None:
         client = mock.Mock()
@@ -427,7 +411,6 @@ class OwnedExecutionTest(unittest.TestCase):
             mock.patch.object(drain_queue, "GitHubAppTokenClient"),
             mock.patch.object(drain_queue, "ExecutionCodeLoader", return_value=loader),
             mock.patch.object(drain_queue, "stable_code_ref", return_value="b" * 40),
-            mock.patch.object(drain_queue, "load_configured_repositories", return_value=frozenset({"stable"})),
             mock.patch.object(drain_queue, "acknowledge_results") as acknowledge,
             mock.patch.object(drain_queue, "process_claim_wave") as process,
         ):

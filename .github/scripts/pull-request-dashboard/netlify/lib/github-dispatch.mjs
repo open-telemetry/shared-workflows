@@ -7,7 +7,6 @@ const WORKFLOW_REPOSITORY = "shared-workflows";
 const WORKFLOW_REF = "main";
 const GITHUB_API_ROOT =
   `https://api.github.com/repos/${OWNER}/${WORKFLOW_REPOSITORY}`;
-const DASHBOARD_WORKFLOW_ID = "pull-request-dashboard.yml";
 const DRAIN_WORKFLOW_ID = "pull-request-dashboard-drain.yml";
 
 export function loadDispatcherConfig() {
@@ -29,10 +28,6 @@ export function loadDispatcherConfig() {
     );
   }
   return config;
-}
-
-export async function dispatchDashboardRefresh(inputs, config = loadDispatcherConfig()) {
-  return dispatchWorkflow(DASHBOARD_WORKFLOW_ID, inputs, config);
 }
 
 export async function dispatchQueueDrain(

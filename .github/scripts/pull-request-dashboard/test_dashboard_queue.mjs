@@ -253,6 +253,64 @@ test("a reused worker identity cannot heartbeat or acknowledge an older generati
   assert.equal((await queue.stats()).inflight, 1);
 });
 
+test("acknowledgments require dispatcher generation even with a valid item lease", async () => {
+  const { queue } = fixture();
+  const request = await queue.enqueue({ repository: "example", prNumber: 1 });
+  const dispatcher = await queue.requestDispatcher();
+  await queue.activateDispatcher({ generation: dispatcher.generation, workerId: "worker" });
+  const [claim] = await queue.claimWave({ generation: dispatcher.generation, workerId: "worker" });
+  await assert.rejects(queue.acknowledge({
+    ...claim, workerId: "worker", outcome: "success",
+  }), /active dispatcher/);
+  assert.equal((await queue.itemStatus(request)).status, "inflight");
+  await queue.acknowledge({
+    ...claim, generation: dispatcher.generation, workerId: "worker", outcome: "success",
+    operationId: "completed",
+  });
+  assert.equal((await queue.itemStatus(request)).status, "completed");
+});
+
+test("stored refresh records without dispatcher fencing recover before being claimed again", async () => {
+  const { queue, store, advance } = fixture();
+  const request = await queue.enqueue({ repository: "example", prNumber: 1 });
+  const dispatcher = await queue.requestDispatcher();
+  await queue.activateDispatcher({ generation: dispatcher.generation, workerId: "worker" });
+  const [claim] = await queue.claimWave({ generation: dispatcher.generation, workerId: "worker" });
+  delete store.entries.get(request.shardKey).value.items[request.itemKey].dispatcherGeneration;
+  assert.equal((await queue.heartbeat({ generation: dispatcher.generation, workerId: "worker" })).items, 0);
+  await assert.rejects(queue.acknowledge({
+    ...claim, generation: dispatcher.generation, workerId: "worker", outcome: "success",
+  }), /stale or unauthorized/);
+  advance(1_001);
+  const recovery = await queue.recoverExpiredLeases();
+  await queue.activateDispatcher({ generation: recovery.generation, workerId: "replacement" });
+  const [replacement] = await queue.claimWave({ generation: recovery.generation, workerId: "replacement" });
+  assert.equal(replacement.kind, undefined);
+  assert.equal((await queue.itemStatus(request)).requestId, request.requestId);
+  await queue.acknowledge({
+    ...replacement, generation: recovery.generation, workerId: "replacement", outcome: "success",
+    operationId: "completed",
+  });
+  assert.equal((await queue.itemStatus(request)).status, "completed");
+});
+
+test("stored completion receipts remain readable without dispatcher generation", async () => {
+  const { queue, store } = fixture();
+  const request = await queue.enqueue({ repository: "example", prNumber: 1 });
+  const dispatcher = await queue.requestDispatcher();
+  await queue.activateDispatcher({ generation: dispatcher.generation, workerId: "worker" });
+  const [claim] = await queue.claimWave({ generation: dispatcher.generation, workerId: "worker" });
+  const acknowledgment = {
+    ...claim, generation: dispatcher.generation, workerId: "worker", outcome: "success",
+    operationId: "completed",
+  };
+  await queue.acknowledge(acknowledgment);
+  const [receipt] = Object.values(store.entries.get(request.shardKey).value.acknowledgments);
+  delete receipt.dispatcherGeneration;
+  assert.equal((await queue.itemStatus(request)).status, "completed");
+  await assert.rejects(queue.acknowledge(acknowledgment), /stale acknowledgment receipt/);
+});
+
 test("backfill continuation survives deployment and completes without consuming retries", async () => {
   const { queue, store } = fixture("maintenance");
   const request = await queue.enqueue({ repository: "example", kind: "backfill", triggerEvent: "workflow_dispatch" });
@@ -424,6 +482,7 @@ test("event during processing requests exactly one follow-up", async () => {
   })).status, "coalesced");
 
   const acknowledged = await queue.acknowledge({
+    generation: request.generation,
     itemKey: claim.itemKey,
     claimGeneration: claim.claimGeneration,
     workerId: "worker",
@@ -452,6 +511,7 @@ test("clean success removes the claimed item", async () => {
   });
 
   assert.deepEqual(await queue.acknowledge({
+    generation: request.generation,
     itemKey: claim.itemKey,
     claimGeneration: claim.claimGeneration,
     workerId: "worker",
@@ -505,6 +565,7 @@ test("replays an identical acknowledgment after its response is lost", async () 
     workerId: "worker",
   });
   const acknowledgment = {
+    generation: request.generation,
     itemKey: claim.itemKey,
     claimGeneration: claim.claimGeneration,
     workerId: "worker",
@@ -623,12 +684,13 @@ test("stale worker acknowledgment is rejected", async () => {
 
   await assert.rejects(
     queue.acknowledge({
+      generation: request.generation,
       itemKey: claim.itemKey,
       claimGeneration: claim.claimGeneration,
       workerId: "other-worker",
       outcome: "success",
     }),
-    /stale or unauthorized/,
+    /active dispatcher/,
   );
 });
 
@@ -658,6 +720,7 @@ test("expired dispatcher ownership cannot claim more work", async () => {
 
 test("expired item leases reject acknowledgments", async () => {
   const { queue, advance } = fixture();
+  queue.dispatcherActiveLeaseMs = 10_000;
   await queue.enqueue({
     repository: "example",
     prNumber: 123,
@@ -677,6 +740,7 @@ test("expired item leases reject acknowledgments", async () => {
 
   await assert.rejects(
     queue.acknowledge({
+      generation: request.generation,
       itemKey: claim.itemKey,
       claimGeneration: claim.claimGeneration,
       workerId: "worker",
@@ -762,6 +826,7 @@ test("dead letters remove active work and retain bounded diagnostics", async () 
   });
 
   const result = await queue.acknowledge({
+    generation: request.generation,
     itemKey: claim.itemKey,
     claimGeneration: claim.claimGeneration,
     workerId: "worker",
@@ -799,6 +864,7 @@ test("a dead acknowledgment preserves a dirty follow-up generation", async () =>
   });
 
   const result = await queue.acknowledge({
+    generation: request.generation,
     itemKey: claim.itemKey,
     claimGeneration: claim.claimGeneration,
     workerId: "worker",
@@ -830,6 +896,7 @@ test("a retry acknowledgment gives a dirty generation a fresh attempt budget", a
     workerId: "worker",
   });
   assert.deepEqual(await queue.acknowledge({
+    generation: request.generation,
     itemKey: firstClaim.itemKey,
     claimGeneration: firstClaim.claimGeneration,
     workerId: "worker",
@@ -849,6 +916,7 @@ test("a retry acknowledgment gives a dirty generation a fresh attempt budget", a
   });
 
   assert.deepEqual(await queue.acknowledge({
+    generation: request.generation,
     itemKey: secondClaim.itemKey,
     claimGeneration: secondClaim.claimGeneration,
     workerId: "worker",

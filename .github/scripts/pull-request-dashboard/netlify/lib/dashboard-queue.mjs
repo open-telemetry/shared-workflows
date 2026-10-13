@@ -337,7 +337,7 @@ export class DashboardQueue {
           if (
             queueLane(item.kind) === this.lane &&
             item.phase === "inflight" && item.leaseOwner === workerId &&
-            (item.dispatcherGeneration === undefined || item.dispatcherGeneration === generation)
+            item.dispatcherGeneration === generation
           ) {
             if (isExpired(item.leaseExpiresAt, this.now())) {
               throw new Error(`queue item lease expired for ${itemKey}`);
@@ -506,10 +506,7 @@ export class DashboardQueue {
     if (!["success", "retry", "dead", "continue"].includes(outcome)) {
       throw new Error(`unsupported acknowledgment outcome ${outcome}`);
     }
-    // Older workers omit the dispatcher generation. Their item leases still
-    // fence acknowledgments while the migration gate is in legacy mode.
-    const ownership = generation === undefined
-      ? null : await this.assertDispatcher({ generation, workerId });
+    const ownership = await this.assertDispatcher({ generation, workerId });
     const shardKey = queueShardKey(itemKey, this.shardCount);
     const receiptKey = operationId ? operationKey([operationId]) : "";
     const signature = JSON.stringify([
@@ -522,13 +519,13 @@ export class DashboardQueue {
     ]);
     const mutation = await this.#mutate(shardKey, emptyShard, (shard) => {
       validateShard(shard);
-      if (ownership && isExpired(ownership.leaseExpiresAt, this.now())) {
+      if (isExpired(ownership.leaseExpiresAt, this.now())) {
         throw new Error("worker does not own the active dispatcher");
       }
       const acknowledgments = shard.acknowledgments || {};
       const receipt = receiptKey ? acknowledgments[receiptKey] : null;
       if (receipt) {
-        if (receipt.dispatcherGeneration !== undefined && receipt.dispatcherGeneration !== generation) {
+        if (receipt.dispatcherGeneration !== generation) {
           throw new Error(`stale acknowledgment receipt for ${itemKey}`);
         }
         if (receipt.signature !== signature) {
@@ -545,8 +542,7 @@ export class DashboardQueue {
         item.phase !== "inflight" ||
         item.leaseOwner !== workerId ||
         item.claimedGeneration !== claimGeneration ||
-        (generation !== undefined && item.dispatcherGeneration !== undefined &&
-          item.dispatcherGeneration !== generation) ||
+        item.dispatcherGeneration !== generation ||
         isExpired(item.leaseExpiresAt, this.now())
       ) {
         throw new Error(`stale or unauthorized acknowledgment for ${itemKey}`);
@@ -1333,7 +1329,7 @@ function recordAcknowledgment(
     signature,
     result,
     completedAt,
-    ...(dispatcherGeneration !== undefined ? { dispatcherGeneration } : {}),
+    dispatcherGeneration,
     ...(requestId ? { requestId } : {}),
   };
   trimReceipts(shard.acknowledgments, limit);

@@ -2,19 +2,11 @@ import crypto from "node:crypto";
 
 import { DashboardQueue } from "../lib/dashboard-queue.mjs";
 import { executionMode } from "../lib/execution-mode.mjs";
-import {
-  dispatchDashboardRefresh,
-  dispatchQueueDrain,
-} from "../lib/github-dispatch.mjs";
+import { dispatchQueueDrain } from "../lib/github-dispatch.mjs";
 
 const MAX_WEBHOOK_BYTES = 1024 * 1024;
 const OWNER = "open-telemetry";
 const DASHBOARD_APP_SLUG = "opentelemetry-pr-dashboard";
-const QUEUE_MODES = new Set(["off", "canary", "all"]);
-const QUEUE_CANARY_REPOSITORIES = new Set([
-  "opentelemetry-java-instrumentation",
-  "shared-workflows",
-]);
 
 const ALLOWED_ACTIONS = {
   // GitHub only delivers `requested` and `rerequested` to apps with write-level
@@ -56,7 +48,6 @@ export async function handleWebhookRequest(
   request,
   {
     queue,
-    dispatchRefresh = dispatchDashboardRefresh,
     dispatchDrain = dispatchQueueDrain,
   } = {},
 ) {
@@ -112,38 +103,6 @@ export async function handleWebhookRequest(
     return response(202, { status: "ignored", reason: "no pull request number or head commit found" });
   }
 
-  const inputs = {
-    repository: repository.name,
-    pr_number: dispatchPrNumber,
-    head_sha: dispatchHeadSha,
-    trigger_event: eventName,
-  };
-  const isOpenedDraft = (
-    eventName === "pull_request"
-    && action === "opened"
-    && payload.pull_request?.draft === true
-  );
-  if (
-    mode === "legacy" && (
-      isOpenedDraft
-      || config.queueMode === "off"
-      || (
-        config.queueMode === "canary" &&
-        !QUEUE_CANARY_REPOSITORIES.has(repository.name)
-      )
-    )
-  ) {
-    await dispatchRefresh(inputs);
-    return response(202, {
-      status: "dispatched",
-      repository: repository.fullName,
-      pr_number: dispatchPrNumber,
-      head_sha: dispatchHeadSha,
-      trigger_event: eventName,
-      queue_mode: config.queueMode,
-    });
-  }
-
   const targetQueue = queue || new DashboardQueue();
 
   const queued = await targetQueue.enqueue({
@@ -174,7 +133,6 @@ export async function handleWebhookRequest(
     pr_number: dispatchPrNumber,
     head_sha: dispatchHeadSha,
     trigger_event: eventName,
-    queue_mode: config.queueMode,
     item_key: queued.itemKey,
     generation: queued.generation,
     request_id: queued.requestId,
@@ -231,7 +189,6 @@ export function isDashboardSelfTriggeredCommentEvent(eventName, payload) {
 
 function loadConfig() {
   const config = {
-    queueMode: process.env.PR_DASHBOARD_QUEUE_MODE || "off",
     webhookSecret: process.env.GITHUB_WEBHOOK_SECRET,
   };
 
@@ -241,14 +198,6 @@ function loadConfig() {
   if (missing.length > 0) {
     throw httpError(500, "missing required configuration", `missing required configuration: ${missing.join(", ")}`);
   }
-  if (!QUEUE_MODES.has(config.queueMode)) {
-    throw httpError(
-      500,
-      "invalid queue mode",
-      `unsupported PR_DASHBOARD_QUEUE_MODE: ${config.queueMode}`,
-    );
-  }
-
   return config;
 }
 

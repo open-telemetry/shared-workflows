@@ -61,7 +61,7 @@ four repositories concurrently on one runner; pull requests from the same
 repository remain sequential. An event received while its pull request is being
 processed marks that item dirty and schedules one follow-up pass.
 
-With queue-owned execution enabled, webhook events, draft opens, and targeted
+Webhook events, draft opens, and targeted
 PR/head refreshes use the live lane. Hourly/manual backfills and author-reminder
 write sweeps use an independent maintenance lane. Each lane has its own
 dispatcher lease and runner, so a maintenance batch cannot occupy live processing
@@ -83,12 +83,11 @@ Backfills retain their bounded cursor, closed-PR cleanup, initial-population
 rules, and full-publication bookkeeping. Queue leases recover interrupted work,
 and hourly backfills remain the backstop for missed events.
 
-The operator-controlled `PR_DASHBOARD_EXECUTION_MODE` defaults to `legacy`.
-Legacy execution retains direct draft-open refreshes and backfills for migration
-and rollback. Enabling `owned` requires the pause-and-retire procedure in
-[`WEBHOOK_SETUP.md`](../.github/scripts/pull-request-dashboard/WEBHOOK_SETUP.md);
-it does not require promoting a fleet-wide release. Queue errors never fall
-back to an unowned writer.
+The operator-controlled `PR_DASHBOARD_EXECUTION_MODE` must be `owned` or `paused`.
+Pausing accepts work but prevents new claims and successor dispatches.
+Execution upgrades require the pause-and-retire procedure in
+[`WEBHOOK_SETUP.md`](../.github/scripts/pull-request-dashboard/WEBHOOK_SETUP.md).
+There is no direct-dispatch fallback or return-to-legacy execution mode.
 
 ## Dashboard columns
 
@@ -183,10 +182,8 @@ timeout. Only the Copilot gate is released: required-check gates and actionable
 feedback, including unresolved, non-outdated Copilot threads, still apply.
 
 Maintainers can optionally configure the `COPILOT_REVIEW_FALLBACK_TOKEN` workflow
-secret with a token allowed to request Copilot reviews. The legacy workflow
-forwards it to same-ref canary callers for backfills, targeted refreshes, and
-head-SHA refreshes; callers pinned to an older workflow remain unchanged until
-that workflow supports the secret and their secret mappings are updated.
+secret with a token allowed to request Copilot reviews. The owned drain
+passes it to the selected processor for both channels and both lanes.
 After the first quota notice, the dashboard switches review requests to this
 fallback requester and keeps the Copilot gate active under its normal rules.
 Existing quota notices do
@@ -375,19 +372,18 @@ without `slack_channel` configured do not send Slack notifications.
 Dashboard changes reach repositories in two stages, so a regression shows up on
 a small set of repositories before it reaches everyone.
 
-- **Canary** repositories run the workflow and its scripts from the triggering
+- **Canary** repositories run processor scripts from the drain's immutable triggering
   commit and pick up a change as soon as it merges. The canary set is the
   `CANARY_REPOSITORIES` list in
-  [`pull-request-dashboard.yml`](../.github/workflows/pull-request-dashboard.yml),
+  [`pull-request-dashboard-drain.yml`](../.github/workflows/pull-request-dashboard-drain.yml),
   which currently holds `shared-workflows` itself and
   `opentelemetry-java-instrumentation`.
-- **Every other repository** runs them from the promoted rollout ref: a
-  release's commit SHA, hash pinned with the release tag as a comment.
+- **Every other repository** runs them from the promoted release's commit SHA
+  in [`stable-release.json`](../.github/scripts/pull-request-dashboard/stable-release.json).
+  The file records one lowercase 40-character SHA and one stable semantic release.
 
-The webhook queue follows the same boundary automatically. A merge deploys
-queueing only for the canary repositories. Merging the later promotion pull
-request triggers another deployment that enables queueing for every repository.
-No queue-mode variable or manual Netlify deployment is required.
+Both channels always use the webhook queue. Release selection changes processor
+code, not webhook routing or execution ownership.
 
 Repository configuration is never staged. `repositories.json` is always read
 from the commit that triggered the run, so opting a repository in, or changing
@@ -395,23 +391,21 @@ its settings, takes effect on the next run in both channels.
 
 ### Promoting a change
 
-1. Merge the change. Canary repositories pick it up on their next run, and the
-   webhook deployment automatically enables queueing only for those repositories.
+1. Merge the change. Canary repositories pick it up on their next drain.
 2. Let it soak.
 3. Cut a release with the [Release workflow](https://github.com/open-telemetry/shared-workflows/actions/workflows/release.yml).
 4. Run the [Promote pull request dashboard workflow](https://github.com/open-telemetry/shared-workflows/actions/workflows/promote-pull-request-dashboard.yml)
    from `main` and enter the release tag. It accepts only a newer, published,
-   non-prerelease version and opens a pull request pointing every stable
-   job's `uses:` ref at that release's commit. The reusable workflow loads its
-   scripts from the same commit automatically, and queue-owned execution reads
-   those workflow pins to select the same release code.
+   non-prerelease version and opens a pull request updating the SHA and release
+   in `stable-release.json`. Both lanes load stable processor scripts and
+   dependencies from that immutable commit.
 5. Review and merge the generated pull request to promote the release. The merge
-   automatically redeploys the webhook with queueing enabled for every repository.
+   selects the release for subsequent stable drains without redeploying the bridge.
 
-The stable refs are deliberately excluded from Renovate because advancing them
-is the production rollout. `test_rollout.py` also fails if the stable jobs'
-workflow refs disagree. The promotion workflow uses the repo-specific
-shared-workflows OTELBOT App to push the branch with workflow-file permissions
+The release configuration is not an action dependency and is not managed by
+Renovate. Readers and the promotion helper reject mutable refs and malformed
+releases. The promotion workflow uses the repo-specific
+shared-workflows OTELBOT App to push the branch
 and open the pull request so its normal checks run.
 
 ### Rolling back
@@ -424,13 +418,11 @@ repositories are unaffected either way, since they never run pinned code.
 
 ### Changing the workflow
 
-Running two versions at once adds two rules for changes to this workflow:
-
-- A new input on `pull-request-dashboard-repo.yml` is passed by the canary jobs
-  only, until the promotion that teaches the rollout ref about it.
-- `repositories.json` changes must be additive for one promotion cycle, because
-  pinned code reads live configuration. Renames and removals land after the code
-  that understands them has been promoted.
+The owned worker loads stable scripts without replacing its own checkout.
+Processor CLI changes must remain compatible with the pinned stable release.
+`repositories.json` changes must be additive for one promotion cycle, because
+pinned code reads live configuration. Renames and removals land after the code
+that understands them has been promoted.
 
 ## Prerequisites
 

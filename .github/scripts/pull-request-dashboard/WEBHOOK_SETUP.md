@@ -14,7 +14,6 @@ dashboard state or publish GitHub comments itself.
 
 Queue-owned execution includes draft-open events. The combined processor creates
 the managed status comment with the target repository GitHub App identity.
-In legacy mode, draft-open events still use direct targeted dispatch.
 
 Save the Netlify project ID as a GitHub Actions variable named
 `NETLIFY_PR_DASHBOARD_PROJECT_ID` in the `shared-workflows` repository.
@@ -22,16 +21,17 @@ Save the Netlify project ID as a GitHub Actions variable named
 Save a Netlify personal access token as a GitHub Actions secret named
 `NETLIFY_AUTH_TOKEN` in the `shared-workflows` repository.
 
-`PR_DASHBOARD_EXECUTION_MODE` is an operator-controlled repository variable with
-three values: `legacy`, `paused`, and `owned`. The default is `legacy`, which
-retains the existing rollout. `paused` accepts work but starts no new execution.
+`PR_DASHBOARD_EXECUTION_MODE` is an operator-controlled repository variable that
+must be explicitly set to `paused` or `owned`. Missing and invalid Netlify
+values fail rather than select an execution default.
+`paused` accepts work but starts no new execution.
 `owned` routes normal entry points through independent live and maintenance
 drains using the same processor. The deploy workflow syncs this variable to
 Netlify, and its optional `execution_mode` input
 allows the bridge to pause before changing GitHub's mode.
 
 In owned mode, canaries use the drain's immutable triggering commit on main.
-Stable repositories use the existing promoted commit pins, with their own
+Stable repositories use the SHA and release in `stable-release.json`, with their own
 scripts and Python environments. Both channels load current repository policy
 from the worker checkout. Switching execution ownership does not promote a
 release or move stable code onto main.
@@ -93,32 +93,17 @@ and generation fence stale releases; waiting for it still observes the worker's
 lease and processing deadlines. No GitHub concurrency group blocks a replacement.
 
 The `dashboard-workflow-watchdog` scheduled function runs every 15 minutes. It
-force-cancels an automated dashboard run after 30 minutes when a newer run is
+only watches webhook deployment, in both owned and paused modes. Queue expiry
+and unfinished work provide dashboard health signals.
+It force-cancels a stalled deployment run after 30 minutes when a newer run is
 queued behind it in the same concurrency group. It rechecks both runs and all
 jobs before requesting cancellation and checks the resulting run state. Reruns
 use their current attempt's start time rather than the original run's age. If no
 jobs have completed, none may have received a runner or started a step. For
 partially completed runs, at least one job must still be waiting or queued,
 and every unfinished job must have waited without a runner or started step
-for at least 30 minutes. In legacy and paused modes the watchdog covers queue drains,
-hourly dashboard backfills, targeted dashboard dispatches, and webhook
-deployments. Targeted dispatch run names expose their concurrency group so
-the watchdog does not pair unrelated repository or pull request updates.
-Queued publishers also match by
-repository using their job names and the targeted run's repository. A
-repository-wide publisher or backfill can replace a stalled publisher for any
-pull request, but a targeted publisher only replaces a stalled publisher for the
-same pull request, because it would not deliver the other pull request. Publisher enqueue times determine which
-request is newer, even when its backfill started earlier or is still processing
-other repositories. A queued failure notification does not affect this matching. A newer manual backfill can unblock an automated publisher,
-but the watchdog does not cancel manual runs. Each invocation lists jobs for at most 16 runs per publisher workflow: the stale runs
-rotate fairly, half of the rest goes to the newest runs, and the other half rotates
-through older runs, including manual backfills. The older-run rotation advances only
-after a complete sweep of the stale runs, so every stale run is eventually checked
-against every older run. Publisher jobs are fetched again
-before cancellation to check for a newly assigned runner or started step.
-In owned mode it watches only webhook deployment; queue expiry and unfinished
-work replace publisher concurrency as the dashboard health signals.
+for at least 30 minutes. It fetches jobs again before cancellation to check for
+a newly assigned runner or started step.
 
 Disable Deploy Previews. PR preview deploys are unused and only add noise to
 PRs. In Netlify, go to **Project configuration** -> **Build & deploy** ->
@@ -131,7 +116,7 @@ Use two GitHub Apps:
 
 - a target repository app that receives target repository webhooks and grants
   dashboard data access
-- a shared-workflows dispatcher app that can dispatch the central workflow
+- a shared-workflows dispatcher app that can dispatch queue drains
   and push validated rollout updates
 
 ### Target repository app
@@ -218,7 +203,7 @@ Save the app credentials in the `shared-workflows` repository:
 ### Shared-workflows dispatcher app
 
 Use the [repo-specific otelbot app](https://github.com/open-telemetry/community/blob/main/assets.md#otelbot-sig-specific) for `open-telemetry/shared-workflows` to
-dispatch the central workflow.
+dispatch the lane's queue drain workflow.
 
 Repository permissions:
 
@@ -226,14 +211,13 @@ Repository permissions:
 - Contents: read and write
 - Metadata: read-only
 - Pull requests: read and write
-- Workflows: read and write
 
 This app does not need to subscribe to target repository events. It only needs
 access to `open-telemetry/shared-workflows`. Actions permission lets the webhook
-bridge dispatch the central workflow. Contents and Workflows permissions let
+bridge dispatch the queue drain workflow. Contents permission lets
 the promotion workflow push its validated rollout update under
-`.github/workflows/`, and Pull requests permission lets it open the promotion
-pull request.
+`.github/scripts/pull-request-dashboard/stable-release.json`, and Pull requests
+permission lets it open the promotion pull request.
 
 ## 3. Install the app
 
@@ -256,7 +240,7 @@ Production function environment before deployment:
 - GitHub Actions variable `OTELBOT_SHARED_WORKFLOWS_CLIENT_ID` - repo-specific
   otelbot client ID
 - GitHub Actions secret `OTELBOT_SHARED_WORKFLOWS_PRIVATE_KEY` - private key PEM
-  for the repo-specific otelbot app that dispatches the central workflow; the
+  for the repo-specific otelbot app that dispatches queue drains; the
   deploy workflow base64-encodes this secret before storing it in Netlify as
   `OTELBOT_SHARED_WORKFLOWS_PRIVATE_KEY_BASE64`
 
@@ -264,13 +248,16 @@ The webhook function also supports `OTELBOT_SHARED_WORKFLOWS_PRIVATE_KEY` if the
 deployment environment can store a multiline PEM value directly.
 
 On the first deploy, the workflow creates the dispatcher client ID, encoded
-private key, `PR_DASHBOARD_QUEUE_MODE`, and `PR_DASHBOARD_EXECUTION_MODE` in the
+private key and `PR_DASHBOARD_EXECUTION_MODE` in the
 Production Functions environment. Later deploys update only their Production
 values, preserving
 the existing scope and the private key's secret setting. If an older Netlify
 project still has the deprecated `OTELBOT_SHARED_WORKFLOWS_APP_ID`, remove it
 once in Netlify's environment settings after confirming the client ID is set.
 The deploy workflow does not remove unrelated or deprecated variables.
+After deploying this owned-only bridge, remove the obsolete
+`PR_DASHBOARD_QUEUE_MODE` Netlify variable from every context where it is set.
+The bridge ignores it and the deploy workflow no longer installs it.
 
 Deploy contexts:
 
@@ -278,7 +265,7 @@ Deploy contexts:
 
 ## 5. Workflow dispatch contract
 
-Owned execution always queues webhooks, regardless of the legacy queue mode.
+All webhook refreshes use queue-owned execution.
 Webhooks and targeted PR/head runs use the live lane.
 Manual and scheduled dashboard runs enqueue repository backfills when both
 `pr_number` and `head_sha` are empty, in the maintenance lane. A repository
@@ -293,7 +280,7 @@ coalesces with manual work preserves that scheduling intent. The reminder
 workflow queues its write sweeps in maintenance and keeps dry-run sweeps read-only.
 
 Drain dispatches include `queue_lane`, either `live` or `maintenance`, along with
-`dispatcher_generation`. Omitted lanes default to `live` for legacy refresh
+`dispatcher_generation`. Omitted lanes default to `live` for ordinary refresh
 dispatches. Enqueue and status entry points derive the lane from the item kind
 or key; progress queries do not need a new input.
 
@@ -315,13 +302,8 @@ receipts are bounded; `unknown` means the receipt is unavailable, not success.
 Worker run logs and scheduled recovery logs provide the corresponding queue
 health and execution code refs.
 
-### Legacy dispatch during migration
-
-In legacy execution, the queue mode selects one of two dispatch contracts.
-
-In `off` mode, and for non-canary repositories in `canary` mode, the webhook
-bridge dispatches `pull-request-dashboard.yml` in
-`open-telemetry/shared-workflows` with these inputs:
+Manual targeted refreshes enqueue through `pull-request-dashboard.yml` with
+these inputs:
 
 ```json
 {
@@ -332,14 +314,14 @@ bridge dispatches `pull-request-dashboard.yml` in
 }
 ```
 
-In `all` mode, and for canary repositories in `canary` mode, the bridge writes
-the repository and PR or head SHA to the Blob queue. Only the webhook request
-that acquires the singleton dispatcher lease dispatches
-`pull-request-dashboard-drain.yml`, with this input:
+The bridge writes webhook PR or head-SHA work directly to the Blob queue.
+Only a request that acquires the lane's dispatcher lease dispatches
+`pull-request-dashboard-drain.yml`, with these inputs:
 
 ```json
 {
-  "dispatcher_generation": "12"
+  "dispatcher_generation": "12",
+  "queue_lane": "live"
 }
 ```
 
@@ -347,7 +329,7 @@ The generation identifies the dispatcher lease that the drain must activate.
 The drain claims repository and PR or head-SHA work from Netlify, so those
 values are not workflow inputs.
 
-Direct dispatch notes:
+Target input rules:
 
 - `repository` is the short repository name under `open-telemetry`, and must
   match a `repositories.json` entry exactly. An owner-prefixed name is rejected.
@@ -356,21 +338,26 @@ Direct dispatch notes:
   number. Check and status events for a pull request whose head branch lives in
   a fork report no pull request association.
 - The central workflow validates repository and target inputs before use.
-  Owned enqueue also validates the trigger event and rejects owner-prefixed
+  Enqueue also validates the trigger event and rejects owner-prefixed
   repository names, conflicting PR/head inputs, and malformed targets.
 
-## 6. Deployment and rollback
+## 6. Deployment and maintenance
 
 These operations change production behavior and require operator approval.
-Do not promote a release or cancel unrelated runs as part of this migration.
-The stable rollout pins remain unchanged throughout.
+Do not promote a release or cancel unrelated runs as part of execution retirement.
+Retirement preserves stable `v0.20.0` at
+`cb9f45f0b1ec545091caca504fc3e9b073284325`.
+It removes the direct-dispatch and return-to-legacy execution paths, not stored
+data compatibility. Existing GitHub comments, nudge episodes, delivery receipts,
+and accepted-state JSON remain intact. Schema 1 PR/head refresh records remain
+readable and claimable by owned workers.
 
-### Enable queue-owned execution
+### Retire old workers and deploy
 
-1. Deploy this change with `PR_DASHBOARD_EXECUTION_MODE` unset or `legacy`.
-   Check that the bridge still accepts legacy refreshes and that existing queue
-   records remain readable. This deployment alone must not enable owned writers.
-2. Pause the bridge first, while GitHub still uses legacy mode:
+Before merging this retirement or deploying a change to execution lanes,
+delivery ownership, or acknowledgment fencing:
+
+1. Pause the bridge first, independently of GitHub's current mode:
 
    ```sh
    gh workflow run pull-request-dashboard-deploy-webhook.yml \
@@ -379,74 +366,43 @@ The stable rollout pins remain unchanged throughout.
    ```
 
    Wait for that deployment to finish. Webhooks now persist refreshes without
-   dispatching either path.
-3. Set GitHub's mode to paused:
+   requesting a dispatcher.
+2. Set GitHub's mode to paused:
 
    ```sh
    gh variable set PR_DASHBOARD_EXECUTION_MODE \
      --repo open-telemetry/shared-workflows --body paused
    ```
 
-   New scheduled/manual backfills and sweeps now enqueue rather than write.
-   Let every pre-cutover targeted, backfill, reminder, and drain run finish.
-   Inspect all jobs, including runnerless publisher jobs. Retiring a specific
-   old run requires separate cancellation approval; a completed enqueue run is
-   not evidence that its older publisher finished. Keep the watchdog enabled
-   for these legacy runs.
-4. After no legacy writer remains, set the repository variable to `owned`, then
-   deploy the bridge with `execution_mode=owned`. The interval between those
-   operations is safe because the paused bridge accepts work but grants no
-   new claims. A new enqueue or scheduled recovery starts the drain.
-5. Follow a canary request and a stable request through completion. Confirm the
-   logged immutable code refs, delivery receipts, full-publication progress,
-   and queue age. No fleet-wide release promotion is needed.
+   Already claimed work can finish with its existing heartbeat and receipts;
+   paused finish releases ownership without dispatching a successor. New
+   scheduled/manual backfills and sweeps still enqueue.
+3. Let every pre-upgrade drain in both lanes finish, including runs waiting for
+   a runner and any old direct writers or reminder sweeps. Inspect all jobs,
+   not only enqueue completion. Retiring a specific old run requires separate
+   cancellation approval. Do not run workers with different ownership rules
+   concurrently or rerun retired workflow attempts.
+4. Merge the retirement only after those writers have retired. A main-branch
+   merge that changes bridge files automatically deploys the bridge using the
+   paused repository setting. Confirm that deployment completed in paused mode;
+   if a separate deployment is needed, use the `execution_mode=paused` override.
+   Keep existing queued items, request IDs, generations, control items, and
+   completion receipts in their shards. No migration or deletion is needed.
+5. Remove obsolete `PR_DASHBOARD_QUEUE_MODE` Netlify values after deployment.
+   Keep `DATA_BRANCH_SNAPSHOTS=true` and its owned-worker environment injection
+   while stable processors remain pinned to v0.20.0.
+6. Restore GitHub's repository variable to `owned`, then deploy the bridge with
+   `execution_mode=owned`. The paused bridge accepts work during that interval
+   but grants no new claims. A new enqueue or scheduled recovery starts each
+   lane independently.
+7. Follow live and maintenance work in both release channels through completion.
+   Confirm immutable code refs, delivery receipts, full-publication progress,
+   and queue age. Do not release or promote dashboard code for this retirement.
 
-### Upgrade an owned installation
-
-Git checkout isolation is supplied by the current drain worker, including for
-pinned stable scripts. It needs no release promotion or queue migration. For
-that worker upgrade, use the same pause-and-retire sequence below; all
-pre-upgrade drains in both lanes must retire before resuming with isolated
-checkouts.
-
-Before merging or deploying a change to execution lanes or delivery ownership,
-pause the bridge and GitHub with the commands above, then let every pre-upgrade
-drain finish, including runs waiting for a runner. Do not run workers with
-different ownership rules concurrently.
-
-Deploy the bridge with both lanes while paused. Queued items, request IDs, generations, and
-completion receipts remain in their existing shards; no item migration is
-needed. Resume GitHub and the bridge in owned mode only after all pre-upgrade drains
-have retired. Scheduled recovery can then start each lane independently.
-
-### Return to legacy execution
-
-Keep this queue implementation and worker available until control items have
-finished. Schema 1 refresh records remain compatible with the old queue, but an
-older worker cannot process active `backfill` or `reminders` items.
-
-1. Stop scheduled/manual control producers by disabling the central dashboard
-   and reminder workflows. While still owned, let pending backfills and reminder
-   sweeps finish. Check that recovery health reports `backfills=0` and
-   `reminderSweeps=0`. Do not delete control records to make those counts zero.
-2. Deploy the bridge paused, then set the repository variable to paused using
-   the commands above. Already claimed work can finish; no new claims start.
-   Wait until no active writer or inflight item remains. If a worker died,
-   let lease recovery return its item to the queue before proceeding.
-3. Verify that only ordinary PR/head refreshes remain queued. Set GitHub's mode
-   to `legacy`, then deploy the bridge with `execution_mode=legacy`. Re-enable
-   the producer workflows. The paused interval preserves incoming refreshes.
-4. Only after active control items are absent may an older bridge/worker
-   deployment replace this one. Leave accepted-state and delivery branches
-   intact so receipts continue suppressing duplicates.
-
-The execution change does not alter accepted-state or delivery formats, so this
-rollback does not require releasing or promoting dashboard code. If data
-snapshots have been activated, keep `DATA_BRANCH_SNAPSHOTS=true` and retain
-snapshot-capable code in every legacy reader and writer; returning to legacy
-execution does not restore Git history. Existing version guards still apply
-to any separate code rollback. Do not bypass them or discard delivery receipts
-to make older code publish.
+There is no supported `legacy` mode after retirement. Recover execution problems
+while paused or roll forward. Any separate processor-code rollback must respect
+the accepted-state and delivery-version guards. Do not discard receipts or
+restore old Git history to make older code publish.
 
 ### Manual maintenance
 
@@ -488,10 +444,10 @@ branch even when its files have not changed.
 ### Deployment order
 
 1. Merge the snapshot-capable code with the variable unset. Release and promote
-   it through `promote-pull-request-dashboard.yml` so every stable workflow pin
+   it through `promote-pull-request-dashboard.yml` so the stable release configuration
    loads the new reader and writer. In owned mode, verify the immutable stable
    code refs used by both live and maintenance drains as well as the canary
-   ref. Verify the legacy queue drain, author reminder sweep, and CI collector
+   ref. Verify the author reminder sweep and CI collector
    also run the new code. Do not rerun older workflow attempts after activation.
    Snapshot activation requires this promotion even though changing execution
    ownership alone does not.
@@ -502,7 +458,7 @@ branch even when its files have not changed.
    `pull-request-dashboard.yml`, `pull-request-dashboard-drain.yml`,
    `pull-request-dashboard-refresh-author-nudges.yml`, and
    `github-actions-queue-collector.yml`. Wait until every live and maintenance
-   drain, legacy writer, and collector has finished, including queued runs and
+   drain, standalone writer, and collector has finished, including queued runs and
    runnerless publisher jobs. Retiring a specific old run requires separate
    cancellation approval. Do not take the backup while any writer remains.
    Keep the stalled-run watchdog enabled; no Netlify code change is required.

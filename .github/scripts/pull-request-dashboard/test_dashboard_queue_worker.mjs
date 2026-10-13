@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import test from "node:test";
+import test, { after, before } from "node:test";
 
 import {
   handleQueueWorkerRequest,
@@ -68,6 +68,12 @@ function fixture() {
 }
 
 const verifyRequest = async () => ({ repository: "open-telemetry/shared-workflows" });
+const previousMode = process.env.PR_DASHBOARD_EXECUTION_MODE;
+before(() => { process.env.PR_DASHBOARD_EXECUTION_MODE = "owned"; });
+after(() => {
+  if (previousMode === undefined) delete process.env.PR_DASHBOARD_EXECUTION_MODE;
+  else process.env.PR_DASHBOARD_EXECUTION_MODE = previousMode;
+});
 
 test("entry points select independent lanes and dispatch the selected lane", async () => {
   const previous = process.env.PR_DASHBOARD_EXECUTION_MODE;
@@ -189,6 +195,56 @@ test("paused execution accepts controls but rejects activation", async () => {
     }), { queue, verifyRequest });
     assert.equal((await activation.json()).activated, false);
     assert.deepEqual(calls, []);
+  } finally {
+    if (previous === undefined) delete process.env.PR_DASHBOARD_EXECUTION_MODE;
+    else process.env.PR_DASHBOARD_EXECUTION_MODE = previous;
+  }
+});
+
+test("acknowledgment rejects a missing dispatcher generation before touching the queue", async () => {
+  const { calls, queue } = fixture();
+  await assert.rejects(handleQueueWorkerRequest(request({
+    action: "acknowledge", itemKey: "example#pr:1", claimGeneration: 1,
+    workerId: "worker", outcome: "success",
+  }), { queue, verifyRequest }), /generation must be a positive integer/);
+  assert.deepEqual(calls, []);
+});
+
+test("paused workers can heartbeat, acknowledge, and finish without claiming or dispatching", async () => {
+  const previous = process.env.PR_DASHBOARD_EXECUTION_MODE;
+  process.env.PR_DASHBOARD_EXECUTION_MODE = "paused";
+  try {
+    const { calls, queue } = fixture();
+    const identity = { generation: 7, workerId: "worker" };
+    await assert.rejects(handleQueueWorkerRequest(request({
+      action: "claim", ...identity,
+    }), { queue, verifyRequest }), /execution is paused/);
+    await handleQueueWorkerRequest(request({
+      action: "heartbeat", ...identity,
+    }), { queue, verifyRequest });
+    await handleQueueWorkerRequest(request({
+      action: "acknowledge", ...identity,
+      itemKey: "example#pr:1", claimGeneration: 1, outcome: "success",
+    }), { queue, verifyRequest });
+    queue.finishDispatcher = async (input) => {
+      calls.push(["finish", input]);
+      return { requested: false };
+    };
+    const response = await handleQueueWorkerRequest(request({
+      action: "finish", ...identity,
+    }), {
+      queue, verifyRequest,
+      dispatchDrain: async () => { assert.fail("paused finish must not dispatch"); },
+    });
+    assert.equal((await response.json()).requested, false);
+    assert.deepEqual(calls, [
+      ["heartbeat", identity],
+      ["acknowledge", {
+        ...identity, itemKey: "example#pr:1", claimGeneration: 1,
+        outcome: "success", error: "", retryAfterMs: 0, operationId: "",
+      }],
+      ["finish", { ...identity, requestSuccessor: false }],
+    ]);
   } finally {
     if (previous === undefined) delete process.env.PR_DASHBOARD_EXECUTION_MODE;
     else process.env.PR_DASHBOARD_EXECUTION_MODE = previous;

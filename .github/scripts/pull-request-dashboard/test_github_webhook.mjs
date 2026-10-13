@@ -147,116 +147,61 @@ test("allows dashboard comment events triggered by another actor", () => {
   }), false);
 });
 
-test("off mode retains direct workflow dispatch", async () => {
-  const calls = [];
-  const response = await withQueueMode("off", () => handleWebhookRequest(
-    webhookRequest("example", 123),
-    {
-      queue: queueMock(calls),
-      dispatchRefresh: async (inputs) => calls.push(["refresh", inputs]),
-      dispatchDrain: async (generation) => calls.push(["drain", generation]),
-    },
-  ));
-
-  assert.equal(response.status, 202);
-  assert.equal((await response.json()).status, "dispatched");
-  assert.equal(calls[0][0], "refresh");
-  assert.equal(calls.some(([name]) => name === "enqueue"), false);
-});
-
-test("rejects the retired shadow mode", async () => {
-  await assert.rejects(
-    withQueueMode("shadow", () => handleWebhookRequest(webhookRequest("example", 123))),
-    /unsupported PR_DASHBOARD_QUEUE_MODE: shadow/,
-  );
-});
-
-test("canary mode queues only configured canary repositories", async () => {
-  const stableCalls = [];
-  await withQueueMode("canary", () => handleWebhookRequest(
-    webhookRequest("example", 123),
-    {
-      queue: queueMock(stableCalls),
-      dispatchRefresh: async (inputs) => stableCalls.push(["refresh", inputs]),
-    },
-  ));
-  assert.deepEqual(stableCalls.map(([name]) => name), ["refresh"]);
-
-  const canaryCalls = [];
-  const response = await withQueueMode("canary", () => handleWebhookRequest(
-    webhookRequest("shared-workflows", 456),
-    {
-      queue: queueMock(canaryCalls),
-      dispatchRefresh: async (inputs) => canaryCalls.push(["refresh", inputs]),
-      dispatchDrain: async (generation) => canaryCalls.push(["drain", generation]),
-    },
-  ));
-  assert.equal((await response.json()).status, "queued_and_dispatched");
-  assert.deepEqual(
-    canaryCalls.map(([name]) => name),
-    ["enqueue:live", "request", "drain"],
-  );
-});
-
-test("opened drafts bypass all and canary queues", async () => {
-  for (const queueMode of ["all", "canary"]) {
-    const calls = [];
-    const response = await withQueueMode(queueMode, () => handleWebhookRequest(
-      webhookRequest("shared-workflows", 456, { draft: true }),
-      {
-        queue: queueMock(calls),
-        dispatchRefresh: async (inputs) => calls.push(["refresh", inputs]),
-        dispatchDrain: async (generation) => calls.push(["drain", generation]),
-      },
-    ));
-
-    assert.equal((await response.json()).status, "dispatched");
-    assert.deepEqual(calls.map(([name]) => name), ["refresh"]);
-  }
-});
-
-test("owned execution queues opened drafts even when legacy queue mode is off", async () => {
-  const previous = process.env.PR_DASHBOARD_EXECUTION_MODE;
-  process.env.PR_DASHBOARD_EXECUTION_MODE = "owned";
-  try {
-    const calls = [];
-    const response = await withQueueMode("off", () => handleWebhookRequest(
-      webhookRequest("shared-workflows", 456, { draft: true }),
-      {
-        queue: queueMock(calls),
-        dispatchRefresh: async () => calls.push(["legacy"]),
-        dispatchDrain: async () => calls.push(["drain"]),
-      },
-    ));
-    assert.equal((await response.json()).completed, false);
-    assert.deepEqual(calls.map(([name]) => name), ["enqueue:live", "request", "drain"]);
-  } finally {
-    restoreEnvironment("PR_DASHBOARD_EXECUTION_MODE", previous);
+test("owned execution queues drafts and ordinary refreshes in every repository", async () => {
+  for (const repository of ["shared-workflows", "example"]) {
+    for (const draft of [true, false]) {
+      const calls = [];
+      const response = await withExecutionMode("owned", () => handleWebhookRequest(
+        webhookRequest(repository, 456, { draft }),
+        {
+          queue: queueMock(calls),
+          dispatchDrain: async () => calls.push(["drain"]),
+        },
+      ));
+      const result = await response.json();
+      assert.equal(result.completed, false);
+      assert.equal(result.item_key, `${repository}#pr:456`);
+      assert.equal(result.generation, 1);
+      assert.equal(result.request_id, "accepted-request");
+      assert.equal(result.queue_mode, undefined);
+      assert.deepEqual(calls.map(([name]) => name), ["enqueue:live", "request", "drain"]);
+    }
   }
 });
 
 test("paused execution accepts draft refreshes without dispatching a writer", async () => {
-  const previous = process.env.PR_DASHBOARD_EXECUTION_MODE;
-  process.env.PR_DASHBOARD_EXECUTION_MODE = "paused";
+  const calls = [];
+  const response = await withExecutionMode("paused", () => handleWebhookRequest(
+    webhookRequest("shared-workflows", 456, { draft: true }),
+    {
+      queue: queueMock(calls),
+      dispatchDrain: async () => calls.push(["drain"]),
+    },
+  ));
+  assert.equal((await response.json()).completed, false);
+  assert.deepEqual(calls.map(([name]) => name), ["enqueue:live"]);
+});
+
+test("retired queue routing variables do not change owned execution", async () => {
+  const previous = process.env.PR_DASHBOARD_QUEUE_MODE;
   try {
-    const calls = [];
-    await withQueueMode("all", () => handleWebhookRequest(
-      webhookRequest("shared-workflows", 456, { draft: true }),
-      {
-        queue: queueMock(calls),
-        dispatchRefresh: async () => calls.push(["legacy"]),
-        dispatchDrain: async () => calls.push(["drain"]),
-      },
-    ));
-    assert.deepEqual(calls.map(([name]) => name), ["enqueue:live"]);
+    for (const value of ["off", "canary", "all", "invalid"]) {
+      process.env.PR_DASHBOARD_QUEUE_MODE = value;
+      const calls = [];
+      await withExecutionMode("owned", () => handleWebhookRequest(
+        webhookRequest("example", 123),
+        { queue: queueMock(calls), dispatchDrain: async () => calls.push(["drain"]) },
+      ));
+      assert.deepEqual(calls.map(([name]) => name), ["enqueue:live", "request", "drain"]);
+    }
   } finally {
-    restoreEnvironment("PR_DASHBOARD_EXECUTION_MODE", previous);
+    restoreEnvironment("PR_DASHBOARD_QUEUE_MODE", previous);
   }
 });
 
 test("queued mode uses an internal dispatcher owner", async () => {
   const calls = [];
-  await withQueueMode("all", () => handleWebhookRequest(
+  await withExecutionMode("owned", () => handleWebhookRequest(
     webhookRequest("example", 123),
     {
       queue: queueMock(calls),
@@ -274,7 +219,7 @@ test("queued mode uses an internal dispatcher owner", async () => {
 test("queue dispatch failure releases the dispatcher lease", async () => {
   const calls = [];
   await assert.rejects(
-    withQueueMode("all", () => handleWebhookRequest(
+    withExecutionMode("owned", () => handleWebhookRequest(
       webhookRequest("example", 123),
       {
         queue: queueMock(calls),
@@ -328,7 +273,10 @@ function queueMock(calls, name = "live") {
   return {
     async enqueue(item) {
       calls.push([`enqueue:${name}`, item]);
-      return { status: "queued" };
+      return {
+        status: "queued", itemKey: `${item.repository}#pr:${item.prNumber}`,
+        generation: 1, requestId: "accepted-request",
+      };
     },
     async requestDispatcher(owner) {
       calls.push(["request", owner]);
@@ -341,16 +289,16 @@ function queueMock(calls, name = "live") {
   };
 }
 
-async function withQueueMode(queueMode, callback) {
+async function withExecutionMode(mode, callback) {
   const previousSecret = process.env.GITHUB_WEBHOOK_SECRET;
-  const previousMode = process.env.PR_DASHBOARD_QUEUE_MODE;
+  const previousMode = process.env.PR_DASHBOARD_EXECUTION_MODE;
   process.env.GITHUB_WEBHOOK_SECRET = webhookSecret;
-  process.env.PR_DASHBOARD_QUEUE_MODE = queueMode;
+  process.env.PR_DASHBOARD_EXECUTION_MODE = mode;
   try {
     return await callback();
   } finally {
     restoreEnvironment("GITHUB_WEBHOOK_SECRET", previousSecret);
-    restoreEnvironment("PR_DASHBOARD_QUEUE_MODE", previousMode);
+    restoreEnvironment("PR_DASHBOARD_EXECUTION_MODE", previousMode);
   }
 }
 

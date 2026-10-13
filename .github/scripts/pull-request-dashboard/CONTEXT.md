@@ -61,10 +61,10 @@ delivery receipts retain their existing Git compare-and-swap transactions.
 
 ## Execution ownership
 
-`PR_DASHBOARD_EXECUTION_MODE` selects `legacy`, `paused`, or `owned`. An unset
-variable means `legacy`; deploying this code does not opt production into a
-new execution path. GitHub Actions and the Netlify bridge must agree on the
-mode. `WEBHOOK_SETUP.md` describes the cutover and rollback.
+`PR_DASHBOARD_EXECUTION_MODE` must explicitly select `paused` or `owned`.
+The Netlify bridge rejects missing or invalid values. Its deployment override
+can keep the bridge paused independently of GitHub's repository setting.
+`WEBHOOK_SETUP.md` describes the pause, retirement, and deployment sequence.
 
 In `owned` mode, webhooks, manual PR and head-SHA refreshes, hourly and manual
 backfills, and author-reminder write sweeps enter the existing Blob queue.
@@ -109,8 +109,8 @@ Release retries are idempotent and cannot release a newer lease generation.
 `execution_code.py` loads scripts from immutable commit archives into temporary
 directories without replacing the worker checkout. Each ref has its own Python
 environment and runtime dependencies. Canaries use the drain's triggering
-commit on main. Stable code comes from the existing promoted pins in
-`pull-request-dashboard.yml`; `promote_rollout.py` remains the promotion
+commit on main. Stable code comes from the immutable SHA and release in
+`stable-release.json`; `promote_rollout.py` remains the promotion
 authority. Repository policy comes from the current worker checkout in both
 channels. Stable repositories do not run main's evaluation or state codecs.
 
@@ -150,10 +150,9 @@ but cannot eliminate that external-success/receipt-loss window.
 `paused` accepts work but prevents activation, claims, and successor dispatch.
 Already claimed work can finish under its existing heartbeat. Recovery logs each
 lane's queue counts, retries, dead letters, pending backfills and sweeps, dispatcher
-expiry, and the oldest unfinished timestamp. In `owned` mode the watchdog
-only monitors webhook deployment, not dashboard processing. Legacy publisher
-jobs and matching remain gated for migration and rollback; they must not run
-alongside queue-owned writers.
+expiry, and the oldest unfinished timestamp. The watchdog only monitors webhook
+deployment, not dashboard processing. All production dashboard writers use
+queue ownership; direct-dispatch execution has no supported rollback path.
 
 Other CLI writers are maintenance tools, not independent production workers.
 Before invoking `dashboard.py`, `delivery.py`, `publish_dashboard.py`, or a

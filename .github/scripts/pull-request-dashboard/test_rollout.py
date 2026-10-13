@@ -1,11 +1,4 @@
-"""Guards for the pull request dashboard staged rollout wiring.
-
-The rollout splits every entry path into a canary job that runs dashboard code
-from the triggering commit and a stable job that runs it from the promoted
-rollout ref. ``uses`` cannot take an expression and a job-level ``if`` cannot
-read ``env``, so the workflow ref and the canary membership list are repeated
-across jobs; these tests keep the copies in sync.
-"""
+"""Guards for owned dashboard execution and release selection."""
 
 from __future__ import annotations
 
@@ -14,35 +7,15 @@ import re
 import unittest
 from pathlib import Path
 
+from promote_rollout import DEFAULT_CONFIG, stable_release
+
 SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parents[2]
-WORKFLOW = REPO_ROOT / ".github" / "workflows" / "pull-request-dashboard.yml"
-REPO_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "pull-request-dashboard-repo.yml"
-SWEEP_WORKFLOW = (
-    REPO_ROOT
-    / ".github"
-    / "workflows"
-    / "pull-request-dashboard-refresh-author-nudges.yml"
-)
-DRAIN_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "pull-request-dashboard-drain.yml"
-DEPLOY_WORKFLOW = (
-    REPO_ROOT / ".github" / "workflows" / "pull-request-dashboard-deploy-webhook.yml"
-)
-WEBHOOK = SCRIPT_DIR / "netlify" / "functions" / "github-webhook.mjs"
-CONFIG = SCRIPT_DIR / "repositories.json"
-
-REPO_WORKFLOW_PATH = ".github/workflows/pull-request-dashboard-repo.yml"
-# Anchored to the job-level key so a commented out line cannot satisfy a guard.
-STABLE_USES = re.compile(
-    r"^ {4}uses:\s*open-telemetry/shared-workflows/" + re.escape(REPO_WORKFLOW_PATH) + r"@(\S+)",
-    re.MULTILINE,
-)
-LOCAL_USES = re.compile(r"^ {4}uses:\s*\./" + re.escape(REPO_WORKFLOW_PATH) + r"\s*$", re.MULTILINE)
-ENTRY_PATHS = ("run-repo-dashboard", "run-targeted-dashboard", "run-head-sha-dashboard")
-
-
-def workflow_text() -> str:
-    return WORKFLOW.read_text(encoding="utf-8")
+WORKFLOWS = REPO_ROOT / ".github" / "workflows"
+WORKFLOW = WORKFLOWS / "pull-request-dashboard.yml"
+SWEEP_WORKFLOW = WORKFLOWS / "pull-request-dashboard-refresh-author-nudges.yml"
+DRAIN_WORKFLOW = WORKFLOWS / "pull-request-dashboard-drain.yml"
+DEPLOY_WORKFLOW = WORKFLOWS / "pull-request-dashboard-deploy-webhook.yml"
 
 
 def job_blocks(text: str) -> dict[str, str]:
@@ -50,10 +23,6 @@ def job_blocks(text: str) -> dict[str, str]:
     blocks: dict[str, list[str]] = {}
     name: str | None = None
     for line in lines[lines.index("jobs:") + 1 :]:
-        if re.match(r"^ {2}#", line):
-            # A comment at job indentation introduces the jobs below it rather
-            # than belonging to the job above it.
-            continue
         header = re.match(r"^ {2}([A-Za-z0-9_-]+):\s*$", line)
         if header:
             name = header.group(1)
@@ -63,115 +32,60 @@ def job_blocks(text: str) -> dict[str, str]:
     return {job: "\n".join(body) for job, body in blocks.items()}
 
 
-def canary_repositories(text: str) -> list[str]:
-    match = re.search(r"^ {2}CANARY_REPOSITORIES: '(\[[^']*\])'$", text, re.MULTILINE)
-    assert match is not None, "CANARY_REPOSITORIES is missing from the workflow env"
-    return json.loads(match.group(1))
-
-
 class RolloutWiringTest(unittest.TestCase):
-    def test_optional_review_token_is_wired_without_changing_stable_callers(self) -> None:
-        jobs = job_blocks(REPO_WORKFLOW.read_text(encoding="utf-8"))
-        self.assertIn(
-            "COPILOT_REVIEW_FALLBACK_AVAILABLE: ${{ secrets.COPILOT_REVIEW_FALLBACK_TOKEN != '' }}",
-            jobs["update-dashboard"],
-        )
-        self.assertNotIn(
-            "COPILOT_REVIEW_FALLBACK_TOKEN: ${{", jobs["update-dashboard"],
-        )
-        self.assertIn(
-            "COPILOT_REVIEW_FALLBACK_TOKEN: ${{ secrets.COPILOT_REVIEW_FALLBACK_TOKEN }}",
-            jobs["publish-dashboard"],
-        )
-        for name, body in job_blocks(DRAIN_WORKFLOW.read_text(encoding="utf-8")).items():
-            with self.subTest(job=name):
-                self.assertIn(
-                    "COPILOT_REVIEW_FALLBACK_TOKEN: ${{ secrets.COPILOT_REVIEW_FALLBACK_TOKEN }}",
-                    body,
-                )
-        for prefix in ENTRY_PATHS:
-            with self.subTest(entry_path=prefix):
-                self.assertIn(
-                    "COPILOT_REVIEW_FALLBACK_TOKEN: ${{ secrets.COPILOT_REVIEW_FALLBACK_TOKEN }}",
-                    self.jobs[f"{prefix}-canary"],
-                )
-                self.assertNotIn(
-                    "COPILOT_REVIEW_FALLBACK_TOKEN",
-                    self.jobs[f"{prefix}-stable"],
-                )
+    def test_dashboard_only_enqueues_or_queries_progress(self) -> None:
+        text = WORKFLOW.read_text(encoding="utf-8")
+        jobs = job_blocks(text)
+        self.assertEqual(set(jobs), {"enqueue"})
+        self.assertNotIn("    if:", jobs["enqueue"])
+        self.assertIn("id-token: write", jobs["enqueue"])
+        self.assertIn("enqueue_dashboard.py", jobs["enqueue"])
+        for input_name in ("repository", "pr_number", "head_sha", "trigger_event",
+                           "request_item_key", "request_generation", "request_id"):
+            self.assertIn(f"inputs.{input_name}", jobs["enqueue"])
+        self.assertIn("group: pull-request-dashboard-enqueue-${{ github.run_id }}", text)
+        self.assertNotIn("legacy", text)
+        self.assertNotIn("matrix:", text)
+        self.assertFalse((WORKFLOWS / "pull-request-dashboard-repo.yml").exists())
+        self.assertFalse((SCRIPT_DIR / "action.yml").exists())
 
-    def setUp(self) -> None:
-        self.text = workflow_text()
-        self.jobs = job_blocks(self.text)
-        self.canary = canary_repositories(self.text)
-
-    def test_each_drain_job_receives_the_selected_lane_without_github_concurrency(self) -> None:
+    def test_owned_drain_keeps_lane_ownership_and_immutable_canary_source(self) -> None:
         text = DRAIN_WORKFLOW.read_text(encoding="utf-8")
+        jobs = job_blocks(text)
+        self.assertEqual(set(jobs), {"owned-drain"})
+        body = jobs["owned-drain"]
+        self.assertIn("vars.PR_DASHBOARD_EXECUTION_MODE == 'owned'", body)
         self.assertIn("queue_lane:", text)
         self.assertIn("default: live", text)
+        self.assertIn("PR_DASHBOARD_QUEUE_LANE: ${{ inputs.queue_lane || 'live' }}", body)
         self.assertNotIn("concurrency:", text)
-        jobs = job_blocks(text)
-        for name in ("owned-drain", "drain"):
-            with self.subTest(job=name):
-                self.assertIn(
-                    "PR_DASHBOARD_QUEUE_LANE: ${{ inputs.queue_lane || 'live' }}",
-                    jobs[name],
-                )
+        self.assertNotIn("actions: write", body)
+        self.assertEqual(body.count("actions/checkout@"), 1)
+        self.assertIn("timeout-minutes: 50", body)
+        self.assertIn("CANARY_CODE_REF: ${{ github.sha }}", body)
+        self.assertIn('--canary-code-ref "$CANARY_CODE_REF"', body)
+        self.assertIn('--canary-repositories-json "$CANARY_REPOSITORIES"', body)
+        self.assertNotIn("--owned", body)
+        self.assertNotIn("--claims", body)
+        self.assertIn("COPILOT_REVIEW_FALLBACK_TOKEN: ${{ secrets.COPILOT_REVIEW_FALLBACK_TOKEN }}", body)
+        self.assertIn("COPILOT_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}", body)
+        self.assertIn("copilot-requests: write", body)
+        canary = re.search(r"^ {6}CANARY_REPOSITORIES: '(\[[^']*\])'$", body, re.MULTILINE)
+        self.assertIsNotNone(canary)
+        configured = {entry["name"] for entry in json.loads((SCRIPT_DIR / "repositories.json").read_text())}
+        self.assertEqual(json.loads(canary.group(1)), ["opentelemetry-java-instrumentation", "shared-workflows"])
+        self.assertTrue(set(json.loads(canary.group(1))) <= configured)
 
-    def test_both_classifier_entry_paths_install_the_sdk_runtime(self) -> None:
-        for path, job, requirements in (
-            (REPO_WORKFLOW, "update-dashboard", '"$DASHBOARD_CODE/requirements.txt"'),
-            (DRAIN_WORKFLOW, "drain", ".github/scripts/pull-request-dashboard/requirements.txt"),
-        ):
-            with self.subTest(workflow=path.name, job=job):
-                text = job_blocks(path.read_text(encoding="utf-8"))[job]
-                self.assertIn("actions/setup-python@", text)
-                self.assertRegex(text, r"(?m)^ +python-version: ['\"]3\.\d+['\"]$")
-                self.assertIn(f"python -m pip install -r {requirements}", text)
-                self.assertIn("python -m copilot download-runtime", text)
-                self.assertLess(
-                    text.index("python -m pip install"),
-                    text.index("python -m copilot download-runtime"),
-                )
-                self.assertIn("copilot-requests: write", text)
-                self.assertIn("COPILOT_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}", text)
-                self.assertNotIn("node_modules/.bin", text)
-        dependencies = json.loads((SCRIPT_DIR / "package.json").read_text(encoding="utf-8"))
-        self.assertNotIn("@github/copilot", dependencies["dependencies"])
-        self.assertRegex(
-            (SCRIPT_DIR / "requirements.txt").read_text(encoding="utf-8"),
-            r"(?m)^github-copilot-sdk==\d+\.\d+\.\d+$",
-        )
-
-    def test_unit_tests_install_sdk_without_downloading_runtime(self) -> None:
-        text = (WORKFLOW.parent / "pull-request-dashboard-test.yml").read_text(encoding="utf-8")
-        self.assertIn("python -m pip install -r requirements.txt", text)
-        self.assertNotIn("download-runtime", text)
-
-    def test_all_data_writers_share_the_snapshot_activation_variable(self) -> None:
-        for path in (
-            REPO_WORKFLOW,
-            DRAIN_WORKFLOW,
-            SWEEP_WORKFLOW,
-            WORKFLOW.parent / "github-actions-queue-collector.yml",
-        ):
+    def test_snapshot_environment_remains_available_to_pinned_processors(self) -> None:
+        for path in (DRAIN_WORKFLOW, SWEEP_WORKFLOW, WORKFLOWS / "github-actions-queue-collector.yml"):
             with self.subTest(workflow=path.name):
                 self.assertIn(
                     "DATA_BRANCH_SNAPSHOTS: ${{ vars.DATA_BRANCH_SNAPSHOTS }}",
                     path.read_text(encoding="utf-8"),
                 )
 
-    def test_both_drain_jobs_receive_the_snapshot_activation_variable(self) -> None:
-        jobs = job_blocks(DRAIN_WORKFLOW.read_text(encoding="utf-8"))
-        for name in ("owned-drain", "drain"):
-            with self.subTest(job=name):
-                self.assertIn(
-                    "DATA_BRANCH_SNAPSHOTS: ${{ vars.DATA_BRANCH_SNAPSHOTS }}",
-                    jobs[name],
-                )
-
     def test_collector_uses_the_checkout_sha_as_an_explicit_push_lease(self) -> None:
-        body = (WORKFLOW.parent / "github-actions-queue-collector.yml").read_text(encoding="utf-8")
+        body = (WORKFLOWS / "github-actions-queue-collector.yml").read_text(encoding="utf-8")
         self.assertIn('expected_sha=$(git -C "$data_dir" rev-parse HEAD)', body)
         self.assertIn('echo "expected_sha=$expected_sha" >> "$GITHUB_OUTPUT"', body)
         self.assertIn("EXPECTED_SHA: ${{ steps.data.outputs.expected_sha }}", body)
@@ -179,206 +93,56 @@ class RolloutWiringTest(unittest.TestCase):
         self.assertIn('--expected-sha "$EXPECTED_SHA"', body)
         self.assertNotIn('push origin "HEAD:', body)
 
-    def test_targeted_canary_job_inlines_the_workflow_canary_list(self) -> None:
-        body = self.jobs["run-targeted-dashboard-canary"]
-        inline = re.findall(r"fromJSON\('(\[[^']*\])'\)", body)
-        self.assertEqual(len(inline), 1, "expected exactly one inlined canary list")
-        self.assertEqual(json.loads(inline[0]), self.canary)
+    def test_sdk_installation_remains_per_execution_ref(self) -> None:
+        loader = (SCRIPT_DIR / "execution_code.py").read_text(encoding="utf-8")
+        self.assertIn('"pip", "install", "--quiet", "-r"', loader)
+        self.assertIn('[python, "-m", "copilot", "download-runtime"]', loader)
+        body = job_blocks(DRAIN_WORKFLOW.read_text(encoding="utf-8"))["owned-drain"]
+        self.assertIn("actions/setup-python@", body)
+        self.assertRegex(body, r"(?m)^ +python-version: ['\"]3\.\d+['\"]$")
+        dependencies = json.loads((SCRIPT_DIR / "package.json").read_text(encoding="utf-8"))
+        self.assertNotIn("@github/copilot", dependencies["dependencies"])
+        self.assertRegex((SCRIPT_DIR / "requirements.txt").read_text(), r"(?m)^github-copilot-sdk==\d+\.\d+\.\d+$")
+        tests = (WORKFLOWS / "pull-request-dashboard-test.yml").read_text()
+        self.assertIn("python -m pip install -r requirements.txt", tests)
+        self.assertNotIn("download-runtime", tests)
 
-    def test_targeted_stable_job_derives_membership_from_the_canary_skip(self) -> None:
-        body = self.jobs["run-targeted-dashboard-stable"]
-        self.assertIn("needs: run-targeted-dashboard-canary", body)
-        self.assertIn("needs.run-targeted-dashboard-canary.result == 'skipped'", body)
-        # A second inlined list would reintroduce the copy this job avoids.
-        self.assertNotIn("fromJSON('[", body)
+    def test_reminder_writes_enqueue_and_matrix_is_read_only(self) -> None:
+        jobs = job_blocks(SWEEP_WORKFLOW.read_text(encoding="utf-8"))
+        self.assertIn("inputs.dry_run == false", jobs["enqueue"])
+        self.assertIn("enqueue_dashboard.py --reminders", jobs["enqueue"])
+        self.assertIn("id-token: write", jobs["enqueue"])
+        self.assertIn("inputs.dry_run", jobs["resolve-targets"])
+        self.assertNotIn("PR_DASHBOARD_EXECUTION_MODE", jobs["resolve-targets"])
+        self.assertIn("permission-issues: read", jobs["sweep"])
+        self.assertIn('refresh_author_nudges.py --repo "$TARGET_REPOSITORY" --dry-run', jobs["sweep"])
+        self.assertNotIn("contents: write", jobs["sweep"])
+        self.assertNotIn("legacy", SWEEP_WORKFLOW.read_text())
 
-    def test_canary_repositories_are_configured(self) -> None:
-        configured = {entry["name"] for entry in json.loads(CONFIG.read_text(encoding="utf-8"))}
-        for name in self.canary:
-            self.assertIn(name, configured)
+    def test_webhook_deployment_preserves_independent_pause_override(self) -> None:
+        text = DEPLOY_WORKFLOW.read_text(encoding="utf-8")
+        self.assertIn("EXECUTION_MODE: ${{ inputs.execution_mode || vars.PR_DASHBOARD_EXECUTION_MODE }}", text)
+        self.assertIn('[[ "$EXECUTION_MODE" =~ ^(paused|owned)$ ]]', text)
+        self.assertIn('set_netlify_dispatcher_env.sh PR_DASHBOARD_EXECUTION_MODE "$EXECUTION_MODE"', text)
+        self.assertIn("environment: protected", text)
+        self.assertNotIn("PR_DASHBOARD_QUEUE_MODE", text)
+        self.assertNotIn("legacy", text)
+        self.assertNotIn(".github/workflows/pull-request-dashboard.yml", text)
+        self.assertNotIn("env:unset", text)
+        self.assertIn('set_netlify_dispatcher_env.sh OTELBOT_SHARED_WORKFLOWS_PRIVATE_KEY_BASE64 "$dispatcher_private_key_base64" --secret', text)
 
-    def test_enqueue_runs_do_not_wait_in_a_shared_concurrency_group(self) -> None:
-        lines = self.text.splitlines()
-        run_name = lines[lines.index("run-name: >-") + 1].strip()
-        concurrency = lines[lines.index("concurrency:") + 2].strip()
-        self.assertIn("github.run_id", concurrency)
-        self.assertIn("PR_DASHBOARD_EXECUTION_MODE", concurrency)
-        self.assertTrue(run_name.startswith("pull-request-dashboard-"))
-
-    def test_every_entry_path_has_both_channels(self) -> None:
-        for prefix in ENTRY_PATHS:
-            self.assertIn(f"{prefix}-canary", self.jobs)
-            self.assertIn(f"{prefix}-stable", self.jobs)
-
-    def test_direct_head_refreshes_each_matching_pr(self) -> None:
-        resolver = self.jobs["resolve-head-sha"]
-        self.assertIn('gh api --paginate --slurp', resolver)
-        self.assertIn('/pulls?state=open&per_page=100', resolver)
-        self.assertIn('select(.state == "open" and .head.sha == $sha)', resolver)
-        self.assertIn('pr_numbers: ${{ steps.trigger.outputs.pr_numbers }}', resolver)
-        for channel in ("canary", "stable"):
-            job = self.jobs[f"run-head-sha-dashboard-{channel}"]
-            self.assertIn("needs.resolve-head-sha.outputs.pr_numbers != '[]'", job)
-            self.assertIn(
-                "pr_number: ${{ fromJSON(needs.resolve-head-sha.outputs.pr_numbers) }}",
-                job,
-            )
-            self.assertIn("pr_number: ${{ matrix.pr_number }}", job)
-            self.assertIn("max-parallel: 1", job)
-
-    def test_canary_jobs_run_the_workflow_from_this_commit(self) -> None:
-        for job, body in self.jobs.items():
-            if not job.endswith("-canary"):
-                continue
-            self.assertRegex(body, LOCAL_USES)
-            self.assertNotIn("code_ref:", body)
-
-    def test_stable_jobs_share_one_pinned_workflow_ref(self) -> None:
-        stable_jobs = [job for job in self.jobs if job.endswith("-stable")]
-        self.assertTrue(stable_jobs)
-        refs = set()
-        for job in stable_jobs:
-            body = self.jobs[job]
-            self.assertNotIn("code_ref:", body)
-            match = STABLE_USES.search(body)
-            if match is None:
-                # Before the first promotion the stable jobs call the local
-                # workflow, so both channels run the same code.
-                self.assertRegex(body, LOCAL_USES, f"{job} calls an unexpected workflow")
-                refs.add("")
-                continue
-            ref = match.group(1)
-            refs.add(ref)
-        self.assertEqual(len(refs), 1, f"stable jobs disagree on the rollout ref: {sorted(refs)}")
-
-    def test_repo_workflow_loads_code_from_its_own_commit(self) -> None:
-        body = REPO_WORKFLOW.read_text(encoding="utf-8")
-        action = (SCRIPT_DIR / "action.yml").read_text(encoding="utf-8")
-        self.assertNotIn("ref: ${{ inputs.", body)
-        self.assertNotIn("code_ref", body)
-        self.assertEqual(body.count("actions/checkout@"), 2)
-        self.assertEqual(body.count("ref: ${{ github.sha }}"), 2)
-        self.assertNotIn("path: live-config", body)
-        self.assertNotIn("sparse-checkout:", body)
-        self.assertIn(
-            "DASHBOARD_CONFIG: .github/scripts/pull-request-dashboard/repositories.json",
-            body,
-        )
-        self.assertEqual(body.count("uses: $/.github/scripts/pull-request-dashboard"), 2)
-        self.assertEqual(
-            body.count("${{ steps.dashboard-code.outputs.path }}/.cache/classifications"),
-            4,
-        )
-        self.assertEqual(
-            body.count("DASHBOARD_CODE: ${{ steps.dashboard-code.outputs.path }}"),
-            7,
-        )
-        self.assertNotIn('python3 "${{ steps.dashboard-code.outputs.path }}', body)
-        self.assertEqual(body.count("steps.dashboard-code.outcome == 'success'"), 3)
-        self.assertIn("path=$GITHUB_ACTION_PATH", action)
-
-    def test_direct_publisher_uses_separate_delivery_state(self) -> None:
-        body = REPO_WORKFLOW.read_text(encoding="utf-8")
-        publish_job = job_blocks(body)["publish-dashboard"]
-        self.assertNotIn("publisher-lock", publish_job)
-        self.assertIn("otelbot/pull-request-dashboard-delivery", body)
-        self.assertIn('--delivery-state-branch "$delivery_state_branch"', publish_job)
-        self.assertIn("    timeout-minutes: 50", publish_job)
-        self.assertIn("group: pull-request-dashboard-publish-${{ inputs.repository }}", publish_job)
-        self.assertLess(publish_job.index("id: publish-issue"), publish_job.index("name: Acknowledge full dashboard publication"))
-        self.assertIn("steps.publish-issue.outcome == 'success'", publish_job)
-        self.assertIn("steps.delivery.outcome == 'success'", publish_job)
-
-    def test_hourly_failure_gate_tolerates_cancellation_but_not_failure(self) -> None:
-        failure = self.jobs["notify-hourly-failure"]
-        self.assertIn(
-            "success: ${{ needs.resolve-targets.result == 'success' && "
-            "(needs.run-repo-dashboard-canary.result == 'success' || "
-            "needs.run-repo-dashboard-canary.result == 'cancelled' || "
-            "needs.run-repo-dashboard-canary.result == 'skipped') && "
-            "(needs.run-repo-dashboard-stable.result == 'success' || "
-            "needs.run-repo-dashboard-stable.result == 'cancelled' || "
-            "needs.run-repo-dashboard-stable.result == 'skipped') }}",
-            failure,
-        )
-        self.assertNotIn("check-full-publish-health", self.jobs)
-        self.assertNotIn("check-full-publish-health", failure)
-
-    def test_reminder_write_mode_is_queued_and_dry_run_is_independent(self) -> None:
-        body = SWEEP_WORKFLOW.read_text(encoding="utf-8")
-        sweep_job = job_blocks(body)["sweep"]
-        self.assertNotIn("publisher-lock", sweep_job)
-        self.assertIn(
-            "inputs.dry_run && format('pull-request-dashboard-dry-run-{0}-{1}', github.run_id, matrix.name)",
-            sweep_job,
-        )
-        self.assertIn("      contents: write", sweep_job)
-        enqueue = job_blocks(body)["enqueue"]
-        self.assertIn("inputs.dry_run == false", enqueue)
-        self.assertIn("enqueue_dashboard.py --reminders", enqueue)
-        self.assertIn("id-token: write", enqueue)
-
-    def test_queue_mode_canary_list_matches_the_rollout_canary_list(self) -> None:
-        webhook = WEBHOOK.read_text(encoding="utf-8")
-        match = re.search(
-            r"const QUEUE_CANARY_REPOSITORIES = new Set\(\[(.*?)\]\);",
-            webhook,
-            re.DOTALL,
-        )
-        self.assertIsNotNone(match, "webhook queue canary list is missing")
-        webhook_canary = re.findall(r'"([^"]+)"', match.group(1))
-        self.assertEqual(webhook_canary, self.canary)
-
-    def test_queue_drain_uses_one_current_checkout(self) -> None:
-        body = DRAIN_WORKFLOW.read_text(encoding="utf-8")
-        self.assertEqual(body.count("actions/checkout@"), 2)
-        self.assertNotIn("code_ref:", body)
-        self.assertNotRegex(body, STABLE_USES)
-        self.assertRegex(body, r"(?m)^    timeout-minutes: 50$")
-        self.assertIn("DRAIN_PROCESSING_DEADLINE", body)
-        self.assertIn("drain_queue.py", body)
-        self.assertNotIn("actions/create-github-app-token@", body)
-        self.assertIn("      actions: write", body)
-        self.assertIn('--canary-repositories-json "$CANARY_REPOSITORIES"', body)
-        drain_canary = re.search(
-            r"^ {6}CANARY_REPOSITORIES: '(\[[^']*\])'$",
-            body,
-            re.MULTILINE,
-        )
-        self.assertIsNotNone(drain_canary)
-        self.assertEqual(json.loads(drain_canary.group(1)), self.canary)
-        self.assertNotIn("concurrency:", body)
-        owned = job_blocks(body)["owned-drain"]
-        self.assertIn("--owned", owned)
-        self.assertIn("CANARY_CODE_REF: ${{ github.sha }}", owned)
-        self.assertIn('--canary-code-ref "$CANARY_CODE_REF"', owned)
-        self.assertNotIn("actions: write", owned)
-
-    def test_webhook_deployment_automates_queue_rollout(self) -> None:
-        body = DEPLOY_WORKFLOW.read_text(encoding="utf-8")
-        self.assertIn("      - .github/workflows/pull-request-dashboard.yml", body)
-        self.assertIn("      - .github/scripts/pull-request-dashboard/repositories.json", body)
-        self.assertNotIn("vars.PR_DASHBOARD_QUEUE_MODE", body)
-        self.assertIn("queue_mode=all", body)
-        self.assertNotIn("stable_queue_ready", body)
-        self.assertIn("    environment: protected", body)
-        self.assertNotIn("env:unset", body)
-        self.assertLess(
-            body.index("queue_mode=all"),
-            body.index('set_netlify_dispatcher_env.sh PR_DASHBOARD_QUEUE_MODE "$queue_mode"'),
-        )
-        self.assertIn(
-            'set_netlify_dispatcher_env.sh OTELBOT_SHARED_WORKFLOWS_CLIENT_ID "$OTELBOT_SHARED_WORKFLOWS_CLIENT_ID"',
-            body,
-        )
-        self.assertIn(
-            'set_netlify_dispatcher_env.sh OTELBOT_SHARED_WORKFLOWS_PRIVATE_KEY_BASE64 "$dispatcher_private_key_base64" --secret',
-            body,
-        )
-        self.assertIn(
-            ".github/scripts/pull-request-dashboard/set_netlify_dispatcher_env.sh",
-            DEPLOY_WORKFLOW.read_text(encoding="utf-8"),
-        )
+    def test_official_promotion_edits_the_worker_configuration(self) -> None:
+        sha, release = stable_release(DEFAULT_CONFIG.read_text(encoding="utf-8"))
+        self.assertRegex(sha, r"^[0-9a-f]{40}$")
+        self.assertRegex(release, r"^v\d+\.\d+\.\d+$")
+        text = (WORKFLOWS / "promote-pull-request-dashboard.yml").read_text(encoding="utf-8")
+        self.assertIn("git add .github/scripts/pull-request-dashboard/stable-release.json", text)
+        self.assertNotIn("git add .github/workflows/pull-request-dashboard.yml", text)
+        self.assertIn("promote_rollout.py", text)
+        self.assertIn("'.draft or .prerelease'", text)
+        self.assertIn('git merge-base --is-ancestor "$sha" "$GITHUB_SHA"', text)
+        self.assertIn('git rev-parse "$RELEASE^{commit}"', text)
+        self.assertNotIn("permission-workflows: write", text)
 
 
 if __name__ == "__main__":

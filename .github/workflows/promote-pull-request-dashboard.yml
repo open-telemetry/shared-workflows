@@ -64,7 +64,7 @@ jobs:
           echo "sha=$sha" >> "$GITHUB_OUTPUT"
           echo "Resolved $RELEASE to $sha"
 
-      - name: Update stable rollout pins
+      - name: Update stable release
         env:
           RELEASE: ${{ steps.release.outputs.release }}
           RELEASE_SHA: ${{ steps.release.outputs.sha }}
@@ -85,7 +85,6 @@ jobs:
           private-key: ${{ secrets.OTELBOT_SHARED_WORKFLOWS_PRIVATE_KEY }}
           permission-contents: write
           permission-pull-requests: write
-          permission-workflows: write
 
       - name: Push promotion branch
         id: promotion-branch
@@ -99,7 +98,7 @@ jobs:
           git config user.name otelbot
           git config user.email 197425009+otelbot@users.noreply.github.com
           git checkout -b "$branch"
-          git add .github/workflows/pull-request-dashboard.yml
+          git add .github/scripts/pull-request-dashboard/stable-release.json
           git commit -m "$title"
           gh auth setup-git
           git push --set-upstream origin "$branch"

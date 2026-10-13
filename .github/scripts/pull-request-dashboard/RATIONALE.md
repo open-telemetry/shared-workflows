@@ -4,20 +4,16 @@ This dashboard is a maintainer aid, not a transactional notification system.
 Some rare timing and notification edge cases are intentionally accepted to keep
 the implementation understandable and operationally cheap.
 
-## Central Workflow
+## Central workflow
 
 - Scheduled backfills run from `open-telemetry/shared-workflows` instead of
   each target repository hosting its own workflow.
 - Target repositories only need GitHub App access and an entry in
   `repositories.json`.
-- The top-level workflow resolves target repositories, then calls a reusable
-  per-repository workflow for each target. The per-repository workflow separates
-  read-only calculation from a serialized per-repository publisher, so one
-  repository's update failure does not block delivery for repositories whose
-  updates succeeded.
-- The top-level repository matrix runs one repository at a time. Backfills do
-  not benefit enough from cross-repository parallelism to justify extra
-  aggregate API and LLM demand.
+- The top-level workflow validates targets and enqueues work. Independent live
+  and maintenance drains process up to four repositories concurrently; each
+  repository remains serial within a wave. A failure in one repository does
+  not prevent the others from processing.
 - Calculated state and delivery intent for each target repository live on a
   worker-owned branch under
   `otelbot/pull-request-dashboard-state/<repository>`, with files still
@@ -26,7 +22,7 @@ the implementation understandable and operationally cheap.
   `otelbot/pull-request-dashboard-delivery/<repository>`. Publishers read a
   detached snapshot of accepted worker state and never push to the worker
   branch.
-- The publishing job renders markdown from accepted dashboard state and the
+- The combined processor renders markdown from accepted dashboard state and the
   target repository's current open PR list.
 - The dashboard issue is discovered dynamically by title and label, so target
   repositories do not need to store issue numbers in config.
@@ -36,32 +32,26 @@ the implementation understandable and operationally cheap.
   contribution comes from, so without this the CI columns of those PRs would
   only refresh on the hourly backfill. The webhook bridge cannot resolve the
   commit itself, because its GitHub App is installed only on `shared-workflows`.
-- The central workflow, canary queue worker, and stable queue dispatcher
+- Both channels' processors
   paginate each target repository's open PRs and compare head SHAs. The
   commit-to-PR endpoint can omit fork heads or other PRs sharing the commit.
-  Each matching open PR is refreshed or dispatched before a head-SHA claim is
+  Each matching open PR is refreshed before a head-SHA claim is
   acknowledged; a head with no open PR needs no refresh.
 
-## Staged Rollout
+## Staged rollout
 
 - Dashboard changes reach repositories in two stages. Canary repositories run
-  the workflow and its scripts from the commit that triggered the run; every
-  other repository runs them from a promoted release commit, hash pinned with
-  the release tag as a comment. A regression therefore shows up on a small set
+  processor scripts from the immutable commit that triggered the drain; every
+  other repository runs them from a promoted release commit. `stable-release.json`
+  records its SHA and release. A regression therefore shows up on a small set
   of repositories before it reaches the whole fleet.
 - Staging the code rather than gating individual changes behind feature flags
   also covers the changes nobody thought were risky, which is where regressions
   actually come from. Feature flags remain available for a single genuinely
   risky behavior.
-- `jobs.<id>.uses` cannot take an expression, so the channel cannot come from a
-  matrix value. Each entry path instead has one job per channel. A job-level
-  `if` cannot read `env` either, so the targeted canary job repeats the canary
-  list inline and the targeted stable job reads that job's skip rather than
-  repeating it again; `test_rollout.py` keeps the copy in sync.
-- The reusable workflow loads the dashboard scripts through GitHub's
-  self-repository action syntax. The action resolves from the same commit as
-  the reusable workflow, so pinned stable jobs cannot mix released workflow
-  YAML with scripts from the commit that triggered the run.
+- The drain loads an immutable archive and a separate dependency environment
+  per code ref. It never substitutes main's evaluation or state codecs for
+  stable code, and each target repository gets an isolated Git clone.
 - Repository configuration is deliberately not staged. `repositories.json` is
   always read from the commit that triggered the run, so opting a repository in
   or changing its settings takes effect immediately in both channels. The cost
@@ -70,14 +60,13 @@ the implementation understandable and operationally cheap.
 - Promotion is a pull request that pins the ref, rather than a moving tag or
   branch. A manually dispatched workflow prepares that pull request only after
   an operator names the release that has soaked on canaries. The version that
-  each repository runs is then visible in the workflow file, a rollback is a
+  each repository runs is then visible in the release configuration, a code rollback is a
   revert, and the reference stays hash pinned the way every other action
   reference in this repository is.
-- Queue drains are coordinators for both rollout channels. They process canary
-  claims with code from the default branch and hand each coalesced stable claim
-  to the targeted workflow, which invokes the promoted repository workflow.
-  The drain acknowledges stable work only after GitHub accepts that dispatch,
-  so no worker needs to read or migrate another release's dashboard state.
+- Queue drains process both channels through calculation, accepted-state
+  persistence, delivery, and publication. Neither channel acknowledges a
+  dispatch as completed work. Accepted state and delivery receipts retain their
+  existing formats and version guards.
 - A rollback stops a bad change rather than restoring delivery. Downgraded code
   reads newer delivery state as empty, so delivering from it would repeat
   reminders and re-review requests already sent; the delivery version check
@@ -87,7 +76,7 @@ the implementation understandable and operationally cheap.
   versions use `open_thread` for any unresolved thread and do not persist the
   pending action needed to reconstruct the separate author-action state.
 
-## Queue and Workflow Concurrency
+## Queue and workflow concurrency
 
 - In owned execution, live PR/head refreshes and maintenance backfills/reminder
   sweeps have independent dispatcher leases and runners. A maintenance batch
@@ -97,53 +86,40 @@ the implementation understandable and operationally cheap.
   ownership during classification. State compare-and-swap and PR-slot acceptance
   still reconcile overlapping calculations; dispatcher heartbeats renew delivery
   ownership and stale lease generations cannot release a replacement's lease.
-- In legacy `canary` and `all` queue modes, the Netlify bridge coalesces webhook
-  refreshes by target repository and PR before it starts GitHub Actions. One
-  singleton drain claims a bounded batch. An event that arrives during
+- The Netlify bridge coalesces webhook
+  refreshes by target repository and PR before it starts GitHub Actions. Each
+  lane's drain claims a bounded batch. An event that arrives during
   processing marks the item dirty and schedules one follow-up pass.
-- Direct refreshes in `off` mode, and non-canary refreshes in `canary` mode, use
-  GitHub Actions concurrency groups by target repository and PR. GitHub Actions
-  keeps at most one running and one pending run in each group; a newer pending
-  run replaces the older pending run without canceling the run already in
-  progress.
 - Coalescing is safe because each refresh loads current PR state from GitHub.
   Intermediate states can go unobserved, but the surviving run reflects the
   state that exists when it executes.
 - Submitted reviews can coalesce with generic PR refreshes because the live PR
   status comment is rendered from current accepted dashboard state rather than
-  a review-specific event. Manual runs remain separate because they can refresh
-  large repositories that webhook-driven runs intentionally skip.
-- Actions concurrency bounds pending direct jobs per target; it does not
-  debounce direct workflow dispatch. Every accepted direct webhook still
-  creates a workflow run. Queue modes avoid that dispatch pressure for queued
-  repositories by coalescing events in Netlify first.
-- Publishers use one concurrency group per target repository. GitHub preserves
-  the running publisher but may replace an older pending publisher with a newer
-  one even when `cancel-in-progress` is false. Each backfill transaction records
+  a review-specific event. Backfills use separate maintenance capacity because
+  they refresh a repository rather than one pull request.
+- Events coalesce in Netlify before a drain dispatch. Enqueue workflow runs use
+  independent concurrency groups so pending runs cannot replace accepted requests.
+- Delivery leases serialize side effects per repository. Each backfill transaction records
   a monotonic full-publish generation on the worker branch. A targeted
   publisher normally limits status-comment and Slack delivery to its PR, but
   drains repository-wide work when it observes a generation without a delivery
   receipt. The publisher records the receipt only after full delivery and the
-  dashboard issue both succeed. The queue drain follows the same rule.
+  dashboard issue both succeed.
   A full queue publication satisfies the batch's pending issue update; another
   issue publication is needed only after a later active delivery.
   Webhooks without an outstanding full-publish generation remain targeted,
   so unrelated PR events do not repeatedly fan out. Status-comment rollout
   remains bounded to 50 per untargeted delivery; a webhook publisher puts its
   triggering PR first in that batch.
-- Hourly failure reporting uses workflow results rather than outstanding
-  generations. A canceled publisher can leave work for a replacement that is
-  still pending or running, so cancellation alone does not trigger a failure
-  issue. Delivery, issue publication, and receipt errors fail the publishing
-  job; genuine matrix failures take precedence over cancellation. Subsequent
-  publishers retry outstanding generations, including on hourly runs. Pending
-  generations have no separate age-based alert.
+- Recovery reports retries, dead letters, queue age, and ownership per lane.
+  The stalled-run watchdog watches only webhook deployment. Delivery, issue
+  publication, and receipt errors retry the combined item.
 
 ## GitHub Actions Instead Of Netlify For Scheduled Backfills
 
 - Scheduled backfills are batch jobs: they read repository PR lists, call REST
   and GraphQL, run Copilot classification, and update git-backed state. A
-  follow-up publishing job renders and publishes the issue body from accepted
+  combined processor renders and publishes the issue body from accepted
   state.
 - GitHub Actions provides clearer logs, concurrency controls, artifacts, and
   normal retry/cancel behavior for that workload.
