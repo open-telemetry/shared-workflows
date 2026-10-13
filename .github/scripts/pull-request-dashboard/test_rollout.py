@@ -89,14 +89,14 @@ class RolloutWiringTest(unittest.TestCase):
                 )
 
     def test_both_classifier_entry_paths_install_the_sdk_runtime(self) -> None:
-        for path, requirements in (
-            (REPO_WORKFLOW, '"$DASHBOARD_CODE/requirements.txt"'),
-            (DRAIN_WORKFLOW, ".github/scripts/pull-request-dashboard/requirements.txt"),
+        for path, job, requirements in (
+            (REPO_WORKFLOW, "update-dashboard", '"$DASHBOARD_CODE/requirements.txt"'),
+            (DRAIN_WORKFLOW, "drain", ".github/scripts/pull-request-dashboard/requirements.txt"),
         ):
-            with self.subTest(workflow=path.name):
-                text = path.read_text(encoding="utf-8")
+            with self.subTest(workflow=path.name, job=job):
+                text = job_blocks(path.read_text(encoding="utf-8"))[job]
                 self.assertIn("actions/setup-python@", text)
-                self.assertIn("python-version: '3.14'", text)
+                self.assertRegex(text, r"(?m)^ +python-version: ['\"]3\.\d+['\"]$")
                 self.assertIn(f"python -m pip install -r {requirements}", text)
                 self.assertIn("python -m copilot download-runtime", text)
                 self.assertLess(
