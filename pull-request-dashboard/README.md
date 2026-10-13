@@ -15,12 +15,15 @@ The current dashboard state and delivery acknowledgements live on
 `otelbot/pull-request-dashboard-delivery/*`. They must survive between runs,
 but their previous Git versions are not needed.
 
-The repository variable `DATA_BRANCH_SNAPSHOTS=true` makes data writers replace
-each branch with a single parentless commit containing its complete current
-files. It also controls the Actions queue collector. It defaults to disabled.
-Enable it only after promoting snapshot-capable dashboard code to the stable
-channel and completing the
-[controlled cutover](../.github/scripts/pull-request-dashboard/WEBHOOK_SETUP.md#7-data-branch-snapshot-cutover).
+Data writers always replace each branch with a single parentless commit
+containing its complete current files. The Actions queue collector uses the
+same snapshot protocol. The cutover preserved stored JSON and delivery receipts;
+it did not migrate their formats.
+
+Keep `DATA_BRANCH_SNAPSHOTS=true` and its workflow environment injection while
+pinned v0.20.0 processors still require it. The current helper ignores the
+variable, but older processors do not. See the
+[storage and release requirements](../.github/scripts/pull-request-dashboard/WEBHOOK_SETUP.md#7-data-branch-snapshots).
 Refresh schedules, notifications, and the stalled-run watchdog are unaffected.
 
 ## Classification runtime

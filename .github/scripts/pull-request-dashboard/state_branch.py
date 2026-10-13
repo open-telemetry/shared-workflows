@@ -31,13 +31,6 @@ SNAPSHOT_GENERATION_TRAILER = "Data-snapshot-generation"
 SUBPROCESS_FLAGS = getattr(subprocess, "CREATE_NO_WINDOW", 0)
 
 
-def snapshot_mode() -> bool:
-    value = os.environ.get("DATA_BRANCH_SNAPSHOTS", "")
-    if value not in ("", "false", "true"):
-        raise ValueError("DATA_BRANCH_SNAPSHOTS must be true, false, or empty")
-    return value == "true"
-
-
 def delivery_state_branch(state_branch: str) -> str:
     accepted_prefix = f"{STATE_BRANCH_PREFIX}/"
     if not state_branch.startswith(accepted_prefix):
@@ -162,12 +155,6 @@ def ref_oid(ref: str, cwd: Path | None = None) -> str:
     return result.stdout.strip()
 
 
-def remote_is_behind_local(state_branch: str, fetched_ref: str) -> bool:
-    if not has_state_branch(state_branch):
-        return False
-    return ref_is_ancestor(fetched_ref, remote_ref(state_branch))
-
-
 def snapshot_generation(ref: str, cwd: Path | None = None) -> int:
     result = subprocess.run(
         ["git", "cat-file", "commit", ref],
@@ -280,22 +267,8 @@ def fetch_state_branch(state_branch: str, required: bool) -> bool:
                 )
             time.sleep(retry_delay_seconds(attempt))
 
-        if snapshot_mode():
-            update_snapshot_ref(state_branch, fetched_ref)
-            return True
-
-        destination = remote_ref(state_branch)
-        if not has_state_branch(state_branch) or ref_is_ancestor(destination, fetched_ref):
-            run(["git", "update-ref", destination, fetched_ref])
-            return True
-        if remote_is_behind_local(state_branch, fetched_ref):
-            # GitHub fetches can briefly lag the copy that accepted the push.
-            print(
-                f"remote {state_branch} is behind the local ref; keeping the local ref",
-                file=sys.stderr,
-            )
-            return True
-        raise RuntimeError(f"fetched state branch {state_branch} diverged from the local ref")
+        update_snapshot_ref(state_branch, fetched_ref)
+        return True
     finally:
         run(["git", "update-ref", "-d", fetched_ref], check=False)
 
@@ -355,11 +328,8 @@ def push_state(state_dir: Path, state_branch: str, expected_sha: str) -> bool:
 
 
 def commit_staged_state(state_dir: Path, message: str, expected_sha: str) -> bool:
-    enabled = snapshot_mode()
     generation = snapshot_generation(expected_sha, cwd=state_dir) if expected_sha else 0
-    if generation and not enabled:
-        raise RuntimeError("DATA_BRANCH_SNAPSHOTS must remain true for snapshot branches")
-    if enabled and expected_sha and not generation and has_snapshot_ancestor(expected_sha, cwd=state_dir):
+    if expected_sha and not generation and has_snapshot_ancestor(expected_sha, cwd=state_dir):
         raise RuntimeError("history restored after data snapshot")
     diff = run(
         ["git", "diff", "--cached", "--quiet"], cwd=state_dir, check=False,
@@ -367,13 +337,9 @@ def commit_staged_state(state_dir: Path, message: str, expected_sha: str) -> boo
     if diff.returncode not in (0, 1):
         raise RuntimeError(f"failed to check staged data: exit code {diff.returncode}")
     unchanged = diff.returncode == 0
-    if unchanged and (not enabled or generation):
+    if unchanged and generation:
         print("no state changes to push", file=sys.stderr)
         return False
-    if not enabled:
-        run(["git", "commit", "-m", message], cwd=state_dir)
-        return True
-
     tree = subprocess.run(
         ["git", "write-tree"], cwd=state_dir, capture_output=True,
         text=True, check=True, creationflags=SUBPROCESS_FLAGS,

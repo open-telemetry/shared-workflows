@@ -148,7 +148,7 @@ class RolloutWiringTest(unittest.TestCase):
         self.assertIn("python -m pip install -r requirements.txt", text)
         self.assertNotIn("download-runtime", text)
 
-    def test_all_data_writers_share_the_snapshot_activation_variable(self) -> None:
+    def test_all_data_writers_keep_the_snapshot_variable_for_pinned_code(self) -> None:
         for path in (
             REPO_WORKFLOW,
             DRAIN_WORKFLOW,
@@ -161,7 +161,7 @@ class RolloutWiringTest(unittest.TestCase):
                     path.read_text(encoding="utf-8"),
                 )
 
-    def test_both_drain_jobs_receive_the_snapshot_activation_variable(self) -> None:
+    def test_both_drain_jobs_keep_the_snapshot_variable_for_pinned_code(self) -> None:
         jobs = job_blocks(DRAIN_WORKFLOW.read_text(encoding="utf-8"))
         for name in ("owned-drain", "drain"):
             with self.subTest(job=name):
@@ -178,6 +178,15 @@ class RolloutWiringTest(unittest.TestCase):
         self.assertIn("state_branch.py commit-data", body)
         self.assertIn('--expected-sha "$EXPECTED_SHA"', body)
         self.assertNotIn('push origin "HEAD:', body)
+
+    def test_collector_fetches_history_for_heads_without_snapshot_metadata_unconditionally(self) -> None:
+        body = (WORKFLOW.parent / "github-actions-queue-collector.yml").read_text(encoding="utf-8")
+        self.assertIn(
+            "if ! git log -1 --format=%B FETCH_HEAD | grep -q '^Data-snapshot-generation:'; then",
+            body,
+        )
+        self.assertIn('git fetch --no-tags --depth=2147483647 origin "$DATA_BRANCH"', body)
+        self.assertNotIn('[[ "$DATA_BRANCH_SNAPSHOTS" == "true" ]]', body)
 
     def test_targeted_canary_job_inlines_the_workflow_canary_list(self) -> None:
         body = self.jobs["run-targeted-dashboard-canary"]

@@ -441,9 +441,10 @@ older worker cannot process active `backfill` or `reminders` items.
    intact so receipts continue suppressing duplicates.
 
 The execution change does not alter accepted-state or delivery formats, so this
-rollback does not require releasing or promoting dashboard code. If data
-snapshots have been activated, keep `DATA_BRANCH_SNAPSHOTS=true` and retain
-snapshot-capable code in every legacy reader and writer; returning to legacy
+rollback does not require releasing or promoting dashboard code. Data storage
+remains snapshot-only. Keep `DATA_BRANCH_SNAPSHOTS=true` and its workflow
+environment injection while pinned v0.20.0 processors remain, and retain
+snapshot-capable code in every legacy reader and writer. Returning to legacy
 execution does not restore Git history. Existing version guards still apply
 to any separate code rollback. Do not bypass them or discard delivery receipts
 to make older code publish.
@@ -469,13 +470,15 @@ before worker death or receipt persistence failure. Existing comment markers,
 live-state reconciliation, and durable delivery receipts suppress ordinary
 duplicates, but that external-success/receipt-loss window remains.
 
-## 7. Data branch snapshot cutover
+## 7. Data branch snapshots
 
-`DATA_BRANCH_SNAPSHOTS` is a repository-level GitHub Actions variable shared by
-the dashboard and Actions queue collector. Empty or `false` retains ordinary
-Git history. `true` writes parentless snapshots with the complete current tree,
-including historical CI records and delivery acknowledgements. Other values
-fail explicitly.
+The snapshot cutover is complete. Writers always replace
+`otelbot/github-actions-queue-data`, `otelbot/pull-request-dashboard-state/*`,
+and `otelbot/pull-request-dashboard-delivery/*` with parentless commits
+containing their complete current trees. Historical CI records, collection
+checkpoints, dashboard state, and delivery acknowledgements remain in the files.
+The cutover preserved the current trees; it did not migrate stored JSON schemas
+or remove payload compatibility.
 
 Snapshot commits have a monotonically increasing `Data-snapshot-generation`
 trailer. Dashboard fetches use it to reject stale snapshots, and every push
@@ -485,79 +488,38 @@ collector push fails the job; the next run resumes from the accepted checkpoint.
 Unchanged snapshots do not create commits. The first snapshot compacts a legacy
 branch even when its files have not changed.
 
-### Deployment order
+Readers compare snapshot generations, reject conflicting generations, and keep
+a newer local ref when a fetch returns a stale head. They reject ordinary
+history appended after a snapshot, including in a fresh checkout. The collector
+fetches full history for heads without snapshot metadata so the writer can
+detect appended history even when its initial fetch was shallow.
 
-1. Merge the snapshot-capable code with the variable unset. Release and promote
-   it through `promote-pull-request-dashboard.yml` so every stable workflow pin
-   loads the new reader and writer. In owned mode, verify the immutable stable
-   code refs used by both live and maintenance drains as well as the canary
-   ref. Verify the legacy queue drain, author reminder sweep, and CI collector
-   also run the new code. Do not rerun older workflow attempts after activation.
-   Snapshot activation requires this promotion even though changing execution
-   ownership alone does not.
-2. Record the current execution mode. Pause the Netlify bridge first, then set
-   GitHub's `PR_DASHBOARD_EXECUTION_MODE` to `paused`, using the commands in
-   section 6. Keep both paused throughout compaction so webhooks remain queued
-   and recovery cannot start either lane. Temporarily disable
-   `pull-request-dashboard.yml`, `pull-request-dashboard-drain.yml`,
-   `pull-request-dashboard-refresh-author-nudges.yml`, and
-   `github-actions-queue-collector.yml`. Wait until every live and maintenance
-   drain, legacy writer, and collector has finished, including queued runs and
-   runnerless publisher jobs. Retiring a specific old run requires separate
-   cancellation approval. Do not take the backup while any writer remains.
-   Keep the stalled-run watchdog enabled; no Netlify code change is required.
-3. From a dedicated maintenance clone, fetch the latest generated branches.
-   Record each branch's head and tree SHA, and create a verified Git bundle
-   backup outside this repository. Never push backup branches or tags here:
-   any ref to old commits keeps that history reachable to clones.
-4. Set the repository variable while writers are paused:
+### Pinned processor transition
 
-   ```sh
-   gh variable set DATA_BRANCH_SNAPSHOTS --body true --repo open-telemetry/shared-workflows
-   ```
+The current helper is unconditionally snapshot-only and does not read
+`DATA_BRANCH_SNAPSHOTS`. Pinned v0.20.0 processors still use that variable to
+select the snapshot protocol. Keep the repository variable `true` and keep
+passing it into every workflow and processor that can run those older writers,
+including both owned-drain lanes, legacy execution, and author reminder sweeps.
+Keeping the repository variable alone is not enough if environment injection
+is removed.
 
-5. Compact `otelbot/github-actions-queue-data` and every
-   `otelbot/pull-request-dashboard-state/*` and
-   `otelbot/pull-request-dashboard-delivery/*` branch. For each branch, use a
-   clean temporary worktree at its recorded head and the helper from the new
-   source checkout. Configure its Git author and authenticated `origin`, then:
-
-   ```sh
-   DATA_BRANCH_SNAPSHOTS=true python3 "$SOURCE_CHECKOUT/.github/scripts/pull-request-dashboard/state_branch.py" commit-data \
-     --state-dir "$DATA_DIRECTORY" \
-     --state-branch "$BRANCH" \
-     --expected-sha "$RECORDED_HEAD" \
-     --message "Compact generated data"
-   ```
-
-   `SOURCE_CHECKOUT` contains the promoted code, `DATA_DIRECTORY` is that
-   branch's temporary worktree, and `RECORDED_HEAD` is the exact backed-up SHA.
-   The helper snapshots the index and working tree, so verify they are clean
-   before invoking it. A lease failure means a writer or operator changed the
-   branch; stop and reconcile it rather than refreshing the lease blindly.
-6. Verify every compacted remote head has no parents and its tree SHA matches
-   the recorded tree. Make a fresh normal clone and measure its object storage.
-   Other branches or tags that reference the old data can still retain history.
-   Reenable the disabled workflows while execution remains paused. Restore
-   GitHub's recorded execution mode, then deploy the bridge with that same mode
-   using the section 6 procedure. Confirm collection, dashboard publication,
-   and delivery acknowledgements continue from their existing state, and in
-   owned mode follow work in both lanes through completion.
+Remove this environment wiring only in a later change, after releasing and
+promoting the unconditional helper and retiring older writers. Verify every
+stable and canary processor ref and every remaining maintenance entry point
+before removal. Do not rerun older workflow attempts that lack snapshot support.
+This storage cleanup does not change stable/canary selection or release pins
+and does not require another compaction or data migration.
 
 ### Recovery and clone size
 
-Keep `DATA_BRANCH_SNAPSHOTS=true` after cutover. Turning it off cannot safely
-restore the ancestry-based protocol; the new writer rejects a snapshot branch
-when the variable is disabled. Older workflow code cannot participate in the
-snapshot protocol.
-
-If cutover fails before writers resume, keep them paused, restore the recorded
-heads from the external backup with explicit leases against the compacted
-heads, verify their trees, and unset `DATA_BRANCH_SNAPSHOTS` before restoring
-both execution modes and starting fresh runs.
-After processing resumes, restoring an old backup can discard CI checkpoints
-or repeat notifications. Recover the latest accepted state instead, with a
-snapshot generation higher than the current head.
+Snapshots are permanent; changing an environment variable does not restore
+the ancestry-based protocol. Restoring an old backup can discard CI checkpoints
+or repeat notifications. Recover the latest accepted complete tree instead,
+with a snapshot generation higher than the current head and an exact lease
+against that head. Any recovery write must follow the pause-and-retire procedure
+in section 6. Keep historical backups outside this repository rather than
+advertising refs that retain old data history.
 
 Compaction removes old history from the generated branch refs, not from
 existing clones. A fresh clone avoids that history once no advertised branch
