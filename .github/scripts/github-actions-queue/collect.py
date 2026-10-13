@@ -23,10 +23,21 @@ from urllib.request import Request, urlopen
 API_ROOT = "https://api.github.com"
 API_VERSION = "2022-11-28"
 PAGE_SIZE = 100
+JOBS_PAGE_SIZE = 50
 PENDING_RETRY_BATCH_SIZE = 25
+PENDING_FAILURE_RETRY_BATCH_SIZE = 5
 STATE_VERSION = 1
 USER_AGENT = "open-telemetry-github-actions-queue-collector"
 COLLECTION_ID_PATTERN = re.compile(r"^[A-Za-z0-9._-]+$")
+TERMINAL_JOB_CONCLUSIONS = {
+    "success",
+    "failure",
+    "neutral",
+    "cancelled",
+    "skipped",
+    "timed_out",
+    "action_required",
+}
 
 
 class ApiError(RuntimeError):
@@ -461,7 +472,7 @@ class GitHubClient:
         if not isinstance(total, int) or not isinstance(jobs, list):
             raise ApiError("workflow jobs response has an invalid shape")
 
-        pages = math.ceil(total / PAGE_SIZE)
+        pages = math.ceil(total / JOBS_PAGE_SIZE)
         for page in range(2, pages + 1):
             response = self._jobs_page(org, repository, run_id, page)
             page_jobs = response.get("jobs")
@@ -488,7 +499,7 @@ class GitHubClient:
             f"/repos/{quote(org)}/{quote(repository)}/actions/runs/{run_id}/jobs",
             {
                 "filter": "all",
-                "per_page": str(PAGE_SIZE),
+                "per_page": str(JOBS_PAGE_SIZE),
                 "page": str(page),
             },
         )
@@ -644,14 +655,7 @@ class QueueCollector:
                 for item in state.pending_runs
                 if item["repository"] in current_repositories
             ]
-            pending_to_retry = sorted(
-                state.pending_runs,
-                key=lambda item: (
-                    item.get("last_attempt_at") or item.get("created_at") or "",
-                    item["repository"],
-                    item["run_id"],
-                ),
-            )[:PENDING_RETRY_BATCH_SIZE]
+            pending_to_retry = _pending_runs_to_retry(state.pending_runs)
             self._collect_pending_runs(state, pending_to_retry, records)
 
             while (
@@ -789,7 +793,9 @@ class QueueCollector:
                 else:
                     _merge_pending_runs(
                         state,
-                        [_pending_run_attempt(item, self._now())],
+                        [
+                            _pending_run_attempt(item, self._now(), error_resolved=True)
+                        ],
                     )
             except RateLimitExhausted:
                 raise
@@ -835,7 +841,7 @@ class QueueCollector:
         run: dict[str, Any],
     ) -> tuple[list[dict[str, Any]], bool]:
         jobs = self._client.list_jobs(self._org, repository, run["id"])
-        if any(job.get("status") != "completed" for job in jobs):
+        if any(not _job_is_terminal(job) for job in jobs):
             return [], False
         jobs = [job for job in jobs if job.get("runner_name")]
         collected_at = _format_instant(self._now())
@@ -892,6 +898,41 @@ def collect_live_and_backfill(
     )
 
 
+def _job_is_terminal(job: dict[str, Any]) -> bool:
+    return job.get("status") == "completed" or (
+        job.get("status") == "in_progress"
+        and bool(job.get("completed_at"))
+        and job.get("conclusion") in TERMINAL_JOB_CONCLUSIONS
+    )
+
+
+def _pending_runs_to_retry(
+    pending: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    def priority(item: dict[str, Any]) -> tuple[str, str, int]:
+        return (
+            item.get("last_attempt_at") or item.get("created_at") or "",
+            item["repository"],
+            item["run_id"],
+        )
+
+    ordered = sorted(pending, key=priority)
+    failed = [item for item in ordered if item.get("last_error")]
+    ordinary = [item for item in ordered if not item.get("last_error")]
+    failed_slots = max(
+        PENDING_FAILURE_RETRY_BATCH_SIZE,
+        PENDING_RETRY_BATCH_SIZE - len(ordinary),
+    )
+    selected_failures = failed[:failed_slots]
+    return sorted(
+        [
+            *selected_failures,
+            *ordinary[: PENDING_RETRY_BATCH_SIZE - len(selected_failures)],
+        ],
+        key=priority,
+    )
+
+
 def _pending_run(
     repository: str,
     run: dict[str, Any],
@@ -919,11 +960,16 @@ def _pending_run_failure(
 def _pending_run_attempt(
     item: dict[str, Any],
     attempted_at: datetime,
+    *,
+    error_resolved: bool = False,
 ) -> dict[str, Any]:
-    return {
+    attempted = {
         **item,
         "last_attempt_at": _format_instant(attempted_at),
     }
+    if error_resolved:
+        attempted.pop("last_error", None)
+    return attempted
 
 
 def _merge_pending_runs(

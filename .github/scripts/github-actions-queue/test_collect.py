@@ -22,6 +22,7 @@ from collect import (
     RateLimitExhausted,
     RateSnapshot,
     _job_record,
+    _pending_runs_to_retry,
     collect_live_and_backfill,
     load_backfill_state,
     load_state,
@@ -104,12 +105,15 @@ class GitHubClientTest(unittest.TestCase):
         def handler(url):
             query = parse_qs(urlparse(url).query)
             page = int(query["page"][0])
-            start = (page - 1) * 100
-            count = 100 if page < 3 else 50
+            self.assertEqual(["50"], query["per_page"])
+            start = (page - 1) * 50
             return response(
                 {
                     "total_count": 250,
-                    "jobs": [{"id": index} for index in range(start, start + count)],
+                    "jobs": [
+                        {"id": index, "run_attempt": 1 if index < 100 else 2}
+                        for index in range(start, start + 50)
+                    ],
                 }
             )
 
@@ -119,13 +123,81 @@ class GitHubClientTest(unittest.TestCase):
         jobs = client.list_jobs("open-telemetry", "example", 7)
 
         self.assertEqual(250, len(jobs))
+        self.assertEqual({1, 2}, {job["run_attempt"] for job in jobs})
         job_urls = [url for url in transport.urls if "/jobs?" in url]
-        self.assertEqual(3, len(job_urls))
+        self.assertEqual(5, len(job_urls))
         self.assertTrue(all("filter=all" in url for url in job_urls))
+
+    def test_job_pagination_keeps_partial_last_page(self):
+        def handler(url):
+            query = parse_qs(urlparse(url).query)
+            page = int(query["page"][0])
+            start = (page - 1) * 50
+            return response(
+                {
+                    "total_count": 164,
+                    "jobs": [
+                        {"id": index}
+                        for index in range(start, min(start + 50, 164))
+                    ],
+                }
+            )
+
+        transport = FakeTransport(handler)
+        client = GitHubClient("token", transport=transport)
+
+        jobs = client.list_jobs("open-telemetry", "example", 7)
+
+        self.assertEqual(list(range(164)), [job["id"] for job in jobs])
+        self.assertEqual(
+            ["1", "2", "3", "4"],
+            [
+                parse_qs(urlparse(url).query)["page"][0]
+                for url in transport.urls
+                if "/jobs?" in url
+            ],
+        )
+
+    def test_job_pagination_rejects_missing_or_duplicate_jobs(self):
+        for second_page in ([{"id": 50}], [{"id": 0}, {"id": 50}]):
+            with self.subTest(second_page=second_page):
+
+                def handler(url):
+                    query = parse_qs(urlparse(url).query)
+                    return response(
+                        {
+                            "total_count": 52,
+                            "jobs": (
+                                [{"id": index} for index in range(50)]
+                                if query["page"] == ["1"]
+                                else second_page
+                            ),
+                        }
+                    )
+
+                client = GitHubClient("token", transport=FakeTransport(handler))
+
+                with self.assertRaisesRegex(ApiError, "returned 51 of 52 jobs"):
+                    client.list_jobs("open-telemetry", "example", 7)
+
+    def test_job_pagination_respects_request_budget_without_returning_partial_jobs(self):
+        transport = FakeTransport(
+            lambda _url: response(
+                {"total_count": 100, "jobs": [{"id": index} for index in range(50)]}
+            )
+        )
+        client = GitHubClient("token", transport=transport, max_requests=2)
+
+        with self.assertRaisesRegex(CollectionBudgetExhausted, "request_limit"):
+            client.list_jobs("open-telemetry", "example", 7)
+
+        self.assertEqual(2, client.request_count)
+        self.assertEqual(2, len(transport.urls))
 
     def test_splits_run_searches_above_one_thousand(self):
         def handler(url):
             query = parse_qs(urlparse(url).query)
+            self.assertEqual(["100"], query["per_page"])
             created = query["created"][0]
             if created.startswith("2026-09-15T00:00:00Z") and created.endswith(
                 "2026-09-15T00:59:59Z"
@@ -429,6 +501,99 @@ class JobRecordTest(unittest.TestCase):
         self.assertIsNone(record["from_fork"])
 
 
+class PendingRunSelectionTest(unittest.TestCase):
+    def test_shares_retry_budget_without_starving_either_queue(self):
+        for ordinary_count, failed_count, ordinary_slots, failed_slots in (
+            (30, 30, 20, 5),
+            (30, 2, 23, 2),
+            (2, 30, 2, 23),
+            (0, 30, 0, 25),
+            (30, 0, 25, 0),
+            (2, 2, 2, 2),
+            (0, 0, 0, 0),
+        ):
+            with self.subTest(ordinary=ordinary_count, failed=failed_count):
+                pending = [
+                    *[
+                        {
+                            "repository": "a",
+                            "run_id": run_id,
+                            "created_at": "2026-01-01T00:00:00Z",
+                        }
+                        for run_id in range(1, ordinary_count + 1)
+                    ],
+                    *[
+                        {
+                            "repository": "a",
+                            "run_id": run_id,
+                            "created_at": "2026-01-01T00:00:00Z",
+                            "last_attempt_at": "2026-09-15T00:00:00Z",
+                            "last_error": "GitHub API returned 502",
+                            "failures": 3,
+                        }
+                        for run_id in range(101, failed_count + 101)
+                    ],
+                ]
+
+                selected = _pending_runs_to_retry(list(reversed(pending)))
+
+                self.assertEqual(
+                    [*range(1, ordinary_slots + 1), *range(101, failed_slots + 101)],
+                    [item["run_id"] for item in selected],
+                )
+
+    def test_ordinary_retries_keep_their_share_when_failures_are_older(self):
+        pending = [
+            *[
+                {
+                    "repository": "a",
+                    "run_id": run_id,
+                    "created_at": "2026-09-15T00:00:00Z",
+                }
+                for run_id in range(1, 31)
+            ],
+            *[
+                {
+                    "repository": "a",
+                    "run_id": run_id,
+                    "created_at": "2026-01-01T00:00:00Z",
+                    "last_error": "GitHub API returned 502",
+                }
+                for run_id in range(101, 131)
+            ],
+        ]
+
+        self.assertEqual(
+            [*range(101, 106), *range(1, 21)],
+            [item["run_id"] for item in _pending_runs_to_retry(pending)],
+        )
+
+    def test_uses_last_error_instead_of_historical_failure_count(self):
+        pending = [
+            {
+                "repository": "a",
+                "run_id": run_id,
+                "created_at": "2026-01-01T00:00:00Z",
+                "failures": 3,
+            }
+            for run_id in range(1, 31)
+        ]
+        pending.append(
+            {
+                "repository": "a",
+                "run_id": 101,
+                "created_at": "2026-09-15T00:00:00Z",
+                "last_error": "GitHub API returned 502",
+                "failures": 3,
+            }
+        )
+
+        self.assertEqual(
+            [*range(1, 25), 101],
+            [item["run_id"] for item in _pending_runs_to_retry(pending)],
+        )
+
+
 class FakeClient:
     def __init__(self):
         self.rate = RateSnapshot(5000, 4990, 2000000000)
@@ -730,6 +895,142 @@ class QueueCollectorTest(unittest.TestCase):
         self.assertEqual([10], [record["job_id"] for record in result.records])
         self.assertEqual([10], [item["run_id"] for item in state.pending_runs])
 
+    def test_failed_retries_rotate_alongside_old_historical_pending_runs(self):
+        class TrackingClient(FakeClient):
+            def __init__(self):
+                super().__init__()
+                self.retried = []
+
+            def get_workflow_run(self, _org, _repository, run_id):
+                self.retried.append(run_id)
+                return {"id": run_id, "status": "in_progress"}
+
+        client = TrackingClient()
+        collector = QueueCollector(
+            client,
+            org="open-telemetry",
+            now=lambda: datetime(2026, 9, 15, 1, tzinfo=UTC),
+        )
+        state = BackfillState(
+            initial_cursor="2026-09-15T01:00:00Z",
+            target="2026-01-01T00:00:00Z",
+            cursor="2026-01-01T00:00:00Z",
+            pending_runs=[
+                *[
+                    {
+                        "repository": "a",
+                        "run_id": run_id,
+                        "created_at": "2026-01-01T00:00:00Z",
+                    }
+                    for run_id in range(1, 41)
+                ],
+                *[
+                    {
+                        "repository": "a",
+                        "run_id": run_id,
+                        "created_at": "2026-01-01T00:00:00Z",
+                        "last_attempt_at": "2026-09-15T00:00:00Z",
+                        "last_error": "GitHub API returned 502",
+                    }
+                    for run_id in range(101, 111)
+                ],
+            ],
+        )
+
+        first = collector.collect_backfill(state, selected_repositories=["a"])
+        second = collector.collect_backfill(state, selected_repositories=["a"])
+
+        self.assertFalse(first.paused)
+        self.assertFalse(second.paused)
+        self.assertEqual(
+            [*range(1, 21), *range(101, 106), *range(21, 41), *range(106, 111)],
+            client.retried,
+        )
+
+    def test_successful_pending_job_lookup_clears_only_the_current_error(self):
+        class UnfinishedJobClient(FakeClient):
+            def list_jobs(self, org, repository, run_id):
+                return [
+                    {
+                        **super().list_jobs(org, repository, run_id)[0],
+                        "status": "in_progress",
+                        "conclusion": None,
+                        "completed_at": None,
+                    }
+                ]
+
+        client = UnfinishedJobClient()
+        client.completed_runs[("a", 9)] = {"id": 9, "status": "completed"}
+        collector = QueueCollector(
+            client,
+            org="open-telemetry",
+            now=lambda: datetime(2026, 9, 15, 1, tzinfo=UTC),
+        )
+        state = CollectorState(
+            cursor="2026-09-15T01:00:00Z",
+            pending_runs=[
+                {
+                    "repository": "a",
+                    "run_id": 9,
+                    "created_at": "2026-09-14T23:00:00Z",
+                    "last_error": "GitHub API returned 502",
+                    "failures": 3,
+                }
+            ],
+        )
+
+        result = collector.collect(state, selected_repositories=["a"])
+
+        self.assertEqual([], result.records)
+        self.assertEqual(
+            [
+                {
+                    "repository": "a",
+                    "run_id": 9,
+                    "created_at": "2026-09-14T23:00:00Z",
+                    "last_attempt_at": "2026-09-15T01:00:00Z",
+                    "failures": 3,
+                }
+            ],
+            state.pending_runs,
+        )
+
+        client.fail_jobs_for_run = 9
+        collector.collect(state, selected_repositories=["a"])
+
+        self.assertEqual(4, state.pending_runs[0]["failures"])
+        self.assertEqual("GitHub API returned 502", state.pending_runs[0]["last_error"])
+
+    def test_unfinished_run_keeps_the_unverified_job_error(self):
+        client = FakeClient()
+        client.completed_runs[("a", 9)] = {"id": 9, "status": "in_progress"}
+        collector = QueueCollector(
+            client,
+            org="open-telemetry",
+            now=lambda: datetime(2026, 9, 15, 1, tzinfo=UTC),
+        )
+        state = CollectorState(
+            cursor="2026-09-15T01:00:00Z",
+            pending_runs=[
+                {
+                    "repository": "a",
+                    "run_id": 9,
+                    "created_at": "2026-09-14T23:00:00Z",
+                    "last_error": "GitHub API returned 502",
+                    "failures": 3,
+                }
+            ],
+        )
+
+        result = collector.collect(state, selected_repositories=["a"])
+
+        self.assertEqual([], result.records)
+        self.assertEqual("GitHub API returned 502", state.pending_runs[0]["last_error"])
+        self.assertEqual(3, state.pending_runs[0]["failures"])
+        self.assertEqual(
+            "2026-09-15T01:00:00Z", state.pending_runs[0]["last_attempt_at"]
+        )
+
     def test_job_api_failure_does_not_block_window_progress(self):
         client = FakeClient()
         client.fail_jobs_for_run = 100
@@ -751,6 +1052,82 @@ class QueueCollectorTest(unittest.TestCase):
         self.assertEqual(1, len(state.pending_runs))
         self.assertEqual(1, state.pending_runs[0]["failures"])
         self.assertIn("502", state.pending_runs[0]["last_error"])
+
+    def test_requires_terminal_evidence_for_stale_job_status(self):
+        for status, conclusion, completed_at, terminal in (
+            ("in_progress", "success", "2026-09-15T00:12:00Z", True),
+            ("in_progress", "failure", "2026-09-15T00:12:00Z", True),
+            ("in_progress", "cancelled", "2026-09-15T00:12:00Z", True),
+            ("in_progress", "neutral", "2026-09-15T00:12:00Z", True),
+            ("in_progress", "skipped", "2026-09-15T00:12:00Z", True),
+            ("in_progress", "timed_out", "2026-09-15T00:12:00Z", True),
+            ("in_progress", "action_required", "2026-09-15T00:12:00Z", True),
+            ("in_progress", "success", None, False),
+            ("in_progress", None, "2026-09-15T00:12:00Z", False),
+            ("in_progress", "unknown", "2026-09-15T00:12:00Z", False),
+            ("queued", "success", "2026-09-15T00:12:00Z", False),
+            ("waiting", None, None, False),
+        ):
+            with self.subTest(
+                status=status, conclusion=conclusion, completed_at=completed_at
+            ):
+
+                class StaleStatusClient(FakeClient):
+                    def list_jobs(self, org, repository, run_id):
+                        return [
+                            {
+                                **super().list_jobs(org, repository, run_id)[0],
+                                "status": status,
+                                "conclusion": conclusion,
+                                "completed_at": completed_at,
+                            }
+                        ]
+
+                collector = QueueCollector(
+                    StaleStatusClient(),
+                    org="open-telemetry",
+                    now=lambda: datetime(2026, 9, 15, 1, tzinfo=UTC),
+                )
+                state = CollectorState(cursor="2026-09-15T00:00:00Z")
+
+                result = collector.collect(state, selected_repositories=["a"])
+
+                self.assertEqual(
+                    [101] if terminal else [],
+                    [record["job_id"] for record in result.records],
+                )
+                self.assertEqual(0 if terminal else 1, len(state.pending_runs))
+                if terminal:
+                    self.assertEqual(status, result.records[0]["job_status"])
+                    self.assertEqual(conclusion, result.records[0]["job_conclusion"])
+
+    def test_waits_for_every_attempt_even_when_other_jobs_have_stale_status(self):
+        class UnfinishedAttemptClient(FakeClient):
+            def list_jobs(self, org, repository, run_id):
+                job = super().list_jobs(org, repository, run_id)[0]
+                return [
+                    {**job, "run_attempt": 1, "status": "in_progress"},
+                    {
+                        **job,
+                        "id": job["id"] + 1,
+                        "run_attempt": 2,
+                        "status": "in_progress",
+                        "conclusion": None,
+                        "completed_at": None,
+                    },
+                ]
+
+        collector = QueueCollector(
+            UnfinishedAttemptClient(),
+            org="open-telemetry",
+            now=lambda: datetime(2026, 9, 15, 1, tzinfo=UTC),
+        )
+        state = CollectorState(cursor="2026-09-15T00:00:00Z")
+
+        result = collector.collect(state, selected_repositories=["a"])
+
+        self.assertEqual([], result.records)
+        self.assertEqual([100], [item["run_id"] for item in state.pending_runs])
 
     def test_discards_negative_queue_jobs_without_matching(self):
         class RerunClient(FakeClient):
@@ -791,6 +1168,7 @@ class QueueCollectorTest(unittest.TestCase):
                     {
                         **common,
                         "id": 2,
+                        "status": "in_progress",
                         "run_attempt": 2,
                         "created_at": "2026-09-15T00:20:00Z",
                         "started_at": "2026-09-15T00:11:00Z",
@@ -807,6 +1185,7 @@ class QueueCollectorTest(unittest.TestCase):
                     {
                         **common,
                         "id": 4,
+                        "status": "in_progress",
                         "name": "skipped",
                         "run_attempt": 2,
                         "created_at": "2026-09-15T00:20:00Z",
@@ -818,6 +1197,7 @@ class QueueCollectorTest(unittest.TestCase):
                     {
                         **common,
                         "id": 5,
+                        "status": "in_progress",
                         "name": "unmatched",
                         "run_attempt": 2,
                         "created_at": "2026-09-15T00:20:00Z",
@@ -1066,6 +1446,44 @@ class QueueCollectorTest(unittest.TestCase):
             ],
             client.windows,
         )
+
+    def test_live_pause_does_not_retry_historical_failures(self):
+        client = FakeClient()
+        client.pause_on_repo = "a"
+        collector = QueueCollector(
+            client,
+            org="open-telemetry",
+            now=lambda: datetime(2026, 9, 15, 2, tzinfo=UTC),
+        )
+        live_state = CollectorState(cursor="2026-09-15T01:00:00Z")
+        backfill_state = BackfillState(
+            initial_cursor="2026-09-15T01:00:00Z",
+            target="2026-09-14T23:00:00Z",
+            cursor="2026-09-15T01:00:00Z",
+            pending_runs=[
+                {
+                    "repository": "a",
+                    "run_id": 9,
+                    "created_at": "2026-09-14T23:00:00Z",
+                    "last_error": "GitHub API returned 502",
+                    "failures": 3,
+                }
+            ],
+        )
+
+        result = collect_live_and_backfill(
+            collector,
+            live_state,
+            backfill_state,
+            now=datetime(2026, 9, 15, 2, tzinfo=UTC),
+            selected_repositories=["a"],
+            max_windows=2,
+        )
+
+        self.assertTrue(result.live.paused)
+        self.assertIsNone(result.backfill)
+        self.assertEqual(3, backfill_state.pending_runs[0]["failures"])
+        self.assertNotIn("last_attempt_at", backfill_state.pending_runs[0])
 
     def test_skips_completed_backfill(self):
         class WindowClient(FakeClient):

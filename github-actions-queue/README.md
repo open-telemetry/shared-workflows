@@ -120,9 +120,21 @@ within the workflow timeout. Later runs use the normal 40-minute limit.
 
 Runs that have not reached a terminal state are saved in `state.json`. Later
 collections revisit them and emit their jobs only after every returned job is
-terminal. Job listing uses `filter=all`, so actual executions from every
+terminal. A job reported as `in_progress` is also terminal when GitHub supplies
+a completion timestamp and a terminal conclusion. This handles stale status
+values without finalizing jobs that still lack completion evidence. Records
+retain GitHub's reported job status and conclusion.
+Job listing uses `filter=all`, so actual executions from every
 available attempt are retained when the run is finalized. Carry-forward clones
 created by partial reruns are not stored.
+
+Each live or backfill collection selects up to 25 saved pending runs before
+collecting windows. Five slots are reserved for unresolved API failures and
+20 for other unfinished runs; unused slots are shared. Both groups use the
+oldest last-attempt time, falling back to creation time for unattempted runs.
+Selected runs are processed in that same chronological order, within the
+request, runtime, and REST quota limits. Backfill retries run only after live
+collection catches up without pausing and leaves a window budget.
 
 The collector tracks the installation's REST quota. If it exhausts the quota,
 it commits the partial checkpoint and resumes during the next scheduled run.
@@ -134,7 +146,10 @@ per-file counts during validation, then records completion under
 
 GitHub limits a filtered workflow-run search to 1,000 results. The collector
 splits busy one-hour windows into smaller ranges until each result can be
-paginated safely. Jobs are paginated at 100 per request.
+paginated safely. Repository and workflow-run pages contain up to 100 results.
+Job pages contain up to 50 results to reduce GitHub jobs-API server errors on
+large pages. The collector checks that all pages yield the reported number of
+unique jobs before finalizing a run.
 
 ## Data layout
 
@@ -158,7 +173,7 @@ reporting data. Each job line contains:
 | `event`, `from_fork` | Trigger and whether the head repository was a fork. `from_fork` is null when GitHub no longer provides the head repository. |
 | `head_branch`, `head_sha` | Source revision. |
 | `job_id`, `job_name` | Individual job identity. Matrix values normally appear in `job_name`. |
-| `job_status`, `job_conclusion` | Terminal state and result. |
+| `job_status`, `job_conclusion` | GitHub's reported state and result. A terminal job can retain a stale `in_progress` status. |
 | `job_created_at`, `job_started_at`, `job_completed_at` | GitHub job timestamps. |
 | `queue_seconds` | Start minus creation time. |
 | `runner_assigned` | Always true for retained queue records. |
@@ -204,8 +219,11 @@ Failed job lookups are retained in `state.json` with their failure count, last
 error, and last attempt time. Backfill failures are retained in
 `backfill-state.json` the same way. Later collections retry them while
 continuing to discover other runs. The workflow emits a warning as long as any
-failed lookup remains unresolved; failures are never converted into successful
-empty records.
+failed lookup remains unresolved. A successful job listing clears its last
+error even if jobs are still unfinished, while retaining the historical failure
+count. The summary's `pending_run_failures` counts unresolved errors, not errors
+encountered only in the current collection. Failures are never converted into
+successful empty records.
 
 GitHub announced that organization retention settings will cover workflow runs
 created on or after October 1, 2026. The change is not retroactive. The January
