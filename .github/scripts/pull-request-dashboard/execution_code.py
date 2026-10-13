@@ -11,6 +11,7 @@ from pathlib import Path
 
 from execution_process import run_monitored
 from process_queue_batch import LeaseMonitor, SCRIPT_DIR
+from promote_rollout import USES_LINE
 
 CODE_PATH = ".github/scripts/pull-request-dashboard"
 SHA = re.compile(r"[0-9a-f]{40}")
@@ -24,12 +25,13 @@ class ExecutionCode:
 
 
 def stable_code_ref(workflow: Path) -> str:
-    pins = re.findall(
-        r"(?m)^      code_ref: ([0-9a-f]{40}) # v\d+\.\d+\.\d+$",
-        workflow.read_text(encoding="utf-8"),
-    )
+    pins = [
+        match.group(2)
+        for line in workflow.read_text(encoding="utf-8").splitlines(keepends=True)
+        if (match := USES_LINE.fullmatch(line))
+    ]
     if len(pins) != 3 or len(set(pins)) != 1:
-        raise ValueError("the stable rollout must have three identical immutable code pins")
+        raise ValueError("the stable rollout must have three identical immutable workflow pins")
     return pins[0]
 
 
