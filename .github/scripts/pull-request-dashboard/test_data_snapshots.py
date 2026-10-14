@@ -45,10 +45,11 @@ class DataSnapshotTest(unittest.TestCase):
         self.legacy = run_git(self.worker, "rev-parse", "HEAD").stdout.strip()
         run_git(self.worker, "switch", "--detach")
         self.environment = patch.dict(
-            os.environ, {"DATA_BRANCH_SNAPSHOTS": "true", "GITHUB_TOKEN": ""},
+            os.environ, {"GITHUB_TOKEN": ""},
         )
         self.environment.start()
         self.addCleanup(self.environment.stop)
+        os.environ.pop("DATA_BRANCH_SNAPSHOTS", None)
 
     def remote_git(self, *args: str) -> str:
         return run_git(self.root, f"--git-dir={self.remote}", *args).stdout
@@ -137,6 +138,37 @@ class DataSnapshotTest(unittest.TestCase):
         self.assertEqual("1\n", self.remote_git("rev-list", "--count", "data"))
         self.assertEqual(2, state_branch.snapshot_generation("HEAD", worktree))
 
+    def test_dashboard_retry_is_a_noop_when_winning_snapshot_has_same_update(self) -> None:
+        worktree = self.root / "dashboard"
+        real_push = state_branch.push_state
+        accepted = ""
+
+        def competing_push(directory: Path, branch: str, expected: str) -> bool:
+            nonlocal accepted
+            (self.worker / "jobs.json").write_text('{"jobs":[1,2]}\n', encoding="utf-8")
+            accepted = self.snapshot(self.worker, self.legacy)
+            self.assertTrue(real_push(self.worker, branch, self.legacy))
+            return real_push(directory, branch, expected)
+
+        def update() -> int:
+            (worktree / "jobs.json").write_text('{"jobs":[1,2]}\n', encoding="utf-8")
+            return 0
+
+        with (
+            working_directory(self.worker),
+            patch.object(state_branch, "push_state", side_effect=competing_push) as push,
+            patch.object(state_branch.time, "sleep"),
+        ):
+            self.assertEqual(
+                0, state_branch.push_state_changes(
+                    worktree, "Update state", update, state_branch="data",
+                ),
+            )
+        push.assert_called_once_with(worktree, "data", self.legacy)
+        self.assertEqual(accepted, self.remote_git("rev-parse", "data").strip())
+        self.assertEqual(accepted, run_git(worktree, "rev-parse", "HEAD").stdout.strip())
+        self.assertEqual(1, state_branch.snapshot_generation("HEAD", worktree))
+
     def test_fetch_ignores_stale_snapshots_and_legacy_heads(self) -> None:
         first = self.snapshot(self.worker, self.legacy)
         self.assertTrue(state_branch.push_state(self.worker, "data", self.legacy))
@@ -171,6 +203,24 @@ class DataSnapshotTest(unittest.TestCase):
             self.assertEqual(first, state_branch.ref_oid(state_branch.remote_ref("data")))
             state_branch.update_snapshot_ref("data", second)
             self.assertEqual(second, state_branch.ref_oid(state_branch.remote_ref("data")))
+
+    def test_legacy_fetch_ordering_still_rejects_stale_and_diverged_heads(self) -> None:
+        (self.worker / "jobs.json").write_text('{"jobs":[2]}\n', encoding="utf-8")
+        run_git(self.worker, "add", ".")
+        run_git(self.worker, "commit", "-m", "Legacy update")
+        newer = run_git(self.worker, "rev-parse", "HEAD").stdout.strip()
+        with working_directory(self.worker):
+            state_branch.update_snapshot_ref("data", newer)
+            state_branch.update_snapshot_ref("data", self.legacy)
+            self.assertEqual(newer, state_branch.ref_oid(state_branch.remote_ref("data")))
+
+        run_git(self.worker, "update-ref", "HEAD", self.legacy)
+        (self.worker / "jobs.json").write_text('{"jobs":[3]}\n', encoding="utf-8")
+        run_git(self.worker, "add", ".")
+        run_git(self.worker, "commit", "-m", "Diverged legacy update")
+        with working_directory(self.worker), self.assertRaisesRegex(RuntimeError, "diverged"):
+            state_branch.update_snapshot_ref("data", "HEAD")
+        self.assertEqual(newer, run_git(self.worker, "rev-parse", "origin/data").stdout.strip())
 
     def test_same_generation_with_different_contents_is_an_error(self) -> None:
         first = self.snapshot(self.worker, self.legacy)
@@ -228,20 +278,21 @@ class DataSnapshotTest(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "history restored"):
             state_branch.commit_staged_state(self.worker, "Update", appended)
 
-    def test_disabled_mode_preserves_legacy_behavior_but_cannot_restore_history(self) -> None:
-        with patch.dict(os.environ, {"DATA_BRANCH_SNAPSHOTS": "false"}):
-            self.assertFalse(state_branch.commit_staged_state(self.worker, "No changes", self.legacy))
-            (self.worker / "jobs.json").write_text('{"jobs":[2]}\n', encoding="utf-8")
-            run_git(self.worker, "add", ".")
-            self.assertTrue(state_branch.commit_staged_state(self.worker, "Update", self.legacy))
-            self.assertEqual("2\n", run_git(self.worker, "rev-list", "--count", "HEAD").stdout)
-        first = self.snapshot(self.worker, run_git(self.worker, "rev-parse", "HEAD").stdout.strip())
-        with patch.dict(os.environ, {"DATA_BRANCH_SNAPSHOTS": ""}), self.assertRaisesRegex(RuntimeError, "must remain true"):
-            state_branch.commit_staged_state(self.worker, "No changes", first)
-
-    def test_invalid_mode_is_an_error(self) -> None:
-        with patch.dict(os.environ, {"DATA_BRANCH_SNAPSHOTS": "yes"}), self.assertRaisesRegex(ValueError, "must be"):
-            state_branch.commit_staged_state(self.worker, "Update", self.legacy)
+    def test_environment_variable_has_no_effect_on_writes_or_fetches(self) -> None:
+        expected = self.legacy
+        for generation, value in enumerate(("", "false", "true", "yes"), start=1):
+            with self.subTest(value=value), patch.dict(os.environ, {"DATA_BRANCH_SNAPSHOTS": value}):
+                (self.worker / "jobs.json").write_text(f'{{"jobs":[{generation}]}}\n', encoding="utf-8")
+                accepted = self.snapshot(self.worker, expected)
+                self.assertEqual(generation, state_branch.snapshot_generation(accepted, self.worker))
+                self.assertEqual("1\n", run_git(self.worker, "rev-list", "--count", "HEAD").stdout)
+                self.assertTrue(state_branch.push_state(self.worker, "data", expected))
+                run_git(self.worker, "update-ref", state_branch.remote_ref("data"), expected)
+                with working_directory(self.worker):
+                    self.assertTrue(state_branch.fetch_state_branch("data", required=True))
+                self.assertEqual(accepted, run_git(self.worker, "rev-parse", "origin/data").stdout.strip())
+                self.assertFalse(state_branch.commit_staged_state(self.worker, "No changes", accepted))
+                expected = accepted
 
     def test_interrupted_update_does_not_modify_remote(self) -> None:
         self.snapshot(self.worker, self.legacy)
@@ -320,6 +371,46 @@ class DataSnapshotTest(unittest.TestCase):
         self.snapshot(self.worker, first)
         self.assertFalse(state_branch.push_state(self.worker, new_branch, ""))
         self.assertEqual("1\n", self.remote_git("rev-list", "--count", new_branch))
+
+    def test_dashboard_initializes_state_and_delivery_branches_as_complete_snapshots(self) -> None:
+        accepted_branch = "otelbot/pull-request-dashboard-state/open-telemetry/example"
+        for branch in (accepted_branch, state_branch.delivery_state_branch(accepted_branch)):
+            with self.subTest(branch=branch):
+                worktree = self.root / "new-state"
+
+                def update() -> int:
+                    (worktree / "state.json").write_text('{"revision":1}\n', encoding="utf-8")
+                    (worktree / "receipts.json").write_text('{"sent":[1]}\n', encoding="utf-8")
+                    return 0
+
+                with working_directory(self.worker), patch.object(state_branch, "push_state", wraps=state_branch.push_state) as push:
+                    self.assertEqual(
+                        0, state_branch.push_state_changes(
+                            worktree, "Initialize state", update, state_branch=branch,
+                        ),
+                    )
+                    push.assert_called_once_with(worktree, branch, "")
+                    state_branch.remove_existing_state_dir(worktree)
+                self.assertEqual("1\n", self.remote_git("rev-list", "--count", branch))
+                remote_head = self.remote_git("rev-parse", branch).strip()
+                self.assertEqual(1, state_branch.snapshot_generation(remote_head, self.worker))
+                self.assertEqual(
+                    ["receipts.json", "state.json"],
+                    self.remote_git("ls-tree", "--name-only", branch).splitlines(),
+                )
+
+    def test_empty_new_branch_still_gets_a_first_snapshot(self) -> None:
+        worktree = self.root / "empty-state"
+        with working_directory(self.worker):
+            self.assertEqual(
+                0, state_branch.push_state_changes(
+                    worktree, "Initialize empty state", lambda: 0, state_branch="empty-data",
+                ),
+            )
+        self.assertEqual("1\n", self.remote_git("rev-list", "--count", "empty-data"))
+        self.assertEqual("", self.remote_git("ls-tree", "--name-only", "empty-data"))
+        remote_head = self.remote_git("rev-parse", "empty-data").strip()
+        self.assertEqual(1, state_branch.snapshot_generation(remote_head, self.worker))
 
 
 if __name__ == "__main__":

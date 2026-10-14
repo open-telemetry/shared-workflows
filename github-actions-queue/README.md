@@ -6,13 +6,16 @@ terminal GitHub Actions job in active public repositories under
 `otelbot/github-actions-queue-data` branch in this repository and can be
 queried to find queue-time outliers.
 
-The repository variable `DATA_BRANCH_SNAPSHOTS=true` retains only the latest
-Git snapshot of the data branch. All historical job measurements in the
-current files, collection checkpoints, and report inputs remain intact.
-The variable defaults to disabled and also controls PR dashboard state writers;
-follow the [shared cutover procedure](../.github/scripts/pull-request-dashboard/WEBHOOK_SETUP.md#7-data-branch-snapshot-cutover)
-before enabling it. The hourly collection and Pages deployment schedules do
-not change.
+Data writers always retain only the latest parentless Git snapshot of the data
+branch. All historical job measurements in the current files, collection
+checkpoints, and report inputs remain intact.
+
+Keep `DATA_BRANCH_SNAPSHOTS=true` and its workflow environment injection for
+pinned v0.20.0 dashboard processors until unconditional snapshot code is
+released and promoted and older writers have retired. The current helper ignores
+the variable. See the
+[shared storage requirements](../.github/scripts/pull-request-dashboard/WEBHOOK_SETUP.md#7-data-branch-snapshots).
+The hourly collection and Pages deployment schedules do not change.
 
 Queue time is measured per job:
 
@@ -114,10 +117,6 @@ These limits leave room below the App's 15,000-request hourly quota and the
 workflow's 50-minute timeout. A stopped run commits its records and checkpoints
 before the next schedule resumes it.
 
-When a run performs the one-time migration, collection has a 30-minute limit
-to leave time for the migration, full report rebuild, and data-branch push
-within the workflow timeout. Later runs use the normal 40-minute limit.
-
 Runs that have not reached a terminal state are saved in `state.json`. Later
 collections revisit them and emit their jobs only after every returned job is
 terminal. Job listing uses `filter=all`, so actual executions from every
@@ -127,10 +126,8 @@ created by partial reruns are not stored.
 The collector tracks the installation's REST quota. If it exhausts the quota,
 it commits the partial checkpoint and resumes during the next scheduled run.
 
-The one-time data migration streams collection files and validates them before
-removing runnerless and negative-queue records. It retains job IDs and
-per-file counts during validation, then records completion under
-`migrations/` on the data branch.
+The completed runnerless and negative-queue cleanup is recorded in
+`migrations/remove-unmeasurable-jobs-v1.json` on the data branch.
 
 GitHub limits a filtered workflow-run search to 1,000 results. The collector
 splits busy one-hour windows into smaller ranges until each result can be

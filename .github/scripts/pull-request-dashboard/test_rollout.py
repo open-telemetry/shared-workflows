@@ -107,6 +107,15 @@ class RolloutWiringTest(unittest.TestCase):
         self.assertIn("python -m pip install -r requirements.txt", tests)
         self.assertNotIn("download-runtime", tests)
 
+    def test_collector_fetches_history_for_heads_without_snapshot_metadata_unconditionally(self) -> None:
+        body = (WORKFLOWS / "github-actions-queue-collector.yml").read_text(encoding="utf-8")
+        self.assertIn(
+            "if ! git log -1 --format=%B FETCH_HEAD | grep -q '^Data-snapshot-generation:'; then",
+            body,
+        )
+        self.assertIn('git fetch --no-tags --depth=2147483647 origin "$DATA_BRANCH"', body)
+        self.assertNotIn('[[ "$DATA_BRANCH_SNAPSHOTS" == "true" ]]', body)
+
     def test_reminder_writes_enqueue_and_matrix_is_read_only(self) -> None:
         jobs = job_blocks(SWEEP_WORKFLOW.read_text(encoding="utf-8"))
         self.assertIn("inputs.dry_run == false", jobs["enqueue"])

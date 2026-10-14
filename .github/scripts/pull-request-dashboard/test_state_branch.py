@@ -130,6 +130,8 @@ class LegacyPublisherLockCleanupTest(unittest.TestCase):
             run_git(state_dir, "config", "user.name", "Test")
             run_git(state_dir, "add", ".")
             run_git(state_dir, "commit", "-m", "Initial state")
+            expected_sha = run_git(state_dir, "rev-parse", "HEAD").stdout.strip()
+            _checkout_state.return_value = expected_sha
 
             def update_state() -> int:
                 self.assertFalse(lock.exists())
@@ -143,6 +145,7 @@ class LegacyPublisherLockCleanupTest(unittest.TestCase):
                     "--no-commit-id",
                     "--name-status",
                     "-r",
+                    expected_sha,
                     "HEAD",
                 ).stdout.splitlines()
                 self.assertIn("D\t.publisher-lock.json", changed_paths)
@@ -163,23 +166,12 @@ class LegacyPublisherLockCleanupTest(unittest.TestCase):
             )
 
         self.assertEqual(0, status)
-        push_state.assert_called_once_with(state_dir, "state-branch", "")
+        push_state.assert_called_once_with(state_dir, "state-branch", expected_sha)
 
 
 class FetchStateBranchTest(unittest.TestCase):
-    @staticmethod
-    def rejected_fetch() -> subprocess.CompletedProcess[str]:
-        return subprocess.CompletedProcess(
-            args=["git", "fetch"],
-            returncode=1,
-            stdout="",
-            stderr=(
-                " ! [rejected] state-branch -> origin/state-branch (non-fast-forward)\n"
-            ),
-        )
-
     @patch.object(state_branch, "temporary_fetch_ref", return_value="refs/temp/fetch")
-    @patch.object(state_branch, "has_state_branch", return_value=False)
+    @patch.object(state_branch, "update_snapshot_ref")
     @patch.object(state_branch, "run")
     @patch.object(state_branch.time, "sleep")
     @patch.object(state_branch, "retry_delay_seconds", return_value=0.25)
@@ -190,7 +182,7 @@ class FetchStateBranchTest(unittest.TestCase):
         retry_delay_seconds: object,
         sleep: object,
         run: object,
-        _has_state_branch: object,
+        update_snapshot_ref: object,
         _temporary_fetch_ref: object,
     ) -> None:
         subprocess_run.side_effect = [
@@ -245,22 +237,10 @@ class FetchStateBranchTest(unittest.TestCase):
         )
         retry_delay_seconds.assert_called_once_with(1)
         sleep.assert_called_once_with(0.25)
-        self.assertEqual(
-            [
-                call(
-                    [
-                        "git",
-                        "update-ref",
-                        "refs/remotes/origin/state-branch",
-                        "refs/temp/fetch",
-                    ]
-                ),
-                call(
-                    ["git", "update-ref", "-d", "refs/temp/fetch"],
-                    check=False,
-                ),
-            ],
-            run.call_args_list,
+        update_snapshot_ref.assert_called_once_with("state-branch", "refs/temp/fetch")
+        run.assert_called_once_with(
+            ["git", "update-ref", "-d", "refs/temp/fetch"],
+            check=False,
         )
 
     @patch.object(state_branch, "temporary_fetch_ref", return_value="refs/temp/fetch")
@@ -398,18 +378,14 @@ class FetchStateBranchTest(unittest.TestCase):
         )
 
     @patch.object(state_branch, "temporary_fetch_ref", return_value="refs/temp/fetch")
-    @patch.object(state_branch, "remote_is_behind_local", return_value=True)
-    @patch.object(state_branch, "ref_is_ancestor", return_value=False)
-    @patch.object(state_branch, "has_state_branch", return_value=True)
+    @patch.object(state_branch, "update_snapshot_ref")
     @patch.object(state_branch, "run")
     @patch.object(subprocess, "run")
-    def test_keeps_local_ref_when_remote_is_behind(
+    def test_successful_fetch_uses_snapshot_ordering(
         self,
         subprocess_run: object,
         run: object,
-        _has_state_branch: object,
-        _ref_is_ancestor: object,
-        _remote_is_behind_local: object,
+        update_snapshot_ref: object,
         _temporary_fetch_ref: object,
     ) -> None:
         subprocess_run.return_value = subprocess.CompletedProcess(
@@ -420,6 +396,7 @@ class FetchStateBranchTest(unittest.TestCase):
         )
 
         self.assertTrue(state_branch.fetch_state_branch("state-branch", required=True))
+        update_snapshot_ref.assert_called_once_with("state-branch", "refs/temp/fetch")
 
         self.assertEqual(
             [
@@ -438,18 +415,14 @@ class FetchStateBranchTest(unittest.TestCase):
         )
 
     @patch.object(state_branch, "temporary_fetch_ref", return_value="refs/temp/fetch")
-    @patch.object(state_branch, "remote_is_behind_local", return_value=False)
-    @patch.object(state_branch, "ref_is_ancestor", return_value=False)
-    @patch.object(state_branch, "has_state_branch", return_value=True)
+    @patch.object(state_branch, "update_snapshot_ref", side_effect=RuntimeError("conflicting generation"))
     @patch.object(state_branch, "run")
     @patch.object(subprocess, "run")
-    def test_raises_when_remote_diverged(
+    def test_snapshot_error_is_reported_and_temporary_ref_is_removed(
         self,
         subprocess_run: object,
-        _run: object,
-        _has_state_branch: object,
-        _ref_is_ancestor: object,
-        _remote_is_behind_local: object,
+        run: object,
+        update_snapshot_ref: object,
         _temporary_fetch_ref: object,
     ) -> None:
         subprocess_run.return_value = subprocess.CompletedProcess(
@@ -459,32 +432,24 @@ class FetchStateBranchTest(unittest.TestCase):
             stderr="",
         )
 
-        with self.assertRaisesRegex(RuntimeError, "diverged"):
+        with self.assertRaisesRegex(RuntimeError, "conflicting generation"):
             state_branch.fetch_state_branch("state-branch", required=True)
+        update_snapshot_ref.assert_called_once_with("state-branch", "refs/temp/fetch")
+        run.assert_called_once_with(
+            ["git", "update-ref", "-d", "refs/temp/fetch"],
+            check=False,
+        )
 
 
-class RemoteIsBehindLocalTest(unittest.TestCase):
-    @patch.object(state_branch, "has_state_branch", return_value=False)
-    @patch.object(subprocess, "run")
-    def test_false_without_local_ref(
-        self,
-        run: object,
-        _has_state_branch: object,
-    ) -> None:
-        self.assertFalse(state_branch.remote_is_behind_local("state-branch", "refs/temp/fetch"))
-
-        run.assert_not_called()
-
-    @patch.object(state_branch, "has_state_branch", return_value=True)
+class RefIsAncestorTest(unittest.TestCase):
     @patch.object(subprocess, "run")
     def test_checks_fetched_commit_is_contained_in_local_ref(
         self,
         run: object,
-        _has_state_branch: object,
     ) -> None:
         run.return_value = subprocess.CompletedProcess(args=["git"], returncode=0)
 
-        self.assertTrue(state_branch.remote_is_behind_local("state-branch", "refs/temp/fetch"))
+        self.assertTrue(state_branch.ref_is_ancestor("refs/temp/fetch", "refs/remotes/origin/state-branch"))
 
         self.assertEqual(
             [
@@ -497,16 +462,26 @@ class RemoteIsBehindLocalTest(unittest.TestCase):
             run.call_args.args[0],
         )
 
-    @patch.object(state_branch, "has_state_branch", return_value=True)
     @patch.object(subprocess, "run")
     def test_false_when_fetched_commit_diverged(
         self,
         run: object,
-        _has_state_branch: object,
     ) -> None:
         run.return_value = subprocess.CompletedProcess(args=["git"], returncode=1)
 
-        self.assertFalse(state_branch.remote_is_behind_local("state-branch", "refs/temp/fetch"))
+        self.assertFalse(state_branch.ref_is_ancestor("refs/temp/fetch", "refs/remotes/origin/state-branch"))
+
+    @patch.object(subprocess, "run")
+    def test_reports_git_errors(
+        self,
+        run: object,
+    ) -> None:
+        run.return_value = subprocess.CompletedProcess(
+            args=["git"], returncode=128, stderr="fatal: invalid ref",
+        )
+
+        with self.assertRaisesRegex(RuntimeError, "failed to compare Git refs"):
+            state_branch.ref_is_ancestor("missing", "refs/remotes/origin/state-branch")
 
 
 class SetGitConfigTest(unittest.TestCase):
