@@ -117,11 +117,15 @@ workflow's 50-minute timeout. A stopped run commits its records and checkpoints
 before the next schedule resumes it.
 
 Runs that have not reached a terminal state are saved in `state.json`. Later
-collections revisit them and emit their jobs only after every returned job is
-terminal. A job reported as `in_progress` is also terminal when GitHub supplies
-a completion timestamp and a terminal conclusion. This handles stale status
-values without finalizing jobs that still lack completion evidence. Records
-retain GitHub's reported job status and conclusion.
+collections revisit them and emit their jobs only after the parent run is
+completed and every runner-assigned job is terminal. Runnerless jobs are
+excluded before this completion check, so they do not block measurable sibling
+jobs. Completed runs containing only runnerless jobs leave the pending set
+without emitting records.
+A job reported as `in_progress` or `queued` is also terminal when GitHub
+supplies both a completion timestamp and a terminal conclusion. Such assigned
+jobs missing either piece of evidence still block the entire run. Records retain
+GitHub's reported job status and conclusion.
 Job listing uses `filter=all`, so actual executions from every
 available attempt are retained when the run is finalized. Carry-forward clones
 created by partial reruns are not stored.
@@ -169,7 +173,7 @@ reporting data. Each job line contains:
 | `event`, `from_fork` | Trigger and whether the head repository was a fork. `from_fork` is null when GitHub no longer provides the head repository. |
 | `head_branch`, `head_sha` | Source revision. |
 | `job_id`, `job_name` | Individual job identity. Matrix values normally appear in `job_name`. |
-| `job_status`, `job_conclusion` | GitHub's reported state and result. A terminal job can retain a stale `in_progress` status. |
+| `job_status`, `job_conclusion` | GitHub's reported state and result. A terminal job can retain a stale `in_progress` or `queued` status. |
 | `job_created_at`, `job_started_at`, `job_completed_at` | GitHub job timestamps. |
 | `queue_seconds` | Start minus creation time. |
 | `runner_assigned` | Always true for retained queue records. |
@@ -202,6 +206,13 @@ from the first ordinary API response because GitHub's `/rate_limit` response
 can lag the bucket reported by repository endpoints. The summary also reports
 the lowest remaining fraction observed because GitHub can return fluctuating
 quota headers across sequential public-repository requests.
+
+The summary's `exclusions` contains `runnerless_jobs`, `runnerless_runs`, and
+`negative_queue_jobs` counts across live and backfill collection, including
+pending retries. `runnerless_runs` counts completed, nonempty runs containing
+only runnerless jobs. Counts cover finalized runs in checkpointed repository
+windows and resolved pending retries, not runs still waiting for assigned jobs
+or discarded partial repository work.
 
 ## Known REST limitation
 

@@ -1,13 +1,16 @@
 from __future__ import annotations
 
 import http.client
+import io
 import json
 import tempfile
 import threading
 import unittest
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import redirect_stdout
 from datetime import UTC, datetime
 from pathlib import Path
+from unittest.mock import patch
 from urllib.parse import parse_qs, urlparse
 
 from collect import (
@@ -26,6 +29,7 @@ from collect import (
     collect_live_and_backfill,
     load_backfill_state,
     load_state,
+    main,
     write_records,
     write_state,
 )
@@ -1065,7 +1069,20 @@ class QueueCollectorTest(unittest.TestCase):
             ("in_progress", "success", None, False),
             ("in_progress", None, "2026-09-15T00:12:00Z", False),
             ("in_progress", "unknown", "2026-09-15T00:12:00Z", False),
-            ("queued", "success", "2026-09-15T00:12:00Z", False),
+            ("queued", "success", "2026-09-15T00:12:00Z", True),
+            ("queued", "failure", "2026-09-15T00:12:00Z", True),
+            ("queued", "cancelled", "2026-09-15T00:12:00Z", True),
+            ("queued", "neutral", "2026-09-15T00:12:00Z", True),
+            ("queued", "skipped", "2026-09-15T00:12:00Z", True),
+            ("queued", "timed_out", "2026-09-15T00:12:00Z", True),
+            ("queued", "action_required", "2026-09-15T00:12:00Z", True),
+            ("queued", "success", None, False),
+            ("queued", "success", "", False),
+            ("queued", None, "2026-09-15T00:12:00Z", False),
+            ("queued", "unknown", "2026-09-15T00:12:00Z", False),
+            ("queued", None, None, False),
+            ("completed", None, None, True),
+            ("waiting", "success", "2026-09-15T00:12:00Z", False),
             ("waiting", None, None, False),
         ):
             with self.subTest(
@@ -1100,13 +1117,14 @@ class QueueCollectorTest(unittest.TestCase):
                 if terminal:
                     self.assertEqual(status, result.records[0]["job_status"])
                     self.assertEqual(conclusion, result.records[0]["job_conclusion"])
+                    self.assertEqual(completed_at, result.records[0]["job_completed_at"])
 
     def test_waits_for_every_attempt_even_when_other_jobs_have_stale_status(self):
         class UnfinishedAttemptClient(FakeClient):
             def list_jobs(self, org, repository, run_id):
                 job = super().list_jobs(org, repository, run_id)[0]
                 return [
-                    {**job, "run_attempt": 1, "status": "in_progress"},
+                    {**job, "run_attempt": 1, "status": "queued"},
                     {
                         **job,
                         "id": job["id"] + 1,
@@ -1114,6 +1132,14 @@ class QueueCollectorTest(unittest.TestCase):
                         "status": "in_progress",
                         "conclusion": None,
                         "completed_at": None,
+                    },
+                    {
+                        **job,
+                        "id": job["id"] + 2,
+                        "status": "queued",
+                        "conclusion": None,
+                        "completed_at": None,
+                        "runner_name": "",
                     },
                 ]
 
@@ -1128,6 +1154,209 @@ class QueueCollectorTest(unittest.TestCase):
 
         self.assertEqual([], result.records)
         self.assertEqual([100], [item["run_id"] for item in state.pending_runs])
+        self.assertEqual({}, result.exclusions)
+
+    def test_excludes_runnerless_jobs_before_completion_gate(self):
+        for pending_retry in (False, True):
+            for assigned_sibling in (False, True):
+                for runner_name in (None, ""):
+                    with self.subTest(
+                        pending_retry=pending_retry,
+                        assigned_sibling=assigned_sibling,
+                        runner_name=runner_name,
+                    ):
+
+                        class RunnerlessClient(FakeClient):
+                            def list_jobs(self, org, repository, run_id):
+                                job = super().list_jobs(org, repository, run_id)[0]
+                                return [
+                                    *([job] if assigned_sibling else []),
+                                    {
+                                        **job,
+                                        "id": job["id"] + 1,
+                                        "status": "queued",
+                                        "conclusion": None,
+                                        "completed_at": None,
+                                        "runner_name": runner_name,
+                                    },
+                                    {
+                                        "id": job["id"] + 2,
+                                        "status": "in_progress",
+                                    },
+                                    {
+                                        **job,
+                                        "id": job["id"] + 3,
+                                        "status": "queued",
+                                        "conclusion": "cancelled",
+                                        "runner_name": runner_name,
+                                    },
+                                ]
+
+                        client = RunnerlessClient()
+                        client.completed_runs[("a", 9)] = {
+                            "id": 9,
+                            "status": "completed",
+                        }
+                        state = CollectorState(
+                            cursor=(
+                                "2026-09-15T01:00:00Z"
+                                if pending_retry
+                                else "2026-09-15T00:00:00Z"
+                            ),
+                            pending_runs=(
+                                [{"repository": "a", "run_id": 9}]
+                                if pending_retry
+                                else []
+                            ),
+                        )
+                        collector = QueueCollector(
+                            client,
+                            org="open-telemetry",
+                            now=lambda: datetime(2026, 9, 15, 1, tzinfo=UTC),
+                        )
+
+                        result = collector.collect(state, selected_repositories=["a"])
+
+                        self.assertEqual(
+                            [10 if pending_retry else 101] if assigned_sibling else [],
+                            [record["job_id"] for record in result.records],
+                        )
+                        self.assertEqual([], state.pending_runs)
+                        self.assertEqual(3, result.exclusions["runnerless_jobs"])
+                        self.assertEqual(
+                            0 if assigned_sibling else 1,
+                            result.exclusions["runnerless_runs"],
+                        )
+
+    def test_nonterminal_parent_is_pending_without_listing_jobs(self):
+        for pending_retry in (False, True):
+            with self.subTest(pending_retry=pending_retry):
+
+                class NonterminalParentClient(FakeClient):
+                    def list_workflow_runs(self, org, repository, start, end):
+                        return [
+                            {
+                                **super().list_workflow_runs(
+                                    org, repository, start, end
+                                )[0],
+                                "status": "in_progress",
+                            }
+                        ]
+
+                    def list_jobs(self, _org, _repository, _run_id):
+                        raise AssertionError("nonterminal parents must not list jobs")
+
+                client = NonterminalParentClient()
+                client.completed_runs[("a", 100)] = {
+                    "id": 100,
+                    "status": "in_progress",
+                }
+                state = CollectorState(
+                    cursor=(
+                        "2026-09-15T01:00:00Z"
+                        if pending_retry
+                        else "2026-09-15T00:00:00Z"
+                    ),
+                    pending_runs=(
+                        [{"repository": "a", "run_id": 100}]
+                        if pending_retry
+                        else []
+                    ),
+                )
+                collector = QueueCollector(
+                    client,
+                    org="open-telemetry",
+                    now=lambda: datetime(2026, 9, 15, 1, tzinfo=UTC),
+                )
+
+                result = collector.collect(state, selected_repositories=["a"])
+
+                self.assertEqual([], result.records)
+                self.assertEqual([100], [item["run_id"] for item in state.pending_runs])
+                self.assertEqual({}, result.exclusions)
+
+    def test_completion_gate_and_exclusions_use_all_job_pages(self):
+        for last_job_status in ("runnerless", "assigned_unfinished", "missing"):
+            with self.subTest(last_job_status=last_job_status):
+
+                def handler(url):
+                    path = urlparse(url).path
+                    if path == "/repos/open-telemetry/a":
+                        return response(
+                            {"private": False, "owner": {"login": "open-telemetry"}}
+                        )
+                    if path.endswith("/actions/runs"):
+                        return response(
+                            {
+                                "total_count": 1,
+                                "workflow_runs": [{"id": 100, "status": "completed"}],
+                            }
+                        )
+                    query = parse_qs(urlparse(url).query)
+                    self.assertEqual(["all"], query["filter"])
+                    self.assertEqual(["50"], query["per_page"])
+                    start = (int(query["page"][0]) - 1) * 50
+                    jobs = [
+                        {
+                            "id": index,
+                            "status": "queued" if index == 0 else "completed",
+                            "conclusion": "success",
+                            "created_at": "2026-09-15T00:10:00Z",
+                            "started_at": "2026-09-15T00:11:00Z",
+                            "completed_at": "2026-09-15T00:12:00Z",
+                            "runner_name": "runner",
+                            "run_attempt": 1 if index < 50 else 2,
+                        }
+                        for index in range(start, min(start + 50, 65))
+                    ]
+                    if start == 50:
+                        jobs[-1].update(
+                            status="queued",
+                            conclusion=None,
+                            completed_at=None,
+                            runner_name=(
+                                "" if last_job_status == "runnerless" else "runner"
+                            ),
+                        )
+                        if last_job_status == "missing":
+                            jobs.pop()
+                    return response({"total_count": 65, "jobs": jobs})
+
+                transport = FakeTransport(handler)
+                collector = QueueCollector(
+                    GitHubClient("token", transport=transport),
+                    org="open-telemetry",
+                    now=lambda: datetime(2026, 9, 15, 1, tzinfo=UTC),
+                )
+                state = CollectorState(cursor="2026-09-15T00:00:00Z")
+
+                result = collector.collect(state, selected_repositories=["a"])
+
+                self.assertEqual(
+                    64 if last_job_status == "runnerless" else 0, len(result.records)
+                )
+                self.assertEqual(
+                    ["1", "2"],
+                    [
+                        parse_qs(urlparse(url).query)["page"][0]
+                        for url in transport.urls
+                        if "/jobs?" in url
+                    ],
+                )
+                if last_job_status == "runnerless":
+                    self.assertEqual([], state.pending_runs)
+                    self.assertEqual({1, 2}, {r["run_attempt"] for r in result.records})
+                    self.assertEqual("queued", result.records[0]["job_status"])
+                    self.assertEqual(1, result.exclusions["runnerless_jobs"])
+                    self.assertEqual(0, result.exclusions["runnerless_runs"])
+                else:
+                    self.assertEqual([100], [r["run_id"] for r in state.pending_runs])
+                    self.assertEqual({}, result.exclusions)
+                    if last_job_status == "missing":
+                        self.assertIn(
+                            "returned 64 of 65 jobs",
+                            state.pending_runs[0]["last_error"],
+                        )
 
     def test_discards_negative_queue_jobs_without_matching(self):
         class RerunClient(FakeClient):
@@ -1223,6 +1452,87 @@ class QueueCollectorTest(unittest.TestCase):
         result = collector.collect(state, selected_repositories=["a"])
 
         self.assertEqual([1, 3, 6], [item["job_id"] for item in result.records])
+        self.assertEqual(1, result.exclusions["runnerless_jobs"])
+        self.assertEqual(2, result.exclusions["negative_queue_jobs"])
+
+    def test_exclusion_counts_follow_repository_checkpoints_on_pause(self):
+        for reason in ("request_limit", "rate_limit"):
+            with self.subTest(reason=reason):
+
+                class PausingRunnerlessClient(FakeClient):
+                    def list_workflow_runs(self, org, repository, start, end):
+                        runs = super().list_workflow_runs(org, repository, start, end)
+                        if repository == "b":
+                            runs.append({**runs[0], "id": 201})
+                        return runs
+
+                    def list_jobs(self, org, repository, run_id):
+                        if run_id == 201:
+                            if reason == "rate_limit":
+                                raise RateLimitExhausted("limit")
+                            raise CollectionBudgetExhausted(reason)
+                        return [
+                            {
+                                **super().list_jobs(org, repository, run_id)[0],
+                                "status": "queued",
+                                "conclusion": None,
+                                "completed_at": None,
+                                "runner_name": "",
+                            }
+                        ]
+
+                collector = QueueCollector(
+                    PausingRunnerlessClient(),
+                    org="open-telemetry",
+                    now=lambda: datetime(2026, 9, 15, 1, tzinfo=UTC),
+                )
+                state = CollectorState(cursor="2026-09-15T00:00:00Z")
+
+                result = collector.collect(
+                    state, selected_repositories=["a", "b"], max_workers=2
+                )
+
+                self.assertTrue(result.paused)
+                self.assertEqual(reason, result.pause_reason)
+                self.assertEqual(["a"], state.completed_repositories)
+                self.assertEqual([], result.records)
+                self.assertEqual(1, result.exclusions["runnerless_jobs"])
+                self.assertEqual(1, result.exclusions["runnerless_runs"])
+                self.assertEqual("2026-09-15T00:00:00Z", state.cursor)
+
+    def test_pending_exclusions_survive_budget_pause(self):
+        class PausingRunnerlessClient(FakeClient):
+            def get_workflow_run(self, org, repository, run_id):
+                if run_id == 10:
+                    raise CollectionBudgetExhausted("request_limit")
+                return super().get_workflow_run(org, repository, run_id)
+
+            def list_jobs(self, _org, _repository, run_id):
+                return [{"id": run_id + 1, "status": "queued", "runner_name": ""}]
+
+        client = PausingRunnerlessClient()
+        client.completed_runs[("a", 9)] = {"id": 9, "status": "completed"}
+        collector = QueueCollector(
+            client,
+            org="open-telemetry",
+            now=lambda: datetime(2026, 9, 15, 1, tzinfo=UTC),
+        )
+        state = CollectorState(
+            cursor="2026-09-15T01:00:00Z",
+            pending_runs=[
+                {"repository": "a", "run_id": 9},
+                {"repository": "a", "run_id": 10},
+            ],
+        )
+
+        result = collector.collect(state, selected_repositories=["a"])
+
+        self.assertTrue(result.paused)
+        self.assertEqual("request_limit", result.pause_reason)
+        self.assertEqual([], result.records)
+        self.assertEqual([10], [item["run_id"] for item in state.pending_runs])
+        self.assertEqual(1, result.exclusions["runnerless_jobs"])
+        self.assertEqual(1, result.exclusions["runnerless_runs"])
 
     def test_backfills_newest_windows_first(self):
         class WindowClient(FakeClient):
@@ -1325,6 +1635,12 @@ class QueueCollectorTest(unittest.TestCase):
                     end,
                 )
 
+            def list_jobs(self, org, repository, run_id):
+                return [
+                    *super().list_jobs(org, repository, run_id),
+                    {"id": run_id + 2, "status": "queued", "runner_name": ""},
+                ]
+
         collector = QueueCollector(
             ParallelClient(),
             org="open-telemetry",
@@ -1340,6 +1656,8 @@ class QueueCollectorTest(unittest.TestCase):
 
         self.assertFalse(result.paused)
         self.assertEqual([101, 201], [record["job_id"] for record in result.records])
+        self.assertEqual(2, result.exclusions["runnerless_jobs"])
+        self.assertEqual(0, result.exclusions["runnerless_runs"])
 
     def test_collects_live_window_before_backfill(self):
         class WindowClient(FakeClient):
@@ -1556,6 +1874,105 @@ class QueueCollectorTest(unittest.TestCase):
 
 
 class PersistenceTest(unittest.TestCase):
+    def test_summary_counts_live_pending_and_backfill_exclusions(self):
+        class ExclusionClient(FakeClient):
+            def list_jobs(self, org, repository, run_id):
+                runnerless = {"id": run_id + 2, "status": "queued", "runner_name": ""}
+                if run_id == 9:
+                    return [runnerless]
+                job = super().list_jobs(org, repository, run_id)[0]
+                return [
+                    job,
+                    runnerless,
+                    {
+                        **job,
+                        "id": run_id + 3,
+                        "created_at": "2026-09-15T00:20:00Z",
+                    },
+                ]
+
+        client = ExclusionClient()
+        client.initial_rate = client.rate
+        client.minimum_rate = client.rate
+        client.completed_runs[("a", 9)] = {"id": 9, "status": "completed"}
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            state_path = root / "state.json"
+            backfill_path = root / "backfill-state.json"
+            write_state(
+                state_path,
+                CollectorState(
+                    cursor="2099-01-01T00:00:00Z",
+                    pending_runs=[{"repository": "a", "run_id": 9}],
+                ),
+            )
+            argv = [
+                "collect.py",
+                "--repository",
+                "a",
+                "--state",
+                str(state_path),
+                "--output-dir",
+                str(root / "jobs"),
+                "--collection-id",
+                "test",
+                "--backfill-state",
+                str(backfill_path),
+                "--backfill-start",
+                "2026-09-15T01:00:00Z",
+                "--backfill-target",
+                "2026-09-15T00:00:00Z",
+            ]
+            output = io.StringIO()
+            with (
+                patch("sys.argv", argv),
+                patch("collect._token_from_environment", return_value="token"),
+                patch("collect.GitHubClient", return_value=client),
+                redirect_stdout(output),
+            ):
+                main()
+
+            summary = json.loads(output.getvalue())
+            self.assertEqual(
+                {
+                    "runnerless_jobs": 2,
+                    "runnerless_runs": 1,
+                    "negative_queue_jobs": 1,
+                },
+                summary["exclusions"],
+            )
+            self.assertEqual(1, summary["records"])
+            self.assertEqual(0, summary["pending_runs"])
+            self.assertEqual(0, summary["pending_run_failures"])
+            self.assertTrue(summary["backfill"]["completed"])
+            self.assertEqual([], json.loads(state_path.read_text())["pending_runs"])
+            self.assertEqual([], json.loads(backfill_path.read_text())["pending_runs"])
+            import gzip
+
+            with gzip.open(summary["output"], "rt", encoding="utf-8") as source:
+                self.assertEqual([101], [json.loads(line)["job_id"] for line in source])
+
+            output = io.StringIO()
+            with (
+                patch("sys.argv", argv),
+                patch("collect._token_from_environment", return_value="token"),
+                patch("collect.GitHubClient", return_value=client),
+                redirect_stdout(output),
+            ):
+                main()
+
+            summary = json.loads(output.getvalue())
+            self.assertEqual(
+                {
+                    "runnerless_jobs": 0,
+                    "runnerless_runs": 0,
+                    "negative_queue_jobs": 0,
+                },
+                summary["exclusions"],
+            )
+            self.assertEqual(0, summary["records"])
+            self.assertIsNone(summary["output"])
+
     def test_round_trips_state_and_writes_gzip_json_lines(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

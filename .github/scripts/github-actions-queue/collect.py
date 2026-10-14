@@ -9,6 +9,7 @@ import os
 import re
 import threading
 import time
+from collections import Counter
 from concurrent.futures import Future, ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
@@ -553,6 +554,7 @@ class CollectionResult:
     pause_reason: str | None
     completed_windows: int
     completed_repositories: int
+    exclusions: Counter[str] = field(default_factory=Counter)
 
 
 @dataclass(frozen=True)
@@ -629,6 +631,7 @@ class QueueCollector:
             raise ValueError("max_workers must be positive")
 
         records: list[dict[str, Any]] = []
+        exclusions: Counter[str] = Counter()
         completed_windows = 0
         completed_repositories = 0
 
@@ -656,7 +659,7 @@ class QueueCollector:
                 if item["repository"] in current_repositories
             ]
             pending_to_retry = _pending_runs_to_retry(state.pending_runs)
-            self._collect_pending_runs(state, pending_to_retry, records)
+            self._collect_pending_runs(state, pending_to_retry, records, exclusions)
 
             while (
                 _has_window(_parse_instant(state.cursor), boundary, direction)
@@ -686,8 +689,9 @@ class QueueCollector:
                     outcome = outcomes.get(repository)
                     if outcome is None:
                         continue
-                    repository_records, pending = outcome
+                    repository_records, pending, repository_exclusions = outcome
                     records.extend(repository_records)
+                    exclusions.update(repository_exclusions)
                     _merge_pending_runs(state, pending)
                     completed.add(repository)
                     completed_repositories += 1
@@ -704,6 +708,7 @@ class QueueCollector:
                         pause_reason=pause_reason,
                         completed_windows=completed_windows,
                         completed_repositories=completed_repositories,
+                        exclusions=exclusions,
                     )
 
                 state.cursor = _format_instant(
@@ -720,6 +725,7 @@ class QueueCollector:
                 pause_reason=_pause_reason(error),
                 completed_windows=completed_windows,
                 completed_repositories=completed_repositories,
+                exclusions=exclusions,
             )
 
         return CollectionResult(
@@ -728,6 +734,7 @@ class QueueCollector:
             pause_reason=None,
             completed_windows=completed_windows,
             completed_repositories=completed_repositories,
+            exclusions=exclusions,
         )
 
     def _collect_window_repositories(
@@ -737,12 +744,12 @@ class QueueCollector:
         end: datetime,
         max_workers: int,
     ) -> tuple[
-        dict[str, tuple[list[dict[str, Any]], list[dict[str, Any]]]],
+        dict[str, tuple[list[dict[str, Any]], list[dict[str, Any]], Counter[str]]],
         str | None,
     ]:
         outcomes: dict[
             str,
-            tuple[list[dict[str, Any]], list[dict[str, Any]]],
+            tuple[list[dict[str, Any]], list[dict[str, Any]], Counter[str]],
         ] = {}
         pause_reason = None
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
@@ -772,6 +779,7 @@ class QueueCollector:
         state: CollectionState,
         pending: list[dict[str, Any]],
         records: list[dict[str, Any]],
+        exclusions: Counter[str],
     ) -> None:
         for item in pending:
             try:
@@ -784,11 +792,12 @@ class QueueCollector:
                         [_pending_run_attempt(item, self._now())],
                     )
                     continue
-                run_records, terminal = self._collect_completed_run(
+                run_records, terminal, run_exclusions = self._collect_completed_run(
                     item["repository"], run
                 )
                 if terminal:
                     records.extend(run_records)
+                    exclusions.update(run_exclusions)
                     _remove_pending_run(state, item)
                 else:
                     _merge_pending_runs(
@@ -810,16 +819,19 @@ class QueueCollector:
         repository: str,
         start: datetime,
         end: datetime,
-    ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], Counter[str]]:
         records: list[dict[str, Any]] = []
         pending: list[dict[str, Any]] = []
+        exclusions: Counter[str] = Counter()
         runs = self._client.list_workflow_runs(self._org, repository, start, end)
         for run in runs:
             if run.get("status") != "completed":
                 pending.append(_pending_run(repository, run))
                 continue
             try:
-                run_records, terminal = self._collect_completed_run(repository, run)
+                run_records, terminal, run_exclusions = self._collect_completed_run(
+                    repository, run
+                )
             except ApiError as error:
                 pending.append(
                     _pending_run_failure(
@@ -831,26 +843,33 @@ class QueueCollector:
                 continue
             if terminal:
                 records.extend(run_records)
+                exclusions.update(run_exclusions)
             else:
                 pending.append(_pending_run(repository, run))
-        return records, pending
+        return records, pending, exclusions
 
     def _collect_completed_run(
         self,
         repository: str,
         run: dict[str, Any],
-    ) -> tuple[list[dict[str, Any]], bool]:
-        jobs = self._client.list_jobs(self._org, repository, run["id"])
+    ) -> tuple[list[dict[str, Any]], bool, Counter[str]]:
+        all_jobs = self._client.list_jobs(self._org, repository, run["id"])
+        jobs = [job for job in all_jobs if job.get("runner_name")]
         if any(not _job_is_terminal(job) for job in jobs):
-            return [], False
-        jobs = [job for job in jobs if job.get("runner_name")]
+            return [], False, Counter()
+        exclusions = Counter(
+            runnerless_jobs=len(all_jobs) - len(jobs),
+            runnerless_runs=int(bool(all_jobs) and not jobs),
+        )
         collected_at = _format_instant(self._now())
         records = []
         for job in jobs:
             record = _job_record(self._org, repository, run, job, collected_at)
             if record["queue_seconds"] >= 0:
                 records.append(record)
-        return records, True
+            else:
+                exclusions["negative_queue_jobs"] += 1
+        return records, True, exclusions
 
 
 def collect_live_and_backfill(
@@ -900,7 +919,7 @@ def collect_live_and_backfill(
 
 def _job_is_terminal(job: dict[str, Any]) -> bool:
     return job.get("status") == "completed" or (
-        job.get("status") == "in_progress"
+        job.get("status") in ("in_progress", "queued")
         and bool(job.get("completed_at"))
         and job.get("conclusion") in TERMINAL_JOB_CONCLUSIONS
     )
@@ -1365,6 +1384,14 @@ def main() -> None:
         ),
         "completed_windows": sum(result.completed_windows for result in results),
         "cursor": state.cursor,
+        "exclusions": {
+            reason: sum(result.exclusions[reason] for result in results)
+            for reason in (
+                "runnerless_jobs",
+                "runnerless_runs",
+                "negative_queue_jobs",
+            )
+        },
         "live": {
             "completed_repositories": live_result.completed_repositories,
             "completed_windows": live_result.completed_windows,
