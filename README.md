@@ -25,3 +25,10 @@ See [`CONTRIBUTING.md`](./CONTRIBUTING.md) for how to propose a new shared workf
 - [Trask Stalnaker](https://github.com/trask), Microsoft
 
 For more information about the maintainer role, see the [community repository](https://github.com/open-telemetry/community/blob/main/guides/contributor/membership.md#maintainer).
+
+## Approvers
+
+- [Alex Boten](https://github.com/codeboten), Grafana Labs
+- [Piotr Kiełkowicz](https://github.com/Kielek), Splunk
+
+For more information about the approver role, see the [community repository](https://github.com/open-telemetry/community/blob/main/guides/contributor/membership.md#approver).

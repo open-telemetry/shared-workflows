@@ -94,7 +94,7 @@ To use one of the workflows in this repo, find it in the workflows table in the 
 
 ## Maintainers and reviews
 
-Pull requests are reviewed by the maintainers listed in the [README](./README.md). All paths currently default to `@open-telemetry/shared-workflows-approvers` via [`CODEOWNERS`](./.github/CODEOWNERS). To add or change ownership of a specific workflow, open a pull request updating `CODEOWNERS` with the workflow's paths and the SIG-affiliated owners.
+Pull requests are reviewed by the maintainers and approvers listed in the [README](./README.md). All paths currently default to `@open-telemetry/shared-workflows-approvers` via [`CODEOWNERS`](./.github/CODEOWNERS). To add or change ownership of a specific workflow, open a pull request updating `CODEOWNERS` with the workflow's paths and the SIG-affiliated owners.
 
 ## Getting help
 
