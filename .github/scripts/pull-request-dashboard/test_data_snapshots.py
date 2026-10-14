@@ -280,8 +280,12 @@ class DataSnapshotTest(unittest.TestCase):
 
     def test_environment_variable_has_no_effect_on_writes_or_fetches(self) -> None:
         expected = self.legacy
-        for generation, value in enumerate(("", "false", "true", "yes"), start=1):
-            with self.subTest(value=value), patch.dict(os.environ, {"DATA_BRANCH_SNAPSHOTS": value}):
+        for generation, value in enumerate((None, "", "false", "true", "yes"), start=1):
+            with self.subTest(value=value), patch.dict(os.environ):
+                if value is None:
+                    os.environ.pop("DATA_BRANCH_SNAPSHOTS", None)
+                else:
+                    os.environ["DATA_BRANCH_SNAPSHOTS"] = value
                 (self.worker / "jobs.json").write_text(f'{{"jobs":[{generation}]}}\n', encoding="utf-8")
                 accepted = self.snapshot(self.worker, expected)
                 self.assertEqual(generation, state_branch.snapshot_generation(accepted, self.worker))

@@ -76,11 +76,11 @@ class RolloutWiringTest(unittest.TestCase):
         self.assertEqual(json.loads(canary.group(1)), ["opentelemetry-java-instrumentation", "shared-workflows"])
         self.assertTrue(set(json.loads(canary.group(1))) <= configured)
 
-    def test_snapshot_environment_remains_available_to_pinned_processors(self) -> None:
-        for path in (DRAIN_WORKFLOW, SWEEP_WORKFLOW, WORKFLOWS / "github-actions-queue-collector.yml"):
+    def test_workflows_do_not_depend_on_retired_snapshot_flag(self) -> None:
+        for path in WORKFLOWS.glob("*.yml"):
             with self.subTest(workflow=path.name):
-                self.assertIn(
-                    "DATA_BRANCH_SNAPSHOTS: ${{ vars.DATA_BRANCH_SNAPSHOTS }}",
+                self.assertNotIn(
+                    "DATA_BRANCH_SNAPSHOTS",
                     path.read_text(encoding="utf-8"),
                 )
 

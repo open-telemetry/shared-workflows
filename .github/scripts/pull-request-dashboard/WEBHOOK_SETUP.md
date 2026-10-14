@@ -345,8 +345,7 @@ Target input rules:
 
 These operations change production behavior and require operator approval.
 Do not promote a release or cancel unrelated runs as part of execution retirement.
-Retirement preserves stable `v0.20.0` at
-`cb9f45f0b1ec545091caca504fc3e9b073284325`.
+Execution retirement does not change the stable release pin.
 It removes the direct-dispatch and return-to-legacy execution paths, not stored
 data compatibility. Existing GitHub comments, nudge episodes, delivery receipts,
 and accepted-state JSON remain intact. Schema 1 PR/head refresh records remain
@@ -361,8 +360,7 @@ contract. In-flight owned workers can finish during deployment.
 
 The main-branch merge automatically deploys the bridge using the repository's
 execution mode. After deployment, remove obsolete `PR_DASHBOARD_QUEUE_MODE`
-Netlify values. Keep `DATA_BRANCH_SNAPSHOTS=true` and its owned-worker environment
-injection while stable processors remain pinned to v0.20.0. Keep existing queued
+Netlify values. Keep existing queued
 items, request IDs, generations, control items, and completion receipts in their
 shards. No migration, deletion, release, or promotion is needed.
 
@@ -416,8 +414,7 @@ There is no supported `legacy` mode after retirement. Recover execution problems
 while paused or roll forward. Any separate processor-code rollback must respect
 the accepted-state and delivery-version guards. Do not discard receipts or
 restore old Git history to make older code publish. Data storage remains
-snapshot-only; keep `DATA_BRANCH_SNAPSHOTS=true` and its workflow environment
-injection while pinned v0.20.0 processors remain.
+permanently snapshot-only.
 
 ### Manual maintenance
 
@@ -464,22 +461,17 @@ history appended after a snapshot, including in a fresh checkout. The collector
 fetches full history for heads without snapshot metadata so the writer can
 detect appended history even when its initial fetch was shallow.
 
-### Pinned processor transition
+### Retired rollout flag
 
-The current helper is unconditionally snapshot-only and does not read
-`DATA_BRANCH_SNAPSHOTS`. Pinned v0.20.0 processors still use that variable to
-select the snapshot protocol. Keep the repository variable `true` and keep
-passing it into every workflow and processor that can run those older writers,
-including both owned-drain lanes and author reminder sweeps.
-Keeping the repository variable alone is not enough if environment injection
-is removed.
+The unconditional snapshot helper is released and promoted, and older writers
+have retired. Workflows and processors no longer require
+`DATA_BRANCH_SNAPSHOTS`. After the workflow environment cleanup is merged,
+the obsolete repository variable can be deleted without weakening snapshot
+safety. Do not rerun older workflow attempts or roll back to processors that
+require the flag.
 
-Remove this environment wiring only in a later change, after releasing and
-promoting the unconditional helper and retiring older writers. Verify every
-stable and canary processor ref and every remaining maintenance entry point
-before removal. Do not rerun older workflow attempts that lack snapshot support.
-This storage cleanup does not change stable/canary selection or release pins
-and does not require another compaction or data migration.
+This cleanup does not change stable/canary selection or release pins. It needs
+no pause, release, promotion, compaction, or data migration.
 
 ### Recovery and clone size
 

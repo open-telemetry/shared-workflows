@@ -60,7 +60,6 @@ jobs:
         id: data
         env:
           DATA_BRANCH_README: .github/scripts/github-actions-queue/DATA_BRANCH_README.md
-          DATA_BRANCH_SNAPSHOTS: ${{ vars.DATA_BRANCH_SNAPSHOTS }}
         run: |
           set -euo pipefail
           data_dir="$RUNNER_TEMP/github-actions-queue-data"
@@ -150,7 +149,6 @@ jobs:
           CURSOR: ${{ steps.collect.outputs.cursor }}
           DATA_DIRECTORY: ${{ steps.data.outputs.directory }}
           EXPECTED_SHA: ${{ steps.data.outputs.expected_sha }}
-          DATA_BRANCH_SNAPSHOTS: ${{ vars.DATA_BRANCH_SNAPSHOTS }}
           GITHUB_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail

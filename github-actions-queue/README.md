@@ -10,10 +10,9 @@ Data writers always retain only the latest parentless Git snapshot of the data
 branch. All historical job measurements in the current files, collection
 checkpoints, and report inputs remain intact.
 
-Keep `DATA_BRANCH_SNAPSHOTS=true` and its workflow environment injection for
-pinned v0.20.0 dashboard processors until unconditional snapshot code is
-released and promoted and older writers have retired. The current helper ignores
-the variable. See the
+The snapshot protocol is unconditional and no longer needs
+`DATA_BRANCH_SNAPSHOTS`. The obsolete repository variable can be deleted after
+the workflow environment cleanup is merged. See the
 [shared storage requirements](../.github/scripts/pull-request-dashboard/WEBHOOK_SETUP.md#7-data-branch-snapshots).
 The hourly collection and Pages deployment schedules do not change.
 

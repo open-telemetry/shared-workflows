@@ -31,7 +31,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 50
     env:
-      DATA_BRANCH_SNAPSHOTS: ${{ vars.DATA_BRANCH_SNAPSHOTS }}
       DISPATCHER_GENERATION: ${{ inputs.dispatcher_generation }}
       PR_DASHBOARD_QUEUE_LANE: ${{ inputs.queue_lane || 'live' }}
       PR_DASHBOARD_QUEUE_ENDPOINT: https://otel-pull-request-dashboard.netlify.app/.netlify/functions/dashboard-queue-worker
