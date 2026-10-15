@@ -92,6 +92,21 @@ When you add a new workflow, also add a row to the workflows table in the [main 
 
 To use one of the workflows in this repo, find it in the workflows table in the [main README](./README.md) and follow the README in that workflow's root folder. Each workflow's README documents the exact steps — typically either adding your repository to that workflow's `repositories.json` or calling the workflow from your own repo via `uses:`.
 
+## Release process
+
+Releases are cut by maintainers and approvers. Each release is an annotated semver tag (`vMAJOR.MINOR.PATCH`) plus a GitHub Release with auto-generated notes. Consumers that pin a shared workflow to a tag (`uses: ...@<sha-or-tag>`) pick up changes by moving to a newer release.
+
+### Cutting a release
+
+1. Make sure everything you want in the release has merged to `main`.
+2. Run the [Release workflow](https://github.com/open-telemetry/shared-workflows/actions/workflows/release.yml) from the `main` branch (the workflow refuses to run from any other ref) and choose the semver bump:
+   - `patch` — backwards-compatible fixes.
+   - `minor` — new workflows or backwards-compatible features. This is the default.
+   - `major` — breaking changes to a workflow's inputs, secrets, or behavior.
+3. The workflow computes the next version from the latest `v*.*.*` tag, pushes an annotated tag at the current `main` commit, and publishes a GitHub Release marked as latest.
+
+Release notes are generated from merged pull requests, so write clear PR titles. Bot authors (Dependabot, Renovate, GitHub Actions) are excluded via [`.github/release.yml`](./.github/release.yml).
+
 ## Maintainers and reviews
 
 Pull requests are reviewed by the maintainers and approvers listed in the [README](./README.md). All paths currently default to `@open-telemetry/shared-workflows-approvers` via [`CODEOWNERS`](./.github/CODEOWNERS). To add or change ownership of a specific workflow, open a pull request updating `CODEOWNERS` with the workflow's paths and the SIG-affiliated owners.
