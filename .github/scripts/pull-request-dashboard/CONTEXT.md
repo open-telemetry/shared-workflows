@@ -279,11 +279,12 @@ reviewer routes keeps the existing wait.
 ### Reviewer handoff
 
 An acknowledged dashboard override records the observed head as its durable
-binding identity. The handoff routes directly to approvers across later pushes
-and bypasses discussions, approvals, conflicts, required checks, and the Copilot
-gate. Newer actionable human reviewer feedback ends it, including a reply or
-edit on a review thread that the handoff had suppressed. Legacy acknowledgements
-without the persistence marker retain their original head-bound behavior.
+binding identity. Across later pushes, the handoff bypasses discussions,
+conflicts, required checks, and the Copilot gate. The approval threshold
+determines whether it waits on approvers or maintainers. Newer actionable human
+reviewer feedback ends it, including a reply or edit on a review thread that the
+handoff had suppressed. Legacy acknowledgements without the persistence marker
+retain their original head-bound behavior.
 
 ## Routing snapshot
 

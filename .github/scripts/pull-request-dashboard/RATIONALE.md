@@ -519,16 +519,17 @@ the implementation understandable and operationally cheap.
   stale review is the ordinary state between a push and the next re-review, and
   an icon that is always present says nothing about which PRs are actually
   waiting.
-- An effective reviewer-routing override is a break-glass handoff. It forces the
-  reviewer route across later pushes and bypasses required checks, Copilot
-  review, merge conflicts, discussion actions, and approval routing. The author
-  may be stuck or may need a person to explain a basic problem, so no automated
-  blocker can prevent the handoff. Top-level feedback last changed at or before
-  the command stays retired. Review threads are not retired by the command, but
-  their existing work does not override the handoff. Actionable human reviewer
-  feedback on an unresolved, non-outdated thread with an effective content
-  timestamp after the command ends the handoff, because a reviewer has answered
-  the request for help and assigned the next action to the author. That includes
+- An effective reviewer-routing override is a break-glass handoff. It bypasses
+  required checks, Copilot review, merge conflicts, and discussion actions across
+  later pushes. The approval threshold determines whether it waits on reviewers
+  or maintainers. The author may be stuck or may need a person to explain a basic
+  problem, so no automated blocker can prevent the handoff. Top-level feedback
+  last changed at or before the command stays retired. Review threads are not
+  retired by the command, but their existing work does not override the handoff.
+  Actionable human reviewer feedback on an unresolved, non-outdated thread with
+  an effective content timestamp after the command ends the handoff, because a
+  reviewer has answered the request for help and assigned the next action to the
+  author. That includes
   a new reply or edit on an older active review thread. Praise, informational
   comments, bot feedback, inactive threads, and feedback last changed at or
   before the command do not end it.

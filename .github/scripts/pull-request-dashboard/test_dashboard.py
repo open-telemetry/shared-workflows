@@ -1321,7 +1321,9 @@ class PullRequestEvaluationTest(unittest.IsolatedAsyncioTestCase):
         )
 
     @patch("pull_request_evaluation.fetch_pull_request_source")
-    async def test_push_does_not_end_persistent_handoff(self, fetch_raw: Mock) -> None:
+    async def test_push_preserves_handoff_and_allows_later_approval(
+        self, fetch_raw: Mock
+    ) -> None:
         fetch_raw.return_value = pull_request_source(
             pull_request=pull_request_metadata(head_sha="new-head"),
             issue_comments=(
@@ -1366,6 +1368,40 @@ class PullRequestEvaluationTest(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(result.facts.dashboard_override_persistent)
         self.assertFalse(result.facts.dashboard_override_cleared_by_feedback)
         self.assertEqual({}, result.pending_actions)
+        self.assertEqual([], classifier.requests)
+        self.assertEqual([], classifier.reviewer_feedback_requests)
+
+        fetch_raw.return_value = replace(
+            fetch_raw.return_value,
+            reviews=(review_source(
+                state="APPROVED",
+                commit_id="new-head",
+                submitted_at="2026-08-16T09:00:00Z",
+            ),),
+        )
+
+        approved_result = await evaluate_pr(
+            {"number": 7},
+            previous_result=StoredDashboardResult.from_evaluation(result),
+            require_clean_copilot_review_branches=["main"],
+            classification_service=classifier,
+        )
+
+        self.assertIsInstance(approved_result, EvaluationSuccess)
+        assert isinstance(approved_result, EvaluationSuccess)
+        self.assertEqual(DashboardRoute.MAINTAINER, approved_result.route)
+        self.assertEqual(1, approved_result.facts.approval_count)
+        self.assertTrue(approved_result.facts.dashboard_override_persistent)
+        self.assertFalse(
+            approved_result.facts.dashboard_override_cleared_by_feedback
+        )
+        self.assertFalse(approved_result.facts.route_held_for_gates)
+        self.assertFalse(approved_result.facts.copilot_review_request_needed)
+        self.assertEqual(
+            result.facts.waiting_since,
+            approved_result.facts.waiting_since,
+        )
+        self.assertEqual({}, approved_result.pending_actions)
         self.assertEqual([], classifier.requests)
         self.assertEqual([], classifier.reviewer_feedback_requests)
 
