@@ -42,9 +42,8 @@ FULL_PUBLISH_DELIVERED_FILE = "full-publish-delivered.json"
 # current vector, ordinary state loaders may regenerate mismatched disposable
 # caches. Every constant ending in _STATE_VERSION or _REVISION is included.
 # dashboard-state.json: accepted PR routing results and backfill readiness.
-# Version 18 separates author-action thread state from unresolved-thread state.
-# Earlier versions cannot reconstruct the author-action state.
-DASHBOARD_STATE_VERSION = 18
+# Routing facts include current-head Copilot error counts for bounded retries.
+DASHBOARD_STATE_VERSION = 19
 DASHBOARD_STATE_COMPATIBLE_VERSIONS: tuple[int, ...] = ()
 # backfill-state.json: round-robin cursor used by full dashboard refreshes.
 BACKFILL_STATE_VERSION = 3
@@ -53,13 +52,13 @@ NOTIFICATION_STATE_VERSION = 3
 # author-nudge-state.json: waiting episodes and delivered author reminders.
 AUTHOR_NUDGE_STATE_VERSION = 4
 # copilot-review-request-state.json: pending and delivered review requests.
-COPILOT_REVIEW_REQUEST_STATE_VERSION = 7
+COPILOT_REVIEW_REQUEST_STATE_VERSION = 8
 COPILOT_REVIEW_FALLBACK_STATE_VERSION = 1
 # status-comment-rollout-state.json: target/completed renderer revisions and queue.
 STATUS_COMMENT_ROLLOUT_STATE_VERSION = 3
 # Rendered status-comment behavior. Increment when existing comments need to
 # adopt a change; hourly runs durably roll it out to all open PRs.
-STATUS_COMMENT_REVISION = 20
+STATUS_COMMENT_REVISION = 21
 FULL_PUBLISH_STATE_VERSION = 1
 INITIAL_BACKFILL_COMPLETE_KEY = "initial_backfill_complete"
 _state_dir: Path | None = None
@@ -713,6 +712,10 @@ def decode_dashboard_facts(value: Any) -> DashboardFacts:
             value.get("copilot_review_fallback_exhausted", _MISSING),
             "facts.copilot_review_fallback_exhausted",
         ),
+        copilot_review_error_count=_integer(
+            value.get("copilot_review_error_count", _MISSING),
+            "facts.copilot_review_error_count",
+        ),
         copilot_review_exists=_boolean(
             value.get("copilot_review_exists", _MISSING),
             "facts.copilot_review_exists",
@@ -887,6 +890,8 @@ def encode_dashboard_facts(facts: DashboardFacts) -> dict[str, Any]:
         stored["copilot_review_fallback_available"] = True
     if facts.copilot_review_fallback_exhausted:
         stored["copilot_review_fallback_exhausted"] = True
+    if facts.copilot_review_error_count:
+        stored["copilot_review_error_count"] = facts.copilot_review_error_count
     if facts.dashboard_override_bound_command_id:
         stored["dashboard_override_bound_command_id"] = (
             facts.dashboard_override_bound_command_id

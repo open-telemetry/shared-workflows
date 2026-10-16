@@ -554,6 +554,7 @@ class PullRequestEvaluationTest(unittest.IsolatedAsyncioTestCase):
 
                 self.assertIsInstance(result, EvaluationSuccess)
                 assert isinstance(result, EvaluationSuccess)
+                self.assertEqual(1, result.facts.copilot_review_error_count)
                 self.assertFalse(result.facts.copilot_review_exists)
                 self.assertFalse(result.facts.copilot_review_quota_exhausted)
                 self.assertTrue(result.facts.copilot_review_request_needed)
@@ -562,6 +563,111 @@ class PullRequestEvaluationTest(unittest.IsolatedAsyncioTestCase):
                     previous_route == "author", result.facts.route_held_for_gates
                 )
                 self.assertEqual(DashboardRoute(previous_route), result.route)
+
+    @patch("pull_request_evaluation.fetch_pull_request_source")
+    async def test_error_budget_releases_gate_and_resets_on_push(
+        self, fetch_raw: Mock
+    ) -> None:
+        errors = tuple(
+            review_source(
+                database_id=review_id,
+                actor=actor("copilot-pull-request-reviewer[bot]"),
+                commit_id="current-head",
+                body=(
+                    "Copilot encountered an error and was unable to review this "
+                    "pull request. You can try again by re-requesting a review."
+                ),
+            )
+            for review_id in (10, 11, 12)
+        )
+        previous_result = None
+        for head_sha, error_count in (
+            ("current-head", 1),
+            ("current-head", 2),
+            ("current-head", 2),
+            ("current-head", 3),
+            ("next-head", 3),
+        ):
+            with self.subTest(head=head_sha, errors=error_count):
+                fetch_raw.return_value = pull_request_source(
+                    pull_request=pull_request_metadata(
+                        base_branch="main", head_sha=head_sha,
+                    ),
+                    reviews=errors[:error_count],
+                )
+                result = await evaluate_pr(
+                    {"number": 7},
+                    previous_result=previous_result,
+                    require_clean_copilot_review_branches=["main"],
+                )
+
+                self.assertIsInstance(result, EvaluationSuccess)
+                assert isinstance(result, EvaluationSuccess)
+                self.assertEqual(
+                    error_count if head_sha == "current-head" else 0,
+                    result.facts.copilot_review_error_count,
+                )
+                self.assertEqual(
+                    error_count < 2 or head_sha == "next-head",
+                    result.facts.copilot_review_request_needed,
+                )
+                self.assertEqual(
+                    error_count < 2 or head_sha == "next-head",
+                    result.facts.copilot_review_outstanding,
+                )
+                self.assertEqual(
+                    error_count < 2 or head_sha == "next-head",
+                    result.facts.copilot_review_unreported,
+                )
+                self.assertFalse(result.facts.copilot_review_exists)
+                self.assertFalse(result.facts.route_hold_expired)
+                self.assertEqual(
+                    DashboardRoute.AUTHOR if error_count < 2 else DashboardRoute.APPROVER,
+                    result.route,
+                )
+                if head_sha == "current-head" and error_count >= 2:
+                    self.assertIsNone(result.facts.route_held_since)
+                previous_result = stored_dashboard_result(
+                    7, result.route, facts=result.facts,
+                )
+
+    @patch("pull_request_evaluation.fetch_pull_request_source")
+    async def test_error_budget_does_not_release_required_check_gate(
+        self, fetch_raw: Mock
+    ) -> None:
+        for bucket in ("fail", "pending"):
+            with self.subTest(bucket=bucket):
+                fetch_raw.return_value = pull_request_source(
+                    pull_request=pull_request_metadata(
+                        base_branch="main", head_sha="current-head",
+                    ),
+                    checks=(check_source(name="CI", bucket=bucket),),
+                    reviews=tuple(
+                        review_source(
+                            database_id=review_id,
+                            actor=actor("copilot"),
+                            commit_id="current-head",
+                            body=(
+                                "Copilot encountered an error and was unable to review "
+                                "this pull request. You can try again by re-requesting "
+                                "a review."
+                            ),
+                        )
+                        for review_id in (10, 11)
+                    ),
+                )
+                result = await evaluate_pr(
+                    {"number": 7},
+                    require_clean_copilot_review_branches=["main"],
+                )
+
+                self.assertIsInstance(result, EvaluationSuccess)
+                assert isinstance(result, EvaluationSuccess)
+                self.assertEqual(2, result.facts.copilot_review_error_count)
+                self.assertFalse(result.facts.copilot_review_request_needed)
+                self.assertFalse(result.facts.copilot_review_outstanding)
+                self.assertFalse(result.facts.route_hold_expired)
+                self.assertEqual(DashboardRoute.AUTHOR, result.route)
 
     @patch("pull_request_evaluation.fetch_pull_request_source")
     async def test_quota_failure_disables_requests_and_gate_across_pushes(
@@ -937,6 +1043,38 @@ class PullRequestEvaluationTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(
             (thread_url,),
             quota_result.facts.author_action_review_thread_urls,
+        )
+
+        fetch_raw.return_value = replace(
+            fetch_raw.return_value,
+            reviews=tuple(
+                review_source(
+                    database_id=review_id,
+                    actor=actor("copilot"),
+                    commit_id="abcdef123456",
+                    body=(
+                        "Copilot encountered an error and was unable to review this "
+                        "pull request. You can try again by re-requesting a review."
+                    ),
+                )
+                for review_id in (10, 11)
+            ),
+        )
+        error_result = await evaluate_pr(
+            {"number": 7},
+            require_clean_copilot_review_branches=["main"],
+            classification_service=classifier,
+        )
+
+        self.assertIsInstance(error_result, EvaluationSuccess)
+        assert isinstance(error_result, EvaluationSuccess)
+        self.assertEqual(2, error_result.facts.copilot_review_error_count)
+        self.assertFalse(error_result.facts.copilot_review_outstanding)
+        self.assertFalse(error_result.facts.copilot_review_request_needed)
+        self.assertEqual(DashboardRoute.AUTHOR, error_result.route)
+        self.assertEqual(
+            (thread_url,),
+            error_result.facts.author_action_review_thread_urls,
         )
 
     @patch("pull_request_evaluation.fetch_pull_request_source")

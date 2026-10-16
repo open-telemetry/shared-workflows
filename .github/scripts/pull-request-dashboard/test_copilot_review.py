@@ -13,10 +13,12 @@ from unittest.mock import patch
 from copilot_review import (
     REQUEST_CONFIRMATION_ATTEMPTS,
     copilot_fallback_exhausted,
+    copilot_review_error_count,
     copilot_review_outstanding,
     copilot_review_request_landed,
     copilot_review_unreported,
     copilot_review_status,
+    is_copilot_error,
     is_copilot_quota_failure,
     open_copilot_finding_urls,
     set_copilot_review_request_needed,
@@ -135,6 +137,37 @@ class CopilotFindingLifecycleTest(unittest.TestCase):
 
 
 class CopilotReviewStatusTest(unittest.TestCase):
+    def test_error_count_requires_current_head_copilot_notices(self) -> None:
+        failure = review_source(
+            actor=actor("copilot-pull-request-reviewer[bot]"),
+            commit_id="current-head",
+            body=ERROR_BODY,
+        )
+        cases = (
+            ("exact", failure, True),
+            ("whitespace", replace(failure, body=f"\n{ERROR_BODY}\n"), True),
+            ("human", replace(failure, actor=actor("reviewer")), False),
+            ("quota", replace(failure, body=QUOTA_FAILURE_BODY), False),
+            ("quoted", replace(failure, body=f"Handle this:\n> {ERROR_BODY}"), False),
+        )
+        for name, review, expected in cases:
+            with self.subTest(name=name):
+                self.assertEqual(expected, is_copilot_error(review))
+                self.assertEqual(
+                    1 if expected else 0,
+                    copilot_review_error_count((review,), "current-head"),
+                )
+                self.assertEqual(0, copilot_review_error_count((review,), "next-head"))
+                self.assertEqual(0, copilot_review_error_count((review,), ""))
+
+        self.assertEqual(
+            2,
+            copilot_review_error_count(
+                (failure, replace(failure, database_id=4)),
+                "current-head",
+            ),
+        )
+
     def test_error_notices_do_not_count_as_completed_reviews(self) -> None:
         failure = review_source(
             actor=actor("copilot-pull-request-reviewer[bot]"),
@@ -330,6 +363,37 @@ class CopilotFirstReviewRequestTest(unittest.TestCase):
                         not exhausted, copilot_review_unreported(facts, enabled=True)
                     )
 
+    def test_two_errors_stop_requests_and_release_only_the_copilot_gate(self) -> None:
+        for error_count in (0, 1, 2, 3):
+            for exists in (False, True):
+                for fallback_available in (False, True):
+                    with self.subTest(
+                        error_count=error_count,
+                        exists=exists,
+                        fallback_available=fallback_available,
+                    ):
+                        facts = self.base_facts(
+                            copilot_review_error_count=error_count,
+                            copilot_review_exists=exists,
+                            copilot_review_stale=exists,
+                            copilot_review_needed=exists,
+                            copilot_review_fallback_available=fallback_available,
+                        )
+                        self.assertEqual(
+                            error_count < 2,
+                            set_copilot_review_request_needed(
+                                facts, "approver", enabled=True
+                            ).copilot_review_request_needed,
+                        )
+                        self.assertEqual(
+                            error_count < 2,
+                            copilot_review_outstanding(facts, enabled=True),
+                        )
+                        self.assertEqual(
+                            error_count < 2,
+                            copilot_review_unreported(facts, enabled=True),
+                        )
+
     def test_unsettled_checks_do_not_hold_the_first_review_request(self) -> None:
         facts = self.base_facts(
             ci_pending_count=1,
@@ -400,6 +464,15 @@ class CopilotFallbackDeliveryTest(unittest.TestCase):
             "body": QUOTA_FAILURE_BODY,
         }
 
+    def error_notice(self, review_id: int) -> dict:
+        return {
+            "id": review_id,
+            "user": {"login": "copilot-pull-request-reviewer[bot]"},
+            "commit_id": "current-head",
+            "state": "COMMENTED",
+            "body": ERROR_BODY,
+        }
+
     def deliver(self) -> list[str]:
         return deliver_copilot_review_requests("open-telemetry/example", NOW)
 
@@ -419,17 +492,40 @@ class CopilotFallbackDeliveryTest(unittest.TestCase):
         self.assertEqual(format_ts(NOW), load_copilot_review_requests()["7"]["requested_at"])
 
     def test_error_notice_retries_without_quota_fallback(self) -> None:
-        self.reviews = [{
-            "user": {"login": "copilot-pull-request-reviewer[bot]"},
-            "commit_id": "current-head",
-            "state": "COMMENTED",
-            "body": ERROR_BODY,
-        }]
+        self.reviews = [self.error_notice(10)]
 
         self.assertEqual([], self.deliver())
 
         self.request.assert_called_once_with("PR_node")
         self.assertEqual({}, load_copilot_review_fallbacks())
+        self.assertEqual(format_ts(NOW), load_copilot_review_requests()["7"]["requested_at"])
+
+    def test_second_error_discards_a_request_accepted_before_it_arrived(self) -> None:
+        self.reviews = [self.error_notice(10), self.error_notice(11)]
+        for token in ("", "request-token"):
+            with self.subTest(token_available=bool(token)), patch.dict(
+                os.environ, {"COPILOT_REVIEW_FALLBACK_TOKEN": token}
+            ):
+                self.enqueue()
+                output = io.StringIO()
+                with redirect_stderr(output):
+                    self.assertEqual([], self.deliver())
+
+                self.assertIn("Copilot reported 2 errors on head current-head", output.getvalue())
+                self.assertEqual({}, load_copilot_review_requests())
+                self.assertEqual({}, load_copilot_review_fallbacks())
+                self.request.assert_not_called()
+
+    def test_error_retry_budget_resets_after_push(self) -> None:
+        self.reviews = [self.error_notice(10), self.error_notice(11)]
+        self.assertEqual([], self.deliver())
+        self.request.assert_not_called()
+
+        self.snapshot = replace(self.snapshot, head_sha="next-head")
+        self.enqueue()
+        self.assertEqual([], self.deliver())
+
+        self.request.assert_called_once_with("PR_node")
         self.assertEqual(format_ts(NOW), load_copilot_review_requests()["7"]["requested_at"])
 
     def test_new_push_retains_fallback_after_receipt_intent_is_cleared(self) -> None:

@@ -9,8 +9,10 @@ from pathlib import Path
 import sys
 
 from copilot_review import (
+    COPILOT_REVIEW_ERROR_LIMIT,
     copilot_fallback_exhausted,
     copilot_quota_failure_ids,
+    copilot_review_error_count,
     copilot_review_request_landed,
     copilot_review_status,
     is_copilot_quota_failure,
@@ -110,6 +112,17 @@ def deliver_copilot_review_requests(
             reviews = normalize_reviews(
                 fetch_pr_reviews(owner, repo_name, pr_number)
             )
+            error_count = copilot_review_error_count(reviews, snapshot.head_sha)
+            if error_count >= COPILOT_REVIEW_ERROR_LIMIT:
+                print(
+                    f"discarding Copilot review request for PR #{pr_number}: "
+                    f"Copilot reported {error_count} errors on "
+                    f"head {snapshot.head_sha}; automatic requests are disabled "
+                    "for this head",
+                    file=sys.stderr,
+                )
+                requests.pop(key, None)
+                continue
             fallback = fallbacks.get(key)
             quota_exhausted = (
                 fallback is not None

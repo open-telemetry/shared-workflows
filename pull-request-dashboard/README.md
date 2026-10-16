@@ -181,9 +181,16 @@ maintainers. Conflicts, failing required checks, author-action feedback, and
 manual reviewer handoffs block requests; pending checks do not.
 
 Copilot's "encountered an error and was unable to review" notice does not count
-as a completed review. The dashboard re-requests review on the next eligible
+as a completed review. The first error allows one retry on the next eligible
 refresh without requiring a new commit, unless a request is already pending.
-The normal four-hour gate timeout still applies if Copilot keeps failing.
+The error notice itself triggers a webhook refresh; hourly backfill is the
+backstop for a missed refresh. There is no additional retry delay.
+
+After two error notices for the same commit, automatic requests stop and the
+Copilot gate releases immediately. The status comment explains why routing no
+longer waits for Copilot. Required checks and unresolved Copilot findings still
+apply. A new commit resets the error budget. The normal four-hour gate timeout
+remains the backstop for reviews that never report.
 
 When Copilot reports quota exhaustion and no fallback token is configured, the
 dashboard immediately stops automatic review requests for that PR and releases
