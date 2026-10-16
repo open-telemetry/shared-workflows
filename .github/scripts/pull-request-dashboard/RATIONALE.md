@@ -466,6 +466,17 @@ the implementation understandable and operationally cheap.
 - The other state is a missing first review. The dashboard requests it on the
   first eligible refresh using its GitHub App installation token. Initial reviews
   and re-reviews share the same delivery checks and confirmation path.
+- Copilot's generic error notice is a failed attempt, not a completed review or
+  delivery confirmation. It leaves the review missing or stale so the next
+  eligible refresh can retry on the same head without changing the requester.
+  Only one retry is allowed: two error notices for the current head stop
+  automatic requests and immediately release the Copilot gate. The count comes
+  from GitHub reviews, not refreshes, and a new head starts a fresh budget.
+  Delivery rechecks the live count so an error arriving after evaluation cannot
+  cause another request. Pending requests still prevent duplicates. Required
+  checks and unresolved Copilot findings still apply; the status comment
+  explains when routing stops waiting after repeated errors. The four-hour
+  timeout remains a backstop for reviews that never report.
 - GitHub's quota-exhausted notice is a failed attempt even though GitHub records
   it as a review of the current head. It does not count as a completed review
   or confirm delivery. Without a configured fallback token, it immediately
@@ -523,16 +534,17 @@ the implementation understandable and operationally cheap.
   or a pending review that holds the PR. It reviews nearly every PR, so completed
   participation alone adds noise rather than identifying work that remains.
   This is a display filter only; review state and routing still use all feedback.
-- An effective reviewer-routing override is a break-glass handoff. It forces the
-  reviewer route across later pushes and bypasses required checks, Copilot
-  review, merge conflicts, discussion actions, and approval routing. The author
-  may be stuck or may need a person to explain a basic problem, so no automated
-  blocker can prevent the handoff. Top-level feedback last changed at or before
-  the command stays retired. Review threads are not retired by the command, but
-  their existing work does not override the handoff. Actionable human reviewer
-  feedback on an unresolved, non-outdated thread with an effective content
-  timestamp after the command ends the handoff, because a reviewer has answered
-  the request for help and assigned the next action to the author. That includes
+- An effective reviewer-routing override is a break-glass handoff. It bypasses
+  required checks, Copilot review, merge conflicts, and discussion actions across
+  later pushes. The approval threshold determines whether it waits on reviewers
+  or maintainers. The author may be stuck or may need a person to explain a basic
+  problem, so no automated blocker can prevent the handoff. Top-level feedback
+  last changed at or before the command stays retired. Review threads are not
+  retired by the command, but their existing work does not override the handoff.
+  Actionable human reviewer feedback on an unresolved, non-outdated thread with
+  an effective content timestamp after the command ends the handoff, because a
+  reviewer has answered the request for help and assigned the next action to the
+  author. That includes
   a new reply or edit on an older active review thread. Praise, informational
   comments, bot feedback, inactive threads, and feedback last changed at or
   before the command do not end it.

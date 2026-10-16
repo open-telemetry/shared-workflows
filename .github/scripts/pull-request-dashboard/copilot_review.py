@@ -27,6 +27,11 @@ COPILOT_QUOTA_FAILURE_BODY = (
     "Copilot was unable to review this pull request because the user who "
     "requested the review has reached their quota limit."
 )
+COPILOT_ERROR_BODY = (
+    "Copilot encountered an error and was unable to review this pull request. "
+    "You can try again by re-requesting a review."
+)
+COPILOT_REVIEW_ERROR_LIMIT = 2
 
 
 # How many times the pull request is read back before a request counts as
@@ -51,6 +56,22 @@ def is_copilot_quota_failure(review: Review) -> bool:
     )
 
 
+def is_copilot_error(review: Review) -> bool:
+    return (
+        is_copilot_reviewer(review)
+        and review.body.strip() == COPILOT_ERROR_BODY
+    )
+
+
+def copilot_review_error_count(reviews: Sequence[Review], head_sha: str) -> int:
+    if not head_sha:
+        return 0
+    return sum(
+        is_copilot_error(review) and review.commit_id == head_sha
+        for review in reviews
+    )
+
+
 def copilot_quota_failure_ids(reviews: Sequence[Review]) -> tuple[int, ...]:
     failures = [review for review in reviews if is_copilot_quota_failure(review)]
     if any(review.database_id <= 0 for review in failures):
@@ -69,9 +90,13 @@ def copilot_fallback_exhausted(
 
 
 def copilot_reviews_disabled(facts: DashboardFacts) -> bool:
-    return facts.copilot_review_fallback_exhausted or (
-        facts.copilot_review_quota_exhausted
-        and not facts.copilot_review_fallback_available
+    return (
+        facts.copilot_review_error_count >= COPILOT_REVIEW_ERROR_LIMIT
+        or facts.copilot_review_fallback_exhausted
+        or (
+            facts.copilot_review_quota_exhausted
+            and not facts.copilot_review_fallback_available
+        )
     )
 
 
@@ -122,6 +147,7 @@ def copilot_review_status(
         for review in reviews
         if is_copilot_reviewer(review)
         and not is_copilot_quota_failure(review)
+        and not is_copilot_error(review)
     ]
     if not copilot_reviews:
         return False, False, False

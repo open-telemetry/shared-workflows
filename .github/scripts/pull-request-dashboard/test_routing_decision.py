@@ -247,6 +247,59 @@ class RoutingDecisionTest(RoutingTestMixin, unittest.TestCase):
             outcome,
         )
 
+    def test_manual_handoff_respects_approval_thresholds_and_bypasses_blockers(
+        self,
+    ) -> None:
+        cases = (
+            (0, 1, False, DashboardRoute.APPROVER),
+            (1, 1, False, DashboardRoute.MAINTAINER),
+            (1, 2, False, DashboardRoute.APPROVER),
+            (2, 2, False, DashboardRoute.MAINTAINER),
+            (1, 2, True, DashboardRoute.MAINTAINER),
+        )
+        for approvals, required, maintenance_bot, expected in cases:
+            for blocked in (False, True):
+                with self.subTest(
+                    approvals=approvals,
+                    required=required,
+                    maintenance_bot=maintenance_bot,
+                    blocked=blocked,
+                ):
+                    outcome = self.resolve(
+                        dashboard_facts(
+                            head_sha="current-head",
+                            approval_count=approvals,
+                            is_maintenance_bot=maintenance_bot,
+                            ci_failing_count=1 if blocked else 0,
+                            ci_pending_count=1 if blocked else 0,
+                            conflicts="yes" if blocked else "no",
+                            copilot_review_exists=True,
+                            copilot_review_needed=True,
+                            copilot_review_stale=True,
+                            last_author_activity_at="2026-08-16T08:00:00Z",
+                        ),
+                        pending_actions=(
+                            {"thread": {"action": "author"}} if blocked else {}
+                        ),
+                        previous_route=DashboardRoute.APPROVER,
+                        previous_facts=dashboard_facts(
+                            waiting_since="2026-08-16T07:00:00Z",
+                            waiting_age_basis="last_author_activity",
+                        ),
+                        required_approvals=required,
+                        require_clean_copilot_review=True,
+                        manual_reviewer_handoff=True,
+                    )
+
+                    self.assertEqual(expected, outcome.route)
+                    self.assertFalse(outcome.facts.route_held_for_gates)
+                    self.assertFalse(outcome.facts.copilot_review_outstanding)
+                    self.assertFalse(outcome.facts.copilot_review_request_needed)
+                    self.assertEqual(
+                        "2026-08-16T07:00:00+00:00",
+                        outcome.facts.waiting_since,
+                    )
+
     def test_route_selection_preserves_discussion_and_approval_rules(self) -> None:
         cases = (
             (

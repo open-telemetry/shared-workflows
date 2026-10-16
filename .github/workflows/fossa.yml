@@ -16,7 +16,7 @@ jobs:
   fossa:
     name: FOSSA scanning
     if: github.repository_owner == 'open-telemetry'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
     permissions:
       contents: read # for actions/checkout
     steps:

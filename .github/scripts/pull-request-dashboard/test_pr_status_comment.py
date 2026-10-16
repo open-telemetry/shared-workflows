@@ -568,6 +568,39 @@ class RenderStatusCommentTest(unittest.TestCase):
             body,
         )
 
+    def test_error_budget_exhaustion_explains_why_copilot_is_not_blocking(self) -> None:
+        for route in (DashboardRoute.AUTHOR, DashboardRoute.APPROVER, DashboardRoute.MAINTAINER):
+            for exists, stale in ((False, False), (True, True)):
+                with self.subTest(route=route, exists=exists, stale=stale):
+                    body = pr_status_comment.render_status_comment(
+                        self.pr(),
+                        status_result(
+                            route,
+                            copilot_review_error_count=2,
+                            copilot_review_exists=exists,
+                            copilot_review_stale=stale,
+                        ),
+                    )
+
+                    self.assertIn(
+                        "Copilot reported 2 errors on this commit. Automatic retries "
+                        "have stopped, and routing no longer waits for its review.",
+                        body,
+                    )
+
+    def test_error_budget_note_requires_exhaustion_and_a_missing_review(self) -> None:
+        for error_count, exists in ((0, False), (1, False), (2, True)):
+            with self.subTest(errors=error_count, exists=exists):
+                body = pr_status_comment.render_status_comment(
+                    self.pr(),
+                    status_result(
+                        copilot_review_error_count=error_count,
+                        copilot_review_exists=exists,
+                    ),
+                )
+
+                self.assertNotIn("Automatic retries have stopped", body)
+
     def test_waiting_on_author_combines_ci_and_review_feedback_reasons(self) -> None:
         body = pr_status_comment.render_status_comment(
             self.pr(),

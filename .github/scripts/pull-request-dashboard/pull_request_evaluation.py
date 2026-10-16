@@ -22,6 +22,7 @@ from classification_policy import (
 )
 from copilot_review import (
     copilot_fallback_exhausted,
+    copilot_review_error_count,
     copilot_review_status,
     is_copilot_quota_failure,
     is_copilot_reviewer,
@@ -280,6 +281,7 @@ def _compute_facts(
             previous_facts.copilot_review_fallback_exhausted
             or copilot_fallback_exhausted(fallback, source.reviews)
         ),
+        copilot_review_error_count=copilot_review_error_count(source.reviews, head_sha),
         copilot_review_exists=copilot_review_exists,
         copilot_review_stale=copilot_review_stale,
         copilot_review_needed=copilot_review_stale or copilot_review_findings,

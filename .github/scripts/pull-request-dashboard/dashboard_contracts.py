@@ -109,6 +109,7 @@ class DashboardFacts:
     copilot_review_quota_exhausted: bool = False
     copilot_review_fallback_available: bool = False
     copilot_review_fallback_exhausted: bool = False
+    copilot_review_error_count: int = 0
     copilot_review_exists: bool = False
     copilot_review_stale: bool = False
     copilot_review_needed: bool = False

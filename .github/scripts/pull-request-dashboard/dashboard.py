@@ -150,7 +150,11 @@ Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
                                                   column shows it as pending.
     copilot_review_exists           bool          Copilot has reviewed this PR
                                                   at least once, excluding
-                                                  quota-failure notices.
+                                                  error and quota notices.
+    copilot_review_error_count      int           Generic error notices for the
+                                                  current head. Two stop
+                                                  automatic requests and
+                                                  release the Copilot gate.
     copilot_review_stale            bool          Copilot has reviewed this PR,
                                                   but no review covers the
                                                   current head, so a re-review

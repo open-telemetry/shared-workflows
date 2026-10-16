@@ -78,13 +78,17 @@ def _base_route(
     facts: DashboardFacts,
     pending_actions: Mapping[str, Any],
     required_approvals: int,
+    *,
+    manual_reviewer_handoff: bool,
 ) -> DashboardRoute:
     counts = _action_counts(pending_actions)
     is_maintenance_bot = facts.is_maintenance_bot
     approval_threshold = 1 if is_maintenance_bot else required_approvals
-    if (facts.ci_failing_count or 0) > 0 and facts.author_can_act:
-        return DashboardRoute.AUTHOR
-    if counts["author"] and facts.author_can_act:
+    if (
+        not manual_reviewer_handoff
+        and facts.author_can_act
+        and ((facts.ci_failing_count or 0) > 0 or counts["author"])
+    ):
         return DashboardRoute.AUTHOR
     if facts.approval_count >= approval_threshold:
         return DashboardRoute.MAINTAINER
@@ -332,9 +336,8 @@ def resolve_routing(routing_input: RoutingInput) -> RoutingOutcome:
         facts,
         routing_input.pending_actions,
         routing_input.required_approvals,
+        manual_reviewer_handoff=routing_input.manual_reviewer_handoff,
     )
-    if routing_input.manual_reviewer_handoff:
-        route = DashboardRoute.APPROVER
     copilot_review_gate_enabled = (
         routing_input.require_clean_copilot_review
         and not routing_input.manual_reviewer_handoff

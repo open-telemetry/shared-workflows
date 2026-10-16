@@ -8,6 +8,7 @@ from collections.abc import Sequence
 from typing import Any
 from urllib.parse import urlencode
 
+from copilot_review import COPILOT_REVIEW_ERROR_LIMIT
 from github_cli import (
     GhNotFoundError,
     gh_api,
@@ -368,6 +369,16 @@ def render_status_comment(
                         maintainer_action_required_count
                     )
                 ),
+            ])
+        if (
+            facts.copilot_review_error_count >= COPILOT_REVIEW_ERROR_LIMIT
+            and (not facts.copilot_review_exists or facts.copilot_review_stale)
+        ):
+            body.extend([
+                "",
+                f"Copilot reported {facts.copilot_review_error_count} errors on this "
+                "commit. Automatic retries have stopped, and routing no longer "
+                "waits for its review.",
             ])
 
     lines = [

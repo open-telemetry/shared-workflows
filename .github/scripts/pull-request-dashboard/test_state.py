@@ -148,6 +148,17 @@ class StateTest(unittest.TestCase):
         self.assertFalse(decode_dashboard_facts({}).copilot_review_fallback_available)
         self.assertFalse(decode_dashboard_facts({}).copilot_review_fallback_exhausted)
 
+    def test_copilot_error_count_round_trips_and_defaults_to_zero(self) -> None:
+        for count in (0, 1, 2, 3):
+            with self.subTest(count=count):
+                facts = dashboard_facts(copilot_review_error_count=count)
+                self.assertEqual(facts, decode_dashboard_facts(encode_dashboard_facts(facts)))
+        self.assertEqual(0, decode_dashboard_facts({}).copilot_review_error_count)
+        for invalid_count in (True, "2", 1.5, None):
+            with self.subTest(invalid_count=invalid_count):
+                with self.assertRaisesRegex(ValueError, "copilot_review_error_count"):
+                    decode_dashboard_facts({"copilot_review_error_count": invalid_count})
+
     def test_backfill_preserves_generations_with_extra_marker_metadata(self) -> None:
         with (
             tempfile.TemporaryDirectory() as temp_dir,
@@ -894,12 +905,12 @@ class StateTest(unittest.TestCase):
     def test_notification_state_version_is_independent(self) -> None:
         self.assertEqual(BACKFILL_STATE_VERSION, 3)
         self.assertEqual(NOTIFICATION_STATE_VERSION, 3)
-        self.assertEqual(DASHBOARD_STATE_VERSION, 18)
+        self.assertEqual(DASHBOARD_STATE_VERSION, 19)
         self.assertEqual(DASHBOARD_STATE_COMPATIBLE_VERSIONS, ())
         self.assertEqual(STATUS_COMMENT_ROLLOUT_STATE_VERSION, 3)
-        self.assertEqual(STATUS_COMMENT_REVISION, 20)
+        self.assertEqual(STATUS_COMMENT_REVISION, 21)
         self.assertEqual(AUTHOR_NUDGE_STATE_VERSION, 4)
-        self.assertEqual(COPILOT_REVIEW_REQUEST_STATE_VERSION, 7)
+        self.assertEqual(COPILOT_REVIEW_REQUEST_STATE_VERSION, 8)
 
     def test_version_fifteen_dashboard_state_is_regenerated(self) -> None:
         with (
