@@ -519,6 +519,10 @@ the implementation understandable and operationally cheap.
   stale review is the ordinary state between a push and the next re-review, and
   an icon that is always present says nothing about which PRs are actually
   waiting.
+- Copilot appears in the reviewers column only for unresolved inline feedback
+  or a pending review that holds the PR. It reviews nearly every PR, so completed
+  participation alone adds noise rather than identifying work that remains.
+  This is a display filter only; review state and routing still use all feedback.
 - An effective reviewer-routing override is a break-glass handoff. It forces the
   reviewer route across later pushes and bypasses required checks, Copilot
   review, merge conflicts, discussion actions, and approval routing. The author

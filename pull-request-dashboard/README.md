@@ -108,6 +108,7 @@ The dashboard groups open non-draft pull requests by who is expected to act next
   - 🔴 requested changes
   - ⏳ a review is in flight (a human reviewer other than the effective author was requested again after reviewing, or a Copilot review is pending while it holds the PR)
   - Icons combine when multiple states apply. For example, 💬📌 means the reviewer has unresolved inline feedback and top-level feedback that still needs author action; ✅ may accompany either or both.
+  - Copilot appears only with unresolved inline feedback (💬) or a pending review that holds the PR (⏳). Completed reviews alone do not add Copilot to the column.
 - **CI** — Aggregate check status across the PR's required status checks. Optional checks do not affect this column:
   - ✅ all required checks passing
   - ⏳ at least one required check pending, none failing

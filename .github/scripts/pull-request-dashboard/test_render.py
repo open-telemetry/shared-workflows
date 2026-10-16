@@ -86,6 +86,57 @@ class RenderTest(unittest.TestCase):
 
         self.assertEqual("reviewer&nbsp;⏳\u2060🔴", cell)
 
+    def test_copilot_without_unresolved_feedback_is_hidden(self) -> None:
+        for login in (
+            "copilot",
+            "Copilot",
+            "copilot[bot]",
+            "copilot-pull-request-reviewer",
+            "copilot-pull-request-reviewer[bot]",
+        ):
+            for status in (
+                {},
+                {"approved": True},
+                {"approved_non_team": True},
+                {"changes_requested": True},
+                {"top_level_feedback": True},
+                {"pending_review": True},
+            ):
+                with self.subTest(login=login, status=status):
+                    cell = reviewers_cell_text(dashboard_facts(
+                        reviewers=[
+                            {"login": login, **status},
+                            {"login": "reviewer"},
+                        ],
+                        copilot_review_exists=True,
+                    ))
+
+                    self.assertEqual("reviewer", cell)
+
+    def test_copilot_with_unresolved_feedback_remains_visible(self) -> None:
+        for login in (
+            "copilot",
+            "Copilot",
+            "copilot[bot]",
+            "copilot-pull-request-reviewer",
+            "copilot-pull-request-reviewer[bot]",
+        ):
+            with self.subTest(login=login):
+                cell = reviewers_cell_text(dashboard_facts(
+                    reviewers=[{"login": login, "unresolved_thread": True}],
+                ))
+
+                self.assertEqual("Copilot&nbsp;💬", cell)
+
+    def test_copilot_is_hidden_after_its_last_thread_is_resolved(self) -> None:
+        cell = reviewers_cell_text(dashboard_facts(
+            reviewers=[{"login": "copilot-pull-request-reviewer"}],
+            copilot_review_exists=True,
+            copilot_review_outstanding=True,
+        ))
+
+        self.assertEqual("", cell)
+
     def test_requested_copilot_review_is_listed_as_pending(self) -> None:
         cell = reviewers_cell_text(dashboard_facts(
             reviewers=[{"login": "reviewer", "approved": True}],
@@ -95,12 +146,25 @@ class RenderTest(unittest.TestCase):
 
         self.assertEqual("Copilot&nbsp;⏳<br>reviewer&nbsp;✅", cell)
 
+    def test_requested_copilot_review_keeps_its_entry_without_open_feedback(self) -> None:
+        cell = reviewers_cell_text(dashboard_facts(
+            reviewers=[{"login": "Copilot"}],
+            copilot_review_exists=True,
+            copilot_review_outstanding=True,
+            copilot_review_requested=True,
+        ))
+
+        self.assertEqual("Copilot&nbsp;⏳", cell)
+
     def test_requested_copilot_review_on_an_ungated_branch_is_not_pending(self) -> None:
         # Nothing holds the pull request there, and a requested human reviewer
         # who has not responded is left off the row, so Copilot gets no row
         # either. The gate is what makes the wait someone's turn.
         cell = reviewers_cell_text(dashboard_facts(
-            reviewers=[{"login": "reviewer", "approved": True}],
+            reviewers=[
+                {"login": "copilot-pull-request-reviewer"},
+                {"login": "reviewer", "approved": True},
+            ],
             copilot_review_outstanding=False,
             copilot_review_requested=True,
         ))

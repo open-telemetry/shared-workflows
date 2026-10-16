@@ -185,10 +185,15 @@ def copilot_review_pending(facts: DashboardFacts) -> bool:
 
 
 def display_reviewers(facts: DashboardFacts) -> list[ReviewerSummary]:
-    # Copilot only joins the reviewer list once it has reviewed, so a review
-    # that is still in flight has to be added for the wait to be visible at all.
-    reviewers = list(facts.reviewers)
-    if not copilot_review_pending(facts):
+    copilot_pending = copilot_review_pending(facts)
+    reviewers = [
+        reviewer
+        for reviewer in facts.reviewers
+        if not is_copilot_reviewer_login(reviewer.login)
+        or reviewer.unresolved_thread
+        or copilot_pending
+    ]
+    if not copilot_pending:
         return reviewers
     for reviewer in reviewers:
         if is_copilot_reviewer_login(reviewer.login):
