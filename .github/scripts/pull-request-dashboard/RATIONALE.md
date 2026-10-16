@@ -466,6 +466,11 @@ the implementation understandable and operationally cheap.
 - The other state is a missing first review. The dashboard requests it on the
   first eligible refresh using its GitHub App installation token. Initial reviews
   and re-reviews share the same delivery checks and confirmation path.
+- Copilot's generic error notice is a failed attempt, not a completed review or
+  delivery confirmation. It leaves the review missing or stale so the next
+  eligible refresh can retry on the same head without changing the requester.
+  Pending requests still prevent duplicates, and repeated errors remain subject
+  to the normal four-hour gate timeout.
 - GitHub's quota-exhausted notice is a failed attempt even though GitHub records
   it as a review of the current head. It does not count as a completed review
   or confirm delivery. Without a configured fallback token, it immediately

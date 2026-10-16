@@ -180,6 +180,11 @@ first dashboard refresh where it would otherwise route to reviewers or
 maintainers. Conflicts, failing required checks, author-action feedback, and
 manual reviewer handoffs block requests; pending checks do not.
 
+Copilot's "encountered an error and was unable to review" notice does not count
+as a completed review. The dashboard re-requests review on the next eligible
+refresh without requiring a new commit, unless a request is already pending.
+The normal four-hour gate timeout still applies if Copilot keeps failing.
+
 When Copilot reports quota exhaustion and no fallback token is configured, the
 dashboard immediately stops automatic review requests for that PR and releases
 the Copilot review gate without waiting for a completed review or the four-hour

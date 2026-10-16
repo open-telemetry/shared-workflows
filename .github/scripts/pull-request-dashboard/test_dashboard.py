@@ -518,6 +518,52 @@ class PullRequestEvaluationTest(unittest.IsolatedAsyncioTestCase):
                     )
 
     @patch("pull_request_evaluation.fetch_pull_request_source")
+    async def test_error_notice_retries_current_head_review(
+        self, fetch_raw: Mock
+    ) -> None:
+        fetch_raw.return_value = pull_request_source(
+            pull_request=pull_request_metadata(
+                base_branch="main",
+                head_sha="current-head",
+            ),
+            reviews=(review_source(
+                actor=actor("copilot-pull-request-reviewer[bot]"),
+                commit_id="current-head",
+                state="COMMENTED",
+                body=(
+                    "Copilot encountered an error and was unable to review this "
+                    "pull request. You can try again by re-requesting a review."
+                ),
+            ),),
+        )
+
+        for previous_route in ("author", "approver"):
+            with self.subTest(previous_route=previous_route):
+                result = await evaluate_pr(
+                    {"number": 7},
+                    previous_result=stored_dashboard_result(
+                        7,
+                        previous_route,
+                        facts=dashboard_facts(
+                            head_sha="current-head",
+                            copilot_review_exists=True,
+                        ),
+                    ),
+                    require_clean_copilot_review_branches=["main"],
+                )
+
+                self.assertIsInstance(result, EvaluationSuccess)
+                assert isinstance(result, EvaluationSuccess)
+                self.assertFalse(result.facts.copilot_review_exists)
+                self.assertFalse(result.facts.copilot_review_quota_exhausted)
+                self.assertTrue(result.facts.copilot_review_request_needed)
+                self.assertTrue(result.facts.copilot_review_unreported)
+                self.assertEqual(
+                    previous_route == "author", result.facts.route_held_for_gates
+                )
+                self.assertEqual(DashboardRoute(previous_route), result.route)
+
+    @patch("pull_request_evaluation.fetch_pull_request_source")
     async def test_quota_failure_disables_requests_and_gate_across_pushes(
         self, fetch_raw: Mock
     ) -> None:

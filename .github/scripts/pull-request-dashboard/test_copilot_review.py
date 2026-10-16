@@ -14,6 +14,7 @@ from copilot_review import (
     REQUEST_CONFIRMATION_ATTEMPTS,
     copilot_fallback_exhausted,
     copilot_review_outstanding,
+    copilot_review_request_landed,
     copilot_review_unreported,
     copilot_review_status,
     is_copilot_quota_failure,
@@ -51,6 +52,10 @@ NOW = datetime(2026, 7, 20, 2, tzinfo=timezone.utc)
 QUOTA_FAILURE_BODY = (
     "Copilot was unable to review this pull request because the user who "
     "requested the review has reached their quota limit."
+)
+ERROR_BODY = (
+    "Copilot encountered an error and was unable to review this pull request. "
+    "You can try again by re-requesting a review."
 )
 
 
@@ -130,6 +135,67 @@ class CopilotFindingLifecycleTest(unittest.TestCase):
 
 
 class CopilotReviewStatusTest(unittest.TestCase):
+    def test_error_notices_do_not_count_as_completed_reviews(self) -> None:
+        failure = review_source(
+            actor=actor("copilot-pull-request-reviewer[bot]"),
+            commit_id="current-head",
+            state="COMMENTED",
+            body=ERROR_BODY,
+        )
+        completed = replace(failure, body="No issues found.")
+        self.assertFalse(is_copilot_quota_failure(failure))
+        cases = (
+            ("failure_only", (failure,), (False, False, False)),
+            (
+                "whitespace",
+                (replace(failure, body=f"\n{ERROR_BODY}\n"),),
+                (False, False, False),
+            ),
+            (
+                "current_review_then_failure",
+                (completed, failure),
+                (True, False, False),
+            ),
+            (
+                "failure_then_current_review",
+                (failure, completed),
+                (True, False, False),
+            ),
+            (
+                "stale_review_then_failure",
+                (replace(completed, commit_id="old-head"), failure),
+                (True, True, False),
+            ),
+            (
+                "review_discussing_errors",
+                (replace(completed, body=f"Handle this failure:\n> {ERROR_BODY}"),),
+                (True, False, False),
+            ),
+        )
+        for name, reviews, expected in cases:
+            with self.subTest(name=name):
+                self.assertEqual(
+                    expected,
+                    copilot_review_status(reviews, "current-head", ()),
+                )
+
+    @patch("copilot_review.sleep_for_retry")
+    @patch("copilot_review.fetch_review_requests", return_value=[])
+    @patch("copilot_review.fetch_pr_reviews")
+    def test_error_notice_does_not_confirm_delivery(
+        self, fetch_reviews, _fetch_requests, _sleep
+    ) -> None:
+        fetch_reviews.return_value = [{
+            "user": {"login": "copilot-pull-request-reviewer[bot]"},
+            "commit_id": "current-head",
+            "state": "COMMENTED",
+            "body": ERROR_BODY,
+        }]
+
+        self.assertFalse(copilot_review_request_landed(
+            "open-telemetry", "example", 7, "current-head"
+        ))
+
     def test_quota_failure_requires_the_copilot_actor_and_exact_notice(self) -> None:
         failure = review_source(
             actor=actor("copilot"),
@@ -350,6 +416,20 @@ class CopilotFallbackDeliveryTest(unittest.TestCase):
             load_copilot_review_fallbacks()["7"],
         )
         self.request.assert_called_with("PR_node", token="request-token")
+        self.assertEqual(format_ts(NOW), load_copilot_review_requests()["7"]["requested_at"])
+
+    def test_error_notice_retries_without_quota_fallback(self) -> None:
+        self.reviews = [{
+            "user": {"login": "copilot-pull-request-reviewer[bot]"},
+            "commit_id": "current-head",
+            "state": "COMMENTED",
+            "body": ERROR_BODY,
+        }]
+
+        self.assertEqual([], self.deliver())
+
+        self.request.assert_called_once_with("PR_node")
+        self.assertEqual({}, load_copilot_review_fallbacks())
         self.assertEqual(format_ts(NOW), load_copilot_review_requests()["7"]["requested_at"])
 
     def test_new_push_retains_fallback_after_receipt_intent_is_cleared(self) -> None:

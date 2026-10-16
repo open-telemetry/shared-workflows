@@ -27,6 +27,10 @@ COPILOT_QUOTA_FAILURE_BODY = (
     "Copilot was unable to review this pull request because the user who "
     "requested the review has reached their quota limit."
 )
+COPILOT_ERROR_BODY = (
+    "Copilot encountered an error and was unable to review this pull request. "
+    "You can try again by re-requesting a review."
+)
 
 
 # How many times the pull request is read back before a request counts as
@@ -122,6 +126,7 @@ def copilot_review_status(
         for review in reviews
         if is_copilot_reviewer(review)
         and not is_copilot_quota_failure(review)
+        and review.body.strip() != COPILOT_ERROR_BODY
     ]
     if not copilot_reviews:
         return False, False, False
