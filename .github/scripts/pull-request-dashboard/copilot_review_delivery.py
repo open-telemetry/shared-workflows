@@ -149,12 +149,9 @@ def deliver_copilot_review_requests(
                 )
                 requests.pop(key, None)
                 continue
-            review_exists, review_stale, _review_findings = (
-                copilot_review_status(
-                    reviews,
-                    snapshot.head_sha,
-                    snapshot.review_threads,
-                )
+            review_exists, review_stale = copilot_review_status(
+                reviews,
+                snapshot.head_sha,
             )
             if review_exists and not review_stale:
                 print(

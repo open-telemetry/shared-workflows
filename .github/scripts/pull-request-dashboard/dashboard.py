@@ -163,11 +163,9 @@ Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
                                                   reviewed; eligible PRs
                                                   without a review need an
                                                   initial review request.
-    copilot_review_needed           bool          The review is stale or Copilot
-                                                  owns open review threads,
-                                                  meaning unresolved threads
-                                                  GitHub has not marked
-                                                  outdated.
+    copilot_review_needed           bool          The review is stale. Findings
+                                                  use normal discussion
+                                                  classification and routing.
     created_at                      str (iso)
     last_activity_at                str (iso)     Latest substantive activity by a
                                                   PR participant, never earlier

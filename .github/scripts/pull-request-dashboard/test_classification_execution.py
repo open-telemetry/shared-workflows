@@ -1297,19 +1297,35 @@ class ReviewThreadExecutionTest(unittest.IsolatedAsyncioTestCase):
         assert isinstance(result.decision, ActionDecision)
         self.assertIs(result.decision.action, DiscussionAction.AUTHOR)
 
-    async def test_unresolved_copilot_finding_does_not_use_reply_classifier(self) -> None:
-        thread = self.thread(
+    async def test_copilot_finding_uses_reply_classifier(self) -> None:
+        for reply, verdict, action in (
+            ("Fixed it.", "complete", DiscussionAction.REVIEWER),
+            ("I'll fix it.", "deferral", DiscussionAction.AUTHOR),
+        ):
+            with self.subTest(verdict=verdict):
+                result, runner = await self.classify(self.thread(
+                    ("bot", "Please fix this.", "2026-03-12T00:00:00Z"),
+                    ("author", reply, "2026-05-20T00:00:00Z"),
+                ), responder=lambda request: successful_response(
+                    request, author_reply=verdict,
+                ))
+
+                self.assertEqual(len(runner.requests), 1)
+                assert isinstance(result.decision, ActionDecision)
+                self.assertIs(result.decision.action, action)
+                self.assertEqual(result.since, "2026-05-20T00:00:00Z")
+
+    async def test_copilot_reply_failure_does_not_complete_the_handoff(self) -> None:
+        result, runner = await self.classify(self.thread(
             ("bot", "Please fix this.", "2026-03-12T00:00:00Z"),
             ("author", "Fixed it.", "2026-05-20T00:00:00Z"),
-        )
-        thread["strict_author_action"] = True
+        ), responses=(RuntimeError("model unavailable"),))
 
-        result, runner = await self.classify(thread)
-
-        self.assertEqual(runner.requests, [])
+        self.assertEqual(len(runner.requests), 1)
+        self.assertIsInstance(result, ClassificationFailure)
+        self.assertTrue(result.failed)
         assert isinstance(result.decision, ActionDecision)
         self.assertIs(result.decision.action, DiscussionAction.AUTHOR)
-        self.assertEqual(result.since, "2026-05-20T00:00:00Z")
 
     async def test_praise_keeps_the_previous_request_and_wait_age(self) -> None:
         result, runner = await self.classify(self.thread(

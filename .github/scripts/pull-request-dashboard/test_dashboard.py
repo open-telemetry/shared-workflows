@@ -920,162 +920,289 @@ class PullRequestEvaluationTest(unittest.IsolatedAsyncioTestCase):
         )
 
     @patch("pull_request_evaluation.fetch_pull_request_source")
-    async def test_unresolved_copilot_thread_with_completed_reply_remains_author_action(
+    async def test_completed_copilot_reply_resumes_approval_routing(
+        self,
+        fetch_raw: Mock,
+    ) -> None:
+        for gated in (False, True):
+            for approved in (False, True):
+                with self.subTest(gated=gated, approved=approved):
+                    fetch_raw.return_value = pull_request_source(
+                        reviews=(
+                            review_source(
+                                actor=actor("copilot"),
+                                commit_id="abcdef123456",
+                                finding_count=1,
+                            ),
+                            *(
+                                (review_source(
+                                    actor=actor("reviewer"),
+                                    state="APPROVED",
+                                ),)
+                                if approved else ()
+                            ),
+                        ),
+                        review_threads=(review_thread(
+                            comments=(
+                                review_thread_comment(
+                                    actor=actor("copilot"),
+                                    body="Please add a regression test.",
+                                ),
+                                review_thread_comment(
+                                    node_id="PRRC_2",
+                                    body="Added the regression test.",
+                                    created_at="2026-08-16T07:30:00Z",
+                                    actor=actor("author"),
+                                ),
+                            ),
+                        ),),
+                    )
+                    runner = FakeModelRunner(responder=successful_response)
+
+                    result = await evaluate_pull_request(
+                        evaluation_config(
+                            require_clean_copilot_review_branches=(
+                                ["main"] if gated else []
+                            ),
+                        ),
+                        PullRequestEvaluationInput(7),
+                        ClassificationService(
+                            runner,
+                            MemoryClassificationCacheStore(),
+                        ),
+                    )
+
+                    self.assertIsInstance(result, EvaluationSuccess)
+                    assert isinstance(result, EvaluationSuccess)
+                    self.assertEqual(
+                        DashboardRoute.MAINTAINER
+                        if approved else DashboardRoute.APPROVER,
+                        result.route,
+                    )
+                    self.assertEqual(
+                        "reviewer", result.pending_actions["PRRT_1"]["action"],
+                    )
+                    self.assertEqual((), result.facts.author_action_review_thread_urls)
+                    self.assertFalse(result.facts.copilot_review_outstanding)
+                    self.assertFalse(result.facts.copilot_review_request_needed)
+                    self.assertEqual(len(runner.requests), 1)
+                    self.assertIn(
+                        ReviewerSummary(
+                            login="copilot-pull-request-reviewer[bot]",
+                            unresolved_thread=True,
+                        ),
+                        result.facts.reviewers,
+                    )
+
+    @patch("pull_request_evaluation.fetch_pull_request_source")
+    async def test_copilot_findings_keep_author_work_with_the_author(
         self,
         fetch_raw: Mock,
     ) -> None:
         thread_url = "https://example.test/review-comment/copilot"
-        fetch_raw.return_value = pull_request_source(
-            pull_request=pull_request_metadata(),
-            reviews=(
-                review_source(
-                    actor=actor("copilot"),
-                    commit_id="old-head",
-                    finding_count=1,
-                    submitted_at="2026-08-16T07:00:00Z",
-                ),
-                review_source(
-                    actor=actor("copilot"),
-                    commit_id="abcdef123456",
-                    finding_count=0,
-                    submitted_at="2026-08-16T08:00:00Z",
-                ),
-            ),
-            review_threads=(review_thread(
-                comments=(
-                    review_thread_comment(
+        for reply in ("", "I'll add a regression test."):
+            for review_state in ("completed", "quota", "errors"):
+                with self.subTest(reply=reply, review_state=review_state):
+                    reviews = (review_source(
+                        actor=actor("copilot"),
+                        commit_id="abcdef123456",
+                    ),)
+                    if review_state == "quota":
+                        reviews += (review_source(
+                            actor=actor("copilot"),
+                            body=(
+                                "Copilot was unable to review this pull request "
+                                "because the user who requested the review has "
+                                "reached their quota limit."
+                            ),
+                        ),)
+                    elif review_state == "errors":
+                        reviews = tuple(
+                            review_source(
+                                database_id=review_id,
+                                actor=actor("copilot"),
+                                commit_id="abcdef123456",
+                                body=(
+                                    "Copilot encountered an error and was unable "
+                                    "to review this pull request. You can try "
+                                    "again by re-requesting a review."
+                                ),
+                            )
+                            for review_id in (10, 11)
+                        )
+                    comments = (review_thread_comment(
                         url=thread_url,
                         actor=actor("copilot"),
+                        body="Please add a regression test.",
+                    ),)
+                    if reply:
+                        comments += (review_thread_comment(
+                            node_id="PRRC_2",
+                            body=reply,
+                            created_at="2026-08-16T07:30:00Z",
+                            actor=actor("author"),
+                        ),)
+                    fetch_raw.return_value = pull_request_source(
+                        reviews=reviews,
+                        review_threads=(review_thread(comments=comments),),
+                    )
+
+                    result = await evaluate_pull_request(
+                        evaluation_config(
+                            require_clean_copilot_review_branches=["main"],
+                        ),
+                        PullRequestEvaluationInput(7),
+                        ClassificationService(
+                            FakeModelRunner(responder=lambda request: successful_response(
+                                request, author_reply="deferral",
+                            )),
+                            MemoryClassificationCacheStore(),
+                        ),
+                    )
+
+                    self.assertIsInstance(result, EvaluationSuccess)
+                    assert isinstance(result, EvaluationSuccess)
+                    self.assertEqual(DashboardRoute.AUTHOR, result.route)
+                    self.assertEqual(
+                        "author", result.pending_actions["PRRT_1"]["action"],
+                    )
+                    self.assertEqual(
+                        (thread_url,), result.facts.author_action_review_thread_urls,
+                    )
+                    self.assertFalse(result.facts.copilot_review_request_needed)
+                    if review_state != "completed":
+                        self.assertFalse(result.facts.copilot_review_outstanding)
+
+    @patch("pull_request_evaluation.fetch_pull_request_source")
+    async def test_new_feedback_on_answered_copilot_thread_returns_to_author(
+        self,
+        fetch_raw: Mock,
+    ) -> None:
+        for reviewer_login, edited in (
+            ("copilot", False),
+            ("reviewer", False),
+            ("copilot", True),
+        ):
+            with self.subTest(reviewer_login=reviewer_login, edited=edited):
+                root_comment = review_thread_comment(actor=actor("copilot"))
+                author_reply = review_thread_comment(
+                    node_id="PRRC_2",
+                    actor=actor("author"),
+                    body="Added the regression test.",
+                    created_at="2026-08-16T07:30:00Z",
+                )
+                thread = review_thread(comments=(root_comment, author_reply))
+                source = pull_request_source(
+                    reviews=(review_source(
+                        actor=actor("copilot"),
+                        commit_id="abcdef123456",
+                    ),),
+                    review_threads=(thread,),
+                )
+                fetch_raw.return_value = source
+                classifier = ClassificationService(
+                    FakeModelRunner(responder=successful_response),
+                    MemoryClassificationCacheStore(),
+                )
+                config = evaluation_config(
+                    require_clean_copilot_review_branches=["main"],
+                )
+
+                completed = await evaluate_pull_request(
+                    config, PullRequestEvaluationInput(7), classifier,
+                )
+
+                self.assertIsInstance(completed, EvaluationSuccess)
+                assert isinstance(completed, EvaluationSuccess)
+                self.assertEqual(DashboardRoute.APPROVER, completed.route)
+
+                feedback = (
+                    "The regression test still inherits the startup context. "
+                    "Please send a message without a parent and assert that "
+                    "it starts a separate trace."
+                )
+                if edited:
+                    comments = (
+                        replace(
+                            root_comment,
+                            body=feedback,
+                            updated_at="2026-08-16T08:00:00Z",
+                        ),
+                        author_reply,
+                    )
+                else:
+                    comments = (
+                        *thread.comments,
+                        review_thread_comment(
+                            node_id="PRRC_3",
+                            actor=actor(reviewer_login),
+                            body=feedback,
+                            created_at="2026-08-16T08:00:00Z",
+                        ),
+                    )
+                fetch_raw.return_value = replace(
+                    source,
+                    review_threads=(replace(thread, comments=comments),),
+                )
+
+                result = await evaluate_pull_request(
+                    config,
+                    PullRequestEvaluationInput(
+                        7, StoredDashboardResult.from_evaluation(completed),
                     ),
+                    classifier,
+                )
+
+                self.assertIsInstance(result, EvaluationSuccess)
+                assert isinstance(result, EvaluationSuccess)
+                self.assertEqual(DashboardRoute.AUTHOR, result.route)
+                self.assertEqual(
+                    "author", result.pending_actions["PRRT_1"]["action"],
+                )
+                self.assertEqual(
+                    (root_comment.url,), result.facts.author_action_review_thread_urls,
+                )
+
+    @patch("pull_request_evaluation.fetch_pull_request_source")
+    async def test_completed_copilot_reply_does_not_bypass_stale_review_gate(
+        self,
+        fetch_raw: Mock,
+    ) -> None:
+        fetch_raw.return_value = pull_request_source(
+            reviews=(review_source(
+                actor=actor("copilot"),
+                commit_id="old-head",
+            ),),
+            review_threads=(review_thread(
+                comments=(
+                    review_thread_comment(actor=actor("copilot")),
                     review_thread_comment(
                         node_id="PRRC_2",
-                        url="https://example.test/review-comment/author",
-                        body="Handled in a follow-up.",
+                        body="Added the regression test.",
                         created_at="2026-08-16T07:30:00Z",
                         actor=actor("author"),
                     ),
                 ),
             ),),
         )
-        classifier = FakeClassificationOperation(
-            DiscussionClassifications(
-                (
-                    action_classification(
-                        "PRRT_1",
-                        DiscussionKind.REVIEW_THREAD,
-                        DiscussionAction.NONE,
-                        "The author replied.",
-                    ),
-                ),
-                (),
-                (),
-            )
-        )
 
-        result = await evaluate_pr(
-            {"number": 7},
-            require_clean_copilot_review_branches=["main"],
-            classification_service=classifier,
+        result = await evaluate_pull_request(
+            evaluation_config(require_clean_copilot_review_branches=["main"]),
+            PullRequestEvaluationInput(7),
+            ClassificationService(
+                FakeModelRunner(responder=successful_response),
+                MemoryClassificationCacheStore(),
+            ),
         )
 
         self.assertIsInstance(result, EvaluationSuccess)
         assert isinstance(result, EvaluationSuccess)
         self.assertEqual(DashboardRoute.AUTHOR, result.route)
-        self.assertEqual(
-            (thread_url,),
-            result.facts.author_action_review_thread_urls,
-        )
-
-        ungated_result = await evaluate_pr(
-            {"number": 7},
-            classification_service=classifier,
-        )
-
-        self.assertIsInstance(ungated_result, EvaluationSuccess)
-        assert isinstance(ungated_result, EvaluationSuccess)
-        self.assertEqual(DashboardRoute.AUTHOR, ungated_result.route)
-        self.assertEqual(
-            (thread_url,),
-            ungated_result.facts.author_action_review_thread_urls,
-        )
-        self.assertEqual(
-            {
-                "PRRT_1": {
-                    "action": "author",
-                    "since": "2026-08-16T07:30:00Z",
-                },
-            },
-            ungated_result.pending_actions,
-        )
-        self.assertIn(
-            ReviewerSummary(
-                login="copilot-pull-request-reviewer[bot]",
-                open_thread=True,
-                unresolved_thread=True,
-            ),
-            ungated_result.facts.reviewers,
-        )
-
-        fetch_raw.return_value = replace(
-            fetch_raw.return_value,
-            reviews=(
-                *fetch_raw.return_value.reviews,
-                review_source(
-                    actor=actor("copilot"),
-                    body=(
-                        "Copilot was unable to review this pull request because "
-                        "the user who requested the review has reached their quota limit."
-                    ),
-                ),
-            ),
-        )
-        quota_result = await evaluate_pr(
-            {"number": 7},
-            require_clean_copilot_review_branches=["main"],
-            classification_service=classifier,
-        )
-
-        self.assertIsInstance(quota_result, EvaluationSuccess)
-        assert isinstance(quota_result, EvaluationSuccess)
-        self.assertTrue(quota_result.facts.copilot_review_quota_exhausted)
-        self.assertFalse(quota_result.facts.copilot_review_outstanding)
-        self.assertEqual(DashboardRoute.AUTHOR, quota_result.route)
-        self.assertEqual(
-            (thread_url,),
-            quota_result.facts.author_action_review_thread_urls,
-        )
-
-        fetch_raw.return_value = replace(
-            fetch_raw.return_value,
-            reviews=tuple(
-                review_source(
-                    database_id=review_id,
-                    actor=actor("copilot"),
-                    commit_id="abcdef123456",
-                    body=(
-                        "Copilot encountered an error and was unable to review this "
-                        "pull request. You can try again by re-requesting a review."
-                    ),
-                )
-                for review_id in (10, 11)
-            ),
-        )
-        error_result = await evaluate_pr(
-            {"number": 7},
-            require_clean_copilot_review_branches=["main"],
-            classification_service=classifier,
-        )
-
-        self.assertIsInstance(error_result, EvaluationSuccess)
-        assert isinstance(error_result, EvaluationSuccess)
-        self.assertEqual(2, error_result.facts.copilot_review_error_count)
-        self.assertFalse(error_result.facts.copilot_review_outstanding)
-        self.assertFalse(error_result.facts.copilot_review_request_needed)
-        self.assertEqual(DashboardRoute.AUTHOR, error_result.route)
-        self.assertEqual(
-            (thread_url,),
-            error_result.facts.author_action_review_thread_urls,
-        )
+        self.assertEqual("reviewer", result.pending_actions["PRRT_1"]["action"])
+        self.assertTrue(result.facts.copilot_review_stale)
+        self.assertTrue(result.facts.copilot_review_outstanding)
+        self.assertTrue(result.facts.copilot_review_request_needed)
+        self.assertEqual((), result.facts.author_action_review_thread_urls)
 
     @patch("pull_request_evaluation.fetch_pull_request_source")
     async def test_resolved_or_outdated_copilot_thread_releases_author_hold(
@@ -2513,7 +2640,6 @@ class ReviewThreadDiscussionUrlTest(unittest.TestCase):
             _author_action_discussion_urls(
                 discussions,
                 pending_actions,
-                ("https://example.test/discussion/1",),
             ),
         )
 
@@ -2567,7 +2693,7 @@ class CopilotReviewGateTest(unittest.TestCase):
         self.assertTrue(facts.copilot_review_exists)
         self.assertFalse(facts.copilot_review_needed)
 
-    def test_current_clean_review_keeps_older_open_copilot_findings(
+    def test_current_review_leaves_older_copilot_findings_to_discussion_routing(
         self,
     ) -> None:
         facts = evaluation_facts(
@@ -2619,7 +2745,7 @@ class CopilotReviewGateTest(unittest.TestCase):
 
         self.assertTrue(facts.copilot_review_exists)
         self.assertFalse(facts.copilot_review_stale)
-        self.assertTrue(facts.copilot_review_needed)
+        self.assertFalse(facts.copilot_review_needed)
 
     def test_late_stale_review_does_not_replace_clean_current_head_review(self) -> None:
         facts = evaluation_facts(
@@ -2691,7 +2817,7 @@ class CopilotReviewGateTest(unittest.TestCase):
         self.assertFalse(facts.copilot_review_requested)
         self.assertTrue(facts.copilot_review_needed)
 
-    def test_unresolved_copilot_thread_on_current_head_needs_rereview(self) -> None:
+    def test_unresolved_copilot_thread_on_current_head_needs_no_rereview(self) -> None:
         facts = evaluation_facts(
             {
                 "pr": {
@@ -2746,7 +2872,7 @@ class CopilotReviewGateTest(unittest.TestCase):
         )
 
         self.assertFalse(facts.copilot_review_stale)
-        self.assertTrue(facts.copilot_review_needed)
+        self.assertFalse(facts.copilot_review_needed)
 
     def test_resolved_copilot_findings_on_current_head_are_clean(self) -> None:
         # A review's comment count never shrinks, so counting it would hold the
