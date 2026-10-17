@@ -181,6 +181,22 @@ first dashboard refresh where it would otherwise route to reviewers or
 maintainers. Conflicts, failing required checks, author-action feedback, and
 manual reviewer handoffs block requests; pending checks do not.
 
+Copilot sometimes reports "previously missed" findings only inside a collapsed
+review summary. The dashboard copies findings from the latest overview of the
+current head into review threads under the dashboard app, preserving their
+wording and severity and linking to the original review. When the reported line
+is not available in the PR diff, it creates a file-level review comment instead.
+Authors can reply to discuss or reject a finding and resolve the conversation
+when it no longer needs attention.
+
+These copies follow the same dashboard rules as ordinary Copilot threads.
+Unresolved, non-outdated copies need author attention; resolving a copy clears
+that finding even if Copilot's summary still lists it. Markers in the comments
+prevent reposting the same finding on the same head, including after it is
+resolved. Until a copy is posted, the clean-review gate counts the summary-only
+finding and the live status links to its source review. A push requires a fresh
+review before summary-only findings from the new head can be copied.
+
 Copilot's "encountered an error and was unable to review" notice does not count
 as a completed review. The first error allows one retry on the next eligible
 refresh without requiring a new commit, unless a request is already pending.

@@ -113,6 +113,7 @@ class DashboardFacts:
     copilot_review_exists: bool = False
     copilot_review_stale: bool = False
     copilot_review_needed: bool = False
+    copilot_review_findings_to_promote: bool = False
     is_maintenance_bot: bool = False
     author_can_act: bool = True
     is_draft: bool = False

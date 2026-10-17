@@ -6,6 +6,8 @@ from collections.abc import Sequence
 from typing import Any
 
 from dashboard_contracts import CopilotReviewFallback, DashboardFacts
+from dashboard_status import promoted_copilot_finding_id
+from copilot_review_findings import pending_copilot_summary_findings
 from github_cli import (
     fetch_pr_reviews,
     fetch_review_requests,
@@ -114,7 +116,12 @@ def open_copilot_findings(
             not thread.is_resolved
             and not thread.is_outdated
             and thread.comments
-            and is_copilot_reviewer(thread.comments[0].actor)
+            and (
+                is_copilot_reviewer(thread.comments[0].actor)
+                or promoted_copilot_finding_id(
+                    thread.comments[0].actor.login, thread.comments[0].body
+                )
+            )
         )
     )
 
@@ -127,12 +134,17 @@ def open_copilot_finding_count(
 
 def open_copilot_finding_urls(
     review_threads: Sequence[ReviewThread],
+    reviews: Sequence[Review] = (),
+    head_sha: str = "",
 ) -> tuple[str, ...]:
     urls: list[str] = []
     for thread in open_copilot_findings(review_threads):
         url = thread.comments[0].url
         if url and url not in urls:
             urls.append(url)
+    for finding in pending_copilot_summary_findings(reviews, head_sha, review_threads):
+        if finding.review_url not in urls:
+            urls.append(finding.review_url)
     return tuple(urls)
 
 
@@ -159,7 +171,10 @@ def copilot_review_status(
         review.commit_id == head_sha
         for review in copilot_reviews
     )
-    return True, stale, open_copilot_finding_count(review_threads) > 0
+    return True, stale, (
+        open_copilot_finding_count(review_threads) > 0
+        or bool(pending_copilot_summary_findings(reviews, head_sha, review_threads))
+    )
 
 
 def copilot_review_outstanding(facts: DashboardFacts, *, enabled: bool) -> bool:

@@ -11,8 +11,10 @@ from github_cli import (
     TransientGhError,
     check_bucket,
     code_scanning_tools,
+    create_pr_review_comment,
     fetch_pr_issue_comments,
     fetch_pr_reviews,
+    fetch_pr_review_comment_locations,
     fetch_review_requests,
     fetch_review_threads,
     fetch_latest_draft_transitions,
@@ -74,6 +76,23 @@ def _rollup_page(nodes):
 
 
 class RunGhJsonTest(unittest.TestCase):
+    @patch("github_cli.sleep_for_retry")
+    @patch("github_cli.subprocess.run")
+    def test_non_idempotent_writes_can_disable_immediate_retries(self, run, sleep) -> None:
+        for returncode, stdout, stderr in (
+            (1, "", "connection reset"),
+            (0, "{broken", ""),
+        ):
+            with self.subTest(returncode=returncode):
+                run.reset_mock()
+                run.return_value = subprocess.CompletedProcess(
+                    ["gh"], returncode, stdout, stderr,
+                )
+                with self.assertRaises(TransientGhError):
+                    run_gh_json(["gh", "api", "--method", "POST", "/test"], retry=False)
+                run.assert_called_once()
+        sleep.assert_not_called()
+
     @patch("github_cli.subprocess.run")
     def test_explicit_token_is_scoped_to_a_hidden_subprocess(self, run) -> None:
         run.return_value = subprocess.CompletedProcess(["gh"], 0, "{}", "")
@@ -210,6 +229,80 @@ class RunGhJsonTest(unittest.TestCase):
             [call(attempt) for attempt in range(3)],
             sleep.call_args_list,
         )
+
+
+class PromotedReviewCommentTest(unittest.TestCase):
+    @patch("github_cli.gh_api")
+    def test_maps_added_and_context_lines_in_all_diff_hunks(self, api) -> None:
+        api.return_value = [
+            {
+                "filename": "src/Parser.java",
+                "patch": (
+                    "@@ -10,3 +10,4 @@\n context\n-removed\n+added\n+also added\n context\n"
+                    "@@ -40 +41 @@\n-old\n+new\n\\ No newline at end of file"
+                ),
+            },
+            {"filename": "large.java"},
+        ]
+
+        self.assertEqual(
+            {"src/Parser.java": frozenset({10, 11, 12, 13, 41}), "large.java": frozenset()},
+            fetch_pr_review_comment_locations("owner/repo", 7),
+        )
+        api.assert_called_once_with(
+            "/repos/owner/repo/pulls/7/files?per_page=100", paginate=True,
+        )
+
+    @patch("github_cli.run_gh_json")
+    @patch("github_cli.gh_api")
+    def test_posts_line_or_file_comments_with_a_fresh_head_check(self, api, run) -> None:
+        api.return_value = {"state": "open", "draft": False, "head": {"sha": "head"}}
+        run.return_value = {
+            "id": 123, "html_url": "https://example.test/comment/123",
+            "body": "Finding", "path": "file.java", "commit_id": "head",
+        }
+        for line in (91, None):
+            with self.subTest(line=line):
+                create_pr_review_comment("owner/repo", 7, "head", "file.java", line, "Finding")
+
+                payload = json.loads(run.call_args.kwargs["input_text"])
+                self.assertEqual("head", payload["commit_id"])
+                self.assertEqual("file.java", payload["path"])
+                self.assertEqual("Finding", payload["body"])
+                self.assertFalse(run.call_args.kwargs["retry"])
+                if line is None:
+                    self.assertEqual("file", payload["subject_type"])
+                    self.assertNotIn("line", payload)
+                    self.assertNotIn("side", payload)
+                else:
+                    self.assertEqual("line", payload["subject_type"])
+                    self.assertEqual(91, payload["line"])
+                    self.assertEqual("RIGHT", payload["side"])
+        api.assert_called_with("/repos/owner/repo/pulls/7")
+
+    @patch("github_cli.run_gh_json")
+    @patch("github_cli.gh_api")
+    def test_refuses_to_post_to_a_changed_pr(self, api, run) -> None:
+        for metadata in (
+            {"state": "closed", "head": {"sha": "head"}},
+            {"state": "open", "draft": True, "head": {"sha": "head"}},
+            {"state": "open", "head": {"sha": "new-head"}},
+        ):
+            with self.subTest(metadata=metadata):
+                api.return_value = metadata
+                with self.assertRaisesRegex(RuntimeError, "changed before posting"):
+                    create_pr_review_comment("owner/repo", 7, "head", "file.java", 91, "Finding")
+        run.assert_not_called()
+
+    @patch("github_cli.run_gh_json")
+    @patch("github_cli.gh_api")
+    def test_requires_a_confirmed_created_comment(self, api, run) -> None:
+        api.return_value = {"state": "open", "head": {"sha": "head"}}
+        for response in (None, {}, {"id": 123, "html_url": "https://example.test/comment"}):
+            with self.subTest(response=response):
+                run.return_value = response
+                with self.assertRaisesRegex(RuntimeError, "did not confirm"):
+                    create_pr_review_comment("owner/repo", 7, "head", "file.java", 91, "Finding")
 
 
 class FetchReviewRequestsTest(unittest.TestCase):

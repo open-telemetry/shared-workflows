@@ -28,6 +28,7 @@ from copilot_review import (
     is_copilot_reviewer,
     open_copilot_finding_urls,
 )
+from copilot_review_findings import pending_copilot_summary_findings
 from dashboard_contracts import (
     CopilotReviewFallback,
     DashboardFacts,
@@ -285,6 +286,9 @@ def _compute_facts(
         copilot_review_exists=copilot_review_exists,
         copilot_review_stale=copilot_review_stale,
         copilot_review_needed=copilot_review_stale or copilot_review_findings,
+        copilot_review_findings_to_promote=bool(pending_copilot_summary_findings(
+            source.reviews, head_sha, source.review_threads,
+        )),
         is_maintenance_bot=_is_maintenance_bot_author(api_author),
         author_can_act=_author_can_act(pr.author, author),
         is_draft=pr.is_draft,
@@ -633,7 +637,9 @@ async def evaluate_pull_request(
                     review_threads,
                     pending_actions,
                     (
-                        open_copilot_finding_urls(pr_source.review_threads)
+                        open_copilot_finding_urls(
+                            pr_source.review_threads, pr_source.reviews, facts.head_sha,
+                        )
                         if facts.copilot_review_outstanding
                         else ()
                     ),

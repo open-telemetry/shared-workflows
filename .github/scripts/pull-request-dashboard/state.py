@@ -728,6 +728,10 @@ def decode_dashboard_facts(value: Any) -> DashboardFacts:
             value.get("copilot_review_needed", _MISSING),
             "facts.copilot_review_needed",
         ),
+        copilot_review_findings_to_promote=_boolean(
+            value.get("copilot_review_findings_to_promote", _MISSING),
+            "facts.copilot_review_findings_to_promote",
+        ),
         is_maintenance_bot=_boolean(
             value.get("is_maintenance_bot", _MISSING),
             "facts.is_maintenance_bot",
@@ -856,6 +860,7 @@ def encode_dashboard_facts(facts: DashboardFacts) -> dict[str, Any]:
         "copilot_review_exists": facts.copilot_review_exists,
         "copilot_review_stale": facts.copilot_review_stale,
         "copilot_review_needed": facts.copilot_review_needed,
+        "copilot_review_findings_to_promote": facts.copilot_review_findings_to_promote,
         "is_maintenance_bot": facts.is_maintenance_bot,
         "author_can_act": facts.author_can_act,
         "is_draft": facts.is_draft,

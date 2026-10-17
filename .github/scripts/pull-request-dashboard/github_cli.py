@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import subprocess
 import time
 from fnmatch import fnmatchcase
@@ -80,10 +81,13 @@ def _run_gh(
     input_text: str | None,
     allowed_exit_codes: frozenset[int] | set[int],
     parse_stdout: Callable[[str], _T],
+    *,
+    retry: bool = True,
 ) -> _T:
     env = {**os.environ, "GH_TOKEN": token} if token else None
     last_stderr = ""
-    for attempt in range(GH_RETRY_ATTEMPTS):
+    attempts = GH_RETRY_ATTEMPTS if retry else 1
+    for attempt in range(attempts):
         proc = subprocess.run(
             cmd,
             input=input_text,
@@ -99,16 +103,16 @@ def _run_gh(
             try:
                 return parse_stdout(proc.stdout)
             except json.JSONDecodeError as error:
-                if attempt == GH_RETRY_ATTEMPTS - 1:
+                if attempt == attempts - 1:
                     message = (
                         f"{' '.join(cmd)} returned invalid JSON after "
-                        f"{GH_RETRY_ATTEMPTS} attempts: {error}"
+                        f"{attempts} attempts: {error}"
                     )
                     raise TransientGhError(message) from error
                 sleep_for_retry(attempt)
                 continue
         last_stderr = proc.stderr.strip()
-        if attempt == GH_RETRY_ATTEMPTS - 1 or not is_retryable_gh_error(last_stderr):
+        if attempt == attempts - 1 or not is_retryable_gh_error(last_stderr):
             break
         sleep_for_retry(attempt)
     message = f"{' '.join(cmd)} failed: {last_stderr}"
@@ -128,13 +132,20 @@ def run_gh(
     return _run_gh(cmd, token, input_text, allowed_exit_codes, lambda stdout: stdout)
 
 
-def run_gh_json(cmd: list[str], token: str | None = None, input_text: str | None = None) -> Any:
+def run_gh_json(
+    cmd: list[str],
+    token: str | None = None,
+    input_text: str | None = None,
+    *,
+    retry: bool = True,
+) -> Any:
     return _run_gh(
         cmd,
         token,
         input_text,
         frozenset({0}),
         lambda stdout: json.loads(stdout or "null"),
+        retry=retry,
     )
 
 
@@ -153,6 +164,67 @@ def gh_api(path: str, paginate: bool = False, token: str | None = None) -> Any:
                 flat.append(page)
         return flat
     return data
+
+
+def fetch_pr_review_comment_locations(repo: str, number: int) -> dict[str, frozenset[int]]:
+    files = gh_api(f"/repos/{repo}/pulls/{number}/files?per_page=100", paginate=True)
+    locations: dict[str, frozenset[int]] = {}
+    for file in files:
+        lines: set[int] = set()
+        line_number: int | None = None
+        for line in (file.get("patch") or "").splitlines():
+            hunk = re.match(r"@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@", line)
+            if hunk:
+                line_number = int(hunk.group(1))
+            elif line_number is not None and line.startswith(("+", " ")):
+                lines.add(line_number)
+                line_number += 1
+        locations[file["filename"]] = frozenset(lines)
+    return locations
+
+
+def create_pr_review_comment(
+    repo: str,
+    number: int,
+    head_sha: str,
+    path: str,
+    line: int | None,
+    body: str,
+) -> None:
+    pr = gh_api(f"/repos/{repo}/pulls/{number}")
+    if (
+        pr.get("state") != "open"
+        or pr.get("draft")
+        or (pr.get("head") or {}).get("sha") != head_sha
+    ):
+        raise RuntimeError(f"PR #{number} changed before posting a Copilot finding")
+    payload: dict[str, Any] = {
+        "body": body,
+        "commit_id": head_sha,
+        "path": path,
+        "subject_type": "file" if line is None else "line",
+    }
+    if line is not None:
+        payload.update(line=line, side="RIGHT")
+    # Retrying an ambiguous POST can duplicate a thread. The next delivery
+    # reads GitHub's markers before deciding whether to post again.
+    result = run_gh_json(
+        [
+            "gh", "api", "--method", "POST",
+            f"/repos/{repo}/pulls/{number}/comments", "--input", "-",
+        ],
+        input_text=json.dumps(payload),
+        retry=False,
+    )
+    if (
+        not isinstance(result, dict)
+        or not result.get("id")
+        or not result.get("html_url")
+        or result.get("body") != body
+        or result.get("path") != path
+        or result.get("commit_id") != head_sha
+    ):
+        raise RuntimeError(f"GitHub did not confirm the Copilot finding on PR #{number}")
 
 
 def request_copilot_review(pull_request_id: str, token: str | None = None) -> None:

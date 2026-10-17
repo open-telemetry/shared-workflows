@@ -187,7 +187,7 @@ def _group_review_threads(source: DiscussionInput) -> list[dict[str, Any]]:
         comments = [
             _discussion_comment(
                 comment.created_at,
-                reviewer_actor_login(comment.actor),
+                reviewer_actor_login(comment.actor, comment.body),
                 source.author,
                 reviewers,
                 comment.body,
@@ -212,7 +212,9 @@ def _group_review_threads(source: DiscussionInput) -> list[dict[str, Any]]:
                     "discussion_kind": "review-comment-thread",
                     "strict_author_action": bool(
                         root_comment
-                        and root_comment.actor.is_copilot_reviewer
+                        and reviewer_actor_login(
+                            root_comment.actor, root_comment.body
+                        ) == "copilot-pull-request-reviewer[bot]"
                     ),
                     "path": discussion.path or None,
                     "line": discussion.line,

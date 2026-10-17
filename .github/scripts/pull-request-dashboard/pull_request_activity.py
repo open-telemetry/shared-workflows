@@ -7,6 +7,7 @@ from types import MappingProxyType
 from typing import Any
 
 from dashboard_override import dashboard_command_body_remainder
+from dashboard_status import promoted_copilot_finding_id
 from pull_request_source import (
     Actor,
     Commit,
@@ -51,7 +52,9 @@ def role_for(login: str, author: str, reviewers: set[str]) -> str:
     return "outsider"
 
 
-def reviewer_actor_login(actor: Actor) -> str:
+def reviewer_actor_login(actor: Actor, body: str = "") -> str:
+    if promoted_copilot_finding_id(actor.login, body):
+        return "copilot-pull-request-reviewer[bot]"
     return actor.reviewer_login
 
 
@@ -141,7 +144,7 @@ def _review_comment_event(
     author: str,
     approver_logins: set[str],
 ) -> dict[str, Any]:
-    login = reviewer_actor_login(comment.actor)
+    login = reviewer_actor_login(comment.actor, comment.body)
     timestamp = comment.updated_at or comment.created_at
     return {
         "source_id": comment.database_id or None,

@@ -12,6 +12,11 @@ import state
 
 
 class DeliveryTest(unittest.TestCase):
+    def setUp(self) -> None:
+        self.copilot_findings = self.enterContext(patch.object(
+            delivery, "deliver_copilot_review_findings", return_value=[],
+        ))
+
     def test_canceled_full_job_is_drained_by_next_targeted_job(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -237,6 +242,7 @@ class DeliveryTest(unittest.TestCase):
         dashboard_command_replies.side_effect = lambda *_args: record("replies")
         author_nudges.side_effect = lambda *_args: record("author")
         copilot_reviews.side_effect = lambda *_args: record("copilot")
+        self.copilot_findings.side_effect = lambda *_args: record("findings")
         slack.side_effect = lambda *_args: record("slack")
         errors = delivery.deliver_from_state(
             "open-telemetry/example",
@@ -252,6 +258,7 @@ class DeliveryTest(unittest.TestCase):
                 call("replies"),
                 call("author"),
                 call("status"),
+                call("findings"),
                 call("copilot"),
                 call("slack"),
             ],
@@ -270,6 +277,7 @@ class DeliveryTest(unittest.TestCase):
             Path("author"),
             set(),
         )
+        self.copilot_findings.assert_called_once_with("open-telemetry/example", None)
         slack.assert_called_once_with(
             "open-telemetry/example",
             ANY,
@@ -487,6 +495,7 @@ class DeliveryTest(unittest.TestCase):
         list_open.assert_not_called()
         gh_api.assert_called_once_with("/repos/open-telemetry/example/pulls/7")
         self.assertEqual(7, command_replies.call_args.args[2])
+        self.copilot_findings.assert_called_once_with("open-telemetry/example", 7)
         bulk_status.assert_not_called()
         targeted_status.assert_called_once_with("open-telemetry/example", 7)
         slack.assert_called_once_with(

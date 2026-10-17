@@ -20,16 +20,77 @@ from copilot_review import (
     stale_request_reason,
 )
 from dashboard_contracts import CopilotReviewFallback, StoredDashboardResult
-from github_cli import fetch_pr_reviews, request_copilot_review
-from pull_request_source import normalize_reviews
+from copilot_review_findings import pending_copilot_summary_findings
+from github_cli import (
+    create_pr_review_comment,
+    fetch_pr_review_comment_locations,
+    fetch_pr_reviews,
+    request_copilot_review,
+)
+from pull_request_source import fetch_pull_request_source, normalize_reviews
 from routing_snapshot import fetch_routing_snapshot
 from state import (
     load_copilot_review_fallbacks,
     load_copilot_review_requests,
+    load_dashboard_state_cache,
     save_copilot_review_fallbacks,
     save_copilot_review_requests,
 )
 from utils import format_ts
+
+
+def deliver_copilot_review_findings(repo: str, pr_number: int | None = None) -> list[str]:
+    state = load_dashboard_state_cache()
+    if state is None:
+        return []
+    owner, repo_name = repo.split("/", 1)
+    errors: list[str] = []
+    for result in state.results:
+        if (
+            not result.facts.copilot_review_findings_to_promote
+            or (pr_number is not None and result.pr_number != pr_number)
+        ):
+            continue
+        number = result.pr_number
+        try:
+            source = fetch_pull_request_source(
+                repo, owner, repo_name, number, include_commits=False,
+            )
+            pr = source.pull_request
+            if (
+                pr.state != "OPEN"
+                or pr.is_draft
+                or not pr.head_sha
+                or pr.head_sha != result.facts.head_sha
+            ):
+                print(
+                    f"skipping summary-only Copilot findings for changed PR #{number}",
+                    file=sys.stderr,
+                )
+                continue
+            findings = pending_copilot_summary_findings(
+                source.reviews, pr.head_sha, source.review_threads,
+            )
+            if not findings:
+                continue
+            locations = fetch_pr_review_comment_locations(repo, number)
+            for finding in findings:
+                if finding.path not in locations:
+                    raise RuntimeError(
+                        f"Copilot finding refers to a file outside PR #{number}'s diff: "
+                        f"{finding.path}"
+                    )
+                create_pr_review_comment(
+                    repo,
+                    number,
+                    pr.head_sha,
+                    finding.path,
+                    finding.line if finding.line in locations[finding.path] else None,
+                    finding.comment_body(),
+                )
+        except Exception as error:
+            errors.append(f"PR #{number}: {error}")
+    return errors
 
 
 def record_copilot_review_observation(

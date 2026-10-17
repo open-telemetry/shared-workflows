@@ -26,6 +26,16 @@ _REVIEWER_HANDOFF_CLEARED_MARKER_RE = re.compile(
     r"<!-- pull-request-dashboard-reviewer-handoff-cleared:(\d+):([^\s>]+) -->"
 )
 DASHBOARD_APP_SLUG = "opentelemetry-pr-dashboard"
+_COPILOT_FINDING_MARKER_RE = re.compile(
+    r"<!-- pull-request-dashboard-copilot-finding:([a-f0-9]{64}) -->"
+)
+
+
+def promoted_copilot_finding_id(login: str, body: str) -> str:
+    if login != f"{DASHBOARD_APP_SLUG}[bot]":
+        return ""
+    match = _COPILOT_FINDING_MARKER_RE.search(body)
+    return match.group(1) if match else ""
 
 
 def author_nudge_episode_marker(episode_id: str) -> str:

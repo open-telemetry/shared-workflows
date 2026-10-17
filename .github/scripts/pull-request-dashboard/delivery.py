@@ -13,7 +13,10 @@ import traceback
 from typing import Callable
 
 from author_nudge import deliver_prepared_author_nudges
-from copilot_review_delivery import deliver_copilot_review_requests
+from copilot_review_delivery import (
+    deliver_copilot_review_findings,
+    deliver_copilot_review_requests,
+)
 from dashboard_override_delivery import deliver_dashboard_command_replies
 from github_cli import (
     GhNotFoundError,
@@ -204,6 +207,11 @@ def deliver_from_state(
             ),
             errors,
         )
+    run_delivery_action(
+        "Copilot findings",
+        lambda: deliver_copilot_review_findings(repo, pr_number),
+        errors,
+    )
     run_delivery_action(
         "Copilot reviews",
         lambda: deliver_copilot_review_requests(repo, now, copilot_retry_snapshot_path),

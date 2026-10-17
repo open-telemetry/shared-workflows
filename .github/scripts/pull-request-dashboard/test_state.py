@@ -80,6 +80,14 @@ from state import (
 
 
 class StateTest(unittest.TestCase):
+    def test_copilot_finding_promotion_intent_round_trips_and_defaults_false(self) -> None:
+        facts = dashboard_facts(copilot_review_findings_to_promote=True)
+        encoded = encode_dashboard_facts(facts)
+
+        self.assertEqual(facts, decode_dashboard_facts(encoded))
+        encoded.pop("copilot_review_findings_to_promote")
+        self.assertFalse(decode_dashboard_facts(encoded).copilot_review_findings_to_promote)
+
     def test_fallback_state_survives_new_intents_and_receipt_reconciliation(self) -> None:
         with (
             tempfile.TemporaryDirectory() as directory,
@@ -899,6 +907,7 @@ class StateTest(unittest.TestCase):
             "draft_pr_numbers": [],
         }
         expected["prs"]["123"]["facts"]["author_can_act"] = True
+        expected["prs"]["123"]["facts"]["copilot_review_findings_to_promote"] = False
         del expected["prs"]["123"]["facts"]["copilot_first_review_missing_since"]
         self.assertEqual(expected, encode_dashboard_state(decoded))
 
