@@ -26,7 +26,6 @@ from copilot_review import (
     copilot_review_status,
     is_copilot_quota_failure,
     is_copilot_reviewer,
-    open_copilot_finding_urls,
 )
 from dashboard_contracts import (
     CopilotReviewFallback,
@@ -228,14 +227,9 @@ def _compute_facts(
     )
     api_author = pr.author.login
     head_sha = snapshot.head_sha
-    (
-        copilot_review_exists,
-        copilot_review_stale,
-        copilot_review_findings,
-    ) = copilot_review_status(
+    copilot_review_exists, copilot_review_stale = copilot_review_status(
         source.reviews,
         head_sha,
-        snapshot.review_threads,
     )
     override = dashboard_override_facts(
         DashboardOverrideInput(source.issue_comments),
@@ -284,7 +278,7 @@ def _compute_facts(
         copilot_review_error_count=copilot_review_error_count(source.reviews, head_sha),
         copilot_review_exists=copilot_review_exists,
         copilot_review_stale=copilot_review_stale,
-        copilot_review_needed=copilot_review_stale or copilot_review_findings,
+        copilot_review_needed=copilot_review_stale,
         is_maintenance_bot=_is_maintenance_bot_author(api_author),
         author_can_act=_author_can_act(pr.author, author),
         is_draft=pr.is_draft,
@@ -317,7 +311,6 @@ def _compute_facts(
 def _author_action_discussion_urls(
     discussions: list[dict[str, Any]],
     pending_actions: dict[str, dict[str, Any]],
-    additional_urls: tuple[str, ...] = (),
 ) -> tuple[str, ...]:
     by_id = {
         discussion["discussion_id"]: discussion for discussion in discussions
@@ -329,9 +322,6 @@ def _author_action_discussion_urls(
             continue
         discussion = by_id.get(discussion_id)
         url = (discussion or {}).get("discussion_url") or ""
-        if url and url not in urls:
-            urls.append(url)
-    for url in additional_urls:
         if url and url not in urls:
             urls.append(url)
     return tuple(urls)
@@ -632,11 +622,6 @@ async def evaluate_pull_request(
                 _author_action_discussion_urls(
                     review_threads,
                     pending_actions,
-                    (
-                        open_copilot_finding_urls(pr_source.review_threads)
-                        if facts.copilot_review_outstanding
-                        else ()
-                    ),
                 )
             ),
             author_action_top_level_feedback_urls=(

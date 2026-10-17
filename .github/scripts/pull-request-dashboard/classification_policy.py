@@ -412,7 +412,6 @@ class ClassificationDiscussion:
     pr_author: str = ""
     source_kind: str = ""
     candidate_feedback: tuple[CandidateFeedback, ...] = ()
-    strict_author_action: bool = False
     selected_comment_index: int | None = None
     selected_activity_timestamp: str = ""
     ignored_comment_index: int | None = None
@@ -465,7 +464,6 @@ class ClassificationDiscussion:
             pr_author=str(record.get("pr_author") or ""),
             source_kind=str(record.get("source_kind") or ""),
             candidate_feedback=candidate_feedback,
-            strict_author_action=bool(record.get("strict_author_action")),
         )
 
     def with_comments(
@@ -1701,7 +1699,7 @@ def prepare_praise_candidates(
     return tuple(
         discussion
         for discussion in discussions
-        if not discussion.strict_author_action and _could_be_praise(discussion)
+        if _could_be_praise(discussion)
     )
 
 
@@ -1781,16 +1779,7 @@ def resolve_review_thread_policy(
                 selected.activity_timestamp
                 or selected.comment.timestamp
             )
-        if discussion.strict_author_action:
-            resolved[discussion_id] = ClassificationSuccess(
-                discussion.identity,
-                ActionDecision(
-                    DiscussionAction.AUTHOR,
-                    "This unresolved Copilot finding remains author work until "
-                    "the thread is resolved or outdated.",
-                ),
-            )
-        elif dropped and not comments:
+        if dropped and not comments:
             resolved[discussion_id] = ClassificationSuccess(
                 discussion.identity,
                 ActionDecision(

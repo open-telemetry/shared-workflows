@@ -414,15 +414,14 @@ the implementation understandable and operationally cheap.
   check suite on a PR that was already with its reviewers from looking like a
   stalled handoff. A push clears the clock, because new code means new checks
   and a review that has to run again.
-- Only a gate that has reported nothing on the current head runs the clock. A
-  Copilot review that covers the head but left open findings holds the PR, yet
-  it is not missing: it answered, and the threads it left are the author's to
-  clear. Because the clock is carried across a trip back to the author, counting
-  those findings would make every author who takes more than four hours over
-  review comments look like a gate GitHub lost, and the report would say a
-  review never arrived when it is sitting on the PR. A review that is missing or
-  that only covers older code still counts, because Copilot has said nothing
-  about the code being reviewed.
+- Only a gate that has reported nothing on the current head runs the clock.
+  Copilot findings that still need author action hold the PR through discussion
+  routing, but the review is not missing: it answered. Because the clock is
+  carried across a trip back to the author, counting those findings would make
+  every author who takes more than four hours over review comments look like a
+  gate GitHub lost, and the report would say a review never arrived when it is
+  sitting on the PR. A review that is missing or that only covers older code
+  still counts, because Copilot has said nothing about the code being reviewed.
 - An expired hold routes the pull request and says so in its status comment,
   which is the whole of what the dashboard can do about it. The gates raise no
   alarm of their own. Each way a gate can go missing has its own cause and none
@@ -446,26 +445,23 @@ the implementation understandable and operationally cheap.
   would hold every ready PR with its author waiting for a review that never
   runs, so only branches with automatic review are listed and PRs targeting
   other branches route normally.
-- Every unresolved, non-outdated thread Copilot started is an author action,
-  even after an author reply or a later clean review. This ownership bypasses
-  generic praise and author-reply classification and ends only when the thread
-  is resolved or outdated. The gate therefore never needs its expiration path
-  to retain these findings.
-- Findings are counted from unresolved, non-outdated review threads Copilot
-  started, not from the comment count on its review. A review's comment count
-  never shrinks, so it keeps counting feedback the author has since addressed
-  and holds the PR on work that is already done.
-- The gate's re-request path covers two states. A stale review means the author
-  pushed, which is the one change a re-review can respond to. Findings on the
-  current head sit on unchanged code, so asking Copilot to look at it again
-  would reach the same verdict and be requested again on the next pass; those
-  threads stop counting only when the author resolves them or GitHub marks them
-  outdated after the referenced code moves. A later clean review does not close
-  an existing thread. A push makes the review stale and triggers a re-request,
-  but the push alone does not prove that a finding was fixed.
-- The other state is a missing first review. The dashboard requests it on the
-  first eligible refresh using its GitHub App installation token. Initial reviews
-  and re-reviews share the same delivery checks and confirmation path.
+- Copilot threads use the same discussion classification as human review
+  threads. A completed author reply hands the action to reviewers; a commitment
+  to more work keeps it with the author. Explicit resolution is not required
+  for that handoff because a reply explains the author's response without
+  requiring a separate administrative step. The thread remains visible as
+  unresolved until GitHub marks it resolved or outdated.
+- The gate waits only for a missing or stale review. Counting open threads
+  independently would override discussion classification and keep completed
+  author replies assigned to the author. Actionable findings already keep the
+  PR with its author through ordinary discussion routing.
+- A stale review means the author pushed, so a re-review can inspect new code.
+  Findings on the current head do not trigger re-review requests: another
+  review is not a substitute for responding to the finding. A later clean
+  review alone does not close an existing thread or change its pending action.
+- The dashboard requests a missing first review on the first eligible refresh
+  using its GitHub App installation token. Initial reviews and re-reviews share
+  the same delivery checks and confirmation path.
 - Copilot's generic error notice is a failed attempt, not a completed review or
   delivery confirmation. It leaves the review missing or stale so the next
   eligible refresh can retry on the same head without changing the requester.
@@ -474,15 +470,15 @@ the implementation understandable and operationally cheap.
   from GitHub reviews, not refreshes, and a new head starts a fresh budget.
   Delivery rechecks the live count so an error arriving after evaluation cannot
   cause another request. Pending requests still prevent duplicates. Required
-  checks and unresolved Copilot findings still apply; the status comment
-  explains when routing stops waiting after repeated errors. The four-hour
-  timeout remains a backstop for reviews that never report.
+  checks and Copilot findings needing author action still apply; the status
+  comment explains when routing stops waiting after repeated errors. The
+  four-hour timeout remains a backstop for reviews that never report.
 - GitHub's quota-exhausted notice is a failed attempt even though GitHub records
   it as a review of the current head. It does not count as a completed review
   or confirm delivery. Without a configured fallback token, it immediately
   releases the Copilot gate and disables automatic requests for that PR,
   including after later pushes. Required checks and actionable feedback still
-  apply, including unresolved, non-outdated Copilot threads.
+  apply, including Copilot threads that still need author action.
 - The optional `COPILOT_REVIEW_FALLBACK_TOKEN` changes the requester after quota
   exhaustion and keeps the Copilot gate active under its normal rules. The
   fallback records existing quota notice IDs before requesting, so only a new

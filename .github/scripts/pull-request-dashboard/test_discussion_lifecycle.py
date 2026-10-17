@@ -210,7 +210,6 @@ class PrepareDiscussionsTest(unittest.TestCase):
             prepared.review_threads[0]["discussion_url"],
             "https://example.test/thread/root",
         )
-        self.assertTrue(prepared.review_threads[0]["strict_author_action"])
         self.assertEqual(
             [item["discussion_id"] for item in prepared.top_level_items],
             ["pr-issue-comment-201", "pr-issue-comment-202"],

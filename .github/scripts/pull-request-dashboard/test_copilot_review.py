@@ -20,7 +20,6 @@ from copilot_review import (
     copilot_review_status,
     is_copilot_error,
     is_copilot_quota_failure,
-    open_copilot_finding_urls,
     set_copilot_review_request_needed,
     stale_request_reason,
 )
@@ -32,8 +31,6 @@ from dashboard_test_support import (
     actor,
     dashboard_facts,
     review_source,
-    review_thread,
-    review_thread_comment,
     stored_dashboard_result,
 )
 from dashboard_contracts import CopilotReviewFallback
@@ -86,57 +83,22 @@ def review_result(route: str = "approver", **fact_changes):
     )
 
 
-class CopilotFindingLifecycleTest(unittest.TestCase):
-    def test_clean_current_review_keeps_open_findings(self) -> None:
-        reviews = (review_source(
-            actor=actor("copilot"),
-            commit_id="current-head",
-            finding_count=0,
-            submitted_at="2026-07-20T02:00:00Z",
-        ),)
-        threads = (
-            review_thread(
-                node_id="open",
-                comments=(review_thread_comment(
-                    url="https://example.test/open",
-                    actor=actor("copilot"),
-                    created_at="2026-07-20T01:00:00Z",
-                    updated_at="2026-07-20T01:00:00Z",
-                ),),
-            ),
-            review_thread(
-                node_id="resolved",
-                is_resolved=True,
-                comments=(review_thread_comment(
-                    url="https://example.test/resolved",
-                    actor=actor("copilot"),
-                    created_at="2026-07-20T01:00:00Z",
-                    updated_at="2026-07-20T01:00:00Z",
-                ),),
-            ),
-            review_thread(
-                node_id="outdated",
-                is_outdated=True,
-                comments=(review_thread_comment(
-                    url="https://example.test/outdated",
-                    actor=actor("copilot"),
-                    created_at="2026-07-20T01:00:00Z",
-                    updated_at="2026-07-20T01:00:00Z",
-                ),),
-            ),
-        )
-
-        self.assertEqual(
-            (True, False, True),
-            copilot_review_status(reviews, "current-head", threads),
-        )
-        self.assertEqual(
-            ("https://example.test/open",),
-            open_copilot_finding_urls(threads),
-        )
-
-
 class CopilotReviewStatusTest(unittest.TestCase):
+    def test_current_review_is_reported_regardless_of_finding_count(self) -> None:
+        for finding_count in (0, 1):
+            with self.subTest(finding_count=finding_count):
+                self.assertEqual(
+                    (True, False),
+                    copilot_review_status(
+                        (review_source(
+                            actor=actor("copilot"),
+                            commit_id="current-head",
+                            finding_count=finding_count,
+                        ),),
+                        "current-head",
+                    ),
+                )
+
     def test_error_count_requires_current_head_copilot_notices(self) -> None:
         failure = review_source(
             actor=actor("copilot-pull-request-reviewer[bot]"),
@@ -178,38 +140,38 @@ class CopilotReviewStatusTest(unittest.TestCase):
         completed = replace(failure, body="No issues found.")
         self.assertFalse(is_copilot_quota_failure(failure))
         cases = (
-            ("failure_only", (failure,), (False, False, False)),
+            ("failure_only", (failure,), (False, False)),
             (
                 "whitespace",
                 (replace(failure, body=f"\n{ERROR_BODY}\n"),),
-                (False, False, False),
+                (False, False),
             ),
             (
                 "current_review_then_failure",
                 (completed, failure),
-                (True, False, False),
+                (True, False),
             ),
             (
                 "failure_then_current_review",
                 (failure, completed),
-                (True, False, False),
+                (True, False),
             ),
             (
                 "stale_review_then_failure",
                 (replace(completed, commit_id="old-head"), failure),
-                (True, True, False),
+                (True, True),
             ),
             (
                 "review_discussing_errors",
                 (replace(completed, body=f"Handle this failure:\n> {ERROR_BODY}"),),
-                (True, False, False),
+                (True, False),
             ),
         )
         for name, reviews, expected in cases:
             with self.subTest(name=name):
                 self.assertEqual(
                     expected,
-                    copilot_review_status(reviews, "current-head", ()),
+                    copilot_review_status(reviews, "current-head"),
                 )
 
     @patch("copilot_review.sleep_for_retry")
@@ -258,26 +220,26 @@ class CopilotReviewStatusTest(unittest.TestCase):
             body="No issues found.",
         )
         cases = (
-            ("failure_only", (quota_failure,), (False, False, False)),
+            ("failure_only", (quota_failure,), (False, False)),
             (
                 "whitespace",
                 (replace(quota_failure, body=f"\n{QUOTA_FAILURE_BODY}\n"),),
-                (False, False, False),
+                (False, False),
             ),
             (
                 "current_review_then_failure",
                 (completed_review, quota_failure),
-                (True, False, False),
+                (True, False),
             ),
             (
                 "failure_then_current_review",
                 (quota_failure, completed_review),
-                (True, False, False),
+                (True, False),
             ),
             (
                 "stale_review_then_failure",
                 (replace(completed_review, commit_id="old-head"), quota_failure),
-                (True, True, False),
+                (True, True),
             ),
             (
                 "review_discussing_quotas",
@@ -285,14 +247,14 @@ class CopilotReviewStatusTest(unittest.TestCase):
                     completed_review,
                     body=f"Handle this failure:\n> {QUOTA_FAILURE_BODY}",
                 ),),
-                (True, False, False),
+                (True, False),
             ),
         )
         for name, reviews, expected in cases:
             with self.subTest(name=name):
                 self.assertEqual(
                     expected,
-                    copilot_review_status(reviews, "current-head", ()),
+                    copilot_review_status(reviews, "current-head"),
                 )
 
 

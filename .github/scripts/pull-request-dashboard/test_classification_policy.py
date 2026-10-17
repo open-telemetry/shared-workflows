@@ -57,7 +57,6 @@ def discussion(
     requester: str = "",
     pr_author: str = "",
     candidate_feedback: tuple[tuple[str, str], ...] = (),
-    strict_author_action: bool = False,
 ) -> ClassificationDiscussion:
     return ClassificationDiscussion(
         DiscussionIdentity(discussion_id, kind),
@@ -74,7 +73,6 @@ def discussion(
             CandidateFeedback(feedback_id, feedback_body)
             for feedback_id, feedback_body in candidate_feedback
         ),
-        strict_author_action=strict_author_action,
     )
 
 
@@ -746,7 +744,7 @@ class PreparationAndResolutionTest(unittest.TestCase):
         assert isinstance(result.decision, ActionDecision)
         self.assertEqual(result.decision.action, DiscussionAction.AUTHOR)
 
-    def test_unresolved_copilot_finding_bypasses_author_reply_policy(self) -> None:
+    def test_copilot_finding_uses_author_reply_policy(self) -> None:
         thread = ClassificationDiscussion(
             DiscussionIdentity("thread-1", DiscussionKind.REVIEW_THREAD),
             (
@@ -761,18 +759,18 @@ class PreparationAndResolutionTest(unittest.TestCase):
                     "Done.",
                 ),
             ),
-            strict_author_action=True,
         )
 
         self.assertEqual(prepare_praise_candidates([thread]), ())
         plan = resolve_review_thread_policy([thread], {})
 
-        self.assertEqual(plan.author_replies, ())
-        result = plan.resolved[0]
-        self.assertIsInstance(result, ClassificationSuccess)
-        assert isinstance(result.decision, ActionDecision)
-        self.assertEqual(result.decision.action, DiscussionAction.AUTHOR)
-        self.assertEqual(result.since, "2026-01-02T04:05:06Z")
+        self.assertEqual(plan.resolved, ())
+        self.assertEqual(len(plan.author_replies), 1)
+        self.assertEqual(plan.author_replies[0].comments, thread.comments)
+        self.assertEqual(
+            plan.author_replies[0].selected_activity_timestamp,
+            "2026-01-02T04:05:06Z",
+        )
 
     def test_praise_and_author_reply_shortcuts_preserve_handoffs(self) -> None:
         thread = discussion(

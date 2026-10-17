@@ -17,7 +17,6 @@ from pull_request_source import (
     Check,
     Review,
     ReviewRequest,
-    ReviewThread,
     normalize_review_requests,
     normalize_reviews,
 )
@@ -100,48 +99,11 @@ def copilot_reviews_disabled(facts: DashboardFacts) -> bool:
     )
 
 
-def open_copilot_findings(
-    review_threads: Sequence[ReviewThread],
-) -> tuple[ReviewThread, ...]:
-    # A review's own comment count never shrinks, so it still counts findings
-    # the author has since addressed. Unresolved threads are the live ones:
-    # GitHub marks a thread outdated once its anchor lines change, which is how
-    # the rest of the dashboard already recognises a pushed fix.
-    return tuple(
-        thread
-        for thread in review_threads
-        if (
-            not thread.is_resolved
-            and not thread.is_outdated
-            and thread.comments
-            and is_copilot_reviewer(thread.comments[0].actor)
-        )
-    )
-
-
-def open_copilot_finding_count(
-    review_threads: Sequence[ReviewThread],
-) -> int:
-    return len(open_copilot_findings(review_threads))
-
-
-def open_copilot_finding_urls(
-    review_threads: Sequence[ReviewThread],
-) -> tuple[str, ...]:
-    urls: list[str] = []
-    for thread in open_copilot_findings(review_threads):
-        url = thread.comments[0].url
-        if url and url not in urls:
-            urls.append(url)
-    return tuple(urls)
-
-
 def copilot_review_status(
     reviews: Sequence[Review],
     head_sha: str,
-    review_threads: Sequence[ReviewThread],
-) -> tuple[bool, bool, bool]:
-    """Return (review exists, review is stale, review left open findings)."""
+) -> tuple[bool, bool]:
+    """Return (review exists, review is stale)."""
     copilot_reviews = [
         review
         for review in reviews
@@ -150,16 +112,16 @@ def copilot_review_status(
         and not is_copilot_error(review)
     ]
     if not copilot_reviews:
-        return False, False, False
+        return False, False
     if not head_sha:
         # Without a head to compare against, staleness is unknowable, and
         # acting on incomplete data would hold the pull request on a guess.
-        return True, False, False
+        return True, False
     stale = not any(
         review.commit_id == head_sha
         for review in copilot_reviews
     )
-    return True, stale, open_copilot_finding_count(review_threads) > 0
+    return True, stale
 
 
 def copilot_review_outstanding(facts: DashboardFacts, *, enabled: bool) -> bool:
@@ -170,10 +132,9 @@ def copilot_review_outstanding(facts: DashboardFacts, *, enabled: bool) -> bool:
 
 def copilot_review_unreported(facts: DashboardFacts, *, enabled: bool) -> bool:
     # Whether the gate is still waiting for Copilot to say anything about the
-    # current head. Findings are an answer, not a silence: the threads they
-    # leave are the author's to clear, and the dashboard already routes the
-    # pull request to the author for them. Only a review that is missing or
-    # that covers older code is a report that has not arrived.
+    # current head. Findings are an answer, not a silence: actionable threads
+    # belong to discussion routing. Only a review that is missing or that
+    # covers older code is a report that has not arrived.
     if not enabled or copilot_reviews_disabled(facts):
         return False
     return not facts.copilot_review_exists or facts.copilot_review_stale
@@ -269,9 +230,8 @@ def copilot_review_request_landed(
     # Copilot can finish a short review before the last read, which takes it
     # back out of the pending requests. A review of the current head proves the
     # request landed just as well as a pending one does.
-    review_exists, review_stale, _findings = copilot_review_status(
+    review_exists, review_stale = copilot_review_status(
         normalize_reviews(fetch_pr_reviews(owner, repo_name, pr_number)),
         head_sha,
-        [],
     )
     return review_exists and not review_stale
