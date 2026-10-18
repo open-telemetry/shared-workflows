@@ -571,6 +571,7 @@ class GithubCliTest(unittest.TestCase):
                 "number": number,
                 "title": f"PR {number}",
                 "user": {"login": "author"},
+                "assignees": [{"login": "human-author"}] if number == 501 else None,
                 "draft": number == 501,
                 "created_at": "2026-07-01T00:00:00Z",
                 "updated_at": "2026-07-17T00:00:00Z",
@@ -594,6 +595,7 @@ class GithubCliTest(unittest.TestCase):
                 "number": 501,
                 "title": "PR 501",
                 "author": {"login": "author"},
+                "assignees": [{"login": "human-author"}],
                 "isDraft": True,
                 "createdAt": "2026-07-01T00:00:00Z",
                 "url": "https://example.test/pull/501",
@@ -602,6 +604,7 @@ class GithubCliTest(unittest.TestCase):
             prs[-1],
         )
         self.assertEqual([], prs[0]["labels"])
+        self.assertEqual([], prs[0]["assignees"])
         gh_api.assert_called_once_with(
             "/repos/open-telemetry/example/pulls?state=open&per_page=100",
             paginate=True,

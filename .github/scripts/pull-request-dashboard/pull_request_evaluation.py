@@ -55,6 +55,7 @@ from discussion_lifecycle import (
     resolve_discussions,
 )
 from github_cli import TransientGhError
+from pull_request_author import effective_author
 from pull_request_source import (
     Actor,
     IssueComment,
@@ -87,15 +88,6 @@ from utils import (
 )
 
 
-# Copilot appears under two slugs: `gh pr view`'s `author` field reports
-# `app/copilot-swe-agent`, while the Pulls/commits endpoint's `committer.login`
-# field can report the bare `copilot` slug. Either slug can name Copilot as the
-# author, so the author set carries both while the committer set carries only
-# the bare slug. These sets hold the identities `normalize_author_identity`
-# returns, without the `app/` prefix or the `[bot]` suffix. Do not treat either
-# slug as the human author behind a Copilot-authored PR.
-_COPILOT_COMMITTER_IDENTITIES = {"copilot"}
-_COPILOT_PR_AUTHOR_IDENTITIES = {"copilot-swe-agent", "copilot"}
 _MAINTENANCE_APP_IDENTITIES = {"dependabot", "otelbot", "renovate"}
 
 
@@ -143,45 +135,6 @@ class PullRequestEvaluationInput:
     def __post_init__(self) -> None:
         if self.pr_number <= 0:
             raise ValueError("pull request number must be positive")
-
-
-def _human_author_for_copilot_pr(source: PullRequestSource) -> str:
-    assignees = [
-        assignee.login
-        for assignee in source.pull_request.assignees
-    ]
-    for login in assignees:
-        identity = normalize_author_identity(login)
-        if (
-            login
-            and identity not in _COPILOT_PR_AUTHOR_IDENTITIES
-            and not is_unattended_author_login(login)
-        ):
-            return login
-
-    commits = source.commits
-    if not commits:
-        return ""
-    committer = commits[0].committer
-    login = committer.login
-    if (
-        not login
-        or normalize_author_identity(login) in _COPILOT_COMMITTER_IDENTITIES
-        or is_unattended_author_login(login)
-        or committer.is_bot
-        or committer.is_copilot_reviewer
-    ):
-        return ""
-    return login
-
-
-def _effective_author(source: PullRequestSource) -> str:
-    author = source.pull_request.author.login
-    if normalize_author_identity(author) in _COPILOT_PR_AUTHOR_IDENTITIES:
-        human_author = _human_author_for_copilot_pr(source)
-        if human_author:
-            return human_author
-    return author
 
 
 def _compute_facts(
@@ -482,7 +435,7 @@ async def evaluate_pull_request(
                 pr_title=pr.title,
                 pr_url=pr.url,
             )
-        author = _effective_author(pr_source)
+        author = effective_author(pr_source.pull_request, pr_source.commits)
         activity = build_activity_timeline(
             ActivityInput(pr_source, author, config.approver_logins)
         )

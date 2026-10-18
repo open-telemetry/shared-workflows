@@ -13,6 +13,7 @@ from typing import Any
 from github_cli import (
     detect_repo,
     fetch_latest_draft_transitions,
+    gh_api,
     gh_graphql,
     list_open_prs,
     normalize_repo,
@@ -20,6 +21,8 @@ from github_cli import (
     run_gh,
 )
 from dashboard_contracts import StoredDashboardResult
+from pull_request_author import effective_author, is_copilot_author
+from pull_request_source import normalize_commits, normalize_pull_request
 from render import render_pr_tables
 from state import (
     dashboard_markdown_path,
@@ -178,6 +181,20 @@ def publishable_prs(
     ]
 
 
+def add_draft_authors(repo: str, prs: list[dict[str, Any]]) -> None:
+    for pr in prs:
+        if not pr.get("isDraft"):
+            continue
+        metadata = normalize_pull_request(pr)
+        author = effective_author(metadata)
+        if is_copilot_author(author):
+            commits = normalize_commits(
+                gh_api(f"/repos/{repo}/pulls/{metadata.number}/commits?per_page=1")
+            )
+            author = effective_author(metadata, commits)
+        pr["effectiveAuthor"] = author
+
+
 def add_draft_since(repo: str, prs: list[dict[str, Any]]) -> None:
     drafts = [pr for pr in prs if pr.get("isDraft")]
     if not drafts:
@@ -201,6 +218,7 @@ def render_dashboard_markdown(
 
     prs = list_open_prs(repo)
     if not large_repo:
+        add_draft_authors(repo, prs)
         add_draft_since(repo, prs)
     open_non_draft_pr_numbers = {p["number"] for p in prs if not p.get("isDraft")}
     results = results_from_dashboard_state(dashboard_state, open_non_draft_pr_numbers)

@@ -72,6 +72,131 @@ class PublishablePrsTest(unittest.TestCase):
             [2, 3],
         )
 
+    @patch.object(publish_dashboard, "gh_api")
+    def test_draft_authors_prefer_human_assignees_without_fetching_commits(
+        self,
+        gh_api,
+    ) -> None:
+        for login in ("Copilot", "app/copilot-swe-agent", "copilot-swe-agent[bot]"):
+            with self.subTest(login=login):
+                prs = [{
+                    "number": 7,
+                    "isDraft": True,
+                    "author": {"login": login},
+                    "assignees": [
+                        {"login": "Copilot"},
+                        {"login": "app/copilot-swe-agent"},
+                        {"login": "opentelemetrybot"},
+                        {"login": "renovate[bot]"},
+                        {"login": "human-author"},
+                        {"login": "another-human"},
+                    ],
+                }]
+
+                publish_dashboard.add_draft_authors("open-telemetry/example", prs)
+
+                self.assertEqual("human-author", prs[0]["effectiveAuthor"])
+                self.assertEqual({"login": login}, prs[0]["author"])
+        gh_api.assert_not_called()
+
+    @patch.object(publish_dashboard, "gh_api")
+    def test_draft_author_falls_back_to_first_commit_committer(
+        self,
+        gh_api,
+    ) -> None:
+        gh_api.return_value = [{
+            "author": {"login": "Copilot"},
+            "committer": {"login": "human-committer", "type": "User"},
+        }]
+        prs = [{
+            "number": 7,
+            "isDraft": True,
+            "author": {"login": "Copilot"},
+            "assignees": [{"login": "Copilot"}],
+        }]
+
+        publish_dashboard.add_draft_authors("open-telemetry/example", prs)
+
+        self.assertEqual("human-committer", prs[0]["effectiveAuthor"])
+        gh_api.assert_called_once_with(
+            "/repos/open-telemetry/example/pulls/7/commits?per_page=1"
+        )
+
+    @patch.object(publish_dashboard, "gh_api")
+    def test_draft_author_keeps_copilot_without_a_human_committer(
+        self,
+        gh_api,
+    ) -> None:
+        commits = (
+            [],
+            [{"committer": None}],
+            [{"committer": {"login": "Copilot"}}],
+            [{"committer": {"login": "opentelemetrybot"}}],
+            [{"committer": {"login": "renovate[bot]"}}],
+            [{"committer": {"login": "automation", "type": "Bot"}}],
+            [{"committer": {"login": "copilot-pull-request-reviewer"}}],
+            [
+                {"committer": {"login": "Copilot"}},
+                {"committer": {"login": "later-human"}},
+            ],
+        )
+        for value in commits:
+            with self.subTest(commits=value):
+                gh_api.return_value = value
+                prs = [{
+                    "number": 7,
+                    "isDraft": True,
+                    "author": {"login": "Copilot"},
+                }]
+
+                publish_dashboard.add_draft_authors("open-telemetry/example", prs)
+
+                self.assertEqual("Copilot", prs[0]["effectiveAuthor"])
+
+    @patch.object(publish_dashboard, "gh_api")
+    def test_draft_authors_leave_other_authors_and_non_drafts_unchanged(
+        self,
+        gh_api,
+    ) -> None:
+        prs = [
+            {
+                "number": 7,
+                "isDraft": True,
+                "author": {"login": "human-author"},
+                "assignees": [{"login": "another-human"}],
+            },
+            {
+                "number": 8,
+                "isDraft": True,
+                "author": {"login": "renovate[bot]"},
+            },
+            {"number": 9, "isDraft": False, "author": {"login": "Copilot"}},
+        ]
+
+        publish_dashboard.add_draft_authors("open-telemetry/example", prs)
+
+        self.assertEqual("human-author", prs[0]["effectiveAuthor"])
+        self.assertEqual("renovate[bot]", prs[1]["effectiveAuthor"])
+        self.assertNotIn("effectiveAuthor", prs[2])
+        gh_api.assert_not_called()
+
+    @patch.object(
+        publish_dashboard,
+        "gh_api",
+        side_effect=RuntimeError("commit fetch failed"),
+    )
+    def test_draft_author_commit_fetch_failure_is_not_hidden(self, gh_api) -> None:
+        prs = [{
+            "number": 7,
+            "isDraft": True,
+            "author": {"login": "Copilot"},
+        }]
+
+        with self.assertRaisesRegex(RuntimeError, "commit fetch failed"):
+            publish_dashboard.add_draft_authors("open-telemetry/example", prs)
+
+        self.assertNotIn("effectiveAuthor", prs[0])
+
     @patch.object(publish_dashboard, "publish_dashboard")
     @patch.object(publish_dashboard, "render_dashboard_markdown", return_value=Path("dashboard.md"))
     @patch.object(publish_dashboard, "set_state_dir")
@@ -182,6 +307,96 @@ class PublishablePrsTest(unittest.TestCase):
             skip_drafts=False,
             labels_to_display=["size/*"],
         )
+
+    def test_renders_effective_draft_authors_from_the_open_pull_listing(self) -> None:
+        pulls = [
+            {
+                "number": 7,
+                "title": "Assigned draft",
+                "draft": True,
+                "user": {"login": "Copilot"},
+                "assignees": [{"login": "Copilot"}, {"login": "human-assignee"}],
+            },
+            {
+                "number": 8,
+                "title": "Unassigned draft",
+                "draft": True,
+                "user": {"login": "Copilot"},
+            },
+        ]
+        with tempfile.TemporaryDirectory() as tmp:
+            output_path = Path(tmp) / "dashboard.md"
+            with (
+                patch.object(
+                    publish_dashboard,
+                    "load_dashboard_state_cache",
+                    return_value=dashboard_state(),
+                ),
+                patch("github_cli._list_open_pulls", return_value=pulls),
+                patch.object(
+                    publish_dashboard,
+                    "gh_api",
+                    return_value=[{"committer": {"login": "human-committer"}}],
+                ) as gh_api,
+                patch.object(
+                    publish_dashboard,
+                    "fetch_latest_draft_transitions",
+                    return_value={},
+                ),
+                patch.object(
+                    publish_dashboard,
+                    "dashboard_markdown_path",
+                    return_value=output_path,
+                ),
+            ):
+                path = publish_dashboard.render_dashboard_markdown(
+                    "open-telemetry/example",
+                    False,
+                )
+                markdown = path.read_text(encoding="utf-8")
+
+        self.assertIn("| #7 Assigned draft | human-assignee |", markdown)
+        self.assertIn("| #8 Unassigned draft | human-committer |", markdown)
+        self.assertNotIn("| Copilot |", markdown)
+        gh_api.assert_called_once_with(
+            "/repos/open-telemetry/example/pulls/8/commits?per_page=1"
+        )
+
+    def test_large_repo_skips_draft_author_and_age_fetches(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            output_path = Path(tmp) / "dashboard.md"
+            with (
+                patch.object(
+                    publish_dashboard,
+                    "load_dashboard_state_cache",
+                    return_value=dashboard_state(),
+                ),
+                patch.object(
+                    publish_dashboard,
+                    "list_open_prs",
+                    return_value=[{
+                        "number": 7,
+                        "isDraft": True,
+                        "author": {"login": "Copilot"},
+                    }],
+                ),
+                patch.object(publish_dashboard, "add_draft_authors") as add_authors,
+                patch.object(publish_dashboard, "add_draft_since") as add_since,
+                patch.object(
+                    publish_dashboard,
+                    "dashboard_markdown_path",
+                    return_value=output_path,
+                ),
+            ):
+                path = publish_dashboard.render_dashboard_markdown(
+                    "open-telemetry/example",
+                    True,
+                )
+                markdown = path.read_text(encoding="utf-8")
+
+        self.assertNotIn("## Draft pull requests", markdown)
+        add_authors.assert_not_called()
+        add_since.assert_not_called()
 
 
 if __name__ == "__main__":

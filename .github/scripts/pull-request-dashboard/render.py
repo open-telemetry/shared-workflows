@@ -74,7 +74,7 @@ def render_draft_pr_section(
     lines.append("| PR | Author | Draft age |")
     lines.append("|---|---|:---:|")
     for pr in drafts:
-        author = actor_login(pr.get("author") or {})
+        author = pr.get("effectiveAuthor") or actor_login(pr.get("author") or {})
         draft_age = activity_age(
             parse_ts(pr.get("draftSince") or pr.get("createdAt") or "")
         )

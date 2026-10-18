@@ -99,7 +99,7 @@ There is no direct-dispatch fallback or return-to-legacy execution mode.
 The dashboard groups open non-draft pull requests by who is expected to act next (e.g. *Waiting on reviewers*, *Waiting on authors*, *Waiting on maintainers*). Draft PRs are listed separately at the bottom unless `large_repo` rendering is enabled. Within each group, rows are sorted longest-waiting first. Every row has these six columns:
 
 - **PR** — Pull request number and title, followed by any configured matching labels. The number autolinks to the PR on GitHub. Configured labels are rendered inline for both active and draft PRs.
-- **Author** — Effective author of the PR. For Copilot-authored PRs, this is the human assignee or committer when available.
+- **Author** — Effective author of the PR, including in the draft section. For Copilot-authored PRs, this is the human assignee or first-commit committer when available.
 - **Reviewers** — Reviewers who have engaged with the PR, excluding the effective author even when assigned or requested for review, each annotated with one or more icons:
   - ✅ active approval
   - ✔️ active approval (non-code-owner — does **not** count toward `required_approvals`)

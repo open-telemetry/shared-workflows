@@ -8,7 +8,7 @@ reads a canonical `PullRequestSource` and produces either `EvaluationSuccess` or
 `EvaluationFailure`. A success carries typed `DashboardFacts`, the final route,
 diagnostics, pending actions, and top-level history. A failure carries a failure
 route and error, so failure routes cannot be combined with successful results.
-Evaluation owns effective-author resolution, activity, discussions,
+Evaluation uses the shared effective-author resolver and owns activity, discussions,
 classification, lifecycle and routing decisions, reviewer projection, command
 acknowledgements, author-action links, nudge episodes, and PR-specific failure
 shaping. It has no accepted-state or state-branch side effects.
@@ -20,6 +20,12 @@ results into frozen records for pull metadata, actors, commits, comments,
 reviews, review requests, review threads, checks, and non-blocking failures.
 `github_cli.py` remains the transport layer; its response dictionaries do not
 cross into evaluation or domain modules.
+
+`pull_request_author.py` resolves Copilot authors to a human assignee or
+first-commit committer. Evaluation and draft publication share this policy.
+Publication uses assignees from the open-PR listing and fetches only the first
+commit when a Copilot draft has no eligible assignee. Drafts remain outside
+evaluation and routing.
 
 `dashboard_contracts.py` defines the immutable in-memory boundary. A
 `StoredDashboardResult` projects an evaluation success down to the fields that

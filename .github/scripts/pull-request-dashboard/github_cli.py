@@ -796,6 +796,7 @@ def list_open_prs(repo: str) -> list[dict[str, Any]]:
             "number": pull["number"],
             "title": pull["title"],
             "author": pull.get("user"),
+            "assignees": pull.get("assignees") or [],
             "isDraft": pull.get("draft", False),
             "createdAt": pull.get("created_at"),
             "url": pull.get("html_url"),
