@@ -415,6 +415,8 @@ class DashboardBatchProcessor:
             "REPO_NAME": repository,
             "REQUIRED_APPROVALS": str(config.get("required_approvals", 1)),
             "APPROVER_TEAMS_JSON": json.dumps(config.get("approver_teams", [])),
+            "MAINTAINER_TEAMS_JSON": json.dumps(config.get("maintainer_teams", [])),
+            "TRIAGER_TEAMS_JSON": json.dumps(config.get("triager_teams", [])),
             "NON_BLOCKING_CHECK_PATTERNS_JSON": json.dumps(
                 config.get("non_blocking_check_patterns", [])
             ),

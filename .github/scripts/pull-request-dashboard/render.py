@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
-from dataclasses import replace
+from dataclasses import dataclass, replace
 from datetime import datetime
 from fnmatch import fnmatchcase
 from typing import Any
@@ -18,7 +18,9 @@ from utils import (
     actor_login,
     activity_age,
     is_copilot_reviewer_login,
+    is_unattended_author_login,
     markdown_escape,
+    normalize_author_identity,
     parse_ts,
     seconds_since,
 )
@@ -60,10 +62,75 @@ def _pr_cell_text(
     return f"{pr_cell} · {rendered_labels}"
 
 
+FIRST_TIME_AUTHOR_ASSOCIATIONS = ("FIRST_TIME_CONTRIBUTOR", "FIRST_TIMER")
+
+
+@dataclass(frozen=True)
+class AuthorTeams:
+    """Lowercased logins of the repository's configured teams."""
+
+    maintainers: frozenset[str] = frozenset()
+    approvers: frozenset[str] = frozenset()
+    triagers: frozenset[str] = frozenset()
+
+    def badge(self, login: str) -> str:
+        # Teams nest (maintainers within approvers within triagers), so check
+        # the most specific team first.
+        login = login.lower()
+        if login in self.maintainers:
+            return "🛠️"
+        if login in self.approvers:
+            return "🔍"
+        if login in self.triagers:
+            return "🏷️"
+        return ""
+
+
+def author_badge(
+    pr: dict[str, Any],
+    author: str,
+    teams: AuthorTeams = AuthorTeams(),
+) -> str:
+    pr_author = pr.get("author") or {}
+    # GitHub's author association and account type describe the PR author, so
+    # they do not apply when a Copilot PR is shown under its human author.
+    is_pr_author = (
+        normalize_author_identity(author)
+        == normalize_author_identity(actor_login(pr_author))
+    )
+    if is_unattended_author_login(author) or (
+        is_pr_author and str(pr_author.get("type") or "").lower() == "bot"
+    ):
+        return "🤖"
+    # Team members are also organization members; show only the more specific badge.
+    team_badge = teams.badge(author)
+    if team_badge:
+        return team_badge
+    if not is_pr_author:
+        return ""
+    association = pr.get("authorAssociation")
+    if association == "MEMBER":
+        return "🔭"
+    if association in FIRST_TIME_AUTHOR_ASSOCIATIONS:
+        return "🆕"
+    return ""
+
+
+def author_cell_text(
+    pr: dict[str, Any],
+    author: str,
+    teams: AuthorTeams = AuthorTeams(),
+) -> str:
+    badge = author_badge(pr, author, teams) if author else ""
+    # Join login and badge with a non-breaking space so they never wrap apart.
+    return f"{author}&nbsp;{badge}" if badge else author
+
+
 def render_draft_pr_section(
     prs: list[dict[str, Any]],
     max_rows_per_section: int | None = None,
     labels_to_display: list[str] | None = None,
+    author_teams: AuthorTeams = AuthorTeams(),
 ) -> list[str]:
     drafts = [p for p in prs if p.get("isDraft")]
     if not drafts:
@@ -74,7 +141,11 @@ def render_draft_pr_section(
     lines.append("| PR | Author | Draft age |")
     lines.append("|---|---|:---:|")
     for pr in drafts:
-        author = pr.get("effectiveAuthor") or actor_login(pr.get("author") or {})
+        author = author_cell_text(
+            pr,
+            pr.get("effectiveAuthor") or actor_login(pr.get("author") or {}),
+            author_teams,
+        )
         draft_age = activity_age(
             parse_ts(pr.get("draftSince") or pr.get("createdAt") or "")
         )
@@ -228,6 +299,7 @@ def render_pr_tables(
     max_rows_per_section: int | None = None,
     skip_drafts: bool = False,
     labels_to_display: list[str] | None = None,
+    author_teams: AuthorTeams = AuthorTeams(),
 ) -> str:
     results_by_number = {
         result.pr_number: result
@@ -243,6 +315,10 @@ def render_pr_tables(
         f"Open non-draft PRs grouped by who is expected to act next. {draft_note} The grouping is "
         f"partly performed by an LLM ([source]({source_url})) and could contain mistakes."
     )
+    author_note = (
+        "Author column: 🆕 first-time contributor · 🔭 open-telemetry member · "
+        "🏷️ triager · 🔍 approver · 🛠️ maintainer · 🤖 bot."
+    )
     reviewers_note = (
         "Reviewers column: ✅ active approval · ✔️ active approval (non-code-owner) · "
         "⏳ review pending · 💬 unresolved feedback from reviewer · "
@@ -256,6 +332,8 @@ def render_pr_tables(
     out: list[str] = [
         "> [!NOTE]",
         f"> {grouping_note}",
+        ">",
+        f"> {author_note}",
         ">",
         f"> {reviewers_note}",
         ">",
@@ -297,7 +375,11 @@ def render_pr_tables(
             number = pr["number"]
             res = results_by_number.get(number)
             facts = res.facts if res is not None else DashboardFacts()
-            author = facts.author or actor_login(pr.get("author") or {})
+            author = author_cell_text(
+                pr,
+                facts.author or actor_login(pr.get("author") or {}),
+                author_teams,
+            )
             reviewers_cell = reviewers_cell_text(facts)
             activity_cell = age_cell(facts)
             # GitHub autolinks same-repo PR numbers; avoid full URLs so large
@@ -317,5 +399,6 @@ def render_pr_tables(
             prs,
             max_rows_per_section,
             labels_to_display,
+            author_teams,
         ))
     return "\n".join(out) + "\n"

@@ -156,7 +156,7 @@ Permission rationale:
 | Issues | Read and write | Finds, creates, and updates the dashboard issue. |
 | Metadata | Read | Required by GitHub for GitHub App repository access. |
 | Pull requests | Read and write | Required to subscribe to PR review/comment/thread events; read PR details, reviews, review comments, commits, and GraphQL review threads; and create the dashboard-managed PR status comment, which is a pull request conversation comment. |
-| Members | Read | Reads approver-team membership configured in `repositories.json`. |
+| Members | Read | Reads approver-, maintainer-, and triager-team membership configured in `repositories.json`. |
 
 The dashboard does not create inline review comments, submit reviews, or resolve
 review threads. It manages one PR conversation comment (create, update, and

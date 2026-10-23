@@ -23,6 +23,8 @@ from github_cli import (
     include_missing_required_checks,
     is_retryable_gh_error,
     list_open_prs,
+    load_reviewer_set,
+    load_team_members,
     merge_code_scanning_checks,
     normalize_check,
     request_copilot_review,
@@ -571,6 +573,7 @@ class GithubCliTest(unittest.TestCase):
                 "number": number,
                 "title": f"PR {number}",
                 "user": {"login": "author"},
+                "author_association": "MEMBER" if number == 501 else None,
                 "assignees": [{"login": "human-author"}] if number == 501 else None,
                 "draft": number == 501,
                 "created_at": "2026-07-01T00:00:00Z",
@@ -595,6 +598,7 @@ class GithubCliTest(unittest.TestCase):
                 "number": 501,
                 "title": "PR 501",
                 "author": {"login": "author"},
+                "authorAssociation": "MEMBER",
                 "assignees": [{"login": "human-author"}],
                 "isDraft": True,
                 "createdAt": "2026-07-01T00:00:00Z",
@@ -605,10 +609,44 @@ class GithubCliTest(unittest.TestCase):
         )
         self.assertEqual([], prs[0]["labels"])
         self.assertEqual([], prs[0]["assignees"])
+        self.assertEqual("", prs[0]["authorAssociation"])
         gh_api.assert_called_once_with(
             "/repos/open-telemetry/example/pulls?state=open&per_page=100",
             paginate=True,
         )
+
+    @patch.dict("os.environ", {"PR_DASHBOARD_TOKEN": "token"})
+    @patch("github_cli.gh_api")
+    def test_loads_lowercased_members_of_every_team(self, gh_api) -> None:
+        gh_api.side_effect = [
+            [{"login": "Maintainer"}, {"login": "shared"}],
+            [{"login": "Shared"}, {"login": "other"}],
+        ]
+
+        self.assertEqual(
+            {"maintainer", "shared", "other"},
+            load_team_members("open-telemetry", ["first", "second"]),
+        )
+        self.assertEqual(
+            [
+                call(
+                    "/orgs/open-telemetry/teams/first/members?per_page=100",
+                    paginate=True,
+                    token="token",
+                ),
+                call(
+                    "/orgs/open-telemetry/teams/second/members?per_page=100",
+                    paginate=True,
+                    token="token",
+                ),
+            ],
+            gh_api.call_args_list,
+        )
+
+    @patch("github_cli.gh_api", return_value=[])
+    def test_empty_approver_teams_are_rejected(self, _gh_api) -> None:
+        with self.assertRaisesRegex(RuntimeError, "no reviewers found"):
+            load_reviewer_set("open-telemetry", ["approvers"])
 
     @patch("github_cli.gh_graphql")
     def test_fetches_latest_draft_transitions_in_one_query(self, graphql) -> None:

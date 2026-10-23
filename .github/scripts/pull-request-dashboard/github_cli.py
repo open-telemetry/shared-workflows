@@ -796,6 +796,7 @@ def list_open_prs(repo: str) -> list[dict[str, Any]]:
             "number": pull["number"],
             "title": pull["title"],
             "author": pull.get("user"),
+            "authorAssociation": pull.get("author_association") or "",
             "assignees": pull.get("assignees") or [],
             "isDraft": pull.get("draft", False),
             "createdAt": pull.get("created_at"),
@@ -826,22 +827,27 @@ def detect_repo() -> str:
     return proc.stdout.strip()
 
 
-def load_reviewer_set(org: str, approver_team_slugs: list[str]) -> set[str]:
+def load_team_members(org: str, team_slugs: list[str]) -> set[str]:
     token = os.environ.get("PR_DASHBOARD_TOKEN") or None
-    reviewers: set[str] = set()
-    for slug in approver_team_slugs:
+    logins: set[str] = set()
+    for slug in team_slugs:
         members = gh_api(
             f"/orgs/{org}/teams/{slug}/members?per_page=100",
             paginate=True,
             token=token,
         )
-        reviewers.update(m["login"] for m in members)
+        logins.update(m["login"].lower() for m in members)
+    return logins
+
+
+def load_reviewer_set(org: str, approver_team_slugs: list[str]) -> set[str]:
+    reviewers = load_team_members(org, approver_team_slugs)
     if not reviewers:
         raise RuntimeError(
             f"no reviewers found in teams {approver_team_slugs}; "
             f"the dashboard app token must have org members read permission"
         )
-    return {r.lower() for r in reviewers}
+    return reviewers
 
 
 REVIEW_THREADS_QUERY = """

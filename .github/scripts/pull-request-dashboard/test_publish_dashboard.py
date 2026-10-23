@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 from contextlib import nullcontext
+import os
 from pathlib import Path
+import sys
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -10,6 +12,14 @@ import publish_dashboard
 from dashboard_test_support import (
     dashboard_state,
     stored_dashboard_result,
+)
+from render import AuthorTeams
+
+
+EXAMPLE_TEAM_SLUGS = publish_dashboard.AuthorTeamSlugs(
+    maintainers=("example-maintainers",),
+    approvers=("example-approvers",),
+    triagers=("example-triagers",),
 )
 
 
@@ -217,6 +227,7 @@ class PublishablePrsTest(unittest.TestCase):
                 "state-branch",
                 True,
                 ["size/*"],
+                EXAMPLE_TEAM_SLUGS,
             )
 
         accepted_state_dir.assert_called_once_with("state-branch", required=True)
@@ -225,6 +236,7 @@ class PublishablePrsTest(unittest.TestCase):
             "open-telemetry/example",
             True,
             ["size/*"],
+            EXAMPLE_TEAM_SLUGS,
         )
         publish.assert_called_once_with("open-telemetry/example", Path("dashboard.md"))
 
@@ -257,7 +269,58 @@ class PublishablePrsTest(unittest.TestCase):
             [Path("old.md")],
         )
 
-    def test_passes_labels_to_renderer(self) -> None:
+    def test_reads_author_team_slugs_from_the_environment(self) -> None:
+        self.assertEqual(
+            EXAMPLE_TEAM_SLUGS,
+            publish_dashboard.AuthorTeamSlugs.from_environment({
+                "MAINTAINER_TEAMS_JSON": '["example-maintainers"]',
+                "APPROVER_TEAMS_JSON": '["example-approvers"]',
+                "TRIAGER_TEAMS_JSON": '["example-triagers"]',
+            }),
+        )
+        self.assertEqual(
+            publish_dashboard.AuthorTeamSlugs(),
+            publish_dashboard.AuthorTeamSlugs.from_environment({}),
+        )
+
+    def test_rejects_invalid_author_team_slugs(self) -> None:
+        for name in ("MAINTAINER_TEAMS_JSON", "APPROVER_TEAMS_JSON", "TRIAGER_TEAMS_JSON"):
+            for raw in ("{", '"example-team"', '[""]'):
+                with self.subTest(name=name, raw=raw):
+                    with self.assertRaisesRegex(RuntimeError, name):
+                        publish_dashboard.AuthorTeamSlugs.from_environment({name: raw})
+
+    @patch.object(publish_dashboard, "publish_accepted_dashboard")
+    def test_main_passes_author_team_slugs_from_the_environment(
+        self,
+        publish_accepted: object,
+    ) -> None:
+        with (
+            patch.object(
+                sys,
+                "argv",
+                ["publish_dashboard.py", "--repo", "example", "--state-branch", "state"],
+            ),
+            patch.dict(
+                os.environ,
+                {
+                    "MAINTAINER_TEAMS_JSON": '["example-maintainers"]',
+                    "APPROVER_TEAMS_JSON": '["example-approvers"]',
+                    "TRIAGER_TEAMS_JSON": '["example-triagers"]',
+                },
+            ),
+        ):
+            self.assertEqual(0, publish_dashboard.main())
+
+        publish_accepted.assert_called_once_with(
+            "open-telemetry/example",
+            "state",
+            False,
+            [],
+            EXAMPLE_TEAM_SLUGS,
+        )
+
+    def test_passes_labels_and_author_teams_to_renderer(self) -> None:
         prs = [
             {
                 "number": 1,
@@ -290,6 +353,11 @@ class PublishablePrsTest(unittest.TestCase):
                     "dashboard_markdown_path",
                     return_value=output_path,
                 ),
+                patch.object(
+                    publish_dashboard,
+                    "load_team_members",
+                    side_effect=lambda _org, slugs: {slugs[0].removeprefix("example-")},
+                ) as load_team_members,
             ):
                 self.assertEqual(
                     output_path,
@@ -297,16 +365,54 @@ class PublishablePrsTest(unittest.TestCase):
                         "open-telemetry/example",
                         False,
                         ["size/*"],
+                        EXAMPLE_TEAM_SLUGS,
                     ),
                 )
 
+        self.assertEqual(
+            [
+                (("open-telemetry", ["example-maintainers"]),),
+                (("open-telemetry", ["example-approvers"]),),
+                (("open-telemetry", ["example-triagers"]),),
+            ],
+            [(call.args,) for call in load_team_members.call_args_list],
+        )
         render_pr_tables.assert_called_once_with(
             prs,
             results,
             max_rows_per_section=None,
             skip_drafts=False,
             labels_to_display=["size/*"],
+            author_teams=AuthorTeams(
+                maintainers=frozenset({"maintainers"}),
+                approvers=frozenset({"approvers"}),
+                triagers=frozenset({"triagers"}),
+            ),
         )
+
+    def test_skips_team_lookups_without_author_teams(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            output_path = Path(tmp) / "dashboard.md"
+            with (
+                patch.object(
+                    publish_dashboard,
+                    "load_dashboard_state_cache",
+                    return_value=dashboard_state(),
+                ),
+                patch.object(publish_dashboard, "list_open_prs", return_value=[]),
+                patch.object(
+                    publish_dashboard,
+                    "dashboard_markdown_path",
+                    return_value=output_path,
+                ),
+                patch.object(publish_dashboard, "load_team_members") as load_team_members,
+            ):
+                publish_dashboard.render_dashboard_markdown(
+                    "open-telemetry/example",
+                    False,
+                )
+
+        load_team_members.assert_not_called()
 
     def test_renders_effective_draft_authors_from_the_open_pull_listing(self) -> None:
         pulls = [

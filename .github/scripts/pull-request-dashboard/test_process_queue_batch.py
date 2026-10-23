@@ -102,6 +102,54 @@ class QueueBatchTest(unittest.TestCase):
                     self.assertLess(lifecycle.index("publish_dashboard.py"), lifecycle.index("release-delivery"))
                     self.assertLess(lifecycle.index("release-delivery"), lifecycle.index("acknowledge"))
 
+    def test_publish_receives_author_teams_through_the_environment(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            publishes = []
+
+            class Client:
+                def call(self, action: str, **_payload: object) -> dict[str, object]:
+                    if action == "heartbeat":
+                        return {"dispatcher": True, "leaseDurationMs": 900_000}
+                    if action == "acquire-delivery":
+                        return {"acquired": True, "leaseGeneration": 7}
+                    if action == "release-delivery":
+                        return {"released": True}
+                    return {"status": "removed"}
+
+            def run(command: list[str], _lease_check, **kwargs):
+                script = Path(command[1]).name
+                if script == "publish_dashboard.py":
+                    publishes.append((command, kwargs["env"]))
+                if script == "delivery.py":
+                    output = Path(command[command.index("--github-output") + 1])
+                    output.write_text("active=true\nfull_publish_generation=0\n", encoding="utf-8")
+                return subprocess.CompletedProcess(
+                    command, 0, stdout="true\n" if script == "state.py" else "", stderr=""
+                )
+
+            config = Path(directory) / "repositories.json"
+            config.write_text(
+                '[{"name":"example","approver_teams":["example-approvers"],'
+                '"maintainer_teams":["example-maintainers"],'
+                '"triager_teams":["example-triagers"]}]',
+                encoding="utf-8",
+            )
+            with mock.patch.object(process_queue_batch, "run_monitored", side_effect=run):
+                process_claims(
+                    [claim("example#pr:1", "example", pr_number=1)],
+                    Path(directory) / "results.json", Client(), 1, "live",
+                    config_path=config,
+                )
+
+        self.assertEqual(1, len(publishes))
+        command, env = publishes[0]
+        # Stable-channel publish scripts reject unknown flags, so the teams
+        # must not be passed on the command line.
+        self.assertFalse(any("-teams" in argument for argument in command))
+        self.assertEqual('["example-approvers"]', env["APPROVER_TEAMS_JSON"])
+        self.assertEqual('["example-maintainers"]', env["MAINTAINER_TEAMS_JSON"])
+        self.assertEqual('["example-triagers"]', env["TRIAGER_TEAMS_JSON"])
+
     def test_delivery_lease_waits_for_ownership_and_releases_its_generation(self) -> None:
         client = mock.Mock()
         client.call.side_effect = [
