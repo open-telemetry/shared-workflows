@@ -641,7 +641,7 @@ export class DashboardQueue {
       item.leaseExpiresAt = null;
       item.claimedGeneration = null;
       delete item.dispatcherGeneration;
-      item.attempts = outcome === "requeue"
+      item.attempts = outcome === "requeue" && !hasFollowUp
         ? item.attempts
         : outcome === "retry" && !hasFollowUp ? item.attempts + 1 : 0;
       item.notBefore = outcome === "retry" && !hasFollowUp && retryAfterMs > 0
@@ -649,7 +649,7 @@ export class DashboardQueue {
         : null;
       item.lastError = outcome === "retry"
         ? normalizeError(error)
-        : outcome === "requeue" ? item.lastError : "";
+        : outcome === "requeue" && !hasFollowUp ? item.lastError : "";
       const result = {
         status: outcome === "requeue"
           ? "requeued"

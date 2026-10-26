@@ -1055,6 +1055,77 @@ test("requeue returns an unstarted item without consuming retries or completing 
   assert.equal(available.attempts, 2);
 });
 
+test("requeue gives a dirty follow-up generation a fresh retry budget", async () => {
+  const { queue, store } = fixture();
+  const request = await queue.enqueue({
+    repository: "example",
+    prNumber: 123,
+    headSha: "",
+    triggerEvent: "pull_request",
+  });
+  const dispatcher = await queue.requestDispatcher("request");
+  await queue.activateDispatcher({
+    generation: dispatcher.generation,
+    workerId: "worker",
+  });
+
+  for (const attempts of [1, 2]) {
+    const [claimed] = await queue.claimWave({
+      generation: dispatcher.generation,
+      workerId: "worker",
+    });
+    assert.deepEqual(await queue.acknowledge({
+      ...claimed,
+      generation: dispatcher.generation,
+      workerId: "worker",
+      outcome: "retry",
+      error: "old generation failure",
+    }), { status: "retry", attempts });
+  }
+
+  const [unstarted] = await queue.claimWave({
+    generation: dispatcher.generation,
+    workerId: "worker",
+  });
+  const followUp = await queue.enqueue({
+    repository: "example",
+    prNumber: 123,
+    headSha: "",
+    triggerEvent: "status",
+  });
+  assert.equal(followUp.status, "follow_up");
+
+  assert.deepEqual(await queue.acknowledge({
+    ...unstarted,
+    generation: dispatcher.generation,
+    workerId: "worker",
+    outcome: "requeue",
+    operationId: "return-dirty-unstarted",
+  }), { status: "requeued", attempts: 0 });
+
+  const shard = store.entries.get(request.shardKey).value;
+  assert.equal(shard.items[request.itemKey].attempts, 0);
+  assert.equal(shard.items[request.itemKey].lastError, "");
+  assert.deepEqual(shard.deadLetters, {});
+  assert.equal((await queue.itemStatus(request)).status, "queued");
+  assert.ok(Object.values(shard.acknowledgments).every(
+    (receipt) => receipt.result.status !== "removed",
+  ));
+
+  const [available] = await queue.claimWave({
+    generation: dispatcher.generation,
+    workerId: "worker",
+  });
+  assert.equal(available.claimGeneration, followUp.generation);
+  assert.equal(available.attempts, 0);
+  assert.deepEqual(await queue.acknowledge({
+    ...available,
+    generation: dispatcher.generation,
+    workerId: "worker",
+    outcome: "retry",
+  }), { status: "retry", attempts: 1 });
+});
+
 test("requeue acknowledgment is fenced by the active item lease", async () => {
   const { queue, advance } = fixture();
   const request = await queue.enqueue({ repository: "example", prNumber: 1 });
