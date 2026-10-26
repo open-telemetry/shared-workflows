@@ -7,6 +7,7 @@ import os
 import subprocess
 import sys
 import tempfile
+import threading
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -15,9 +16,8 @@ import drain_queue
 from drain_queue import (
     DrainResult,
     GitHubAppTokenClient,
-    WaveResult,
+    JobResult,
     drain_queue as run_drain,
-    process_claim_wave,
     process_repository_claims,
     unresolved_acknowledgments,
 )
@@ -26,7 +26,65 @@ from execution_code import ExecutionCode
 
 
 def claim(item_key: str, *, attempts: int = 0) -> Claim:
-    return Claim(item_key, 1, "example", 1, "", attempts)
+    repository = item_key.split("#", 1)[0]
+    return Claim(item_key, 1, repository, 1, "", attempts)
+
+
+# Hang guard only; scheduling assertions never depend on elapsed time.
+WAIT_SECONDS = 30
+
+
+class FakeQueue:
+    """Claims the oldest eligible items the way the queue's optional filters do."""
+
+    def __init__(self, item_keys: list[str], *, limit: int = 16) -> None:
+        self.queued = [claim(item_key) for item_key in item_keys]
+        self.limit = limit
+        self.calls: list[tuple[int, list[str], list[str]]] = []
+
+    def claim(
+        self, free_slots: int, excluded: list[str], active_repositories: list[str]
+    ) -> list[Claim]:
+        self.calls.append((free_slots, excluded, active_repositories))
+        selected: list[Claim] = []
+        repositories: list[str] = []
+        for item in self.queued:
+            if len(selected) >= self.limit:
+                break
+            if item.item_key in excluded or item.repository in active_repositories:
+                continue
+            if item.repository not in repositories:
+                if len(repositories) >= free_slots:
+                    continue
+                repositories.append(item.repository)
+            selected.append(item)
+        for item in selected:
+            self.queued.remove(item)
+        return selected
+
+
+class ActiveTracker:
+    def __init__(self) -> None:
+        self.lock = threading.Lock()
+        self.active: set[str] = set()
+        self.maximum = 0
+        self.violations: list[str] = []
+
+    def enter(self, claims: list[Claim]) -> None:
+        repository = claims[0].repository
+        with self.lock:
+            if {item.repository for item in claims} != {repository}:
+                self.violations.append(f"mixed job for {repository}")
+            if repository in self.active:
+                self.violations.append(f"{repository} overlapped itself")
+            self.active.add(repository)
+            self.maximum = max(self.maximum, len(self.active))
+            if len(self.active) > 4:
+                self.violations.append(f"{len(self.active)} active repositories")
+
+    def leave(self, claims: list[Claim]) -> None:
+        with self.lock:
+            self.active.remove(claims[0].repository)
 
 
 class DrainQueueTest(unittest.TestCase):
@@ -78,106 +136,246 @@ class DrainQueueTest(unittest.TestCase):
         )
         self.assertNotIn("Traceback", stderr.getvalue())
 
-    def test_stops_without_claiming_when_initial_queue_is_empty(self) -> None:
-        claim_wave = mock.Mock()
-        process_wave = mock.Mock()
+    def test_stops_without_processing_when_queue_is_empty(self) -> None:
+        queue = FakeQueue([])
+        process_job = mock.Mock()
 
-        result = run_drain([], 100, claim_wave, process_wave, now=lambda: 0)
+        result = run_drain(100_000, queue.claim, process_job, now=lambda: 0)
 
         self.assertEqual(result, DrainResult(0, 0, "queue_empty", 0))
-        claim_wave.assert_not_called()
-        process_wave.assert_not_called()
+        self.assertEqual(queue.calls, [(4, [], [])])
+        process_job.assert_not_called()
 
-    def test_continues_through_bounded_waves_until_claim_is_empty(self) -> None:
-        processed: list[list[str]] = []
-        queued = iter([[claim("example#pr:2")], []])
+    def test_blocked_repository_does_not_delay_work_beyond_the_first_claim(self) -> None:
+        first_batch = [
+            "slow#pr:1",
+            *[f"{repository}#pr:{number}" for repository in ("a", "b", "c") for number in range(1, 6)],
+        ]
+        later = ["d#pr:1", "e#pr:1", "f#pr:1"]
+        queue = FakeQueue(first_batch + later)
+        tracker = ActiveTracker()
+        later_started = threading.Event()
+        released: list[bool] = []
+        slow_active_for_later: list[bool] = []
+
+        def process_job(claims: list[Claim], _job: int) -> JobResult:
+            tracker.enter(claims)
+            try:
+                if claims[0].repository == "slow":
+                    released.append(later_started.wait(WAIT_SECONDS))
+                elif claims[0].item_key in later:
+                    with tracker.lock:
+                        slow_active_for_later.append("slow" in tracker.active)
+                    later_started.set()
+                return JobResult(0, ())
+            finally:
+                tracker.leave(claims)
+
+        result = run_drain(100_000, queue.claim, process_job, now=lambda: 0)
+
+        # The blocked job is released only by work claimed after the first
+        # 16-item claim, so it cannot finish first and pass by timing alone.
+        self.assertEqual(released, [True])
+        self.assertTrue(slow_active_for_later[0])
+        self.assertEqual(tracker.violations, [])
+        self.assertEqual(queue.calls[0], (4, [], []))
+        self.assertEqual(result, DrainResult(19, 0, "queue_empty", 7))
+        self.assertEqual(queue.queued, [])
+
+    def test_keeps_four_repositories_active_without_self_overlap(self) -> None:
+        # Small item limits split each repository into several claims, so
+        # replenishment must keep skipping repositories that are still active.
+        item_keys = [
+            f"repo-{repository}#pr:{number}"
+            for number in range(1, 4)
+            for repository in range(6)
+        ]
+        queue = FakeQueue(item_keys, limit=2)
+        tracker = ActiveTracker()
+        barrier = threading.Barrier(4, timeout=WAIT_SECONDS)
+        processed: list[str] = []
+
+        def process_job(claims: list[Claim], job: int) -> JobResult:
+            tracker.enter(claims)
+            try:
+                if job <= 4:
+                    barrier.wait()
+                processed.extend(item.item_key for item in claims)
+                return JobResult(0, ())
+            finally:
+                tracker.leave(claims)
+
+        result = run_drain(100_000, queue.claim, process_job, now=lambda: 0)
+
+        self.assertEqual(tracker.violations, [])
+        self.assertEqual(tracker.maximum, 4)
+        self.assertEqual(sorted(processed), sorted(item_keys))
+        self.assertEqual(result.reason, "queue_empty")
+        self.assertEqual(result.claims, len(item_keys))
+        for free_slots, _excluded, active in queue.calls:
+            self.assertLessEqual(len(active) + free_slots, 4)
+            self.assertGreaterEqual(free_slots, 1)
+
+    def test_rejects_claims_that_overlap_an_active_repository(self) -> None:
+        release = threading.Event()
+        calls = iter([[claim("a#pr:1")], [claim("a#pr:2")]])
+
+        def process_job(_claims: list[Claim], _job: int) -> JobResult:
+            release.wait(WAIT_SECONDS)
+            return JobResult(0, ())
+
+        def claim_work(*_args: object) -> list[Claim]:
+            claims = next(calls)
+            if claims[0].item_key == "a#pr:2":
+                release.set()
+            return claims
+
+        with self.assertRaisesRegex(RuntimeError, "active repositories: a"):
+            run_drain(100_000, claim_work, process_job, now=lambda: 0)
+
+    def test_lease_loss_while_replenishing_waits_for_running_jobs(self) -> None:
+        release = threading.Event()
+        finished: list[str] = []
+        calls = iter([[claim("a#pr:1")]])
+
+        def claim_work(*_args: object) -> list[Claim]:
+            claims = next(calls, None)
+            if claims is None:
+                release.set()
+                raise RuntimeError("queue lease heartbeat failed: rejected")
+            return claims
+
+        def process_job(claims: list[Claim], _job: int) -> JobResult:
+            self.assertTrue(release.wait(WAIT_SECONDS))
+            finished.append(claims[0].item_key)
+            return JobResult(0, ())
+
+        with self.assertRaisesRegex(RuntimeError, "queue lease heartbeat failed"):
+            run_drain(100_000, claim_work, process_job, now=lambda: 0)
+
+        self.assertEqual(finished, ["a#pr:1"])
+
+    def test_stops_admitting_before_the_safe_deadline(self) -> None:
+        queue = FakeQueue(["example#pr:1"])
+        process_job = mock.Mock()
 
         result = run_drain(
-            [claim("example#pr:1")],
-            1_000,
-            lambda _wave, _excluded: next(queued),
-            lambda claims, _wave: (
-                processed.append([item.item_key for item in claims])
-                or WaveResult(0, ())
-            ),
-            now=lambda: 0,
+            1_000, queue.claim, process_job, now=lambda: 400,
+            admission_margin_seconds=600,
         )
 
-        self.assertEqual(
-            processed,
-            [["example#pr:1"], ["example#pr:2"]],
-        )
-        self.assertEqual(result, DrainResult(2, 0, "queue_empty", 2))
+        self.assertEqual(result, DrainResult(0, 0, "deadline", 0))
+        self.assertEqual(queue.calls, [])
+        process_job.assert_not_called()
 
-    def test_stops_before_claiming_past_the_safe_deadline(self) -> None:
-        claim_wave = mock.Mock()
+    def test_running_jobs_finish_after_admission_stops_at_the_deadline(self) -> None:
+        queue = FakeQueue(["a#pr:1", "b#pr:1"])
+        clock = [0.0]
+        processed: list[str] = []
+
+        def process_job(claims: list[Claim], _job: int) -> JobResult:
+            processed.append(claims[0].item_key)
+            clock[0] = 500
+            return JobResult(0, ())
 
         result = run_drain(
-            [claim("example#pr:1")],
-            100,
-            claim_wave,
-            lambda _claims, _wave: WaveResult(0, ()),
-            now=lambda: 100,
+            1_000, queue.claim, process_job, now=lambda: clock[0],
+            admission_margin_seconds=600, maximum_repositories=1,
         )
 
         self.assertEqual(result, DrainResult(1, 0, "deadline", 1))
-        claim_wave.assert_not_called()
+        self.assertEqual(processed, ["a#pr:1"])
+        self.assertEqual([item.item_key for item in queue.queued], ["b#pr:1"])
 
     def test_continues_after_dead_letters_and_excludes_retries(self) -> None:
-        exclusions: list[list[str]] = []
-        queued = iter([[claim("example#pr:3")], []])
+        queue = FakeQueue(["example#pr:1", "example#pr:2", "example#pr:3"], limit=2)
 
-        def claim_wave(_wave: int, excluded: list[str]) -> list[Claim]:
-            exclusions.append(excluded)
-            return next(queued)
+        def process_job(claims: list[Claim], _job: int) -> JobResult:
+            keys = [item.item_key for item in claims]
+            if keys == ["example#pr:1", "example#pr:2"]:
+                queue.queued.append(claim("example#pr:2"))
+                return JobResult(1, ("example#pr:2",))
+            return JobResult(0, ())
 
-        def process_wave(_claims: list[Claim], wave: int) -> WaveResult:
-            return WaveResult(1, ("example#pr:2",)) if wave == 1 else WaveResult(0, ())
+        result = run_drain(100_000, queue.claim, process_job, now=lambda: 0)
 
-        result = run_drain(
-            [claim("example#pr:1"), claim("example#pr:2")],
-            1_000,
-            claim_wave,
-            process_wave,
-            now=lambda: 0,
-        )
-
-        self.assertEqual(exclusions, [["example#pr:2"], ["example#pr:2"]])
         self.assertEqual(result, DrainResult(3, 1, "queue_empty", 2))
+        self.assertEqual(
+            queue.calls,
+            [
+                (4, [], []),
+                (3, [], ["example"]),
+                (4, ["example#pr:2"], []),
+                (3, ["example#pr:2"], ["example"]),
+                (4, ["example#pr:2"], []),
+            ],
+        )
+        self.assertEqual([item.item_key for item in queue.queued], ["example#pr:2"])
+
+    def test_reports_failed_repository_job_after_other_jobs_finish(self) -> None:
+        queue = FakeQueue(["removed#pr:1", "valid#pr:1"])
+        processed: list[str] = []
+        failed = threading.Event()
+
+        def process_job(claims: list[Claim], _job: int) -> JobResult:
+            if claims[0].repository == "removed":
+                failed.set()
+                raise RuntimeError("repository is not accessible")
+            self.assertTrue(failed.wait(WAIT_SECONDS))
+            processed.append(claims[0].item_key)
+            return JobResult(0, ())
+
+        with self.assertRaisesRegex(
+            RuntimeError, "1 repository job\\(s\\) failed: removed: repository is not accessible"
+        ):
+            run_drain(100_000, queue.claim, process_job, now=lambda: 0)
+
+        self.assertEqual(processed, ["valid#pr:1"])
+
+    def test_failed_repository_job_stops_new_admissions(self) -> None:
+        queue = FakeQueue(["removed#pr:1", "later#pr:1"])
+
+        def process_job(_claims: list[Claim], _job: int) -> JobResult:
+            raise RuntimeError("repository is not accessible")
+
+        with self.assertRaisesRegex(RuntimeError, "removed: repository is not accessible"):
+            run_drain(
+                100_000, queue.claim, process_job, now=lambda: 0, maximum_repositories=1,
+            )
+
+        self.assertEqual(queue.calls, [(1, [], [])])
+        self.assertEqual([item.item_key for item in queue.queued], ["later#pr:1"])
 
     def test_stops_before_retry_exclusions_become_too_large(self) -> None:
-        claim_wave = mock.Mock()
+        queue = FakeQueue(["example#pr:1", "example#pr:2", "example#pr:3"], limit=2)
 
         result = run_drain(
-            [claim("example#pr:1"), claim("example#pr:2")],
-            1_000,
-            claim_wave,
-            lambda _claims, _wave: WaveResult(
-                0,
-                ("example#pr:1", "example#pr:2"),
-            ),
+            100_000,
+            queue.claim,
+            lambda claims, _job: JobResult(0, tuple(item.item_key for item in claims)),
             now=lambda: 0,
             maximum_exclusions=2,
         )
 
         self.assertEqual(result, DrainResult(2, 0, "exclusion_limit", 1))
-        claim_wave.assert_not_called()
+        self.assertEqual(len(queue.calls), 2)
 
     def test_stops_before_retry_exclusions_exceed_the_byte_budget(self) -> None:
-        claim_wave = mock.Mock()
-        long_keys = ("a" * 500, "b" * 500)
+        long_keys = ["a" * 500 + "#pr:1", "a" * 500 + "#pr:2"]
+        queue = FakeQueue([*long_keys, "b#pr:1"], limit=2)
 
         result = run_drain(
-            [claim(item_key) for item_key in long_keys],
-            1_000,
-            claim_wave,
-            lambda _claims, _wave: WaveResult(0, long_keys),
+            100_000,
+            queue.claim,
+            lambda claims, _job: JobResult(0, tuple(item.item_key for item in claims)),
             now=lambda: 0,
+            maximum_repositories=1,
             maximum_exclusion_bytes=800,
         )
 
         self.assertEqual(result, DrainResult(2, 0, "exclusion_limit", 1))
-        claim_wave.assert_not_called()
+        self.assertEqual([item.item_key for item in queue.queued], ["b#pr:1"])
+
 
 class TokenClientTest(unittest.TestCase):
     def test_sends_credentials_only_through_helper_stdin(self) -> None:
@@ -212,7 +410,7 @@ class TokenClientTest(unittest.TestCase):
             self.assertNotIn("PR_DASHBOARD_PRIVATE_KEY", environment)
 
 
-class ProcessClaimWaveTest(unittest.TestCase):
+class ProcessRepositoryClaimsTest(unittest.TestCase):
     def test_dead_letters_exhausted_claim_when_token_creation_fails(self) -> None:
         class TokenClient:
             def mint(self, _repositories: list[str]) -> str:
@@ -243,87 +441,6 @@ class ProcessClaimWaveTest(unittest.TestCase):
 
         self.assertEqual(client.calls[0]["action"], "acknowledge")
         self.assertEqual(client.calls[0]["outcome"], "dead")
-
-    def test_processes_other_repository_when_one_token_cannot_be_minted(self) -> None:
-        class TokenClient:
-            def __init__(self) -> None:
-                self.minted: list[str] = []
-
-            def mint(self, repositories: list[str]) -> str:
-                repository = repositories[0]
-                self.minted.append(repository)
-                if repository == "removed":
-                    raise RuntimeError("repository is not accessible")
-                return f"{repository}-token"
-
-            def revoke(self, _token: str) -> None:
-                pass
-
-        class Client:
-            def __init__(self) -> None:
-                self.acknowledged: list[str] = []
-                self.heartbeat_calls = 0
-
-            def call(self, action: str, **payload: object) -> dict[str, object]:
-                if action == "heartbeat":
-                    self.heartbeat_calls += 1
-                    return {"dispatcher": True}
-                if action == "acknowledge":
-                    self.acknowledged.append(str(payload["itemKey"]))
-                return {"status": "retry"}
-
-        processed: list[str] = []
-
-        def process(
-            claims: list[Claim],
-            *_args: object,
-            processor_env: dict[str, str],
-            **_kwargs: object,
-        ) -> tuple[dict[str, int], list[dict[str, object]]]:
-            repository = claims[0].repository
-            processed.append(repository)
-            self.assertEqual(processor_env["GH_TOKEN"], f"{repository}-token")
-            return (
-                {"dead_letters": 0},
-                [
-                    {
-                        "itemKey": claims[0].item_key,
-                        "claimGeneration": 1,
-                        "outcome": "success",
-                    }
-                ],
-            )
-
-        client = Client()
-        token_client = TokenClient()
-        claims = [
-            Claim("valid#pr:1", 1, "valid", 1, "", 0),
-            Claim("removed#pr:1", 1, "removed", 1, "", 0),
-        ]
-        with (
-            tempfile.TemporaryDirectory() as directory,
-            mock.patch.object(drain_queue, "process_claims", side_effect=process),
-            self.assertRaisesRegex(RuntimeError, "removed: repository is not accessible"),
-        ):
-            process_claim_wave(
-                claims,
-                Path(directory) / "results.json",
-                client,
-                1,
-                "worker",
-                token_client,
-                execution_code={
-                    repo: ExecutionCode("a" * 40, Path("code"), "python")
-                    for repo in ("removed", "valid")
-                },
-                repository_roots={repo: Path(repo) for repo in ("removed", "valid")},
-                report_limits=lambda *_args, **_kwargs: None,
-            )
-
-        self.assertEqual(sorted(token_client.minted), ["removed", "valid"])
-        self.assertEqual(processed, ["valid"])
-        self.assertEqual(client.acknowledged, ["removed#pr:1"])
-        self.assertEqual(client.heartbeat_calls, 1)
 
     def test_processes_with_scoped_token_and_reports_before_revocation(self) -> None:
         lifecycle: list[str] = []
@@ -358,24 +475,23 @@ class ProcessClaimWaveTest(unittest.TestCase):
             tempfile.TemporaryDirectory() as directory,
             mock.patch.object(drain_queue, "process_claims", side_effect=process),
         ):
-            client = mock.Mock()
-            client.call.return_value = {"dispatcher": True}
-            result = process_claim_wave(
+            result = process_repository_claims(
                 [claim("example#pr:1")],
                 Path(directory) / "results.json",
-                client,
+                mock.Mock(),
                 1,
                 "worker",
                 token_client,
-                execution_code={"example": ExecutionCode("a" * 40, Path("code"), "python")},
-                repository_roots={"example": Path("isolated")},
+                lease_monitor=mock.Mock(spec=drain_queue.LeaseMonitor),
+                execution_code=ExecutionCode("a" * 40, Path("code"), "python"),
+                repository_root=Path("isolated"),
                 report_limits=lambda threshold, token: lifecycle.append(
                     f"report:{threshold}:{token}"
                 ),
             )
 
         self.assertEqual(token_client.repositories, ["example"])
-        self.assertEqual(result, WaveResult(0, ()))
+        self.assertEqual(result, results)
         self.assertEqual(lifecycle, ["report:20:wave-token", "revoke:wave-token"])
 
     def test_only_unresolved_claims_receive_failure_acknowledgments(self) -> None:

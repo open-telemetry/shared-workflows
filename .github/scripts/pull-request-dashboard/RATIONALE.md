@@ -11,8 +11,9 @@ the implementation understandable and operationally cheap.
 - Target repositories only need GitHub App access and an entry in
   `repositories.json`.
 - The top-level workflow validates targets and enqueues work. Independent live
-  and maintenance drains process up to four repositories concurrently; each
-  repository remains serial within a wave. A failure in one repository does
+  and maintenance drains keep up to four repository jobs running and start
+  the next eligible repository as soon as any job finishes; each repository
+  remains serial within a lane. A failure in one repository does
   not prevent the others from processing.
 - Calculated state and delivery intent for each target repository live on a
   worker-owned branch under

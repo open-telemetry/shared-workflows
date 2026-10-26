@@ -276,6 +276,50 @@ test("claims a wave after authentication", async () => {
   ]]);
 });
 
+test("forwards optional repository claim filters after validation", async () => {
+  const { calls, queue } = fixture();
+  const response = await handleQueueWorkerRequest(request({
+    action: "claim",
+    generation: 7,
+    workerId: "worker",
+    limit: 16,
+    excludeItemKeys: [],
+    excludeRepositories: ["active"],
+    maxRepositories: 3,
+  }), { queue, verifyRequest });
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(calls, [[
+    "claim",
+    {
+      generation: 7,
+      workerId: "worker",
+      limit: 16,
+      excludeItemKeys: [],
+      excludeRepositories: ["active"],
+      maxRepositories: 3,
+    },
+  ]]);
+
+  for (const [field, value, message] of [
+    ["maxRepositories", 0, "maxRepositories must be an integer between 1 and 100"],
+    ["maxRepositories", 101, "maxRepositories must be an integer between 1 and 100"],
+    ["excludeRepositories", "active", "excludeRepositories must contain at most 100 non-empty strings no longer than 100 characters"],
+    ["excludeRepositories", [""], "excludeRepositories must contain at most 100 non-empty strings no longer than 100 characters"],
+  ]) {
+    await assert.rejects(
+      handleQueueWorkerRequest(request({
+        action: "claim",
+        generation: 7,
+        workerId: "worker",
+        [field]: value,
+      }), { queue, verifyRequest }),
+      (error) => error.statusCode === 400 && error.message === message,
+    );
+  }
+  assert.equal(calls.length, 1);
+});
+
 test("dispatches a successor when finish leaves runnable work", async () => {
   const { calls, queue } = fixture();
   const dispatches = [];

@@ -111,6 +111,17 @@ export async function handleQueueWorkerRequest(
             1000,
             500,
           ),
+          ...(body.excludeRepositories == null ? {} : {
+            excludeRepositories: optionalStringArray(
+              body.excludeRepositories,
+              "excludeRepositories",
+              100,
+              100,
+            ),
+          }),
+          ...(body.maxRepositories == null ? {} : {
+            maxRepositories: boundedPositiveInteger(body.maxRepositories, "maxRepositories", 100),
+          }),
         }),
       });
     case "heartbeat":
@@ -228,6 +239,13 @@ function acknowledgmentOutcome(value) {
 function positiveInteger(value, name) {
   if (!Number.isInteger(value) || value < 1) {
     throw requestError(400, `${name} must be a positive integer`);
+  }
+  return value;
+}
+
+function boundedPositiveInteger(value, name, maximum) {
+  if (!Number.isInteger(value) || value < 1 || value > maximum) {
+    throw requestError(400, `${name} must be an integer between 1 and ${maximum}`);
   }
   return value;
 }

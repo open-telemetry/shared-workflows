@@ -547,6 +547,80 @@ test("claim wave skips item keys retried by the same worker run", async () => {
   assert.deepEqual(claims.map((claim) => claim.itemKey), ["example#pr:456"]);
 });
 
+test("claim wave can skip active repositories and cap distinct repositories", async () => {
+  const { queue, advance } = fixture();
+  for (const [repository, prNumber] of [
+    ["a", 1], ["b", 1], ["a", 2], ["c", 1], ["d", 1], ["b", 2],
+  ]) {
+    await queue.enqueue({ repository, prNumber, headSha: "", triggerEvent: "pull_request" });
+    advance(1);
+  }
+  const request = await queue.requestDispatcher("request");
+  await queue.activateDispatcher({ generation: request.generation, workerId: "worker" });
+  const claim = (options) => queue.claimWave({
+    generation: request.generation,
+    workerId: "worker",
+    ...options,
+  });
+
+  const filtered = await claim({ limit: 10, excludeRepositories: ["a"], maxRepositories: 2 });
+  assert.deepEqual(
+    filtered.map((item) => item.itemKey).sort(),
+    ["b#pr:1", "b#pr:2", "c#pr:1"],
+  );
+
+  const bounded = await claim({ limit: 1, maxRepositories: 4 });
+  assert.deepEqual(bounded.map((item) => item.itemKey), ["a#pr:1"]);
+
+  const legacy = await claim({ limit: 2 });
+  assert.deepEqual(legacy.map((item) => item.itemKey).sort(), ["a#pr:2", "d#pr:1"]);
+});
+
+test("claim wave keeps existing semantics without repository filters", async () => {
+  const { queue, advance } = fixture();
+  for (const [repository, prNumber] of [["a", 1], ["a", 2], ["b", 1]]) {
+    await queue.enqueue({ repository, prNumber, headSha: "", triggerEvent: "pull_request" });
+    advance(1);
+  }
+  const request = await queue.requestDispatcher("request");
+  await queue.activateDispatcher({ generation: request.generation, workerId: "worker" });
+
+  const claims = await queue.claimWave({
+    generation: request.generation,
+    workerId: "worker",
+    limit: 2,
+  });
+
+  assert.deepEqual(claims.map((item) => item.itemKey), ["a#pr:1", "a#pr:2"]);
+});
+
+test("claim wave rejects invalid repository filters", async () => {
+  const { queue } = fixture();
+  for (const options of [
+    { maxRepositories: 0 },
+    { maxRepositories: 101 },
+    { maxRepositories: 1.5 },
+    { maxRepositories: "2" },
+  ]) {
+    await assert.rejects(
+      queue.claimWave({ generation: 1, workerId: "worker", ...options }),
+      /claim repository limit must be an integer between 1 and 100/,
+    );
+  }
+  for (const excludeRepositories of [
+    "a",
+    [""],
+    [1],
+    ["x".repeat(101)],
+    Array.from({ length: 101 }, (_, index) => `repo-${index}`),
+  ]) {
+    await assert.rejects(
+      queue.claimWave({ generation: 1, workerId: "worker", excludeRepositories }),
+      /excluded repositories are invalid/,
+    );
+  }
+});
+
 test("replays an identical acknowledgment after its response is lost", async () => {
   const { queue } = fixture();
   await queue.enqueue({

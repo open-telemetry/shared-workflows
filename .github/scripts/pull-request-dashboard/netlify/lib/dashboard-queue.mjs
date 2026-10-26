@@ -374,10 +374,34 @@ export class DashboardQueue {
     };
   }
 
-  async claimWave({ generation, workerId, limit = 4, excludeItemKeys = [] }) {
+  async claimWave({
+    generation,
+    workerId,
+    limit = 4,
+    excludeItemKeys = [],
+    excludeRepositories = [],
+    maxRepositories = null,
+  }) {
     validateWorkerId(workerId);
     if (!Number.isInteger(limit) || limit < 1 || limit > 100) {
       throw new Error("claim limit must be an integer between 1 and 100");
+    }
+    if (
+      maxRepositories !== null &&
+      (!Number.isInteger(maxRepositories) || maxRepositories < 1 || maxRepositories > 100)
+    ) {
+      throw new Error("claim repository limit must be an integer between 1 and 100");
+    }
+    if (
+      !Array.isArray(excludeRepositories) ||
+      excludeRepositories.length > 100 ||
+      excludeRepositories.some((repository) => (
+        typeof repository !== "string" ||
+        repository.length < 1 ||
+        repository.length > 100
+      ))
+    ) {
+      throw new Error("excluded repositories are invalid");
     }
     if (
       !Array.isArray(excludeItemKeys) ||
@@ -391,6 +415,7 @@ export class DashboardQueue {
       throw new Error("excluded item keys are invalid");
     }
     const excluded = new Set(excludeItemKeys);
+    const excludedRepositories = new Set(excludeRepositories);
     const dispatcher = await this.#readDispatcher();
     if (
       dispatcher.phase !== "active" ||
@@ -415,11 +440,13 @@ export class DashboardQueue {
           queueLane(item.kind) === this.lane &&
           item.phase === "queued" &&
           !excluded.has(itemKey) &&
+          !excludedRepositories.has(item.repository) &&
           (!item.notBefore || Date.parse(item.notBefore) <= this.now())
         ) {
           found.push({
             itemKey,
             shardKey,
+            repository: item.repository,
             firstSeenAt: item.firstSeenAt,
           });
         }
@@ -435,7 +462,21 @@ export class DashboardQueue {
     ));
 
     const selectedByShard = new Map();
-    for (const candidate of candidates.slice(0, limit)) {
+    const selectedRepositories = new Set();
+    let selectedCount = 0;
+    for (const candidate of candidates) {
+      if (selectedCount >= limit) {
+        break;
+      }
+      if (
+        maxRepositories !== null &&
+        !selectedRepositories.has(candidate.repository) &&
+        selectedRepositories.size >= maxRepositories
+      ) {
+        continue;
+      }
+      selectedRepositories.add(candidate.repository);
+      selectedCount += 1;
       const selected = selectedByShard.get(candidate.shardKey) || new Set();
       selected.add(candidate.itemKey);
       selectedByShard.set(candidate.shardKey, selected);
