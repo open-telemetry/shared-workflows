@@ -210,6 +210,30 @@ test("acknowledgment rejects a missing dispatcher generation before touching the
   assert.deepEqual(calls, []);
 });
 
+test("acknowledgment accepts the non-failure requeue outcome", async () => {
+  const { calls, queue } = fixture();
+  const response = await handleQueueWorkerRequest(request({
+    action: "acknowledge",
+    generation: 1,
+    itemKey: "example#pr:1",
+    claimGeneration: 1,
+    workerId: "worker",
+    outcome: "requeue",
+  }), { queue, verifyRequest });
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(calls, [["acknowledge", {
+    generation: 1,
+    itemKey: "example#pr:1",
+    claimGeneration: 1,
+    workerId: "worker",
+    outcome: "requeue",
+    error: "",
+    retryAfterMs: 0,
+    operationId: "",
+  }]]);
+});
+
 test("paused workers can heartbeat, acknowledge, and finish without claiming or dispatching", async () => {
   const previous = process.env.PR_DASHBOARD_EXECUTION_MODE;
   process.env.PR_DASHBOARD_EXECUTION_MODE = "paused";

@@ -131,11 +131,14 @@ def drain_queue(
                     break
 
                 free_slots = maximum_repositories - len(active)
+                active_repositories = set(active.values())
                 claims = claim(
-                    free_slots, sorted(retry_item_keys), sorted(active.values())
+                    free_slots, sorted(retry_item_keys), sorted(active_repositories)
                 )
                 collect_completed()
                 if not claims:
+                    if set(active.values()) != set(active_repositories):
+                        continue
                     break
                 claim_count += len(claims)
 
@@ -216,6 +219,17 @@ def job_result(results: list[dict[str, Any]]) -> JobResult:
             sorted(result["itemKey"] for result in results if result["outcome"] == "retry")
         ),
     )
+
+
+def requeue_acknowledgments(claims: list[Claim]) -> list[dict[str, Any]]:
+    return [
+        {
+            "itemKey": item.item_key,
+            "claimGeneration": item.claim_generation,
+            "outcome": "requeue",
+        }
+        for item in claims
+    ]
 
 
 class GitHubAppTokenClient:
@@ -471,15 +485,7 @@ def run_owned_drain(args: argparse.Namespace) -> int:
                 ))
 
             def return_unstarted(claims: list[Claim]) -> None:
-                error = RuntimeError(
-                    "queue admission stopped before repository job started"
-                )
-                acknowledgments = [
-                    result
-                    for item in claims
-                    for result in failure_acknowledgments((item,), error)
-                ]
-                acknowledge_results(client, acknowledgments, common)
+                acknowledge_results(client, requeue_acknowledgments(claims), common)
 
             result = drain_queue(
                 args.deadline, claim, process_job, return_unstarted=return_unstarted

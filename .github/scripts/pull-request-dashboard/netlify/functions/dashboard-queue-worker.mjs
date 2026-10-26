@@ -5,7 +5,7 @@ import { dispatchQueueDrain } from "../lib/github-dispatch.mjs";
 import { ENQUEUE_WORKFLOW_REFS, EXPECTED_WORKFLOW_REF, verifyGitHubOidcRequest } from "../lib/github-oidc.mjs";
 
 const MAX_REQUEST_BYTES = 64 * 1024;
-const ACKNOWLEDGMENT_OUTCOMES = new Set(["success", "retry", "dead", "continue"]);
+const ACKNOWLEDGMENT_OUTCOMES = new Set(["success", "retry", "dead", "continue", "requeue"]);
 const REPOSITORIES = new Set(repositories.map((entry) => entry.name));
 
 export default async (request) => {
@@ -231,7 +231,7 @@ function workerId(value) {
 
 function acknowledgmentOutcome(value) {
   if (!ACKNOWLEDGMENT_OUTCOMES.has(value)) {
-    throw requestError(400, "outcome must be one of: success, retry, dead, continue");
+    throw requestError(400, "outcome must be one of: success, retry, dead, continue, requeue");
   }
   return value;
 }

@@ -20,6 +20,7 @@ from drain_queue import (
     JobResult,
     drain_queue as run_drain,
     process_repository_claims,
+    requeue_acknowledgments,
     unresolved_acknowledgments,
 )
 from process_queue_batch import Claim
@@ -236,22 +237,57 @@ class DrainQueueTest(unittest.TestCase):
             self.assertLessEqual(len(active) + free_slots, 4)
             self.assertGreaterEqual(free_slots, 1)
 
+    def test_retries_empty_claim_when_repository_finishes_during_request(self) -> None:
+        executor = ControlledExecutor()
+        calls: list[tuple[int, list[str], list[str]]] = []
+
+        def claim_work(
+            free_slots: int, excluded: list[str], active_repositories: list[str]
+        ) -> list[Claim]:
+            calls.append((free_slots, excluded, active_repositories))
+            if len(calls) == 1:
+                return [claim("a#pr:1"), claim("b#pr:1")]
+            if len(calls) == 2:
+                executor.futures[0].set_result(JobResult(0, ()))
+                return []
+            if len(calls) == 3:
+                self.assertEqual(active_repositories, ["b"])
+                self.assertFalse(executor.futures[1].done())
+                return [claim("a#pr:2")]
+            if len(calls) == 4:
+                for future in executor.futures:
+                    if not future.done():
+                        future.set_result(JobResult(0, ()))
+                return []
+            return []
+
+        with mock.patch.object(
+            drain_queue.concurrent.futures,
+            "ThreadPoolExecutor",
+            return_value=executor,
+        ):
+            result = run_drain(100_000, claim_work, mock.Mock(), now=lambda: 0, maximum_repositories=3)
+
+        self.assertEqual(result, DrainResult(3, 0, "queue_empty", 3))
+        self.assertEqual(len(calls), 5)
+
     def test_rejects_claims_that_overlap_an_active_repository(self) -> None:
-        release = threading.Event()
+        executor = ControlledExecutor()
         calls = iter([[claim("a#pr:1")], [claim("a#pr:2")]])
 
-        def process_job(_claims: list[Claim], _job: int) -> JobResult:
-            release.wait(WAIT_SECONDS)
-            return JobResult(0, ())
-
         def claim_work(*_args: object) -> list[Claim]:
-            claims = next(calls)
-            if claims[0].item_key == "a#pr:2":
-                release.set()
-            return claims
+            return next(calls)
 
-        with self.assertRaisesRegex(RuntimeError, "active repositories: a"):
-            run_drain(100_000, claim_work, process_job, now=lambda: 0)
+        with mock.patch.object(
+            drain_queue.concurrent.futures,
+            "ThreadPoolExecutor",
+            return_value=executor,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "active repositories: a"):
+                run_drain(100_000, claim_work, mock.Mock(), now=lambda: 0)
+
+        self.assertEqual(len(executor.futures), 1)
+        self.assertFalse(executor.futures[0].done())
 
     def test_lease_loss_while_replenishing_waits_for_running_jobs(self) -> None:
         release = threading.Event()
@@ -309,11 +345,18 @@ class DrainQueueTest(unittest.TestCase):
 
     def test_returns_claims_acquired_after_deadline_admission_stops(self) -> None:
         clock = [0]
-        returned: list[str] = []
+        returned: list[tuple[str, int, str]] = []
 
         def claim_work(*_args: object) -> list[Claim]:
             clock[0] = 500
-            return [claim("a#pr:1")]
+            return [claim("a#pr:1", attempts=2)]
+
+        def return_work(claims: list[Claim]) -> None:
+            acknowledgments = requeue_acknowledgments(claims)
+            returned.extend(
+                (item.item_key, item.attempts, acknowledgment["outcome"])
+                for item, acknowledgment in zip(claims, acknowledgments)
+            )
 
         result = run_drain(
             1_000,
@@ -322,13 +365,11 @@ class DrainQueueTest(unittest.TestCase):
             now=lambda: clock[0],
             admission_margin_seconds=600,
             maximum_repositories=1,
-            return_unstarted=lambda claims: returned.extend(
-                item.item_key for item in claims
-            ),
+            return_unstarted=return_work,
         )
 
         self.assertEqual(result, DrainResult(1, 0, "deadline", 0))
-        self.assertEqual(returned, ["a#pr:1"])
+        self.assertEqual(returned, [("a#pr:1", 2, "requeue")])
 
     def test_continues_after_dead_letters_and_excludes_retries(self) -> None:
         queue = FakeQueue(["example#pr:1", "example#pr:2", "example#pr:3"], limit=2)
@@ -408,7 +449,7 @@ class DrainQueueTest(unittest.TestCase):
 
     def test_failure_during_claim_returns_all_new_claims_without_starting_them(self) -> None:
         executor = ControlledExecutor()
-        returned: list[str] = []
+        returned: list[tuple[str, int, str]] = []
         calls = 0
 
         def claim_work(*_args: object) -> list[Claim]:
@@ -417,10 +458,17 @@ class DrainQueueTest(unittest.TestCase):
             if calls == 1:
                 return [claim("removed#pr:1")]
             executor.futures[0].set_exception(RuntimeError("repository unavailable"))
-            return [claim("next-a#pr:1"), claim("next-b#pr:1")]
+            return [
+                claim("next-a#pr:1", attempts=2),
+                claim("next-b#pr:1", attempts=2),
+            ]
 
         def return_work(claims: list[Claim]) -> None:
-            returned.extend(item.item_key for item in claims)
+            acknowledgments = requeue_acknowledgments(claims)
+            returned.extend(
+                (item.item_key, item.attempts, acknowledgment["outcome"])
+                for item, acknowledgment in zip(claims, acknowledgments)
+            )
             raise RuntimeError("acknowledgment rejected")
 
         with mock.patch.object(
@@ -442,7 +490,10 @@ class DrainQueueTest(unittest.TestCase):
                     return_unstarted=return_work,
                 )
 
-        self.assertEqual(returned, ["next-a#pr:1", "next-b#pr:1"])
+        self.assertEqual(
+            returned,
+            [("next-a#pr:1", 2, "requeue"), ("next-b#pr:1", 2, "requeue")],
+        )
         self.assertEqual(len(executor.futures), 1)
 
     def test_failure_between_submissions_returns_remaining_claims(self) -> None:

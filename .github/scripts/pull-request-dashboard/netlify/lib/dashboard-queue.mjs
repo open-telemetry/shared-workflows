@@ -544,7 +544,7 @@ export class DashboardQueue {
     if (queueItemLane(itemKey) !== this.lane) {
       throw new Error("queue item belongs to another lane");
     }
-    if (!["success", "retry", "dead", "continue"].includes(outcome)) {
+    if (!["success", "retry", "dead", "continue", "requeue"].includes(outcome)) {
       throw new Error(`unsupported acknowledgment outcome ${outcome}`);
     }
     const ownership = await this.assertDispatcher({ generation, workerId });
@@ -641,15 +641,21 @@ export class DashboardQueue {
       item.leaseExpiresAt = null;
       item.claimedGeneration = null;
       delete item.dispatcherGeneration;
-      item.attempts = outcome === "retry" && !hasFollowUp ? item.attempts + 1 : 0;
+      item.attempts = outcome === "requeue"
+        ? item.attempts
+        : outcome === "retry" && !hasFollowUp ? item.attempts + 1 : 0;
       item.notBefore = outcome === "retry" && !hasFollowUp && retryAfterMs > 0
         ? this.#isoAfter(retryAfterMs)
         : null;
-      item.lastError = outcome === "retry" ? normalizeError(error) : "";
+      item.lastError = outcome === "retry"
+        ? normalizeError(error)
+        : outcome === "requeue" ? item.lastError : "";
       const result = {
-        status: outcome === "retry" && !hasFollowUp
-          ? "retry"
-          : outcome === "continue" && !hasFollowUp ? "continued" : "follow_up",
+        status: outcome === "requeue"
+          ? "requeued"
+          : outcome === "retry" && !hasFollowUp
+            ? "retry"
+            : outcome === "continue" && !hasFollowUp ? "continued" : "follow_up",
         attempts: item.attempts,
       };
       if (receiptKey) {
