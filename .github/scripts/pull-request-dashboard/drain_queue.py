@@ -53,6 +53,7 @@ def drain_queue(
     claim: Callable[[int, list[str], list[str]], list[Claim]],
     process_job: Callable[[list[Claim], int], JobResult],
     *,
+    return_unstarted: Callable[[list[Claim]], None] | None = None,
     now: Callable[[], float] = time.time,
     admission_margin_seconds: float = ADMISSION_MARGIN_SECONDS,
     maximum_repositories: int = MAXIMUM_REPOSITORIES,
@@ -69,64 +70,122 @@ def drain_queue(
     active: dict[concurrent.futures.Future[JobResult], str] = {}
     failures: dict[str, Exception] = {}
     retry_item_keys: set[str] = set()
+    return_errors: list[Exception] = []
     jobs = 0
     claim_count = 0
     dead_letters = 0
     reason: str | None = None
 
+    def collect_completed() -> None:
+        nonlocal dead_letters
+        done, _pending = concurrent.futures.wait(
+            active, timeout=0, return_when=concurrent.futures.FIRST_COMPLETED
+        )
+        for future in done:
+            repository = active.pop(future)
+            try:
+                result = future.result()
+            except Exception as error:
+                failures[repository] = error
+                continue
+            dead_letters += result.dead_letters
+            retry_item_keys.update(result.retry_item_keys)
+
+    def admission_stop_reason() -> str | None:
+        serialized_exclusions = json.dumps(
+            sorted(retry_item_keys),
+            separators=(",", ":"),
+        ).encode()
+        if (
+            len(retry_item_keys) >= maximum_exclusions
+            or len(serialized_exclusions) >= maximum_exclusion_bytes
+        ):
+            return "exclusion_limit"
+        if now() + admission_margin_seconds >= processing_deadline:
+            return "deadline"
+        return None
+
+    def return_claims(claims: list[Claim]) -> None:
+        if not claims:
+            return
+        try:
+            if return_unstarted is None:
+                raise RuntimeError(
+                    "no callback is configured to return unstarted queue claims"
+                )
+            return_unstarted(claims)
+        except Exception as error:
+            return_errors.append(error)
+
     with concurrent.futures.ThreadPoolExecutor(
         max_workers=maximum_repositories
     ) as executor:
         while True:
+            collect_completed()
             while reason is None and not failures and len(active) < maximum_repositories:
-                serialized_exclusions = json.dumps(
-                    sorted(retry_item_keys),
-                    separators=(",", ":"),
-                ).encode()
-                if (
-                    len(retry_item_keys) >= maximum_exclusions
-                    or len(serialized_exclusions) >= maximum_exclusion_bytes
-                ):
-                    reason = "exclusion_limit"
-                elif now() + admission_margin_seconds >= processing_deadline:
-                    reason = "deadline"
-                else:
-                    free_slots = maximum_repositories - len(active)
-                    claims = claim(
-                        free_slots, sorted(retry_item_keys), sorted(active.values())
-                    )
-                    if not claims:
-                        break
-                    for repository, repository_claims in group_claims(
+                collect_completed()
+                if failures:
+                    break
+                reason = admission_stop_reason()
+                if reason is not None:
+                    break
+
+                free_slots = maximum_repositories - len(active)
+                claims = claim(
+                    free_slots, sorted(retry_item_keys), sorted(active.values())
+                )
+                collect_completed()
+                if not claims:
+                    break
+                claim_count += len(claims)
+
+                if not failures:
+                    reason = admission_stop_reason()
+                if failures or reason is not None:
+                    return_claims(claims)
+                    break
+
+                groups = list(
+                    group_claims(
                         claims, set(active.values()), free_slots
-                    ).items():
-                        jobs += 1
-                        claim_count += len(repository_claims)
-                        future = executor.submit(process_job, repository_claims, jobs)
-                        active[future] = repository
+                    ).items()
+                )
+                for index, (repository, repository_claims) in enumerate(groups):
+                    collect_completed()
+                    if not failures:
+                        reason = admission_stop_reason()
+                    if failures or reason is not None:
+                        return_claims([
+                            item
+                            for _repository, unstarted in groups[index:]
+                            for item in unstarted
+                        ])
+                        break
+                    jobs += 1
+                    future = executor.submit(process_job, repository_claims, jobs)
+                    active[future] = repository
 
             if not active:
                 break
-            done, _pending = concurrent.futures.wait(
-                active, return_when=concurrent.futures.FIRST_COMPLETED
-            )
-            for future in done:
-                repository = active.pop(future)
-                try:
-                    result = future.result()
-                except Exception as error:
-                    failures[repository] = error
-                    continue
-                dead_letters += result.dead_letters
-                retry_item_keys.update(result.retry_item_keys)
+            concurrent.futures.wait(active, return_when=concurrent.futures.FIRST_COMPLETED)
+            collect_completed()
 
     if failures:
         details = "; ".join(
             f"{repository}: {failures[repository]}" for repository in sorted(failures)
         )
+        if return_errors:
+            details += "; unstarted claims could not be returned: " + "; ".join(
+                str(error) for error in return_errors
+            )
         raise RuntimeError(
             f"{len(failures)} repository job(s) failed: {details}"
         ) from failures[sorted(failures)[0]]
+    if return_errors:
+        details = "; ".join(str(error) for error in return_errors)
+        raise RuntimeError(
+            f"unstarted claims could not be returned: {details}"
+        ) from return_errors[0]
     return DrainResult(claim_count, dead_letters, reason or "queue_empty", jobs)
 
 
@@ -411,7 +470,20 @@ def run_owned_drain(args: argparse.Namespace) -> int:
                     repository_root=repository_root,
                 ))
 
-            result = drain_queue(args.deadline, claim, process_job)
+            def return_unstarted(claims: list[Claim]) -> None:
+                error = RuntimeError(
+                    "queue admission stopped before repository job started"
+                )
+                acknowledgments = [
+                    result
+                    for item in claims
+                    for result in failure_acknowledgments((item,), error)
+                ]
+                acknowledge_results(client, acknowledgments, common)
+
+            result = drain_queue(
+                args.deadline, claim, process_job, return_unstarted=return_unstarted
+            )
             print(json.dumps(asdict(result), sort_keys=True))
             return 1 if result.dead_letters else 0
     finally:

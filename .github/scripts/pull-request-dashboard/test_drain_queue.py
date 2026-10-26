@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import concurrent.futures
 import contextlib
 import io
 import json
@@ -85,6 +86,25 @@ class ActiveTracker:
     def leave(self, claims: list[Claim]) -> None:
         with self.lock:
             self.active.remove(claims[0].repository)
+
+
+class ControlledExecutor:
+    def __init__(self, *, on_submit=None) -> None:
+        self.futures: list[concurrent.futures.Future[JobResult]] = []
+        self.on_submit = on_submit
+
+    def __enter__(self) -> ControlledExecutor:
+        return self
+
+    def __exit__(self, *_args: object) -> None:
+        return None
+
+    def submit(self, _process_job, claims: list[Claim], _job: int):
+        future: concurrent.futures.Future[JobResult] = concurrent.futures.Future()
+        self.futures.append(future)
+        if self.on_submit is not None:
+            self.on_submit(future, claims)
+        return future
 
 
 class DrainQueueTest(unittest.TestCase):
@@ -287,17 +307,54 @@ class DrainQueueTest(unittest.TestCase):
         self.assertEqual(processed, ["a#pr:1"])
         self.assertEqual([item.item_key for item in queue.queued], ["b#pr:1"])
 
+    def test_returns_claims_acquired_after_deadline_admission_stops(self) -> None:
+        clock = [0]
+        returned: list[str] = []
+
+        def claim_work(*_args: object) -> list[Claim]:
+            clock[0] = 500
+            return [claim("a#pr:1")]
+
+        result = run_drain(
+            1_000,
+            claim_work,
+            mock.Mock(),
+            now=lambda: clock[0],
+            admission_margin_seconds=600,
+            maximum_repositories=1,
+            return_unstarted=lambda claims: returned.extend(
+                item.item_key for item in claims
+            ),
+        )
+
+        self.assertEqual(result, DrainResult(1, 0, "deadline", 0))
+        self.assertEqual(returned, ["a#pr:1"])
+
     def test_continues_after_dead_letters_and_excludes_retries(self) -> None:
         queue = FakeQueue(["example#pr:1", "example#pr:2", "example#pr:3"], limit=2)
+        release_initial = threading.Event()
+        release_followup = threading.Event()
 
         def process_job(claims: list[Claim], _job: int) -> JobResult:
             keys = [item.item_key for item in claims]
             if keys == ["example#pr:1", "example#pr:2"]:
+                self.assertTrue(release_initial.wait(WAIT_SECONDS))
                 queue.queued.append(claim("example#pr:2"))
                 return JobResult(1, ("example#pr:2",))
+            self.assertTrue(release_followup.wait(WAIT_SECONDS))
             return JobResult(0, ())
 
-        result = run_drain(100_000, queue.claim, process_job, now=lambda: 0)
+        def claim_work(
+            free_slots: int, excluded: list[str], active_repositories: list[str]
+        ) -> list[Claim]:
+            claims = queue.claim(free_slots, excluded, active_repositories)
+            if len(queue.calls) == 2:
+                release_initial.set()
+            elif len(queue.calls) == 4:
+                release_followup.set()
+            return claims
+
+        result = run_drain(100_000, claim_work, process_job, now=lambda: 0)
 
         self.assertEqual(result, DrainResult(3, 1, "queue_empty", 2))
         self.assertEqual(
@@ -316,11 +373,14 @@ class DrainQueueTest(unittest.TestCase):
         queue = FakeQueue(["removed#pr:1", "valid#pr:1"])
         processed: list[str] = []
         failed = threading.Event()
+        valid_started = threading.Event()
 
         def process_job(claims: list[Claim], _job: int) -> JobResult:
             if claims[0].repository == "removed":
+                self.assertTrue(valid_started.wait(WAIT_SECONDS))
                 failed.set()
                 raise RuntimeError("repository is not accessible")
+            valid_started.set()
             self.assertTrue(failed.wait(WAIT_SECONDS))
             processed.append(claims[0].item_key)
             return JobResult(0, ())
@@ -346,6 +406,88 @@ class DrainQueueTest(unittest.TestCase):
         self.assertEqual(queue.calls, [(1, [], [])])
         self.assertEqual([item.item_key for item in queue.queued], ["later#pr:1"])
 
+    def test_failure_during_claim_returns_all_new_claims_without_starting_them(self) -> None:
+        executor = ControlledExecutor()
+        returned: list[str] = []
+        calls = 0
+
+        def claim_work(*_args: object) -> list[Claim]:
+            nonlocal calls
+            calls += 1
+            if calls == 1:
+                return [claim("removed#pr:1")]
+            executor.futures[0].set_exception(RuntimeError("repository unavailable"))
+            return [claim("next-a#pr:1"), claim("next-b#pr:1")]
+
+        def return_work(claims: list[Claim]) -> None:
+            returned.extend(item.item_key for item in claims)
+            raise RuntimeError("acknowledgment rejected")
+
+        with mock.patch.object(
+            drain_queue.concurrent.futures,
+            "ThreadPoolExecutor",
+            return_value=executor,
+        ):
+            with self.assertRaisesRegex(
+                RuntimeError,
+                "removed: repository unavailable; unstarted claims could not be returned: "
+                "acknowledgment rejected",
+            ):
+                run_drain(
+                    100_000,
+                    claim_work,
+                    mock.Mock(),
+                    now=lambda: 0,
+                    maximum_repositories=2,
+                    return_unstarted=return_work,
+                )
+
+        self.assertEqual(returned, ["next-a#pr:1", "next-b#pr:1"])
+        self.assertEqual(len(executor.futures), 1)
+
+    def test_failure_between_submissions_returns_remaining_claims(self) -> None:
+        returned: list[str] = []
+        calls = 0
+
+        def on_submit(
+            future: concurrent.futures.Future[JobResult],
+            _claims: list[Claim],
+        ) -> None:
+            if len(executor.futures) == 1:
+                return
+            if len(executor.futures) == 2:
+                executor.futures[0].set_exception(RuntimeError("repository unavailable"))
+            future.set_result(JobResult(0, ()))
+
+        executor = ControlledExecutor(on_submit=on_submit)
+
+        def claim_work(*_args: object) -> list[Claim]:
+            nonlocal calls
+            calls += 1
+            if calls == 1:
+                return [claim("removed#pr:1")]
+            return [claim("next-a#pr:1"), claim("next-b#pr:1")]
+
+        with mock.patch.object(
+            drain_queue.concurrent.futures,
+            "ThreadPoolExecutor",
+            return_value=executor,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "removed: repository unavailable"):
+                run_drain(
+                    100_000,
+                    claim_work,
+                    mock.Mock(),
+                    now=lambda: 0,
+                    maximum_repositories=3,
+                    return_unstarted=lambda claims: returned.extend(
+                        item.item_key for item in claims
+                    ),
+                )
+
+        self.assertEqual(returned, ["next-b#pr:1"])
+        self.assertEqual(len(executor.futures), 2)
+
     def test_stops_before_retry_exclusions_become_too_large(self) -> None:
         queue = FakeQueue(["example#pr:1", "example#pr:2", "example#pr:3"], limit=2)
 
@@ -358,7 +500,7 @@ class DrainQueueTest(unittest.TestCase):
         )
 
         self.assertEqual(result, DrainResult(2, 0, "exclusion_limit", 1))
-        self.assertEqual(len(queue.calls), 2)
+        self.assertLessEqual(len(queue.calls), 2)
 
     def test_stops_before_retry_exclusions_exceed_the_byte_budget(self) -> None:
         long_keys = ["a" * 500 + "#pr:1", "a" * 500 + "#pr:2"]
