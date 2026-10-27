@@ -22,10 +22,12 @@ from pull_request_source import (
 )
 
 
-COPILOT_QUOTA_FAILURE_BODY = (
+COPILOT_QUOTA_FAILURE_BODIES = frozenset({
     "Copilot was unable to review this pull request because the user who "
-    "requested the review has reached their quota limit."
-)
+    "requested the review has reached their quota limit.",
+    "Copilot was unable to review this pull request because the user who "
+    "requested the review has insufficient remaining quota.",
+})
 COPILOT_ERROR_BODY = (
     "Copilot encountered an error and was unable to review this pull request. "
     "You can try again by re-requesting a review."
@@ -51,7 +53,7 @@ def is_copilot_reviewer(
 def is_copilot_quota_failure(review: Review) -> bool:
     return (
         is_copilot_reviewer(review)
-        and review.body.strip() == COPILOT_QUOTA_FAILURE_BODY
+        and review.body.strip() in COPILOT_QUOTA_FAILURE_BODIES
     )
 
 
