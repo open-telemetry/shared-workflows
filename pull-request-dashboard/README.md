@@ -103,9 +103,10 @@ emits no log records yet.
 ## Webhook queue
 
 Webhook events are coalesced by repository and pull request before they start
-GitHub Actions. One drain workflow claims a bounded batch and processes up to
-four repositories concurrently on one runner; pull requests from the same
-repository remain sequential. An event received while its pull request is being
+GitHub Actions. One drain workflow keeps up to four repositories processing
+concurrently on one runner, claiming a bounded group of the next eligible
+repository's work as soon as any repository finishes; pull requests from the
+same repository remain sequential. An event received while its pull request is being
 processed marks that item dirty and schedules one follow-up pass.
 
 Webhook events, draft opens, and targeted

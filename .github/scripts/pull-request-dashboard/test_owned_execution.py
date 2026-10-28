@@ -289,10 +289,10 @@ class OwnedExecutionTest(unittest.TestCase):
                 mock.patch.object(drain_queue, "acknowledge_results"),
                 mock.patch.dict(os.environ, {"TEST_PROCESSOR_ENV": "inherited"}, clear=True),
             ):
-                drain_queue.process_claim_wave(
+                drain_queue.process_repository_claims(
                     [claim], result_path, client, 1, "worker", token_client,
-                    execution_code={"example": code},
-                    repository_roots={"example": Path("isolated-checkout")},
+                    execution_code=code,
+                    repository_root=Path("isolated-checkout"),
                     lease_monitor=monitor,
                     report_limits=mock.Mock(),
                 )
@@ -304,35 +304,30 @@ class OwnedExecutionTest(unittest.TestCase):
             self.assertNotIn("PR_DASHBOARD_PRIVATE_KEY", process.call_args.kwargs["processor_env"])
             self.assertEqual(process.call_args.kwargs["processor_env"]["TEST_PROCESSOR_ENV"], "inherited")
 
-    def test_owned_wave_requires_an_isolated_checkout_before_processing(self) -> None:
-        claim = Claim("example#pr:1", 1, "example", 1, "", 0)
-        code = ExecutionCode("a" * 40, Path("promoted-code"), "promoted-python")
-        for codes, roots in (
-            ({"example": code}, None),
-            ({"example": code}, {}),
-            ({}, {"example": Path("isolated-checkout")}),
-        ):
-            with (
-                self.subTest(codes=codes, roots=roots),
-                mock.patch.object(drain_queue, "process_repository_claims") as process,
-                self.assertRaisesRegex(RuntimeError, "requires isolated Git checkouts"),
-            ):
-                drain_queue.process_claim_wave(
-                    [claim], Path("unused.json"), mock.Mock(), 1, "worker", mock.Mock(),
-                    execution_code=codes, repository_roots=roots,
-                )
-            process.assert_not_called()
-
-    def test_owned_waves_preserve_code_selection_and_clean_up_checkouts(self) -> None:
+    def test_owned_jobs_preserve_code_selection_and_clean_up_checkouts(self) -> None:
         client = mock.Mock()
-        claims = [
-            {"itemKey": f"{repository}#pr:1", "repository": repository, "claimGeneration": 1, "prNumber": 1}
-            for repository in ("canary", "stable")
-        ]
-        waves = iter([claims, claims, []])
-        client.call.side_effect = lambda action, **_kwargs: (
+        remaining = {"canary": 2, "stable": 2}
+        claim_requests = []
+
+        def claim(**kwargs):
+            claim_requests.append(kwargs)
+            selected = [
+                repository for repository in sorted(remaining)
+                if remaining[repository] and repository not in kwargs["excludeRepositories"]
+            ][:kwargs["maxRepositories"]]
+            for repository in selected:
+                remaining[repository] -= 1
+            return {"claims": [
+                {
+                    "itemKey": f"{repository}#pr:1", "repository": repository,
+                    "claimGeneration": 3 - remaining[repository], "prNumber": 1,
+                }
+                for repository in selected
+            ]}
+
+        client.call.side_effect = lambda action, **kwargs: (
             {"activated": True} if action == "activate"
-            else {"claims": next(waves)} if action == "claim"
+            else claim(**kwargs) if action == "claim"
             else {}
         )
         monitor = mock.Mock(spec=LeaseMonitor)
@@ -366,30 +361,37 @@ class OwnedExecutionTest(unittest.TestCase):
             mock.patch.object(drain_queue, "GitHubAppTokenClient"),
             mock.patch.object(drain_queue, "ExecutionCodeLoader", side_effect=make_loader),
             mock.patch.object(drain_queue, "stable_code_ref", return_value="b" * 40),
-            mock.patch.object(drain_queue, "process_claim_wave", return_value=drain_queue.WaveResult(0, ())) as process,
+            mock.patch.object(drain_queue, "process_repository_claims", return_value=[]) as process,
         ):
             self.assertEqual(drain_queue.run_owned_drain(args), 0)
-        self.assertEqual(process.call_count, 2)
+        self.assertEqual(process.call_count, 4)
+        refs = {"canary": "a" * 40, "stable": "b" * 40}
         for call in process.call_args_list:
-            self.assertEqual(call.kwargs["execution_code"]["canary"].ref, "a" * 40)
-            self.assertEqual(call.kwargs["execution_code"]["stable"].ref, "b" * 40)
-            self.assertEqual(call.kwargs["repository_roots"], checkout_paths)
+            repository = call.args[0][0].repository
+            self.assertEqual(call.kwargs["execution_code"].ref, refs[repository])
+            self.assertEqual(call.kwargs["repository_root"], checkout_paths[repository])
+            self.assertIs(call.kwargs["lease_monitor"], monitor)
+        self.assertEqual(remaining, {"canary": 0, "stable": 0})
         self.assertTrue(all(not path.exists() for path in checkout_paths.values()))
         monitor.close.assert_called_once()
-        for call in client.call.call_args_list:
-            if call.args == ("claim",):
-                self.assertEqual(call.kwargs["limit"], 16)
-                self.assertEqual(call.kwargs["generation"], 1)
-                self.assertEqual(call.kwargs["workerId"], "worker")
+        self.assertEqual(claim_requests[0]["excludeRepositories"], [])
+        self.assertEqual(claim_requests[0]["maxRepositories"], 4)
+        for request in claim_requests:
+            self.assertEqual(request["limit"], 16)
+            self.assertEqual(request["generation"], 1)
+            self.assertEqual(request["workerId"], "worker")
+            self.assertEqual(
+                request["maxRepositories"] + len(request["excludeRepositories"]), 4
+            )
 
     def test_failed_checkout_preparation_retries_without_starting_processors(self) -> None:
         client = mock.Mock()
-        waves = iter([[
+        claims = iter([[
             {"itemKey": "stable#backfill", "repository": "stable", "claimGeneration": 1, "kind": "backfill"},
-        ], []])
+        ]])
         client.call.side_effect = lambda action, **_kwargs: (
             {"activated": True} if action == "activate"
-            else {"claims": next(waves)} if action == "claim"
+            else {"claims": next(claims, [])} if action == "claim"
             else {}
         )
         monitor = mock.Mock(spec=LeaseMonitor)
@@ -412,10 +414,12 @@ class OwnedExecutionTest(unittest.TestCase):
             mock.patch.object(drain_queue, "ExecutionCodeLoader", return_value=loader),
             mock.patch.object(drain_queue, "stable_code_ref", return_value="b" * 40),
             mock.patch.object(drain_queue, "acknowledge_results") as acknowledge,
-            mock.patch.object(drain_queue, "process_claim_wave") as process,
+            mock.patch.object(drain_queue, "process_repository_claims") as process,
         ):
             self.assertEqual(drain_queue.run_owned_drain(args), 0)
         process.assert_not_called()
+        acknowledge.assert_called_once()
+        self.assertEqual(acknowledge.call_args.args[2], {"generation": 1, "workerId": "worker"})
         result = acknowledge.call_args.args[1][0]
         self.assertEqual(result["itemKey"], "stable#backfill")
         self.assertEqual(result["outcome"], "retry")
@@ -552,7 +556,7 @@ class ExecutionCheckoutTest(unittest.TestCase):
             creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
         )
 
-    def test_checkout_is_independent_shallow_and_reused_across_waves(self) -> None:
+    def test_checkout_is_independent_shallow_and_reused_across_jobs(self) -> None:
         first = self.loader.checkout("first")
         second = self.loader.checkout("second")
         self.assertEqual(self.loader.checkout("first"), first)

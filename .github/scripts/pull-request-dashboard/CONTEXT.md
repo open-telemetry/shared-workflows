@@ -96,9 +96,16 @@ waiting for its request lease to expire. Whichever run acquires a runner first
 must win activation; duplicate or stale runs cannot claim work. The drain has no
 GitHub concurrency group, so an unassigned old run cannot block its replacement.
 
-`drain_queue.py` keeps one heartbeat across preparation and all processing
-waves. It runs up to four repositories concurrently and processes each
-repository serially. Stable and canary claims both use `process_queue_batch.py`,
+`drain_queue.py` keeps one heartbeat across preparation and all processing.
+It schedules rolling repository jobs: one coordinator keeps up to four jobs
+running in a persistent thread pool and, whenever any job finishes, claims
+eligible work for the free slots while the other jobs continue. Each job
+processes a bounded group of claims for one repository serially, so claim
+grouping and coalesced publication are unchanged. Claims exclude repositories
+that already have an active job in the lane and are capped to the free slots,
+oldest eligible work first. New jobs stop being admitted ten minutes before the
+processing deadline; running jobs remain fenced by that hard deadline and the
+lease monitor, and the successor handoff is unchanged. Stable and canary claims both use `process_queue_batch.py`,
 not workflow dispatch as a completion signal. The processing path covers
 calculation, accepted-state persistence, delivery, issue publication, and
 full-publication receipt updates. Coalesced publication must succeed before
@@ -123,7 +130,7 @@ authority. Repository policy comes from the current worker checkout in both
 channels. Stable repositories do not run main's evaluation or state codecs.
 
 Owned processors use an independent shallow Git clone per target repository,
-reused across waves within a drain. Each clone has its own configuration, refs,
+reused across jobs within a drain. Each clone has its own configuration, refs,
 objects, and worktree registrations, with `origin` pointing to shared-workflows
 for accepted-state and delivery transactions. Clones are seeded locally from the
 worker checkout; immutable scripts and dependency environments remain shared by

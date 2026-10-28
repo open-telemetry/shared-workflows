@@ -210,6 +210,30 @@ test("acknowledgment rejects a missing dispatcher generation before touching the
   assert.deepEqual(calls, []);
 });
 
+test("acknowledgment accepts the non-failure requeue outcome", async () => {
+  const { calls, queue } = fixture();
+  const response = await handleQueueWorkerRequest(request({
+    action: "acknowledge",
+    generation: 1,
+    itemKey: "example#pr:1",
+    claimGeneration: 1,
+    workerId: "worker",
+    outcome: "requeue",
+  }), { queue, verifyRequest });
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(calls, [["acknowledge", {
+    generation: 1,
+    itemKey: "example#pr:1",
+    claimGeneration: 1,
+    workerId: "worker",
+    outcome: "requeue",
+    error: "",
+    retryAfterMs: 0,
+    operationId: "",
+  }]]);
+});
+
 test("paused workers can heartbeat, acknowledge, and finish without claiming or dispatching", async () => {
   const previous = process.env.PR_DASHBOARD_EXECUTION_MODE;
   process.env.PR_DASHBOARD_EXECUTION_MODE = "paused";
@@ -274,6 +298,50 @@ test("claims a wave after authentication", async () => {
       excludeItemKeys: ["example#pr:2"],
     },
   ]]);
+});
+
+test("forwards optional repository claim filters after validation", async () => {
+  const { calls, queue } = fixture();
+  const response = await handleQueueWorkerRequest(request({
+    action: "claim",
+    generation: 7,
+    workerId: "worker",
+    limit: 16,
+    excludeItemKeys: [],
+    excludeRepositories: ["active"],
+    maxRepositories: 3,
+  }), { queue, verifyRequest });
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(calls, [[
+    "claim",
+    {
+      generation: 7,
+      workerId: "worker",
+      limit: 16,
+      excludeItemKeys: [],
+      excludeRepositories: ["active"],
+      maxRepositories: 3,
+    },
+  ]]);
+
+  for (const [field, value, message] of [
+    ["maxRepositories", 0, "maxRepositories must be an integer between 1 and 100"],
+    ["maxRepositories", 101, "maxRepositories must be an integer between 1 and 100"],
+    ["excludeRepositories", "active", "excludeRepositories must contain at most 100 non-empty strings no longer than 100 characters"],
+    ["excludeRepositories", [""], "excludeRepositories must contain at most 100 non-empty strings no longer than 100 characters"],
+  ]) {
+    await assert.rejects(
+      handleQueueWorkerRequest(request({
+        action: "claim",
+        generation: 7,
+        workerId: "worker",
+        [field]: value,
+      }), { queue, verifyRequest }),
+      (error) => error.statusCode === 400 && error.message === message,
+    );
+  }
+  assert.equal(calls.length, 1);
 });
 
 test("dispatches a successor when finish leaves runnable work", async () => {

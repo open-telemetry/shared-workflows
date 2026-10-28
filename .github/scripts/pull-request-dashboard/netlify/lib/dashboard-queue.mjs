@@ -374,10 +374,34 @@ export class DashboardQueue {
     };
   }
 
-  async claimWave({ generation, workerId, limit = 4, excludeItemKeys = [] }) {
+  async claimWave({
+    generation,
+    workerId,
+    limit = 4,
+    excludeItemKeys = [],
+    excludeRepositories = [],
+    maxRepositories = null,
+  }) {
     validateWorkerId(workerId);
     if (!Number.isInteger(limit) || limit < 1 || limit > 100) {
       throw new Error("claim limit must be an integer between 1 and 100");
+    }
+    if (
+      maxRepositories !== null &&
+      (!Number.isInteger(maxRepositories) || maxRepositories < 1 || maxRepositories > 100)
+    ) {
+      throw new Error("claim repository limit must be an integer between 1 and 100");
+    }
+    if (
+      !Array.isArray(excludeRepositories) ||
+      excludeRepositories.length > 100 ||
+      excludeRepositories.some((repository) => (
+        typeof repository !== "string" ||
+        repository.length < 1 ||
+        repository.length > 100
+      ))
+    ) {
+      throw new Error("excluded repositories are invalid");
     }
     if (
       !Array.isArray(excludeItemKeys) ||
@@ -391,6 +415,7 @@ export class DashboardQueue {
       throw new Error("excluded item keys are invalid");
     }
     const excluded = new Set(excludeItemKeys);
+    const excludedRepositories = new Set(excludeRepositories);
     const dispatcher = await this.#readDispatcher();
     if (
       dispatcher.phase !== "active" ||
@@ -415,11 +440,13 @@ export class DashboardQueue {
           queueLane(item.kind) === this.lane &&
           item.phase === "queued" &&
           !excluded.has(itemKey) &&
+          !excludedRepositories.has(item.repository) &&
           (!item.notBefore || Date.parse(item.notBefore) <= this.now())
         ) {
           found.push({
             itemKey,
             shardKey,
+            repository: item.repository,
             firstSeenAt: item.firstSeenAt,
           });
         }
@@ -435,7 +462,21 @@ export class DashboardQueue {
     ));
 
     const selectedByShard = new Map();
-    for (const candidate of candidates.slice(0, limit)) {
+    const selectedRepositories = new Set();
+    let selectedCount = 0;
+    for (const candidate of candidates) {
+      if (selectedCount >= limit) {
+        break;
+      }
+      if (
+        maxRepositories !== null &&
+        !selectedRepositories.has(candidate.repository) &&
+        selectedRepositories.size >= maxRepositories
+      ) {
+        continue;
+      }
+      selectedRepositories.add(candidate.repository);
+      selectedCount += 1;
       const selected = selectedByShard.get(candidate.shardKey) || new Set();
       selected.add(candidate.itemKey);
       selectedByShard.set(candidate.shardKey, selected);
@@ -503,7 +544,7 @@ export class DashboardQueue {
     if (queueItemLane(itemKey) !== this.lane) {
       throw new Error("queue item belongs to another lane");
     }
-    if (!["success", "retry", "dead", "continue"].includes(outcome)) {
+    if (!["success", "retry", "dead", "continue", "requeue"].includes(outcome)) {
       throw new Error(`unsupported acknowledgment outcome ${outcome}`);
     }
     const ownership = await this.assertDispatcher({ generation, workerId });
@@ -600,15 +641,21 @@ export class DashboardQueue {
       item.leaseExpiresAt = null;
       item.claimedGeneration = null;
       delete item.dispatcherGeneration;
-      item.attempts = outcome === "retry" && !hasFollowUp ? item.attempts + 1 : 0;
+      item.attempts = outcome === "requeue" && !hasFollowUp
+        ? item.attempts
+        : outcome === "retry" && !hasFollowUp ? item.attempts + 1 : 0;
       item.notBefore = outcome === "retry" && !hasFollowUp && retryAfterMs > 0
         ? this.#isoAfter(retryAfterMs)
         : null;
-      item.lastError = outcome === "retry" ? normalizeError(error) : "";
+      item.lastError = outcome === "retry"
+        ? normalizeError(error)
+        : outcome === "requeue" && !hasFollowUp ? item.lastError : "";
       const result = {
-        status: outcome === "retry" && !hasFollowUp
-          ? "retry"
-          : outcome === "continue" && !hasFollowUp ? "continued" : "follow_up",
+        status: outcome === "requeue"
+          ? "requeued"
+          : outcome === "retry" && !hasFollowUp
+            ? "retry"
+            : outcome === "continue" && !hasFollowUp ? "continued" : "follow_up",
         attempts: item.attempts,
       };
       if (receiptKey) {
