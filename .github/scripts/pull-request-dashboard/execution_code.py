@@ -6,6 +6,7 @@ import subprocess
 import sys
 import tarfile
 import tempfile
+import threading
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -44,8 +45,14 @@ class ExecutionCodeLoader:
         self.repository_root = repository_root
         self.bundles: dict[str, ExecutionCode] = {}
         self.checkouts: dict[str, Path] = {}
+        # Rolling repository jobs share these caches from worker threads.
+        self.lock = threading.Lock()
 
     def checkout(self, repository: str) -> Path:
+        with self.lock:
+            return self._checkout(repository)
+
+    def _checkout(self, repository: str) -> Path:
         if re.fullmatch(r"[A-Za-z0-9_.-]+", repository) is None or repository in {".", ".."}:
             raise ValueError("dashboard execution requires a repository name")
         self.monitor.assert_valid()
@@ -71,6 +78,10 @@ class ExecutionCodeLoader:
         return directory
 
     def load(self, ref: str) -> ExecutionCode:
+        with self.lock:
+            return self._load(ref)
+
+    def _load(self, ref: str) -> ExecutionCode:
         if SHA.fullmatch(ref) is None:
             raise ValueError("dashboard execution requires an immutable 40-character commit SHA")
         if ref in self.bundles:

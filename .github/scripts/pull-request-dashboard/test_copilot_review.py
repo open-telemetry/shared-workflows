@@ -52,6 +52,10 @@ QUOTA_FAILURE_BODY = (
     "Copilot was unable to review this pull request because the user who "
     "requested the review has reached their quota limit."
 )
+INSUFFICIENT_QUOTA_FAILURE_BODY = (
+    "Copilot was unable to review this pull request because the user who "
+    "requested the review has insufficient remaining quota."
+)
 ERROR_BODY = (
     "Copilot encountered an error and was unable to review this pull request. "
     "You can try again by re-requesting a review."
@@ -203,6 +207,17 @@ class CopilotReviewStatusTest(unittest.TestCase):
         self.assertFalse(is_copilot_quota_failure(
             replace(failure, actor=actor("reviewer"))
         ))
+        insufficient = replace(failure, body=INSUFFICIENT_QUOTA_FAILURE_BODY)
+        self.assertTrue(is_copilot_quota_failure(insufficient))
+        self.assertTrue(is_copilot_quota_failure(
+            replace(insufficient, body=f"\n{INSUFFICIENT_QUOTA_FAILURE_BODY}\n")
+        ))
+        self.assertFalse(is_copilot_quota_failure(
+            replace(insufficient, actor=actor("reviewer"))
+        ))
+        self.assertFalse(is_copilot_quota_failure(
+            replace(insufficient, body=f"> {INSUFFICIENT_QUOTA_FAILURE_BODY}")
+        ))
         self.assertFalse(is_copilot_quota_failure(
             replace(failure, body=f"Handle this failure:\n> {QUOTA_FAILURE_BODY}")
         ))
@@ -224,6 +239,11 @@ class CopilotReviewStatusTest(unittest.TestCase):
             (
                 "whitespace",
                 (replace(quota_failure, body=f"\n{QUOTA_FAILURE_BODY}\n"),),
+                (False, False),
+            ),
+            (
+                "insufficient_quota",
+                (replace(quota_failure, body=INSUFFICIENT_QUOTA_FAILURE_BODY),),
                 (False, False),
             ),
             (
@@ -418,12 +438,12 @@ class CopilotFallbackDeliveryTest(unittest.TestCase):
             NOW,
         )
 
-    def quota_notice(self, review_id: int) -> dict:
+    def quota_notice(self, review_id: int, body: str = QUOTA_FAILURE_BODY) -> dict:
         return {
             "id": review_id,
             "user": {"login": "copilot"},
             "commit_id": "current-head",
-            "body": QUOTA_FAILURE_BODY,
+            "body": body,
         }
 
     def error_notice(self, review_id: int) -> dict:
@@ -437,6 +457,19 @@ class CopilotFallbackDeliveryTest(unittest.TestCase):
 
     def deliver(self) -> list[str]:
         return deliver_copilot_review_requests("open-telemetry/example", NOW)
+
+    def test_insufficient_quota_notice_triggers_the_fallback_token(self) -> None:
+        self.enqueue()
+        self.reviews = [
+            self.quota_notice(10, INSUFFICIENT_QUOTA_FAILURE_BODY),
+            self.quota_notice(11),
+        ]
+        self.assertEqual([], self.deliver())
+        self.assertEqual(
+            CopilotReviewFallback((10, 11), format_ts(NOW)),
+            load_copilot_review_fallbacks()["7"],
+        )
+        self.request.assert_called_with("PR_node", token="request-token")
 
     def test_uses_app_until_a_live_quota_notice_arrives(self) -> None:
         self.assertEqual([], self.deliver())

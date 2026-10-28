@@ -7,7 +7,6 @@ import os
 import subprocess
 import tempfile
 import time
-from collections import defaultdict
 from collections.abc import Callable
 from dataclasses import asdict, dataclass
 from pathlib import Path
@@ -27,9 +26,8 @@ from execution_code import ExecutionCode, ExecutionCodeLoader, stable_code_ref
 from execution_process import subprocess_options
 from telemetry import session as telemetry_session
 
-WAVE_LIMIT = 16
-MINIMUM_WAVE_SECONDS = 10 * 60
-WAVE_DURATION_MULTIPLIER = 1.5
+CLAIM_LIMIT = 16
+ADMISSION_MARGIN_SECONDS = 10 * 60
 MAXIMUM_EXCLUSIONS = 500
 MAXIMUM_EXCLUSION_BYTES = 60 * 1024
 MAXIMUM_REPOSITORIES = 4
@@ -38,7 +36,7 @@ CANARY_REPOSITORIES_EXAMPLE = '["opentelemetry-java-instrumentation"]'
 
 
 @dataclass(frozen=True)
-class WaveResult:
+class JobResult:
     dead_letters: int
     retry_item_keys: tuple[str, ...]
 
@@ -48,36 +46,53 @@ class DrainResult:
     claims: int
     dead_letters: int
     reason: str
-    waves: int
+    jobs: int
 
 
 def drain_queue(
-    initial_claims: list[Claim],
     processing_deadline: float,
-    claim_wave: Callable[[int, list[str]], list[Claim]],
-    process_wave: Callable[[list[Claim], int], WaveResult],
+    claim: Callable[[int, list[str], list[str]], list[Claim]],
+    process_job: Callable[[list[Claim], int], JobResult],
     *,
+    return_unstarted: Callable[[list[Claim]], None] | None = None,
     now: Callable[[], float] = time.time,
-    minimum_wave_seconds: float = MINIMUM_WAVE_SECONDS,
-    wave_duration_multiplier: float = WAVE_DURATION_MULTIPLIER,
+    admission_margin_seconds: float = ADMISSION_MARGIN_SECONDS,
+    maximum_repositories: int = MAXIMUM_REPOSITORIES,
     maximum_exclusions: int = MAXIMUM_EXCLUSIONS,
     maximum_exclusion_bytes: int = MAXIMUM_EXCLUSION_BYTES,
 ) -> DrainResult:
-    claims = initial_claims
-    waves = 0
+    """Keep up to ``maximum_repositories`` repository jobs running.
+
+    ``claim(free_slots, excluded_item_keys, active_repositories)`` returns
+    claims for at most ``free_slots`` repositories, none of them active.
+    Each repository's claims become one job; finishing any job frees its slot
+    for newly claimed work while the other jobs keep running.
+    """
+    active: dict[concurrent.futures.Future[JobResult], str] = {}
+    failures: dict[str, Exception] = {}
+    retry_item_keys: set[str] = set()
+    return_errors: list[Exception] = []
+    jobs = 0
     claim_count = 0
     dead_letters = 0
-    maximum_wave_seconds = 0.0
-    retry_item_keys: set[str] = set()
+    reason: str | None = None
 
-    while claims:
-        started_at = now()
-        wave_result = process_wave(claims, waves + 1)
-        finished_at = now()
-        waves += 1
-        claim_count += len(claims)
-        dead_letters += wave_result.dead_letters
-        retry_item_keys.update(wave_result.retry_item_keys)
+    def collect_completed() -> None:
+        nonlocal dead_letters
+        done, _pending = concurrent.futures.wait(
+            active, timeout=0, return_when=concurrent.futures.FIRST_COMPLETED
+        )
+        for future in done:
+            repository = active.pop(future)
+            try:
+                result = future.result()
+            except Exception as error:
+                failures[repository] = error
+                continue
+            dead_letters += result.dead_letters
+            retry_item_keys.update(result.retry_item_keys)
+
+    def admission_stop_reason() -> str | None:
         serialized_exclusions = json.dumps(
             sorted(retry_item_keys),
             separators=(",", ":"),
@@ -86,18 +101,136 @@ def drain_queue(
             len(retry_item_keys) >= maximum_exclusions
             or len(serialized_exclusions) >= maximum_exclusion_bytes
         ):
-            return DrainResult(claim_count, dead_letters, "exclusion_limit", waves)
+            return "exclusion_limit"
+        if now() + admission_margin_seconds >= processing_deadline:
+            return "deadline"
+        return None
 
-        maximum_wave_seconds = max(maximum_wave_seconds, finished_at - started_at)
-        next_wave_seconds = max(
-            minimum_wave_seconds,
-            maximum_wave_seconds * wave_duration_multiplier,
+    def return_claims(claims: list[Claim]) -> None:
+        if not claims:
+            return
+        try:
+            if return_unstarted is None:
+                raise RuntimeError(
+                    "no callback is configured to return unstarted queue claims"
+                )
+            return_unstarted(claims)
+        except Exception as error:
+            return_errors.append(error)
+
+    with concurrent.futures.ThreadPoolExecutor(
+        max_workers=maximum_repositories
+    ) as executor:
+        while True:
+            collect_completed()
+            while reason is None and not failures and len(active) < maximum_repositories:
+                collect_completed()
+                if failures:
+                    break
+                reason = admission_stop_reason()
+                if reason is not None:
+                    break
+
+                free_slots = maximum_repositories - len(active)
+                active_repositories = set(active.values())
+                claims = claim(
+                    free_slots, sorted(retry_item_keys), sorted(active_repositories)
+                )
+                collect_completed()
+                if not claims:
+                    if set(active.values()) != set(active_repositories):
+                        continue
+                    break
+                claim_count += len(claims)
+
+                if not failures:
+                    reason = admission_stop_reason()
+                if failures or reason is not None:
+                    return_claims(claims)
+                    break
+
+                groups = list(
+                    group_claims(
+                        claims, set(active.values()), free_slots
+                    ).items()
+                )
+                for index, (repository, repository_claims) in enumerate(groups):
+                    collect_completed()
+                    if not failures:
+                        reason = admission_stop_reason()
+                    if failures or reason is not None:
+                        return_claims([
+                            item
+                            for _repository, unstarted in groups[index:]
+                            for item in unstarted
+                        ])
+                        break
+                    jobs += 1
+                    future = executor.submit(process_job, repository_claims, jobs)
+                    active[future] = repository
+
+            if not active:
+                break
+            concurrent.futures.wait(active, return_when=concurrent.futures.FIRST_COMPLETED)
+            collect_completed()
+
+    if failures:
+        details = "; ".join(
+            f"{repository}: {failures[repository]}" for repository in sorted(failures)
         )
-        if finished_at + next_wave_seconds >= processing_deadline:
-            return DrainResult(claim_count, dead_letters, "deadline", waves)
-        claims = claim_wave(waves + 1, sorted(retry_item_keys))
+        if return_errors:
+            details += "; unstarted claims could not be returned: " + "; ".join(
+                str(error) for error in return_errors
+            )
+        raise RuntimeError(
+            f"{len(failures)} repository job(s) failed: {details}"
+        ) from failures[sorted(failures)[0]]
+    if return_errors:
+        details = "; ".join(str(error) for error in return_errors)
+        raise RuntimeError(
+            f"unstarted claims could not be returned: {details}"
+        ) from return_errors[0]
+    return DrainResult(claim_count, dead_letters, reason or "queue_empty", jobs)
 
-    return DrainResult(claim_count, dead_letters, "queue_empty", waves)
+
+def group_claims(
+    claims: list[Claim],
+    active_repositories: set[str],
+    free_slots: int,
+) -> dict[str, list[Claim]]:
+    grouped: dict[str, list[Claim]] = {}
+    for claim in claims:
+        grouped.setdefault(claim.repository, []).append(claim)
+    overlapping = sorted(active_repositories.intersection(grouped))
+    if overlapping:
+        raise RuntimeError(
+            f"queue claimed work for active repositories: {', '.join(overlapping)}"
+        )
+    if len(grouped) > free_slots:
+        raise RuntimeError(
+            f"queue claimed {len(grouped)} repositories for {free_slots} free slot(s)"
+        )
+    return grouped
+
+
+def job_result(results: list[dict[str, Any]]) -> JobResult:
+    return JobResult(
+        dead_letters=sum(result["outcome"] == "dead" for result in results),
+        retry_item_keys=tuple(
+            sorted(result["itemKey"] for result in results if result["outcome"] == "retry")
+        ),
+    )
+
+
+def requeue_acknowledgments(claims: list[Claim]) -> list[dict[str, Any]]:
+    return [
+        {
+            "itemKey": item.item_key,
+            "claimGeneration": item.claim_generation,
+            "outcome": "requeue",
+        }
+        for item in claims
+    ]
 
 
 class GitHubAppTokenClient:
@@ -220,105 +353,6 @@ def read_results(path: Path) -> list[dict[str, Any]]:
     return value
 
 
-def process_claim_wave(
-    claims: list[Claim],
-    results_path: Path,
-    client: QueueWorkerClient,
-    generation: int,
-    worker_id: str,
-    token_client: GitHubAppTokenClient,
-    *,
-    execution_code: dict[str, ExecutionCode],
-    repository_roots: dict[str, Path],
-    report_limits: Callable[..., None] = report_rate_limits,
-    lease_monitor: LeaseMonitor | None = None,
-) -> WaveResult:
-    if (
-        execution_code is None
-        or repository_roots is None
-        or any(
-            claim.repository not in repository_roots or claim.repository not in execution_code
-            for claim in claims
-        )
-    ):
-        raise RuntimeError("owned dashboard execution requires isolated Git checkouts")
-    claims_by_repository: dict[str, list[Claim]] = defaultdict(list)
-    for claim in claims:
-        claims_by_repository[claim.repository].append(claim)
-
-    monitor = lease_monitor or LeaseMonitor(client, generation, worker_id)
-    owns_monitor = lease_monitor is None
-    try:
-        if owns_monitor:
-            monitor.start()
-    except Exception as error:
-        monitor.close()
-        unresolved = unresolved_acknowledgments(claims, [], error)
-        try:
-            acknowledge_results(
-                client,
-                unresolved,
-                {"generation": generation, "workerId": worker_id},
-            )
-        except Exception as acknowledgment_error:
-            raise RuntimeError(
-                "queue wave failed and unresolved claims could not be acknowledged"
-            ) from acknowledgment_error
-        raise
-
-    results: list[dict[str, Any]] = []
-    failures: dict[str, Exception] = {}
-    try:
-        with concurrent.futures.ThreadPoolExecutor(
-            max_workers=MAXIMUM_REPOSITORIES
-        ) as executor:
-            futures = {
-                executor.submit(
-                    process_repository_claims,
-                    repository_claims,
-                    results_path.with_name(
-                        f"{results_path.stem}-{index}{results_path.suffix}"
-                    ),
-                    client,
-                    generation,
-                    worker_id,
-                    token_client,
-                    lease_monitor=monitor,
-                    report_limits=report_limits,
-                    execution_code=execution_code[repository],
-                    repository_root=repository_roots[repository],
-                ): repository
-                for index, (repository, repository_claims) in enumerate(
-                    sorted(claims_by_repository.items())
-                )
-            }
-            for future in concurrent.futures.as_completed(futures):
-                repository = futures[future]
-                try:
-                    results.extend(future.result())
-                except Exception as error:
-                    failures[repository] = error
-    finally:
-        if owns_monitor:
-            monitor.close()
-
-    if failures:
-        details = "; ".join(
-            f"{repository}: {failures[repository]}" for repository in sorted(failures)
-        )
-        raise RuntimeError(
-            f"{len(failures)} repository group(s) failed: {details}"
-        ) from failures[sorted(failures)[0]]
-
-    results.sort(key=lambda result: result["itemKey"])
-    return WaveResult(
-        dead_letters=sum(result["outcome"] == "dead" for result in results),
-        retry_item_keys=tuple(
-            result["itemKey"] for result in results if result["outcome"] == "retry"
-        ),
-    )
-
-
 def process_repository_claims(
     claims: list[Claim],
     results_path: Path,
@@ -365,7 +399,7 @@ def process_repository_claims(
                 acknowledge_results(client, unresolved, common)
             except Exception as acknowledgment_error:
                 raise RuntimeError(
-                    "queue wave failed and unresolved claims could not be acknowledged"
+                    "repository job failed and unresolved claims could not be acknowledged"
                 ) from acknowledgment_error
         raise
     finally:
@@ -416,47 +450,46 @@ def run_owned_drain(args: argparse.Namespace) -> int:
             loader = ExecutionCodeLoader(root / "code", monitor, code_preparation_environment())
             stable_ref = stable_code_ref()
 
-            def claim_wave(_wave: int, excluded: list[str]) -> list[Claim]:
+            common = {"generation": args.generation, "workerId": args.worker}
+
+            def claim(
+                free_slots: int, excluded: list[str], active_repositories: list[str]
+            ) -> list[Claim]:
                 monitor.assert_valid()
                 response = client.call(
                     "claim", generation=args.generation, workerId=args.worker,
-                    limit=WAVE_LIMIT, excludeItemKeys=excluded,
+                    limit=CLAIM_LIMIT, excludeItemKeys=excluded,
+                    excludeRepositories=active_repositories, maxRepositories=free_slots,
                 )
                 return parse_claims(response.get("claims"))
 
-            def process_wave(claims: list[Claim], wave: int) -> WaveResult:
+            def process_job(claims: list[Claim], job: int) -> JobResult:
+                repository = claims[0].repository
                 try:
-                    codes = {
-                        repository: loader.load(
-                            args.canary_code_ref if repository in args.canary_repositories else stable_ref
-                        )
-                        for repository in sorted({claim.repository for claim in claims})
-                    }
-                    repository_roots = {
-                        repository: loader.checkout(repository) for repository in codes
-                    }
+                    code = loader.load(
+                        args.canary_code_ref if repository in args.canary_repositories else stable_ref
+                    )
+                    repository_root = loader.checkout(repository)
                 except Exception as error:
                     failures = [
                         result for claim in claims
                         for result in failure_acknowledgments((claim,), error)
                     ]
-                    acknowledge_results(
-                        client, failures, {"generation": args.generation, "workerId": args.worker}
-                    )
-                    return WaveResult(
-                        sum(result["outcome"] == "dead" for result in failures),
-                        tuple(result["itemKey"] for result in failures if result["outcome"] == "retry"),
-                    )
-                return process_claim_wave(
-                    claims, root / f"results-{wave}.json", client, args.generation,
+                    acknowledge_results(client, failures, common)
+                    return job_result(failures)
+                return job_result(process_repository_claims(
+                    claims, root / f"results-{job}.json", client, args.generation,
                     args.worker, token_client,
-                    execution_code=codes,
-                    repository_roots=repository_roots,
                     lease_monitor=monitor,
-                )
+                    execution_code=code,
+                    repository_root=repository_root,
+                ))
+
+            def return_unstarted(claims: list[Claim]) -> None:
+                acknowledge_results(client, requeue_acknowledgments(claims), common)
 
             result = drain_queue(
-                claim_wave(1, []), args.deadline, claim_wave, process_wave,
+                args.deadline, claim, process_job, return_unstarted=return_unstarted
             )
             print(json.dumps(asdict(result), sort_keys=True))
             return 1 if result.dead_letters else 0
@@ -467,7 +500,7 @@ def run_owned_drain(args: argparse.Namespace) -> int:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Drain dashboard queue waves.")
+    parser = argparse.ArgumentParser(description="Drain dashboard queue work.")
     parser.add_argument("--canary-code-ref", required=True)
     parser.add_argument("--deadline", type=int, required=True)
     parser.add_argument("--generation", type=int, required=True)

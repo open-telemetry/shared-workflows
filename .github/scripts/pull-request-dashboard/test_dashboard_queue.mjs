@@ -547,6 +547,80 @@ test("claim wave skips item keys retried by the same worker run", async () => {
   assert.deepEqual(claims.map((claim) => claim.itemKey), ["example#pr:456"]);
 });
 
+test("claim wave can skip active repositories and cap distinct repositories", async () => {
+  const { queue, advance } = fixture();
+  for (const [repository, prNumber] of [
+    ["a", 1], ["b", 1], ["a", 2], ["c", 1], ["d", 1], ["b", 2],
+  ]) {
+    await queue.enqueue({ repository, prNumber, headSha: "", triggerEvent: "pull_request" });
+    advance(1);
+  }
+  const request = await queue.requestDispatcher("request");
+  await queue.activateDispatcher({ generation: request.generation, workerId: "worker" });
+  const claim = (options) => queue.claimWave({
+    generation: request.generation,
+    workerId: "worker",
+    ...options,
+  });
+
+  const filtered = await claim({ limit: 10, excludeRepositories: ["a"], maxRepositories: 2 });
+  assert.deepEqual(
+    filtered.map((item) => item.itemKey).sort(),
+    ["b#pr:1", "b#pr:2", "c#pr:1"],
+  );
+
+  const bounded = await claim({ limit: 1, maxRepositories: 4 });
+  assert.deepEqual(bounded.map((item) => item.itemKey), ["a#pr:1"]);
+
+  const legacy = await claim({ limit: 2 });
+  assert.deepEqual(legacy.map((item) => item.itemKey).sort(), ["a#pr:2", "d#pr:1"]);
+});
+
+test("claim wave keeps existing semantics without repository filters", async () => {
+  const { queue, advance } = fixture();
+  for (const [repository, prNumber] of [["a", 1], ["a", 2], ["b", 1]]) {
+    await queue.enqueue({ repository, prNumber, headSha: "", triggerEvent: "pull_request" });
+    advance(1);
+  }
+  const request = await queue.requestDispatcher("request");
+  await queue.activateDispatcher({ generation: request.generation, workerId: "worker" });
+
+  const claims = await queue.claimWave({
+    generation: request.generation,
+    workerId: "worker",
+    limit: 2,
+  });
+
+  assert.deepEqual(claims.map((item) => item.itemKey), ["a#pr:1", "a#pr:2"]);
+});
+
+test("claim wave rejects invalid repository filters", async () => {
+  const { queue } = fixture();
+  for (const options of [
+    { maxRepositories: 0 },
+    { maxRepositories: 101 },
+    { maxRepositories: 1.5 },
+    { maxRepositories: "2" },
+  ]) {
+    await assert.rejects(
+      queue.claimWave({ generation: 1, workerId: "worker", ...options }),
+      /claim repository limit must be an integer between 1 and 100/,
+    );
+  }
+  for (const excludeRepositories of [
+    "a",
+    [""],
+    [1],
+    ["x".repeat(101)],
+    Array.from({ length: 101 }, (_, index) => `repo-${index}`),
+  ]) {
+    await assert.rejects(
+      queue.claimWave({ generation: 1, workerId: "worker", excludeRepositories }),
+      /excluded repositories are invalid/,
+    );
+  }
+});
+
 test("replays an identical acknowledgment after its response is lost", async () => {
   const { queue } = fixture();
   await queue.enqueue({
@@ -928,6 +1002,168 @@ test("a retry acknowledgment gives a dirty generation a fresh attempt budget", a
     workerId: "worker",
   });
   assert.equal(followUp.attempts, 0);
+});
+
+test("requeue returns an unstarted item without consuming retries or completing it", async () => {
+  const { queue, store } = fixture();
+  const request = await queue.enqueue({
+    repository: "example",
+    prNumber: 123,
+    headSha: "",
+    triggerEvent: "pull_request",
+  });
+  const dispatcher = await queue.requestDispatcher("request");
+  await queue.activateDispatcher({
+    generation: dispatcher.generation,
+    workerId: "worker",
+  });
+
+  for (const attempts of [1, 2]) {
+    const [claimed] = await queue.claimWave({
+      generation: dispatcher.generation,
+      workerId: "worker",
+    });
+    assert.deepEqual(await queue.acknowledge({
+      ...claimed,
+      generation: dispatcher.generation,
+      workerId: "worker",
+      outcome: "retry",
+    }), { status: "retry", attempts });
+  }
+
+  const [unstarted] = await queue.claimWave({
+    generation: dispatcher.generation,
+    workerId: "worker",
+  });
+  assert.equal(unstarted.attempts, 2);
+  assert.deepEqual(await queue.acknowledge({
+    ...unstarted,
+    generation: dispatcher.generation,
+    workerId: "worker",
+    outcome: "requeue",
+    operationId: "return-unstarted",
+  }), { status: "requeued", attempts: 2 });
+
+  assert.equal((await queue.itemStatus(request)).status, "queued");
+  const shard = store.entries.get(request.shardKey).value;
+  assert.equal(shard.items[request.itemKey].attempts, 2);
+  assert.deepEqual(shard.deadLetters, {});
+  const [available] = await queue.claimWave({
+    generation: dispatcher.generation,
+    workerId: "worker",
+  });
+  assert.equal(available.attempts, 2);
+});
+
+test("requeue gives a dirty follow-up generation a fresh retry budget", async () => {
+  const { queue, store } = fixture();
+  const request = await queue.enqueue({
+    repository: "example",
+    prNumber: 123,
+    headSha: "",
+    triggerEvent: "pull_request",
+  });
+  const dispatcher = await queue.requestDispatcher("request");
+  await queue.activateDispatcher({
+    generation: dispatcher.generation,
+    workerId: "worker",
+  });
+
+  for (const attempts of [1, 2]) {
+    const [claimed] = await queue.claimWave({
+      generation: dispatcher.generation,
+      workerId: "worker",
+    });
+    assert.deepEqual(await queue.acknowledge({
+      ...claimed,
+      generation: dispatcher.generation,
+      workerId: "worker",
+      outcome: "retry",
+      error: "old generation failure",
+    }), { status: "retry", attempts });
+  }
+
+  const [unstarted] = await queue.claimWave({
+    generation: dispatcher.generation,
+    workerId: "worker",
+  });
+  const followUp = await queue.enqueue({
+    repository: "example",
+    prNumber: 123,
+    headSha: "",
+    triggerEvent: "status",
+  });
+  assert.equal(followUp.status, "follow_up");
+
+  assert.deepEqual(await queue.acknowledge({
+    ...unstarted,
+    generation: dispatcher.generation,
+    workerId: "worker",
+    outcome: "requeue",
+    operationId: "return-dirty-unstarted",
+  }), { status: "requeued", attempts: 0 });
+
+  const shard = store.entries.get(request.shardKey).value;
+  assert.equal(shard.items[request.itemKey].attempts, 0);
+  assert.equal(shard.items[request.itemKey].lastError, "");
+  assert.deepEqual(shard.deadLetters, {});
+  assert.equal((await queue.itemStatus(request)).status, "queued");
+  assert.ok(Object.values(shard.acknowledgments).every(
+    (receipt) => receipt.result.status !== "removed",
+  ));
+
+  const [available] = await queue.claimWave({
+    generation: dispatcher.generation,
+    workerId: "worker",
+  });
+  assert.equal(available.claimGeneration, followUp.generation);
+  assert.equal(available.attempts, 0);
+  assert.deepEqual(await queue.acknowledge({
+    ...available,
+    generation: dispatcher.generation,
+    workerId: "worker",
+    outcome: "retry",
+  }), { status: "retry", attempts: 1 });
+});
+
+test("requeue acknowledgment is fenced by the active item lease", async () => {
+  const { queue, advance } = fixture();
+  const request = await queue.enqueue({ repository: "example", prNumber: 1 });
+  const dispatcher = await queue.requestDispatcher();
+  await queue.activateDispatcher({
+    generation: dispatcher.generation,
+    workerId: "worker",
+  });
+  const [claim] = await queue.claimWave({
+    generation: dispatcher.generation,
+    workerId: "worker",
+  });
+
+  advance(1_001);
+  await assert.rejects(queue.acknowledge({
+    ...claim,
+    generation: dispatcher.generation,
+    workerId: "worker",
+    outcome: "requeue",
+  }), /worker does not own the active dispatcher/);
+
+  const recovery = await queue.recoverExpiredLeases();
+  await queue.activateDispatcher({
+    generation: recovery.generation,
+    workerId: "replacement",
+  });
+  const [replacement] = await queue.claimWave({
+    generation: recovery.generation,
+    workerId: "replacement",
+  });
+  assert.equal(replacement.attempts, 1);
+  await queue.acknowledge({
+    ...replacement,
+    generation: recovery.generation,
+    workerId: "replacement",
+    outcome: "requeue",
+  });
+  assert.equal((await queue.itemStatus(request)).status, "queued");
 });
 
 test("expired recovery preserves a dirty generation at the attempt ceiling", async () => {

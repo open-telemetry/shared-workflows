@@ -5,7 +5,7 @@ import { dispatchQueueDrain } from "../lib/github-dispatch.mjs";
 import { ENQUEUE_WORKFLOW_REFS, EXPECTED_WORKFLOW_REF, verifyGitHubOidcRequest } from "../lib/github-oidc.mjs";
 
 const MAX_REQUEST_BYTES = 64 * 1024;
-const ACKNOWLEDGMENT_OUTCOMES = new Set(["success", "retry", "dead", "continue"]);
+const ACKNOWLEDGMENT_OUTCOMES = new Set(["success", "retry", "dead", "continue", "requeue"]);
 const REPOSITORIES = new Set(repositories.map((entry) => entry.name));
 
 export default async (request) => {
@@ -111,6 +111,17 @@ export async function handleQueueWorkerRequest(
             1000,
             500,
           ),
+          ...(body.excludeRepositories == null ? {} : {
+            excludeRepositories: optionalStringArray(
+              body.excludeRepositories,
+              "excludeRepositories",
+              100,
+              100,
+            ),
+          }),
+          ...(body.maxRepositories == null ? {} : {
+            maxRepositories: boundedPositiveInteger(body.maxRepositories, "maxRepositories", 100),
+          }),
         }),
       });
     case "heartbeat":
@@ -220,7 +231,7 @@ function workerId(value) {
 
 function acknowledgmentOutcome(value) {
   if (!ACKNOWLEDGMENT_OUTCOMES.has(value)) {
-    throw requestError(400, "outcome must be one of: success, retry, dead, continue");
+    throw requestError(400, "outcome must be one of: success, retry, dead, continue, requeue");
   }
   return value;
 }
@@ -228,6 +239,13 @@ function acknowledgmentOutcome(value) {
 function positiveInteger(value, name) {
   if (!Number.isInteger(value) || value < 1) {
     throw requestError(400, `${name} must be a positive integer`);
+  }
+  return value;
+}
+
+function boundedPositiveInteger(value, name, maximum) {
+  if (!Number.isInteger(value) || value < 1 || value > maximum) {
+    throw requestError(400, `${name} must be an integer between 1 and ${maximum}`);
   }
   return value;
 }
