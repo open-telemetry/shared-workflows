@@ -56,7 +56,7 @@ sessions and the same batching rules as production. Runtime telemetry is printed
 when the client closes. Cache identities include the system prompt and execution
 configuration; changing those settings cannot reuse results from the old configuration.
 
-## OpenTelemetry
+## Telemetry
 
 The dashboard scripts have an optional OpenTelemetry setup for traces and the
 logs bridge (`telemetry.py`). It is off by default and does not change the
