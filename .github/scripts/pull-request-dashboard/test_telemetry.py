@@ -264,6 +264,7 @@ if child != {{"PATH": "/bin"}} or propagation != {{}}:
         self.assertEqual((0, "", ""), (result.returncode, result.stdout, result.stderr))
 
 
+@unittest.skipUnless(OTEL_INSTALLED, "OpenTelemetry SDK is not installed")
 class MisconfiguredPropagatorsTest(unittest.TestCase):
     def test_unknown_propagator_is_reported_and_does_not_stop_the_program(self) -> None:
         # opentelemetry.propagate loads OTEL_PROPAGATORS at import time, so use a fresh interpreter.
