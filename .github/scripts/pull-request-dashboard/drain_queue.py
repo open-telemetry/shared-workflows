@@ -25,6 +25,7 @@ from queue_worker_client import QueueWorkerClient, acknowledge_results
 from report_rate_limits import report_rate_limits
 from execution_code import ExecutionCode, ExecutionCodeLoader, stable_code_ref
 from execution_process import subprocess_options
+from telemetry import session as telemetry_session
 
 WAVE_LIMIT = 16
 MINIMUM_WAVE_SECONDS = 10 * 60
@@ -488,4 +489,5 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    with telemetry_session():
+        raise SystemExit(main())

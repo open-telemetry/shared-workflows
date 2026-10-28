@@ -7,6 +7,7 @@ import argparse
 import json
 import re
 from pathlib import Path
+from telemetry import session as telemetry_session
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 DEFAULT_CONFIG = SCRIPT_DIR / "stable-release.json"
@@ -74,4 +75,5 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    with telemetry_session():
+        main()

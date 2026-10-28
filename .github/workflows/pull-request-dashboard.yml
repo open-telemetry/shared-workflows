@@ -66,4 +66,9 @@ jobs:
         with:
           persist-credentials: false
       - name: Accept work or report request progress
-        run: python3 .github/scripts/pull-request-dashboard/enqueue_dashboard.py
+        env:
+          OTEL_GITHUB_STEP_NAME: Accept work or report request progress
+          OTEL_GITHUB_CHECK_RUN_ID: ${{ job.check_run_id }}
+        run: |
+          export TRACEPARENT="$(bash .github/scripts/pull-request-dashboard/github_traceparent.sh)"
+          python3 .github/scripts/pull-request-dashboard/enqueue_dashboard.py

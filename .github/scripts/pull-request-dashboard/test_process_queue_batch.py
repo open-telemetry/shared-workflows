@@ -12,6 +12,7 @@ from pathlib import Path
 from unittest import mock
 
 import process_queue_batch
+import telemetry
 from process_queue_batch import (
     Claim,
     LeaseMonitor,
@@ -22,6 +23,7 @@ from process_queue_batch import (
     process_claims,
     resolve_work_items,
 )
+from test_telemetry import OTEL_INSTALLED, TRACEPARENT
 
 
 def claim(
@@ -329,6 +331,69 @@ class QueueBatchTest(unittest.TestCase):
             [
                 "repos/open-telemetry/example/pulls?state=open&per_page=100",
             ],
+        )
+
+    @unittest.skipUnless(OTEL_INSTALLED, "OpenTelemetry SDK is not installed")
+    def test_commands_receive_the_current_trace_context(self) -> None:
+        envs: list[object] = []
+
+        def run(command: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
+            envs.append(kwargs["env"])
+            return subprocess.CompletedProcess(command, 0, stdout="", stderr="")
+
+        with tempfile.TemporaryDirectory() as directory:
+            config_path = Path(directory) / "repositories.json"
+            config_path.write_text("[]", encoding="utf-8")
+            processor = process_queue_batch.DashboardBatchProcessor(config_path, run=run)
+            with telemetry.session({"TRACEPARENT": TRACEPARENT}):
+                processor._run(["gh", "api", "rate_limit"], env={"PATH": "/bin"})
+        self.assertEqual([{"PATH": "/bin", "TRACEPARENT": TRACEPARENT}], envs)
+
+    @unittest.skipUnless(OTEL_INSTALLED, "OpenTelemetry SDK is not installed")
+    def test_repository_worker_commands_receive_the_session_trace_context(self) -> None:
+        commands: list[tuple[str, str | None, bool]] = []
+
+        class Client:
+            def call(self, action: str, **_payload: object) -> dict[str, object]:
+                if action == "heartbeat":
+                    return {"dispatcher": True, "leaseDurationMs": 900_000}
+                if action == "acquire-delivery":
+                    return {"acquired": True, "leaseGeneration": 7}
+                if action == "release-delivery":
+                    return {"released": True}
+                return {"status": "removed"}
+
+        def run(command: list[str], _lease_check, **kwargs):
+            script = Path(command[1]).name
+            commands.append((
+                script,
+                kwargs["env"].get("TRACEPARENT"),
+                threading.current_thread() is threading.main_thread(),
+            ))
+            if script == "delivery.py":
+                output = Path(command[command.index("--github-output") + 1])
+                output.write_text("active=true\nfull_publish_generation=0\n", encoding="utf-8")
+            return subprocess.CompletedProcess(
+                command, 0, stdout="true\n" if script == "state.py" else "", stderr=""
+            )
+
+        with tempfile.TemporaryDirectory() as directory:
+            config = Path(directory) / "repositories.json"
+            config.write_text('[{"name":"example"}]', encoding="utf-8")
+            with (
+                mock.patch.object(process_queue_batch, "run_monitored", side_effect=run),
+                telemetry.session({"TRACEPARENT": TRACEPARENT}),
+            ):
+                process_claims(
+                    [claim("example#pr:1", "example", pr_number=1)],
+                    Path(directory) / "results.json", Client(), 1, "live",
+                    config_path=config, processor_env={}, script_dir=Path(directory),
+                )
+
+        self.assertIn(("dashboard.py", TRACEPARENT, False), commands)
+        self.assertEqual(
+            [(script, TRACEPARENT, False) for script, _traceparent, _main_thread in commands],
+            commands,
         )
 
     def test_canary_head_lookup_preserves_genuine_no_match(self) -> None:

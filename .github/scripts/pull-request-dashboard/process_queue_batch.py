@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import concurrent.futures
+import contextvars
 import json
 import os
 import subprocess
@@ -20,6 +21,8 @@ from head_resolution import matching_open_pr_numbers
 from execution_process import run_monitored, subprocess_options
 from queue_worker_client import QueueWorkerClient, acknowledge_results
 import state_branch as state_branch_git
+from telemetry import child_environment
+from telemetry import session as telemetry_session
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 OWNER = "open-telemetry"
@@ -318,7 +321,9 @@ def process_batch(
     callback_errors: list[Exception] = []
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_repositories) as executor:
         futures = {
-            executor.submit(process_repository, repository, items): repository
+            executor.submit(
+                contextvars.copy_context().run, process_repository, repository, items
+            ): repository
             for repository, items in repositories.items()
         }
         for future in concurrent.futures.as_completed(futures):
@@ -700,6 +705,7 @@ class DashboardBatchProcessor:
         env: dict[str, str],
         print_stdout: bool = True,
     ) -> subprocess.CompletedProcess[str]:
+        env = child_environment(env)
         if self.lease_check is None:
             result = self.run(
                 command,
@@ -827,4 +833,5 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    with telemetry_session():
+        sys.exit(main())

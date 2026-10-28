@@ -50,6 +50,7 @@ from state import (
 )
 import state_branch
 from utils import utc_now
+from telemetry import session as telemetry_session
 
 
 DELIVERY_STATE_VERSION = 1
@@ -381,4 +382,5 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    with telemetry_session():
+        sys.exit(main())

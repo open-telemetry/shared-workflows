@@ -5,6 +5,7 @@ import json
 from typing import Any
 
 from github_cli import gh_api
+from telemetry import session as telemetry_session
 
 
 def remaining_percent(rate_limit: dict[str, Any]) -> float | None:
@@ -60,4 +61,5 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    with telemetry_session():
+        main()

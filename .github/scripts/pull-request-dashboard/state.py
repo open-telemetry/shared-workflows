@@ -23,6 +23,7 @@ from dashboard_contracts import (
 from github_cli import detect_repo, normalize_repo, repo_state_key
 import state_branch
 from utils import is_unattended_author_login
+from telemetry import session as telemetry_session
 
 
 DASHBOARD_MARKDOWN_FILE = "pull-request-dashboard.md"
@@ -1453,4 +1454,5 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    with telemetry_session():
+        sys.exit(main())

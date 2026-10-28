@@ -33,6 +33,7 @@ from state import (
     set_state_dir,
 )
 import state_branch
+from telemetry import session as telemetry_session
 
 
 DASHBOARD_TITLE = "Pull Request Dashboard"
@@ -321,4 +322,5 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    with telemetry_session():
+        sys.exit(main())

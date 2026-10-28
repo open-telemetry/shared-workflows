@@ -47,6 +47,7 @@ from pr_status_comment import (
 )
 from route_presentation import status_headline
 from utils import utc_now
+from telemetry import session as telemetry_session
 
 
 STATUS_ROUTES = ("author", "approver", "maintainer")
@@ -305,4 +306,5 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    with telemetry_session():
+        raise SystemExit(main())

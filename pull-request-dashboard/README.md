@@ -56,6 +56,50 @@ sessions and the same batching rules as production. Runtime telemetry is printed
 when the client closes. Cache identities include the system prompt and execution
 configuration; changing those settings cannot reuse results from the old configuration.
 
+## OpenTelemetry
+
+The dashboard scripts have an optional OpenTelemetry setup for traces and the
+logs bridge (`telemetry.py`). It is off by default and does not change the
+scripts' output, exit codes, or behavior. This setup creates no spans and
+emits no log records yet.
+
+- **Context propagation** uses the environment variables `TRACEPARENT`,
+  `TRACESTATE`, and `BAGGAGE`, as the OpenTelemetry specification defines.
+  An entry point extracts the parent context from its environment only when
+  the OpenTelemetry packages are installed. Today, only the processes that
+  `drain_queue.py` starts have these packages. They run in the virtual
+  environment of `execution_code.py`, which installs `requirements.txt`. Other
+  workflow steps run the system `python3`. These steps only set `TRACEPARENT`
+  for later use. Only `process_queue_batch.py` injects the context into the commands it starts
+  (dashboard scripts and `gh`). Other children, for example the children of
+  `drain_queue.py`, get `TRACEPARENT` only because they inherit the
+  environment. The Copilot CLI child gets only `TRACEPARENT` and `TRACESTATE`.
+- **Copilot SDK** propagates the current context in its RPC calls when
+  `opentelemetry-api` is installed. It does this also when export is off.
+- **Workflow steps** set `TRACEPARENT` with `github_traceparent.sh`. The script
+  derives the same IDs as the Collector
+  [GitHub receiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/githubreceiver)
+  from the run ID, the run attempt, `job.check_run_id`, and the step name. The
+  IDs match only when the receiver feature gate
+  `receiver.githubreceiver.UseCheckRunID` is on. This gate is on by default
+  since Collector contrib v0.151.0. With an older Collector, or with the gate
+  off, the span IDs are different and the spans do not link. No error shows.
+  Keep `OTEL_GITHUB_STEP_NAME` equal to the step's `name:`. A test checks this.
+- **Export** starts only when `PR_DASHBOARD_OTEL_ENABLED=true` and
+  `OTEL_EXPORTER_OTLP_ENDPOINT` (or a `_TRACES_`/`_LOGS_` signal endpoint) is
+  set, and `OTEL_SDK_DISABLED` is not `true`. Exporters use OTLP over HTTP with the
+  standard `OTEL_EXPORTER_OTLP_*` settings and SDK default shutdown.
+- **Resource** has `service.name=pull-request-dashboard` (`OTEL_SERVICE_NAME`
+  overrides it) plus the `vcs.*` and `cicd.pipeline.*` attributes from the GitHub
+  Actions environment.
+- **Failures** in telemetry do not change the script result. Each failed stage
+  prints one line to stderr:
+  `pull-request-dashboard telemetry: <stage> failed: <ExceptionType>`.
+- **Missing packages**: when the OpenTelemetry packages are not installed,
+  propagation does nothing. If export is enabled, stderr gets one line for each
+  failed stage. These lines do not name the packages. There can be more than
+  one line.
+
 ## Webhook queue
 
 Webhook events are coalesced by repository and pull request before they start

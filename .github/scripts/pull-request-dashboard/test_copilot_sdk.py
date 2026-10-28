@@ -9,8 +9,10 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import telemetry
 from classification_execution import CopilotSdkModelRunner, ModelRunRequest
 from classification_policy import CLASSIFIER_SYSTEM_PROMPT, RawModelResponse
+from test_telemetry import OTEL_INSTALLED, TRACEPARENT
 
 
 class CopilotSdkModelRunnerTest(unittest.IsolatedAsyncioTestCase):
@@ -118,6 +120,17 @@ class CopilotSdkModelRunnerTest(unittest.IsolatedAsyncioTestCase):
         )
         self.assertIn('{"event":"flushed"}', stderr.getvalue())
         self.assertEqual(1, stderr.getvalue().count("--- BEGIN COPILOT OTEL JSONL ---"))
+
+    @unittest.skipUnless(OTEL_INSTALLED, "OpenTelemetry SDK is not installed")
+    async def test_client_receives_only_traceparent_and_tracestate(self) -> None:
+        parent = {"TRACEPARENT": TRACEPARENT, "TRACESTATE": "a=b", "BAGGAGE": "k=v"}
+        with telemetry.session(parent):
+            async with CopilotSdkModelRunner() as runner:
+                await runner.run(ModelRunRequest("prompt", "model"))
+        env = self.factory.call_args.kwargs["env"]
+        self.assertEqual(TRACEPARENT, env["TRACEPARENT"])
+        self.assertEqual("a=b", env["TRACESTATE"])
+        self.assertNotIn("BAGGAGE", env)
 
     async def test_actions_auth_uses_workflow_token_not_app_token(self) -> None:
         with patch.dict(os.environ, {

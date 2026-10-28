@@ -40,7 +40,12 @@ jobs:
         with:
           persist-credentials: false
       - name: Accept author reminder sweep
-        run: python3 .github/scripts/pull-request-dashboard/enqueue_dashboard.py --reminders
+        env:
+          OTEL_GITHUB_STEP_NAME: Accept author reminder sweep
+          OTEL_GITHUB_CHECK_RUN_ID: ${{ job.check_run_id }}
+        run: |
+          export TRACEPARENT="$(bash .github/scripts/pull-request-dashboard/github_traceparent.sh)"
+          python3 .github/scripts/pull-request-dashboard/enqueue_dashboard.py --reminders
 
   resolve-targets:
     if: >-
@@ -110,9 +115,12 @@ jobs:
         env:
           GH_TOKEN: ${{ steps.dashboard-token.outputs.token }}
           TARGET_REPOSITORY: ${{ matrix.name }}
+          OTEL_GITHUB_STEP_NAME: Refresh author reminders
+          OTEL_GITHUB_CHECK_RUN_ID: ${{ job.check_run_id }}
         working-directory: .github/scripts/pull-request-dashboard
         run: |
           set -euo pipefail
+          export TRACEPARENT="$(bash github_traceparent.sh)"
           python3 refresh_author_nudges.py --repo "$TARGET_REPOSITORY" --dry-run
 
       - name: Report GitHub App rate limits
@@ -120,4 +128,8 @@ jobs:
         continue-on-error: true
         env:
           GH_TOKEN: ${{ steps.dashboard-token.outputs.token }}
-        run: python3 .github/scripts/pull-request-dashboard/report_rate_limits.py
+          OTEL_GITHUB_STEP_NAME: Report GitHub App rate limits
+          OTEL_GITHUB_CHECK_RUN_ID: ${{ job.check_run_id }}
+        run: |
+          export TRACEPARENT="$(bash .github/scripts/pull-request-dashboard/github_traceparent.sh)"
+          python3 .github/scripts/pull-request-dashboard/report_rate_limits.py

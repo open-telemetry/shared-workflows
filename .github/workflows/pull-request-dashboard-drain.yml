@@ -67,9 +67,12 @@ jobs:
           PR_DASHBOARD_CLIENT_ID: ${{ vars.PR_DASHBOARD_CLIENT_ID }}
           PR_DASHBOARD_PRIVATE_KEY: ${{ secrets.PR_DASHBOARD_PRIVATE_KEY }}
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          OTEL_GITHUB_STEP_NAME: Process owned queue work
+          OTEL_GITHUB_CHECK_RUN_ID: ${{ job.check_run_id }}
         run: |
           set -euo pipefail
           [[ "$DISPATCHER_GENERATION" =~ ^[1-9][0-9]*$ ]] || { echo "bad dispatcher generation"; exit 1; }
+          export TRACEPARENT="$(bash .github/scripts/pull-request-dashboard/github_traceparent.sh)"
           python3 .github/scripts/pull-request-dashboard/drain_queue.py \
             --deadline "$(($(date +%s) + 40 * 60))" \
             --generation "$DISPATCHER_GENERATION" \

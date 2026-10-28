@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from queue_worker_client import QueueWorkerClient
+from telemetry import session as telemetry_session
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 TRIGGERS = {
@@ -105,4 +106,5 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    with telemetry_session():
+        main()

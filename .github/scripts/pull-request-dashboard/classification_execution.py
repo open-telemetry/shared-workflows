@@ -15,6 +15,8 @@ from typing import Any, Mapping, Protocol, Sequence
 
 from copilot import CopilotClient
 
+from telemetry import COPILOT_PROPAGATION_KEYS, propagation_environment
+
 from classification_policy import (
     CLASSIFIER_SYSTEM_PROMPT,
     MAX_PROMPT_CHARS,
@@ -187,6 +189,11 @@ class CopilotSdkModelRunner:
         )
         if actions:
             env.update(GITHUB_ACTIONS="true", GITHUB_TOKEN=token)
+        env.update(
+            (key, value)
+            for key, value in propagation_environment().items()
+            if key in COPILOT_PROPAGATION_KEYS
+        )
         self._client = CopilotClient(
             mode="empty",
             working_directory=directory,
