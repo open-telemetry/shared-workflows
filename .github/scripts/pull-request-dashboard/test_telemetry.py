@@ -264,6 +264,35 @@ if child != {{"PATH": "/bin"}} or propagation != {{}}:
         self.assertEqual((0, "", ""), (result.returncode, result.stdout, result.stderr))
 
 
+class MisconfiguredPropagatorsTest(unittest.TestCase):
+    def test_unknown_propagator_is_reported_and_does_not_stop_the_program(self) -> None:
+        # opentelemetry.propagate loads OTEL_PROPAGATORS at import time, so use a fresh interpreter.
+        code = f"""
+import os, sys
+sys.path.insert(0, os.getcwd())
+import telemetry
+with telemetry.session({{"TRACEPARENT": "{TRACEPARENT}"}}):
+    child = telemetry.child_environment({{"PATH": "/bin"}})
+    print("body ran")
+if child != {{"PATH": "/bin"}}:
+    sys.exit(f"unexpected child={{child!r}}")
+"""
+        env = {
+            key: value
+            for key, value in os.environ.items()
+            if key not in {"TRACEPARENT", "TRACESTATE", "BAGGAGE", "PR_DASHBOARD_OTEL_ENABLED"}
+        }
+        env["OTEL_PROPAGATORS"] = "not-a-real-propagator"
+        result = subprocess.run(
+            [sys.executable, "-c", code], cwd=SCRIPT_DIR, env=env,
+            capture_output=True, text=True, check=False,
+        )
+        self.assertEqual((0, "body ran\n"), (result.returncode, result.stdout), result.stderr)
+        self.assertIn("telemetry: extract failed: ValueError", result.stderr)
+        self.assertIn("telemetry: inject failed: ValueError", result.stderr)
+        self.assertNotIn("Traceback", result.stderr)
+
+
 def workflow_steps(text: str) -> list[list[str]]:
     """Split workflow text into the lines of each item under every `steps:` key."""
     steps: list[list[str]] = []

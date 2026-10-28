@@ -72,6 +72,9 @@ def propagation_environment() -> dict[str, str]:
         from opentelemetry.propagators._envcarrier import EnvironmentSetter
     except ImportError:
         return {}
+    except Exception as error:  # e.g. an unknown OTEL_PROPAGATORS entry fails at import
+        _warn("inject", error)
+        return {}
     carrier: dict[str, str] = {}
     try:
         propagate.inject(carrier, setter=EnvironmentSetter())
@@ -117,6 +120,9 @@ def _attach_parent_context(env: Mapping[str, str]) -> Any:
         from opentelemetry import context, propagate
         from opentelemetry.propagators._envcarrier import EnvironmentGetter
     except ImportError:
+        return None
+    except Exception as error:  # e.g. an unknown OTEL_PROPAGATORS entry fails at import
+        _warn("extract", error)
         return None
     try:
         return context.attach(propagate.extract(env, getter=EnvironmentGetter()))
