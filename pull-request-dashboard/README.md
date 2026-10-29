@@ -60,8 +60,25 @@ configuration; changing those settings cannot reuse results from the old configu
 
 The dashboard scripts have an optional OpenTelemetry setup for traces and the
 logs bridge (`telemetry.py`). It is off by default and does not change the
-scripts' output, exit codes, or behavior. This setup creates no spans and
-emits no log records yet.
+scripts' output, exit codes, or behavior. This setup emits no log records yet.
+
+- **Spans** follow the OpenTelemetry semantic conventions for CLI programs
+  (status Development). Each entry point makes one `INTERNAL` span for its run.
+  The span name is the script file name, for example `dashboard.py`.
+  `process_queue_batch.py` also makes one `CLIENT` span for each command that
+  it starts. The span name is the script file name (for example `state.py`) or
+  the executable name (for example `gh`). The command gets this span as its
+  parent. No span is made around the Copilot call.
+  - Attributes: `process.executable.name`, `process.exit.code`, and
+    `process.pid` (only on the `INTERNAL` span).
+  - Any exit code that is not 0 sets the status to ERROR and sets `error.type`
+    to the exit code. This includes the expected codes of `state.py` (1) and
+    `dashboard.py` (2). An uncaught exception sets `error.type` to the
+    exception class name.
+  - The spans do not record command arguments, exception messages, or stack
+    traces, because these can contain secrets.
+  - When export is off, the spans are not recorded, and children get the same
+    `TRACEPARENT` as the parent process.
 
 - **Context propagation** uses the environment variables `TRACEPARENT`,
   `TRACESTATE`, and `BAGGAGE`, as the OpenTelemetry specification defines.
@@ -71,7 +88,8 @@ emits no log records yet.
   environment of `execution_code.py`, which installs `requirements.txt`. Other
   workflow steps run the system `python3`. These steps only set `TRACEPARENT`
   for later use. Only `process_queue_batch.py` injects the context into the commands it starts
-  (dashboard scripts and `gh`). Other children, for example the children of
+  (dashboard scripts and `gh`). `drain_queue.py` runs each job with a copy
+  of the current context. Other children, for example the children of
   `drain_queue.py`, get `TRACEPARENT` only because they inherit the
   environment. The Copilot CLI child gets only `TRACEPARENT` and `TRACESTATE`.
 - **Copilot SDK** propagates the current context in its RPC calls when

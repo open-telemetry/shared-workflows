@@ -306,5 +306,5 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    with telemetry_session():
+    with telemetry_session(name="refresh_author_nudges.py"):
         raise SystemExit(main())

@@ -61,5 +61,5 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    with telemetry_session():
+    with telemetry_session(name="report_rate_limits.py"):
         main()

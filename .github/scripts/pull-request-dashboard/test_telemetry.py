@@ -214,6 +214,182 @@ class ProviderSetupTest(unittest.TestCase):
         )
 
 
+@contextlib.contextmanager
+def recorded_spans():
+    """Route spans to an in-memory exporter without setting the set-once global provider."""
+    from opentelemetry.sdk.trace import TracerProvider
+    from opentelemetry.sdk.trace.export import SimpleSpanProcessor
+    from opentelemetry.sdk.trace.export.in_memory_span_exporter import (
+        InMemorySpanExporter,
+    )
+
+    exporter = InMemorySpanExporter()
+    provider = TracerProvider()
+    provider.add_span_processor(SimpleSpanProcessor(exporter))
+    with patch("opentelemetry.trace.get_tracer_provider", return_value=provider):
+        yield exporter
+
+
+@unittest.skipUnless(OTEL_INSTALLED, "OpenTelemetry SDK is not installed")
+class SpanTest(unittest.TestCase):
+    def test_execution_span_follows_cli_conventions_and_continues_the_parent_trace(self) -> None:
+        from opentelemetry.trace import SpanKind, StatusCode
+
+        with (
+            recorded_spans() as exporter,
+            telemetry.session({"TRACEPARENT": TRACEPARENT}, name="dashboard.py"),
+        ):
+            child = telemetry.child_environment({})
+        (span,) = exporter.get_finished_spans()
+
+        self.assertEqual(("dashboard.py", SpanKind.INTERNAL), (span.name, span.kind))
+        self.assertEqual(TRACE_ID, format(span.context.trace_id, "032x"))
+        self.assertEqual(PARENT_SPAN_ID, format(span.parent.span_id, "016x"))
+        self.assertEqual(
+            {
+                "process.executable.name": Path(sys.executable).name,
+                "process.pid": os.getpid(),
+                "process.exit.code": 0,
+            },
+            dict(span.attributes),
+        )
+        self.assertEqual(StatusCode.UNSET, span.status.status_code)
+        self.assertEqual(f"00-{TRACE_ID}-{format(span.context.span_id, '016x')}-01", child["TRACEPARENT"])
+
+    def test_non_zero_exit_code_is_an_error_and_still_exits(self) -> None:
+        from opentelemetry.trace import StatusCode
+
+        with (
+            recorded_spans() as exporter,
+            self.assertRaises(SystemExit) as raised,
+            telemetry.session({}, name="state.py"),
+        ):
+            sys.exit(2)
+        (span,) = exporter.get_finished_spans()
+
+        self.assertEqual(2, raised.exception.code)
+        self.assertEqual(2, span.attributes["process.exit.code"])
+        self.assertEqual("2", span.attributes["error.type"])
+        self.assertEqual(StatusCode.ERROR, span.status.status_code)
+
+    def test_zero_exit_code_is_not_an_error(self) -> None:
+        from opentelemetry.trace import StatusCode
+
+        with (
+            recorded_spans() as exporter,
+            self.assertRaises(SystemExit),
+            telemetry.session({}, name="state.py"),
+        ):
+            sys.exit(0)
+        (span,) = exporter.get_finished_spans()
+        self.assertEqual(0, span.attributes["process.exit.code"])
+        self.assertNotIn("error.type", span.attributes)
+        self.assertEqual(StatusCode.UNSET, span.status.status_code)
+
+    def test_exception_records_only_its_class_and_propagates(self) -> None:
+        from opentelemetry.trace import StatusCode
+
+        class PromotionError(Exception):
+            pass
+
+        with (
+            recorded_spans() as exporter,
+            self.assertRaisesRegex(PromotionError, "secret"),
+            telemetry.session({}, name="x.py"),
+        ):
+            raise PromotionError("secret token")
+        (span,) = exporter.get_finished_spans()
+
+        self.assertEqual(1, span.attributes["process.exit.code"])
+        self.assertEqual(f"{__name__}.{PromotionError.__qualname__}", span.attributes["error.type"])
+        self.assertEqual(StatusCode.ERROR, span.status.status_code)
+        self.assertIsNone(span.status.description)
+        self.assertEqual((), span.events)
+        self.assertNotIn("secret", repr(dict(span.attributes)))
+
+    def test_child_process_span_is_a_client_span_and_the_child_parent(self) -> None:
+        from opentelemetry.trace import SpanKind, StatusCode
+
+        dashboard_command = ["/venv/bin/python", "/x/dashboard.py", "--repo", "r"]
+        with (
+            recorded_spans() as exporter,
+            telemetry.session({"TRACEPARENT": TRACEPARENT}, name="process_queue_batch.py"),
+        ):
+            with telemetry.child_process_span(dashboard_command) as record_exit:
+                child = telemetry.child_environment({})
+                record_exit(3)
+            with telemetry.child_process_span(["gh", "api", "rate_limit"]) as record_exit:
+                record_exit(0)
+        dashboard, gh, parent = exporter.get_finished_spans()
+
+        self.assertEqual(("dashboard.py", SpanKind.CLIENT), (dashboard.name, dashboard.kind))
+        self.assertEqual(parent.context.span_id, dashboard.parent.span_id)
+        self.assertEqual(
+            {"process.executable.name": "python", "process.exit.code": 3, "error.type": "3"},
+            dict(dashboard.attributes),
+        )
+        self.assertEqual(StatusCode.ERROR, dashboard.status.status_code)
+        dashboard_span_id = format(dashboard.context.span_id, "016x")
+        self.assertEqual(f"00-{TRACE_ID}-{dashboard_span_id}-01", child["TRACEPARENT"])
+        self.assertEqual(
+            ("gh", {"process.executable.name": "gh", "process.exit.code": 0}),
+            (gh.name, dict(gh.attributes)),
+        )
+        self.assertEqual(StatusCode.UNSET, gh.status.status_code)
+
+    def test_child_process_span_records_a_spawn_failure(self) -> None:
+        with (
+            recorded_spans() as exporter,
+            self.assertRaises(OSError),
+            telemetry.child_process_span(["missing"]),
+        ):
+            raise FileNotFoundError("missing")
+        (span,) = exporter.get_finished_spans()
+        self.assertEqual(
+            {"process.executable.name": "missing", "error.type": "FileNotFoundError"},
+            dict(span.attributes),
+        )
+
+    def test_disabled_default_keeps_the_parent_context_for_children(self) -> None:
+        stdout, stderr = io.StringIO(), io.StringIO()
+        with (
+            contextlib.redirect_stdout(stdout),
+            contextlib.redirect_stderr(stderr),
+            telemetry.session({"TRACEPARENT": TRACEPARENT}, name="dashboard.py"),
+            telemetry.child_process_span(["gh"]) as record_exit,
+        ):
+            child = telemetry.child_environment({})
+            record_exit(1)
+        self.assertEqual(TRACEPARENT, child["TRACEPARENT"])
+        self.assertEqual(("", ""), (stdout.getvalue(), stderr.getvalue()))
+
+    def test_true_exit_code_is_recorded_as_one(self) -> None:
+        with (
+            recorded_spans() as exporter,
+            self.assertRaises(SystemExit),
+            telemetry.session({}, name="x.py"),
+        ):
+            raise SystemExit(True)
+        (span,) = exporter.get_finished_spans()
+        exit_code = span.attributes["process.exit.code"]
+        self.assertIs(int, type(exit_code))
+        self.assertEqual((1, "1"), (exit_code, span.attributes["error.type"]))
+
+    def test_span_failure_is_reported_and_does_not_change_the_outcome(self) -> None:
+        stderr = io.StringIO()
+        ran = []
+        with (
+            patch("opentelemetry.trace.get_tracer", side_effect=RuntimeError("secret")),
+            contextlib.redirect_stderr(stderr),
+            self.assertRaises(SystemExit) as raised,
+            telemetry.session({}, name="dashboard.py"),
+        ):
+            ran.append(True)
+            sys.exit(4)
+        self.assertEqual(([True], 4), (ran, raised.exception.code))
+        self.assertEqual("pull-request-dashboard telemetry: span failed: RuntimeError\n", stderr.getvalue())
+
+
 @unittest.skipIf(sys.platform == "win32", "bash helper is used on Linux runners")
 class GithubTraceparentScriptTest(unittest.TestCase):
     def run_script(self, env: dict[str, str]) -> subprocess.CompletedProcess[str]:
@@ -246,9 +422,11 @@ import os, sys
 sys.modules["opentelemetry"] = None
 sys.path.insert(0, os.getcwd())
 import telemetry
-with telemetry.session({{"TRACEPARENT": "{TRACEPARENT}"}}):
-    child = telemetry.child_environment({{"PATH": "/bin"}})
-    propagation = telemetry.propagation_environment()
+with telemetry.session({{"TRACEPARENT": "{TRACEPARENT}"}}, name="dashboard.py"):
+    with telemetry.child_process_span(["gh", "api"]) as record_exit:
+        child = telemetry.child_environment({{"PATH": "/bin"}})
+        propagation = telemetry.propagation_environment()
+        record_exit(0)
 if child != {{"PATH": "/bin"}} or propagation != {{}}:
     sys.exit(f"unexpected child={{child!r}} propagation={{propagation!r}}")
 """
