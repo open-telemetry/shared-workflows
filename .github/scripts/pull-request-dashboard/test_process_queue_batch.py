@@ -9,6 +9,7 @@ import time
 import unittest
 from contextlib import contextmanager
 from pathlib import Path
+from typing import Any
 from unittest import mock
 
 import process_queue_batch
@@ -23,7 +24,7 @@ from process_queue_batch import (
     process_claims,
     resolve_work_items,
 )
-from test_telemetry import OTEL_INSTALLED, TRACEPARENT
+from test_telemetry import OTEL_INSTALLED, TRACE_ID, TRACEPARENT, recorded_spans
 
 
 def claim(
@@ -348,6 +349,33 @@ class QueueBatchTest(unittest.TestCase):
             with telemetry.session({"TRACEPARENT": TRACEPARENT}):
                 processor._run(["gh", "api", "rate_limit"], env={"PATH": "/bin"})
         self.assertEqual([{"PATH": "/bin", "TRACEPARENT": TRACEPARENT}], envs)
+
+    @unittest.skipUnless(OTEL_INSTALLED, "OpenTelemetry SDK is not installed")
+    def test_failed_command_has_an_error_client_span_and_still_raises(self) -> None:
+        envs: list[dict[str, str]] = []
+
+        def run(command: list[str], **kwargs: Any) -> subprocess.CompletedProcess[str]:
+            envs.append(kwargs["env"])
+            return subprocess.CompletedProcess(command, 1, stdout="", stderr="")
+
+        with tempfile.TemporaryDirectory() as directory:
+            config_path = Path(directory) / "repositories.json"
+            config_path.write_text("[]", encoding="utf-8")
+            processor = process_queue_batch.DashboardBatchProcessor(config_path, run=run)
+            with (
+                recorded_spans() as exporter,
+                telemetry.session({"TRACEPARENT": TRACEPARENT}),
+                self.assertRaises(RuntimeError),
+            ):
+                processor._run([sys.executable, str(Path(directory) / "state.py")], env={})
+        (span,) = exporter.get_finished_spans()
+
+        self.assertEqual(("state.py", "CLIENT"), (span.name, span.kind.name))
+        self.assertEqual(1, span.attributes["process.exit.code"])
+        self.assertEqual("1", span.attributes["error.type"])
+        self.assertEqual("ERROR", span.status.status_code.name)
+        span_id = format(span.context.span_id, "016x")
+        self.assertEqual(f"00-{TRACE_ID}-{span_id}-01", envs[0]["TRACEPARENT"])
 
     @unittest.skipUnless(OTEL_INSTALLED, "OpenTelemetry SDK is not installed")
     def test_repository_worker_commands_receive_the_session_trace_context(self) -> None:

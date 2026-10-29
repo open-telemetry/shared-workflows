@@ -21,7 +21,7 @@ from head_resolution import matching_open_pr_numbers
 from execution_process import run_monitored, subprocess_options
 from queue_worker_client import QueueWorkerClient, acknowledge_results
 import state_branch as state_branch_git
-from telemetry import child_environment
+from telemetry import child_environment, child_process_span
 from telemetry import session as telemetry_session
 
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -705,19 +705,23 @@ class DashboardBatchProcessor:
         env: dict[str, str],
         print_stdout: bool = True,
     ) -> subprocess.CompletedProcess[str]:
-        env = child_environment(env)
-        if self.lease_check is None:
-            result = self.run(
-                command,
-                cwd=self.repository_root,
-                env=env,
-                text=True,
-                encoding="utf-8",
-                capture_output=True,
-                **subprocess_options(),
-            )
-        else:
-            result = run_monitored(command, self.lease_check, cwd=self.repository_root, env=env)
+        with child_process_span(command) as record_exit:
+            env = child_environment(env)
+            if self.lease_check is None:
+                result = self.run(
+                    command,
+                    cwd=self.repository_root,
+                    env=env,
+                    text=True,
+                    encoding="utf-8",
+                    capture_output=True,
+                    **subprocess_options(),
+                )
+            else:
+                result = run_monitored(
+                    command, self.lease_check, cwd=self.repository_root, env=env
+                )
+            record_exit(result.returncode)
         if result.stdout and print_stdout:
             print(result.stdout, end="")
         if result.stderr:
@@ -833,5 +837,5 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    with telemetry_session():
+    with telemetry_session(name="process_queue_batch.py"):
         sys.exit(main())

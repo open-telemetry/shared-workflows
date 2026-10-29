@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import argparse
 import concurrent.futures
+import contextvars
+import functools
 import json
 import os
 import subprocess
@@ -166,7 +168,10 @@ def drain_queue(
                         ])
                         break
                     jobs += 1
-                    future = executor.submit(process_job, repository_claims, jobs)
+                    # Run each job in a copy of this thread's context, so spans and
+                    # propagation in process_job keep the run's parent context.
+                    in_context = functools.partial(contextvars.copy_context().run, process_job)
+                    future = executor.submit(in_context, repository_claims, jobs)
                     active[future] = repository
 
             if not active:
@@ -522,5 +527,5 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    with telemetry_session():
+    with telemetry_session(name="drain_queue.py"):
         raise SystemExit(main())
