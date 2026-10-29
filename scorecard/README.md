@@ -21,7 +21,7 @@ permissions: {}
 jobs:
   scorecard:
     permissions:
-      contents: read # for actions/checkout
+      contents: read
       id-token: write # for Scorecard to publish results
       security-events: write # for the SARIF upload to code scanning
     uses: open-telemetry/shared-workflows/.github/workflows/scorecard.yml@<sha-or-tag>

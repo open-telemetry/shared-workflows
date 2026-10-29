@@ -23,7 +23,7 @@ permissions: {}
 jobs:
   zizmor:
     permissions:
-      contents: read # for actions/checkout
+      contents: read
       security-events: write # for zizmor to upload SARIF results
     uses: open-telemetry/shared-workflows/.github/workflows/zizmor.yml@<sha-or-tag>
 ```
@@ -36,7 +36,7 @@ To use a different persona, pass the `persona` input:
 jobs:
   zizmor:
     permissions:
-      contents: read # for actions/checkout
+      contents: read
       security-events: write # for zizmor to upload SARIF results
     uses: open-telemetry/shared-workflows/.github/workflows/zizmor.yml@<sha-or-tag>
     with:

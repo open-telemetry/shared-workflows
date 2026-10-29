@@ -23,7 +23,7 @@ jobs:
       cancel-in-progress: true
     permissions:
       contents: read
-      actions: read  # for github/codeql-action/init to get workflow details
+      actions: read
       security-events: write  # for github/codeql-action/analyze to upload SARIF results
     strategy:
       fail-fast: false
