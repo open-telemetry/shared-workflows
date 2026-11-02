@@ -344,9 +344,6 @@ def render_stale_close(
         "response. The [dashboard status comment]"
         f"({status_url}) lists what was outstanding.",
         "",
-        "Nothing is lost: reopen it whenever you are ready to pick it back up, "
-        "and the dashboard will resume tracking it.",
-        "",
     ])
 
 
