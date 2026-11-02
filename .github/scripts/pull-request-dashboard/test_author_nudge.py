@@ -1453,7 +1453,7 @@ class StaleCloseTest(unittest.TestCase):
         env = {"CLOSE_STALE_AFTER_DAYS": "14"} if env is None else env
         pr = {"state": "open", "draft": False, "labels": [], **(pr or {})}
         with patch.dict("os.environ", env, clear=False), \
-            patch.object(author_nudge, "save_author_nudges"), \
+            patch.object(author_nudge, "save_author_nudges") as saved, \
             patch.object(
                 author_nudge,
                 "load_author_nudges",
@@ -1490,46 +1490,55 @@ class StaleCloseTest(unittest.TestCase):
                 NOW,
             )
         self.assertEqual([], errors)
-        return run_gh
+        return run_gh, saved
 
-    def test_closes_with_comment_after_deadline(self) -> None:
-        run_gh = self.deliver()
+    def test_closes_then_comments_and_persists_closure(self) -> None:
+        run_gh, saved = self.deliver()
 
         self.assertEqual(2, run_gh.call_count)
-        comment_call, close_call = (call.args[0] for call in run_gh.call_args_list)
+        close_call, comment_call = (call.args[0] for call in run_gh.call_args_list)
+        self.assertEqual(
+            ["gh", "api", "--method", "PATCH",
+             "repos/open-telemetry/example/pulls/1", "-f", "state=closed"],
+            close_call,
+        )
         self.assertIn("issues/1/comments", comment_call[4])
         self.assertIn(
             "<!-- pull-request-dashboard-stale-close:episode-1 -->",
             comment_call[-1],
         )
         self.assertIn("@alice", comment_call[-1])
+        # The clock is gone and the reminder is queued for retirement, so a
+        # reopened PR cannot be closed again from the old entry.
         self.assertEqual(
-            ["gh", "api", "--method", "PATCH",
-             "repos/open-telemetry/example/pulls/1", "-f", "state=closed"],
-            close_call,
+            {"1": {"completions": [{
+                "episode_id": "episode-1",
+                "completed_at": "2026-07-17T00:00:00+00:00",
+                "kind": "routing_changed",
+            }]}},
+            saved.call_args.args[0],
         )
 
-    def test_retry_closes_without_second_comment(self) -> None:
-        run_gh = self.deliver(comments=[{
+    def test_reopened_episode_is_not_closed_again(self) -> None:
+        run_gh, _saved = self.deliver(comments=[{
             "body": author_nudge.stale_close_marker("episode-1"),
             "performed_via_github_app": {"slug": author_nudge.DASHBOARD_APP_SLUG},
         }])
 
-        run_gh.assert_called_once()
-        self.assertIn("state=closed", run_gh.call_args.args[0])
+        run_gh.assert_not_called()
 
     def test_disabled_by_default(self) -> None:
-        run_gh = self.deliver(env={"CLOSE_STALE_AFTER_DAYS": ""})
+        run_gh, _saved = self.deliver(env={"CLOSE_STALE_AFTER_DAYS": ""})
 
         run_gh.assert_not_called()
 
     def test_waits_for_full_period_after_reminder(self) -> None:
-        run_gh = self.deliver(env={"CLOSE_STALE_AFTER_DAYS": "30"})
+        run_gh, _saved = self.deliver(env={"CLOSE_STALE_AFTER_DAYS": "30"})
 
         run_gh.assert_not_called()
 
     def test_exempt_label_prevents_close(self) -> None:
-        run_gh = self.deliver(
+        run_gh, _saved = self.deliver(
             env={
                 "CLOSE_STALE_AFTER_DAYS": "14",
                 "CLOSE_STALE_EXEMPT_LABELS_JSON": '["never-stale"]',
@@ -1540,12 +1549,12 @@ class StaleCloseTest(unittest.TestCase):
         run_gh.assert_not_called()
 
     def test_changed_routing_input_prevents_close(self) -> None:
-        run_gh = self.deliver(snapshot=routing_snapshot(fingerprint="newer"))
+        run_gh, _saved = self.deliver(snapshot=routing_snapshot(fingerprint="newer"))
 
         run_gh.assert_not_called()
 
     def test_missing_reminder_prevents_close(self) -> None:
-        run_gh = self.deliver(existing_nudge=None)
+        run_gh, _saved = self.deliver(existing_nudge=None)
 
         run_gh.assert_not_called()
 

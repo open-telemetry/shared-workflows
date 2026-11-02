@@ -43,7 +43,10 @@ from dashboard_override import (
     append_command_ack_reply,
     dashboard_override_facts,
 )
-from dashboard_status import status_author_nudge_episode_id
+from dashboard_status import (
+    stale_close_recorded,
+    status_author_nudge_episode_id,
+)
 from discussion_lifecycle import (
     DiscussionInput,
     DiscussionLifecycleOutcome,
@@ -306,6 +309,13 @@ def _assign_author_nudge_episode(
         if previous_result is None
         else ""
     )
+    # A PR the dashboard closed as stale and the author reopened starts a new
+    # episode, so it gets a fresh reminder and a fresh clock before any
+    # further closure.
+    if recovered_episode_id and stale_close_recorded(
+        issue_comments, recovered_episode_id
+    ):
+        recovered_episode_id = ""
     return facts.with_changes(
         author_nudge_episode_id=str(
             previous_episode_id or recovered_episode_id or uuid.uuid4().hex

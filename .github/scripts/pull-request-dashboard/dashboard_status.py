@@ -19,6 +19,7 @@ AUTHOR_NUDGE_EPISODE_MARKER_PREFIX = (
 _AUTHOR_NUDGE_EPISODE_MARKER_RE = re.compile(
     r"<!-- pull-request-dashboard-author-nudge-episode:([a-f0-9]+) -->"
 )
+STALE_CLOSE_MARKER_PREFIX = "<!-- pull-request-dashboard-stale-close:"
 REVIEWER_HANDOFF_CLEARED_MARKER_PREFIX = (
     "<!-- pull-request-dashboard-reviewer-handoff-cleared:"
 )
@@ -30,6 +31,28 @@ DASHBOARD_APP_SLUG = "opentelemetry-pr-dashboard"
 
 def author_nudge_episode_marker(episode_id: str) -> str:
     return f"{AUTHOR_NUDGE_EPISODE_MARKER_PREFIX}{episode_id} -->"
+
+
+def stale_close_marker(episode_id: str) -> str:
+    return f"{STALE_CLOSE_MARKER_PREFIX}{episode_id} -->"
+
+
+def stale_close_recorded(
+    comments: Sequence[dict[str, Any] | IssueComment] | None,
+    episode_id: str,
+) -> bool:
+    """Whether the dashboard already closed the PR for this reminder episode."""
+    marker = stale_close_marker(episode_id)
+    for comment in comments or []:
+        if isinstance(comment, dict):
+            body = comment.get("body") or ""
+            from_dashboard_app = is_dashboard_app_comment(comment)
+        else:
+            body = comment.body
+            from_dashboard_app = comment.is_from_app(DASHBOARD_APP_SLUG)
+        if from_dashboard_app and marker in body:
+            return True
+    return False
 
 
 def reviewer_handoff_cleared_marker(command_id: int, head_sha: str) -> str:

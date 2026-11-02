@@ -23,9 +23,9 @@ from github_cli import (
     run_gh,
 )
 from dashboard_override import DASHBOARD_COMMAND_PREFIX
+from dashboard_status import stale_close_marker, stale_close_recorded
 from pr_status_comment import (
     DASHBOARD_APP_SLUG,
-    is_dashboard_app_comment,
     managed_status_comments,
     publish_pr_status,
 )
@@ -49,7 +49,6 @@ NUDGE_MARKER_RE = re.compile(
     r"<!-- pull-request-dashboard-author-nudge:([^ ]+) -->"
 )
 LEGACY_EPISODE_PREFIX = "legacy-nudge:"
-STALE_CLOSE_MARKER_PREFIX = "<!-- pull-request-dashboard-stale-close:"
 CLOSE_STALE_AFTER_DAYS_ENV = "CLOSE_STALE_AFTER_DAYS"
 CLOSE_STALE_EXEMPT_LABELS_ENV = "CLOSE_STALE_EXEMPT_LABELS_JSON"
 COMMENT_MINIMIZATION_STATE_QUERY = """
@@ -88,10 +87,6 @@ def nudge_marker(episode_id: str) -> str:
 
 def completed_nudge_marker(episode_id: str) -> str:
     return f"{COMPLETED_NUDGE_MARKER_PREFIX}{episode_id} -->"
-
-
-def stale_close_marker(episode_id: str) -> str:
-    return f"{STALE_CLOSE_MARKER_PREFIX}{episode_id} -->"
 
 
 def legacy_episode_id(nudged_at: str) -> str:
@@ -395,39 +390,47 @@ def close_stale_pull_request(
     if labels & exempt_labels:
         return False
 
-    marker = stale_close_marker(episode_id)
     comments = gh_api(
         f"/repos/{repo}/issues/{pr_number}/comments?per_page=100",
         paginate=True,
     )
-    if not any(
-        is_dashboard_app_comment(comment) and marker in (comment.get("body") or "")
-        for comment in comments or []
-    ):
-        status_comments = managed_status_comments(repo, pr_number)
-        if not status_comments or not status_comments[0].get("html_url"):
-            raise RuntimeError(f"dashboard status comment not found for PR #{pr_number}")
-        author = result.facts.author.strip()
-        author = author or str((pr.get("user") or {}).get("login") or "").strip()
-        if not author:
-            raise RuntimeError(f"author not found for PR #{pr_number}")
-        run_gh([
-            "gh", "api", "--method", "POST",
-            f"repos/{repo}/issues/{pr_number}/comments",
-            "-f",
-            "body="
-            + render_stale_close(
-                author,
-                status_comments[0]["html_url"],
-                episode_id,
-                close_after,
-            ),
-        ])
+    # The marker is written after a successful close, so finding it means this
+    # episode was already closed once and then reopened.
+    if stale_close_recorded(comments, episode_id):
+        return False
+
+    status_comments = managed_status_comments(repo, pr_number)
+    if not status_comments or not status_comments[0].get("html_url"):
+        raise RuntimeError(f"dashboard status comment not found for PR #{pr_number}")
+    author = result.facts.author.strip()
+    author = author or str((pr.get("user") or {}).get("login") or "").strip()
+    if not author:
+        raise RuntimeError(f"author not found for PR #{pr_number}")
+    body = render_stale_close(
+        author,
+        status_comments[0]["html_url"],
+        episode_id,
+        close_after,
+    )
     run_gh([
         "gh", "api", "--method", "PATCH",
         f"repos/{repo}/pulls/{pr_number}",
         "-f", "state=closed",
     ])
+    # The close is final and recorded by this comment, so a failure to post it
+    # must not be retried as a second close.
+    try:
+        run_gh([
+            "gh", "api", "--method", "POST",
+            f"repos/{repo}/issues/{pr_number}/comments",
+            "-f", f"body={body}",
+        ])
+    except Exception as e:
+        print(
+            f"PR #{pr_number}: closed as stale but the explanation comment "
+            f"failed: {e}",
+            file=sys.stderr,
+        )
     return True
 
 
@@ -672,7 +675,7 @@ def deliver_prepared_author_nudges(
             and waiting_on_author(result)
         ):
             try:
-                close_stale_pull_request(
+                closed = close_stale_pull_request(
                     repo,
                     pr_number,
                     result,
@@ -683,6 +686,23 @@ def deliver_prepared_author_nudges(
                 )
             except Exception as e:
                 errors.append(f"PR #{pr_number}: {e}")
+            else:
+                if closed:
+                    # Retire the reminder and drop the clock, so nothing here
+                    # can close the PR again if it is reopened before the next
+                    # refresh observes the closed state.
+                    completions = list(entry.get("completions") or [])
+                    queue_completion(
+                        completions,
+                        str(entry.get("episode_id") or ""),
+                        now,
+                        "routing_changed",
+                    )
+                    entry = {"completions": completions}
+                    if delivered_completion_ids:
+                        entry["delivered_completion_ids"] = delivered_completion_ids
+                    updated[key] = entry
+                    continue
         if not entry.get("waiting_since") and not entry.get("pending_at"):
             if entry:
                 updated[key] = entry
