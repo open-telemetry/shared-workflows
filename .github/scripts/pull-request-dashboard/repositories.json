@@ -1,30 +1,50 @@
 [
   {
     "name": "opentelemetry-collector-contrib",
-    "approver_teams": ["collector-contrib-approvers"],
-    "large_repo": true
+    "approver_teams": [
+      "collector-contrib-approvers"
+    ],
+    "large_repo": true,
+    "close_stale_after_days": 14,
+    "close_stale_exempt_labels": [
+      "never-stale"
+    ]
   },
   {
     "name": "opentelemetry-dotnet",
-    "approver_teams": ["dotnet-approvers"]
+    "approver_teams": [
+      "dotnet-approvers"
+    ]
   },
   {
     "name": "opentelemetry-dotnet-contrib",
-    "approver_teams": ["dotnet-contrib-approvers"]
+    "approver_teams": [
+      "dotnet-contrib-approvers"
+    ]
   },
   {
     "name": "opentelemetry-go",
-    "approver_teams": ["go-approvers"],
-    "require_clean_copilot_review_branches": ["main"]
+    "approver_teams": [
+      "go-approvers"
+    ],
+    "require_clean_copilot_review_branches": [
+      "main"
+    ]
   },
   {
     "name": "opentelemetry-go-contrib",
-    "approver_teams": ["go-approvers"],
-    "require_clean_copilot_review_branches": ["main"]
+    "approver_teams": [
+      "go-approvers"
+    ],
+    "require_clean_copilot_review_branches": [
+      "main"
+    ]
   },
   {
     "name": "opentelemetry-java",
-    "approver_teams": ["java-approvers"],
+    "approver_teams": [
+      "java-approvers"
+    ],
     "non_blocking_check_patterns": [
       "markdown-link-check / link-check",
       "codecov/*"
@@ -32,37 +52,55 @@
   },
   {
     "name": "opentelemetry-java-instrumentation",
-    "approver_teams": ["java-instrumentation-approvers"],
-    "require_clean_copilot_review_branches": ["main"]
+    "approver_teams": [
+      "java-instrumentation-approvers"
+    ],
+    "require_clean_copilot_review_branches": [
+      "main"
+    ]
   },
   {
     "name": "opentelemetry-js",
-    "approver_teams": ["javascript-approvers"]
+    "approver_teams": [
+      "javascript-approvers"
+    ]
   },
   {
     "name": "opentelemetry-js-contrib",
-    "approver_teams": ["javascript-approvers"]
+    "approver_teams": [
+      "javascript-approvers"
+    ]
   },
   {
     "name": "opentelemetry-proto",
-    "approver_teams": ["proto-approvers"],
+    "approver_teams": [
+      "proto-approvers"
+    ],
     "required_approvals": 2
   },
   {
     "name": "opentelemetry-python-genai",
-    "approver_teams": ["python-genai-approvers"]
+    "approver_teams": [
+      "python-genai-approvers"
+    ]
   },
   {
     "name": "opentelemetry-python",
-    "approver_teams": ["python-approvers"]
+    "approver_teams": [
+      "python-approvers"
+    ]
   },
   {
     "name": "opentelemetry-python-contrib",
-    "approver_teams": ["opentelemetry-python-contrib-approvers"]
+    "approver_teams": [
+      "opentelemetry-python-contrib-approvers"
+    ]
   },
   {
     "name": "opentelemetry-specification",
-    "approver_teams": ["specs-approvers"],
+    "approver_teams": [
+      "specs-approvers"
+    ],
     "required_approvals": 2
   },
   {
@@ -79,25 +117,35 @@
   },
   {
     "name": "opentelemetry.io",
-    "approver_teams": ["docs-approvers"]
+    "approver_teams": [
+      "docs-approvers"
+    ]
   },
   {
     "name": "semantic-conventions",
-    "approver_teams": ["specs-semconv-approvers"],
+    "approver_teams": [
+      "specs-semconv-approvers"
+    ],
     "required_approvals": 2
   },
   {
     "name": "semantic-conventions-conformance",
-    "approver_teams": ["semconv-conformance-approvers"]
+    "approver_teams": [
+      "semconv-conformance-approvers"
+    ]
   },
   {
     "name": "semantic-conventions-genai",
-    "approver_teams": ["semconv-genai-approvers"],
+    "approver_teams": [
+      "semconv-genai-approvers"
+    ],
     "required_approvals": 2
   },
   {
     "name": "shared-workflows",
-    "approver_teams": ["shared-workflows-approvers"]
+    "approver_teams": [
+      "shared-workflows-approvers"
+    ]
   },
   {
     "name": "weaver",
@@ -107,17 +155,28 @@
   },
   {
     "name": "otel-arrow",
-    "approver_teams": ["arrow-approvers"]
+    "approver_teams": [
+      "arrow-approvers"
+    ]
   },
   {
     "name": "opentelemetry-ebpf-profiler",
-    "approver_teams": ["ebpf-profiler-approvers"],
+    "approver_teams": [
+      "ebpf-profiler-approvers"
+    ],
     "required_approvals": 2
   },
   {
     "name": "opentelemetry-go-compile-instrumentation",
-    "approver_teams": ["go-compile-instrumentation-approvers"],
-    "labels_to_display": ["scope:*", "effort:*", "dependencies", "AI/ML *"],
+    "approver_teams": [
+      "go-compile-instrumentation-approvers"
+    ],
+    "labels_to_display": [
+      "scope:*",
+      "effort:*",
+      "dependencies",
+      "AI/ML *"
+    ],
     "non_blocking_check_patterns": [
       "codecov/*",
       "govulncheck (*)",
@@ -128,20 +187,39 @@
   },
   {
     "name": "opentelemetry-ebpf-instrumentation",
-    "approver_teams": ["ebpf-instrumentation-approvers"],
-    "labels_to_display": ["breaking change", "dependencies", "do-not-merge", "blocked"],
-    "non_blocking_check_patterns": ["codecov/*"],
-    "require_clean_copilot_review_branches": ["main"]
+    "approver_teams": [
+      "ebpf-instrumentation-approvers"
+    ],
+    "labels_to_display": [
+      "breaking change",
+      "dependencies",
+      "do-not-merge",
+      "blocked"
+    ],
+    "non_blocking_check_patterns": [
+      "codecov/*"
+    ],
+    "require_clean_copilot_review_branches": [
+      "main"
+    ]
   },
   {
     "name": "opentelemetry-ecosystem-explorer",
-    "approver_teams": ["ecosystem-explorer-approvers"],
-    "non_blocking_check_patterns": ["codecov/*"],
-    "require_clean_copilot_review_branches": ["main"]
+    "approver_teams": [
+      "ecosystem-explorer-approvers"
+    ],
+    "non_blocking_check_patterns": [
+      "codecov/*"
+    ],
+    "require_clean_copilot_review_branches": [
+      "main"
+    ]
   },
   {
     "name": "opentelemetry-rust",
-    "approver_teams": ["rust-approvers"],
+    "approver_teams": [
+      "rust-approvers"
+    ],
     "required_approvals": 1,
     "labels_to_display": [
       "A-*",
@@ -151,10 +229,14 @@
       "S-blocked-spec",
       "Stale"
     ],
-    "non_blocking_check_patterns": ["codecov/*"]
+    "non_blocking_check_patterns": [
+      "codecov/*"
+    ]
   },
   {
     "name": "opentelemetry-browser",
-    "approver_teams": ["browser-approvers"]
+    "approver_teams": [
+      "browser-approvers"
+    ]
   }
 ]
