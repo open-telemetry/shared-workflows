@@ -285,6 +285,23 @@ class AuthorNudgeEpisodeTest(unittest.TestCase):
 
         self.assertEqual("def456", facts.author_nudge_episode_id)
 
+    def test_pending_stale_close_does_not_reset_episode(self) -> None:
+        # The PR is still open and the close was interrupted, so the retry
+        # must finish it under the same episode.
+        facts = _assign_author_nudge_episode(
+            dashboard_facts(),
+            DashboardRoute.AUTHOR,
+            stored_dashboard_result(
+                facts=dashboard_facts(author_nudge_episode_id="abc123"),
+            ),
+            [{
+                "performed_via_github_app": {"slug": "opentelemetry-pr-dashboard"},
+                "body": "<!-- pull-request-dashboard-stale-close-pending:abc123 -->",
+            }],
+        )
+
+        self.assertEqual("abc123", facts.author_nudge_episode_id)
+
     def test_preserves_episode_while_route_is_held_for_gates(self) -> None:
         facts = _assign_author_nudge_episode(
             dashboard_facts(route_held_for_gates=True),

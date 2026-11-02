@@ -1471,7 +1471,10 @@ class StaleCloseTest(unittest.TestCase):
                 author_nudge,
                 "load_dashboard_state_cache",
                 return_value=build_dashboard_state(
-                    author_result(**(facts or {}))
+                    author_result(**{
+                        "last_new_activity_at": "2026-06-01T00:00:00+00:00",
+                        **(facts or {}),
+                    })
                 ),
             ), \
             patch.object(
@@ -1524,19 +1527,28 @@ class StaleCloseTest(unittest.TestCase):
 
         self.assertEqual([], self.errors)
         comment_call = run_gh_calls(run_gh)[0]
-        (close_call,) = (call.args[0] for call in run_gh.call_args_list)
-        self.assertEqual(2, len(run_gh.all_calls))
+        close_call, confirm_call = (
+            call.args[0] for call in run_gh.call_args_list
+        )
         self.assertEqual(
             ["gh", "api", "--method", "PATCH",
              "repos/open-telemetry/example/pulls/1", "-f", "state=closed"],
             close_call,
         )
+        # The explanation is posted pending, and only confirmed after the
+        # close succeeded.
         self.assertIn("issues/1/comments", comment_call[4])
         self.assertIn(
-            "<!-- pull-request-dashboard-stale-close:episode-1 -->",
+            "<!-- pull-request-dashboard-stale-close-pending:episode-1 -->",
             comment_call[-1],
         )
         self.assertIn("@alice", comment_call[-1])
+        self.assertIn("issues/comments/99", confirm_call[4])
+        self.assertIn(
+            "<!-- pull-request-dashboard-stale-close:episode-1 -->",
+            confirm_call[-1],
+        )
+        self.assertNotIn("close-pending", confirm_call[-1])
         # The clock is gone and the reminder is queued for retirement, so a
         # reopened PR cannot be closed again from the old entry.
         self.assertEqual(
@@ -1596,14 +1608,19 @@ class StaleCloseTest(unittest.TestCase):
             facts={"last_new_activity_at": "2026-06-20T00:00:00+00:00"},
         )
 
-        self.assertEqual(2, len(run_gh.all_calls))
+        self.assertEqual(3, len(run_gh.all_calls))
 
     def test_closes_once_period_has_passed_since_latest_activity(self) -> None:
         run_gh, _saved = self.deliver(
             facts={"last_new_activity_at": "2026-07-02T00:00:00+00:00"},
         )
 
-        self.assertEqual(2, len(run_gh.all_calls))
+        self.assertEqual(3, len(run_gh.all_calls))
+
+    def test_cached_result_without_activity_time_does_not_close(self) -> None:
+        run_gh, _saved = self.deliver(facts={"last_new_activity_at": ""})
+
+        self.assertEqual([], run_gh.all_calls)
 
     def test_comment_failure_leaves_pr_open_and_clock_intact(self) -> None:
         run_gh, saved = self.deliver(comment_fails=True)
@@ -1612,17 +1629,35 @@ class StaleCloseTest(unittest.TestCase):
         self.assertEqual(1, len(self.errors))
         self.assertEqual(self.NUDGED["1"], saved.call_args.args[0]["1"])
 
-    def test_close_failure_withdraws_the_explanation(self) -> None:
+    def test_close_failure_keeps_pending_explanation_and_clock(self) -> None:
         run_gh, saved = self.deliver(close_fails=True)
 
-        delete_call = run_gh.call_args_list[-1].args[0]
-        self.assertEqual(
-            ["gh", "api", "--method", "DELETE",
-             "repos/open-telemetry/example/issues/comments/99"],
-            delete_call,
-        )
         self.assertEqual(1, len(self.errors))
+        self.assertEqual(
+            [], [c for c in run_gh.call_args_list if "DELETE" in c.args[0]]
+        )
         self.assertEqual(self.NUDGED["1"], saved.call_args.args[0]["1"])
+
+    def test_retry_finishes_interrupted_close_without_reposting(self) -> None:
+        pending = {
+            "id": 55,
+            "body": author_nudge.stale_close_pending_marker("episode-1"),
+            "performed_via_github_app": {"slug": author_nudge.DASHBOARD_APP_SLUG},
+        }
+        run_gh, _saved = self.deliver(comments=[pending])
+
+        self.assertEqual([], self.errors)
+        self.assertEqual(
+            [], [c for c in run_gh.all_calls if "POST" in c.args[0]]
+        )
+        close_call, confirm_call = (
+            call.args[0] for call in run_gh.call_args_list
+        )
+        self.assertEqual("state=closed", close_call[-1])
+        self.assertIn("issues/comments/55", confirm_call[4])
+        self.assertIn(
+            author_nudge.stale_close_marker("episode-1"), confirm_call[-1]
+        )
 
     def test_missing_reminder_prevents_close(self) -> None:
         run_gh, _saved = self.deliver(existing_nudge=None)

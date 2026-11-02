@@ -249,7 +249,17 @@ def _compute_facts(
             activity.latest_approver_activity_at
         ),
         last_new_activity_at=format_ts(
-            activity.latest_new_participant_activity_at
+            max(
+                (
+                    ts
+                    for ts in (
+                        activity.latest_new_participant_activity_at,
+                        created_ts,
+                    )
+                    if ts is not None
+                ),
+                default=None,
+            )
         ),
         ci_failing_count=len(failing) if checks is not None else None,
         ci_failing_since=(

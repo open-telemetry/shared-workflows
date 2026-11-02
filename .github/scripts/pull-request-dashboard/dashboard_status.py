@@ -20,6 +20,9 @@ _AUTHOR_NUDGE_EPISODE_MARKER_RE = re.compile(
     r"<!-- pull-request-dashboard-author-nudge-episode:([a-f0-9]+) -->"
 )
 STALE_CLOSE_MARKER_PREFIX = "<!-- pull-request-dashboard-stale-close:"
+STALE_CLOSE_PENDING_MARKER_PREFIX = (
+    "<!-- pull-request-dashboard-stale-close-pending:"
+)
 REVIEWER_HANDOFF_CLEARED_MARKER_PREFIX = (
     "<!-- pull-request-dashboard-reviewer-handoff-cleared:"
 )
@@ -37,11 +40,32 @@ def stale_close_marker(episode_id: str) -> str:
     return f"{STALE_CLOSE_MARKER_PREFIX}{episode_id} -->"
 
 
+def stale_close_pending_marker(episode_id: str) -> str:
+    return f"{STALE_CLOSE_PENDING_MARKER_PREFIX}{episode_id} -->"
+
+
+def stale_close_pending_comment(
+    comments: Sequence[dict[str, Any]] | None,
+    episode_id: str,
+) -> dict[str, Any] | None:
+    """The explanation posted for a close that has not been confirmed yet."""
+    marker = stale_close_pending_marker(episode_id)
+    for comment in comments or []:
+        if is_dashboard_app_comment(comment) and marker in (
+            comment.get("body") or ""
+        ):
+            return comment
+    return None
+
+
 def stale_close_recorded(
     comments: Sequence[dict[str, Any] | IssueComment] | None,
     episode_id: str,
 ) -> bool:
-    """Whether the dashboard already closed the PR for this reminder episode."""
+    """Whether the dashboard confirmed closing the PR for this reminder episode.
+
+    A pending marker, written before the close request, does not count.
+    """
     marker = stale_close_marker(episode_id)
     for comment in comments or []:
         if isinstance(comment, dict):

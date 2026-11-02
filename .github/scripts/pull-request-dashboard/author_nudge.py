@@ -24,7 +24,12 @@ from github_cli import (
     run_gh_json,
 )
 from dashboard_override import DASHBOARD_COMMAND_PREFIX
-from dashboard_status import stale_close_marker, stale_close_recorded
+from dashboard_status import (
+    stale_close_marker,
+    stale_close_pending_comment,
+    stale_close_pending_marker,
+    stale_close_recorded,
+)
 from pr_status_comment import (
     DASHBOARD_APP_SLUG,
     managed_status_comments,
@@ -339,7 +344,7 @@ def render_stale_close(
     close_after: timedelta,
 ) -> str:
     return "\n".join([
-        stale_close_marker(episode_id),
+        stale_close_pending_marker(episode_id),
         f"Closing this pull request because it has been waiting on @{author} "
         f"for {close_after.days} days since the reminder above, with no "
         "response. The [dashboard status comment]"
@@ -366,7 +371,11 @@ def close_stale_pull_request(
     # the full interval must pass after the later of the reminder and that
     # activity.
     activity_at = parse_ts(result.facts.last_new_activity_at or "")
-    quiet_since = max(nudged_at, activity_at) if activity_at else nudged_at
+    if activity_at is None:
+        # Results cached before this fact existed carry no activity time, so
+        # wait for a refresh to recompute it rather than guess.
+        return False
+    quiet_since = max(nudged_at, activity_at)
     if now - quiet_since < close_after:
         return False
     episode_id = result.facts.author_nudge_episode_id or ""
@@ -415,37 +424,43 @@ def close_stale_pull_request(
         episode_id,
         close_after,
     )
-    # Post the explanation first: it carries the marker that records the close,
-    # so a failure here leaves the PR open and the whole close is retried,
-    # instead of leaving a closed PR with no explanation or marker.
-    posted = run_gh_json([
-        "gh", "api", "--method", "POST",
-        f"repos/{repo}/issues/{pr_number}/comments",
-        "-f", f"body={body}",
-    ])
-    try:
-        run_gh([
-            "gh", "api", "--method", "PATCH",
-            f"repos/{repo}/pulls/{pr_number}",
-            "-f", "state=closed",
+    # The explanation goes up first, carrying a pending marker, so a failure
+    # to post leaves the PR open and the close is retried whole. The marker is
+    # only confirmed once the close request succeeds, so an interrupted close
+    # is finished by the retry rather than mistaken for a reopened PR.
+    pending = stale_close_pending_comment(comments, episode_id)
+    if pending is None:
+        pending = run_gh_json([
+            "gh", "api", "--method", "POST",
+            f"repos/{repo}/issues/{pr_number}/comments",
+            "-f", f"body={body}",
         ])
-    except Exception:
-        # Withdraw the explanation, whose marker would otherwise stop the
-        # retry from ever closing this episode.
-        comment_id = (posted or {}).get("id")
-        if comment_id:
-            try:
-                run_gh([
-                    "gh", "api", "--method", "DELETE",
-                    f"repos/{repo}/issues/comments/{comment_id}",
-                ])
-            except Exception as e:
+    run_gh([
+        "gh", "api", "--method", "PATCH",
+        f"repos/{repo}/pulls/{pr_number}",
+        "-f", "state=closed",
+    ])
+    confirmed = (pending.get("body") or body).replace(
+        stale_close_pending_marker(episode_id),
+        stale_close_marker(episode_id),
+    )
+    for attempt in range(3):
+        try:
+            run_gh([
+                "gh", "api", "--method", "PATCH",
+                f"repos/{repo}/issues/comments/{pending['id']}",
+                "-f", f"body={confirmed}",
+            ])
+            break
+        except Exception as e:
+            if attempt == 2:
+                # The PR is closed, so this must not be retried as a second
+                # close; only the reopen guard is weakened.
                 print(
-                    f"PR #{pr_number}: could not remove the stale-close "
-                    f"comment after the close failed: {e}",
+                    f"PR #{pr_number}: closed as stale but the close marker "
+                    f"could not be confirmed: {e}",
                     file=sys.stderr,
                 )
-        raise
     return True
 
 
