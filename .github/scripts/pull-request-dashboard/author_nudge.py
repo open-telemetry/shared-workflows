@@ -368,6 +368,9 @@ def close_stale_pull_request(
     nudged_at = parse_ts(entry.get("nudged_at") or "")
     if nudged_at is None or now - nudged_at < close_after:
         return False
+    author_activity_at = parse_ts(result.facts.last_author_activity_at or "")
+    if author_activity_at is not None and author_activity_at > nudged_at:
+        return False
     episode_id = result.facts.author_nudge_episode_id or ""
     if not episode_id or episode_id != (entry.get("episode_id") or ""):
         return False
