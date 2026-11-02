@@ -1455,6 +1455,7 @@ class StaleCloseTest(unittest.TestCase):
         comments: list | None = None,
         nudges: dict | None = None,
         facts: dict | None = None,
+        events: list | None = None,
         close_fails: bool = False,
         comment_fails: bool = False,
     ):
@@ -1494,7 +1495,9 @@ class StaleCloseTest(unittest.TestCase):
                 author_nudge,
                 "gh_api",
                 side_effect=lambda path, **_: (
-                    pr if "/pulls/" in path else (comments or [])
+                    pr if "/pulls/" in path
+                    else (events or []) if "/events" in path
+                    else (comments or [])
                 ),
             ), \
             patch.object(
@@ -1637,6 +1640,44 @@ class StaleCloseTest(unittest.TestCase):
             [], [c for c in run_gh.call_args_list if "DELETE" in c.args[0]]
         )
         self.assertEqual(self.NUDGED["1"], saved.call_args.args[0]["1"])
+
+    def test_reopened_after_unconfirmed_close_is_not_closed_again(self) -> None:
+        pending = {
+            "id": 55,
+            "created_at": "2026-07-16T00:00:00Z",
+            "body": author_nudge.stale_close_pending_marker("episode-1"),
+            "performed_via_github_app": {"slug": author_nudge.DASHBOARD_APP_SLUG},
+        }
+        run_gh, _saved = self.deliver(
+            comments=[pending],
+            events=[
+                {"event": "closed", "created_at": "2026-07-16T00:00:05Z"},
+                {"event": "reopened", "created_at": "2026-07-16T01:00:00Z"},
+            ],
+        )
+
+        self.assertEqual([], self.errors)
+        # Only the marker is confirmed; the PR is not closed a second time.
+        (confirm_call,) = (call.args[0] for call in run_gh.call_args_list)
+        self.assertIn("issues/comments/55", confirm_call[4])
+        self.assertIn(
+            author_nudge.stale_close_marker("episode-1"), confirm_call[-1]
+        )
+
+    def test_close_before_pending_comment_does_not_count(self) -> None:
+        pending = {
+            "id": 55,
+            "created_at": "2026-07-16T00:00:00Z",
+            "body": author_nudge.stale_close_pending_marker("episode-1"),
+            "performed_via_github_app": {"slug": author_nudge.DASHBOARD_APP_SLUG},
+        }
+        run_gh, _saved = self.deliver(
+            comments=[pending],
+            events=[{"event": "closed", "created_at": "2026-07-01T00:00:00Z"}],
+        )
+
+        close_call = run_gh.call_args_list[0].args[0]
+        self.assertEqual("state=closed", close_call[-1])
 
     def test_retry_finishes_interrupted_close_without_reposting(self) -> None:
         pending = {

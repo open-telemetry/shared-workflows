@@ -353,6 +353,23 @@ def render_stale_close(
     ])
 
 
+def closed_since(repo: str, pr_number: int, since: str) -> bool:
+    """Whether the PR was closed at or after `since`, even if open again now."""
+    since_ts = parse_ts(since)
+    if since_ts is None:
+        return False
+    events = gh_api(
+        f"/repos/{repo}/issues/{pr_number}/events?per_page=100",
+        paginate=True,
+    )
+    return any(
+        event.get("event") == "closed"
+        and (event_ts := parse_ts(event.get("created_at") or "")) is not None
+        and event_ts >= since_ts
+        for event in events or []
+    )
+
+
 def close_stale_pull_request(
     repo: str,
     pr_number: int,
@@ -362,7 +379,12 @@ def close_stale_pull_request(
     close_after: timedelta,
     exempt_labels: frozenset[str],
 ) -> bool:
-    """Close a PR whose author ignored the reminder; return whether it closed."""
+    """Close a PR whose author ignored the reminder; return whether it closed.
+
+    Also returns True when an earlier close of this episode is found in the
+    event history and only needed its marker confirmed, so the reminder is
+    retired and a reopened PR starts a fresh episode.
+    """
     nudged_at = parse_ts(entry.get("nudged_at") or "")
     if nudged_at is None:
         return False
@@ -429,17 +451,24 @@ def close_stale_pull_request(
     # only confirmed once the close request succeeds, so an interrupted close
     # is finished by the retry rather than mistaken for a reopened PR.
     pending = stale_close_pending_comment(comments, episode_id)
+    # A pending marker on an open PR is either an interrupted close or a
+    # close whose confirmation never landed before the PR was reopened. GitHub's
+    # event history tells them apart.
+    already_closed = pending is not None and closed_since(
+        repo, pr_number, pending.get("created_at") or ""
+    )
     if pending is None:
         pending = run_gh_json([
             "gh", "api", "--method", "POST",
             f"repos/{repo}/issues/{pr_number}/comments",
             "-f", f"body={body}",
         ])
-    run_gh([
-        "gh", "api", "--method", "PATCH",
-        f"repos/{repo}/pulls/{pr_number}",
-        "-f", "state=closed",
-    ])
+    if not already_closed:
+        run_gh([
+            "gh", "api", "--method", "PATCH",
+            f"repos/{repo}/pulls/{pr_number}",
+            "-f", "state=closed",
+        ])
     confirmed = (pending.get("body") or body).replace(
         stale_close_pending_marker(episode_id),
         stale_close_marker(episode_id),
