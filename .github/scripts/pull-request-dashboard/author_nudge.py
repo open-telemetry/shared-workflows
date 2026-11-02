@@ -358,10 +358,15 @@ def close_stale_pull_request(
 ) -> bool:
     """Close a PR whose author ignored the reminder; return whether it closed."""
     nudged_at = parse_ts(entry.get("nudged_at") or "")
-    if nudged_at is None or now - nudged_at < close_after:
+    if nudged_at is None:
         return False
-    author_activity_at = parse_ts(result.facts.last_author_activity_at or "")
-    if author_activity_at is not None and author_activity_at > nudged_at:
+    # The quiet period restarts on any substantive human activity (author,
+    # reviewer or outsider; bots and comment edits are already excluded), so
+    # the full interval must pass after the later of the reminder and that
+    # activity.
+    activity_at = parse_ts(result.facts.last_activity_at or "")
+    quiet_since = max(nudged_at, activity_at) if activity_at else nudged_at
+    if now - quiet_since < close_after:
         return False
     episode_id = result.facts.author_nudge_episode_id or ""
     if not episode_id or episode_id != (entry.get("episode_id") or ""):
