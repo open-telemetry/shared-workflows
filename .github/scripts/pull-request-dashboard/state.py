@@ -767,6 +767,11 @@ def decode_dashboard_facts(value: Any) -> DashboardFacts:
             value.get("last_approver_activity_at", _MISSING),
             "facts.last_approver_activity_at",
         ),
+        last_new_activity_at=_string(
+            value.get("last_new_activity_at", _MISSING),
+            "facts.last_new_activity_at",
+            "",
+        ),
         ci_failing_count=_optional_integer(
             value.get("ci_failing_count"),
             "facts.ci_failing_count",
@@ -866,6 +871,7 @@ def encode_dashboard_facts(facts: DashboardFacts) -> dict[str, Any]:
         "last_activity_at": facts.last_activity_at,
         "last_author_activity_at": facts.last_author_activity_at,
         "last_approver_activity_at": facts.last_approver_activity_at,
+        "last_new_activity_at": facts.last_new_activity_at,
         "copilot_review_outstanding": facts.copilot_review_outstanding,
         "copilot_review_unreported": facts.copilot_review_unreported,
         "copilot_review_request_needed": facts.copilot_review_request_needed,

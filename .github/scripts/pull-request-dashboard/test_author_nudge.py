@@ -1431,6 +1431,11 @@ class AuthorNudgeProcessingTest(unittest.TestCase):
         publish_status.assert_not_called()
         run_gh.assert_not_called()
 
+def run_gh_calls(run_gh) -> list[list[str]]:
+    """The commands passed to the comment helper, in call order."""
+    return [call.args[0] for call in run_gh.all_calls if "comments" in call.args[0][-3]]
+
+
 class StaleCloseTest(unittest.TestCase):
     NUDGED = {
         "1": {
@@ -1449,6 +1454,9 @@ class StaleCloseTest(unittest.TestCase):
         existing_nudge: dict | None = {"id": 7},
         comments: list | None = None,
         nudges: dict | None = None,
+        facts: dict | None = None,
+        close_fails: bool = False,
+        comment_fails: bool = False,
     ):
         env = {"CLOSE_STALE_AFTER_DAYS": "14"} if env is None else env
         pr = {"state": "open", "draft": False, "labels": [], **(pr or {})}
@@ -1462,7 +1470,9 @@ class StaleCloseTest(unittest.TestCase):
             patch.object(
                 author_nudge,
                 "load_dashboard_state_cache",
-                return_value=build_dashboard_state(author_result()),
+                return_value=build_dashboard_state(
+                    author_result(**(facts or {}))
+                ),
             ), \
             patch.object(
                 author_nudge,
@@ -1484,19 +1494,38 @@ class StaleCloseTest(unittest.TestCase):
                     pr if "/pulls/" in path else (comments or [])
                 ),
             ), \
-            patch.object(author_nudge, "run_gh") as run_gh:
+            patch.object(
+                author_nudge,
+                "run_gh_json",
+                side_effect=RuntimeError("comment failed")
+                if comment_fails
+                else lambda cmd, **_: {"id": 99},
+            ) as run_gh_json, \
+            patch.object(
+                author_nudge,
+                "run_gh",
+                side_effect=lambda cmd, **_: (_ for _ in ()).throw(
+                    RuntimeError("close failed")
+                )
+                if close_fails and "PATCH" in cmd
+                else "",
+            ) as run_gh:
             errors = author_nudge.deliver_prepared_author_nudges(
                 "open-telemetry/example",
                 NOW,
             )
-        self.assertEqual([], errors)
+        self.errors = errors
+        # Callers inspect every gh call in order, whichever helper made it.
+        run_gh.all_calls = run_gh_json.call_args_list + run_gh.call_args_list
         return run_gh, saved
 
-    def test_closes_then_comments_and_persists_closure(self) -> None:
+    def test_comments_then_closes_and_persists_closure(self) -> None:
         run_gh, saved = self.deliver()
 
-        self.assertEqual(2, run_gh.call_count)
-        close_call, comment_call = (call.args[0] for call in run_gh.call_args_list)
+        self.assertEqual([], self.errors)
+        comment_call = run_gh_calls(run_gh)[0]
+        (close_call,) = (call.args[0] for call in run_gh.call_args_list)
+        self.assertEqual(2, len(run_gh.all_calls))
         self.assertEqual(
             ["gh", "api", "--method", "PATCH",
              "repos/open-telemetry/example/pulls/1", "-f", "state=closed"],
@@ -1552,6 +1581,48 @@ class StaleCloseTest(unittest.TestCase):
         run_gh, _saved = self.deliver(snapshot=routing_snapshot(fingerprint="newer"))
 
         run_gh.assert_not_called()
+
+    def test_new_activity_inside_the_period_prevents_close(self) -> None:
+        # A reviewer comment three days ago restarts the quiet period even
+        # though the reminder is 16 days old and the route is unchanged.
+        run_gh, _saved = self.deliver(
+            facts={"last_new_activity_at": "2026-07-14T00:00:00+00:00"},
+        )
+
+        self.assertEqual([], run_gh.all_calls)
+
+    def test_activity_before_the_reminder_does_not_delay_close(self) -> None:
+        run_gh, _saved = self.deliver(
+            facts={"last_new_activity_at": "2026-06-20T00:00:00+00:00"},
+        )
+
+        self.assertEqual(2, len(run_gh.all_calls))
+
+    def test_closes_once_period_has_passed_since_latest_activity(self) -> None:
+        run_gh, _saved = self.deliver(
+            facts={"last_new_activity_at": "2026-07-02T00:00:00+00:00"},
+        )
+
+        self.assertEqual(2, len(run_gh.all_calls))
+
+    def test_comment_failure_leaves_pr_open_and_clock_intact(self) -> None:
+        run_gh, saved = self.deliver(comment_fails=True)
+
+        run_gh.assert_not_called()
+        self.assertEqual(1, len(self.errors))
+        self.assertEqual(self.NUDGED["1"], saved.call_args.args[0]["1"])
+
+    def test_close_failure_withdraws_the_explanation(self) -> None:
+        run_gh, saved = self.deliver(close_fails=True)
+
+        delete_call = run_gh.call_args_list[-1].args[0]
+        self.assertEqual(
+            ["gh", "api", "--method", "DELETE",
+             "repos/open-telemetry/example/issues/comments/99"],
+            delete_call,
+        )
+        self.assertEqual(1, len(self.errors))
+        self.assertEqual(self.NUDGED["1"], saved.call_args.args[0]["1"])
 
     def test_missing_reminder_prevents_close(self) -> None:
         run_gh, _saved = self.deliver(existing_nudge=None)

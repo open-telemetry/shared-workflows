@@ -122,6 +122,7 @@ class DashboardFacts:
     last_activity_at: str = ""
     last_author_activity_at: str = ""
     last_approver_activity_at: str = ""
+    last_new_activity_at: str = ""
     ci_failing_count: int | None = None
     ci_failing_since: str | None = None
     ci_maintainer_action_required_count: int | None = None

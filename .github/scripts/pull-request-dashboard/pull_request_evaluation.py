@@ -248,6 +248,9 @@ def _compute_facts(
         last_approver_activity_at=format_ts(
             activity.latest_approver_activity_at
         ),
+        last_new_activity_at=format_ts(
+            activity.latest_new_participant_activity_at
+        ),
         ci_failing_count=len(failing) if checks is not None else None,
         ci_failing_since=(
             format_ts(min(failing_timestamps))
@@ -309,17 +312,15 @@ def _assign_author_nudge_episode(
         if previous_result is None
         else ""
     )
-    # A PR the dashboard closed as stale and the author reopened starts a new
+    # A PR the dashboard closed as stale and then reopened starts a new
     # episode, so it gets a fresh reminder and a fresh clock before any
-    # further closure.
-    if recovered_episode_id and stale_close_recorded(
-        issue_comments, recovered_episode_id
-    ):
-        recovered_episode_id = ""
+    # further closure. This applies to the cached episode too, which survives
+    # when the PR is reopened before a refresh observes the closed state.
+    episode_id = previous_episode_id or recovered_episode_id
+    if episode_id and stale_close_recorded(issue_comments, episode_id):
+        episode_id = ""
     return facts.with_changes(
-        author_nudge_episode_id=str(
-            previous_episode_id or recovered_episode_id or uuid.uuid4().hex
-        )
+        author_nudge_episode_id=str(episode_id or uuid.uuid4().hex)
     )
 
 

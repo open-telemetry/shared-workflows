@@ -266,6 +266,25 @@ class AuthorNudgeEpisodeTest(unittest.TestCase):
 
         self.assertEqual("def456", facts.author_nudge_episode_id)
 
+    @patch("pull_request_evaluation.uuid.uuid4")
+    def test_starts_new_episode_when_reopened_before_refresh(
+        self, uuid4: Mock
+    ) -> None:
+        uuid4.return_value.hex = "def456"
+        facts = _assign_author_nudge_episode(
+            dashboard_facts(),
+            DashboardRoute.AUTHOR,
+            stored_dashboard_result(
+                facts=dashboard_facts(author_nudge_episode_id="abc123"),
+            ),
+            [{
+                "performed_via_github_app": {"slug": "opentelemetry-pr-dashboard"},
+                "body": "<!-- pull-request-dashboard-stale-close:abc123 -->",
+            }],
+        )
+
+        self.assertEqual("def456", facts.author_nudge_episode_id)
+
     def test_preserves_episode_while_route_is_held_for_gates(self) -> None:
         facts = _assign_author_nudge_episode(
             dashboard_facts(route_held_for_gates=True),

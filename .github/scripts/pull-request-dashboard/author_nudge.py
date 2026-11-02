@@ -21,6 +21,7 @@ from github_cli import (
     gh_api,
     gh_graphql,
     run_gh,
+    run_gh_json,
 )
 from dashboard_override import DASHBOARD_COMMAND_PREFIX
 from dashboard_status import stale_close_marker, stale_close_recorded
@@ -361,10 +362,10 @@ def close_stale_pull_request(
     if nudged_at is None:
         return False
     # The quiet period restarts on any substantive human activity (author,
-    # reviewer or outsider; bots and comment edits are already excluded), so
+    # reviewer or outsider, excluding bots and edits to existing comments), so
     # the full interval must pass after the later of the reminder and that
     # activity.
-    activity_at = parse_ts(result.facts.last_activity_at or "")
+    activity_at = parse_ts(result.facts.last_new_activity_at or "")
     quiet_since = max(nudged_at, activity_at) if activity_at else nudged_at
     if now - quiet_since < close_after:
         return False
@@ -414,25 +415,37 @@ def close_stale_pull_request(
         episode_id,
         close_after,
     )
-    run_gh([
-        "gh", "api", "--method", "PATCH",
-        f"repos/{repo}/pulls/{pr_number}",
-        "-f", "state=closed",
+    # Post the explanation first: it carries the marker that records the close,
+    # so a failure here leaves the PR open and the whole close is retried,
+    # instead of leaving a closed PR with no explanation or marker.
+    posted = run_gh_json([
+        "gh", "api", "--method", "POST",
+        f"repos/{repo}/issues/{pr_number}/comments",
+        "-f", f"body={body}",
     ])
-    # The close is final and recorded by this comment, so a failure to post it
-    # must not be retried as a second close.
     try:
         run_gh([
-            "gh", "api", "--method", "POST",
-            f"repos/{repo}/issues/{pr_number}/comments",
-            "-f", f"body={body}",
+            "gh", "api", "--method", "PATCH",
+            f"repos/{repo}/pulls/{pr_number}",
+            "-f", "state=closed",
         ])
-    except Exception as e:
-        print(
-            f"PR #{pr_number}: closed as stale but the explanation comment "
-            f"failed: {e}",
-            file=sys.stderr,
-        )
+    except Exception:
+        # Withdraw the explanation, whose marker would otherwise stop the
+        # retry from ever closing this episode.
+        comment_id = (posted or {}).get("id")
+        if comment_id:
+            try:
+                run_gh([
+                    "gh", "api", "--method", "DELETE",
+                    f"repos/{repo}/issues/comments/{comment_id}",
+                ])
+            except Exception as e:
+                print(
+                    f"PR #{pr_number}: could not remove the stale-close "
+                    f"comment after the close failed: {e}",
+                    file=sys.stderr,
+                )
+        raise
     return True
 
 

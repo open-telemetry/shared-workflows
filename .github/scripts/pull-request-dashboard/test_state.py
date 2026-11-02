@@ -846,6 +846,7 @@ class StateTest(unittest.TestCase):
                         "last_activity_at": "2026-08-16T12:00:00Z",
                         "last_author_activity_at": "2026-08-16T11:00:00Z",
                         "last_approver_activity_at": "2026-08-16T10:00:00Z",
+                        "last_new_activity_at": "",
                         "copilot_review_outstanding": True,
                         "copilot_review_unreported": False,
                         "copilot_review_request_needed": False,
