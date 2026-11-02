@@ -4,6 +4,8 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
+import json
+import os
 from pathlib import Path
 import re
 import sys
@@ -23,6 +25,7 @@ from github_cli import (
 from dashboard_override import DASHBOARD_COMMAND_PREFIX
 from pr_status_comment import (
     DASHBOARD_APP_SLUG,
+    is_dashboard_app_comment,
     managed_status_comments,
     publish_pr_status,
 )
@@ -46,6 +49,9 @@ NUDGE_MARKER_RE = re.compile(
     r"<!-- pull-request-dashboard-author-nudge:([^ ]+) -->"
 )
 LEGACY_EPISODE_PREFIX = "legacy-nudge:"
+STALE_CLOSE_MARKER_PREFIX = "<!-- pull-request-dashboard-stale-close:"
+CLOSE_STALE_AFTER_DAYS_ENV = "CLOSE_STALE_AFTER_DAYS"
+CLOSE_STALE_EXEMPT_LABELS_ENV = "CLOSE_STALE_EXEMPT_LABELS_JSON"
 COMMENT_MINIMIZATION_STATE_QUERY = """
 query($id: ID!) {
     node(id: $id) {
@@ -82,6 +88,10 @@ def nudge_marker(episode_id: str) -> str:
 
 def completed_nudge_marker(episode_id: str) -> str:
     return f"{COMPLETED_NUDGE_MARKER_PREFIX}{episode_id} -->"
+
+
+def stale_close_marker(episode_id: str) -> str:
+    return f"{STALE_CLOSE_MARKER_PREFIX}{episode_id} -->"
 
 
 def legacy_episode_id(nudged_at: str) -> str:
@@ -310,6 +320,114 @@ def render_completed_nudge(
     ]) + "\n"
 
 
+def close_stale_after() -> timedelta | None:
+    """Return how long after a reminder a silent PR is closed, if enabled."""
+    raw = os.environ.get(CLOSE_STALE_AFTER_DAYS_ENV, "").strip()
+    if not raw or raw == "0":
+        return None
+    days = int(raw)
+    if days < 0:
+        raise ValueError(f"{CLOSE_STALE_AFTER_DAYS_ENV} must not be negative")
+    return timedelta(days=days)
+
+
+def close_stale_exempt_labels() -> frozenset[str]:
+    raw = os.environ.get(CLOSE_STALE_EXEMPT_LABELS_ENV, "").strip()
+    return frozenset(json.loads(raw)) if raw else frozenset()
+
+
+def render_stale_close(
+    author: str,
+    status_url: str,
+    episode_id: str,
+    close_after: timedelta,
+) -> str:
+    return "\n".join([
+        stale_close_marker(episode_id),
+        f"Closing this pull request because it has been waiting on @{author} "
+        f"for {close_after.days} days since the reminder above, with no "
+        "response. The [dashboard status comment]"
+        f"({status_url}) lists what was outstanding.",
+        "",
+        "Nothing is lost: reopen it whenever you are ready to pick it back up, "
+        "and the dashboard will resume tracking it.",
+        "",
+    ])
+
+
+def close_stale_pull_request(
+    repo: str,
+    pr_number: int,
+    result: StoredDashboardResult,
+    entry: dict[str, Any],
+    now: datetime,
+    close_after: timedelta,
+    exempt_labels: frozenset[str],
+) -> bool:
+    """Close a PR whose author ignored the reminder; return whether it closed."""
+    nudged_at = parse_ts(entry.get("nudged_at") or "")
+    if nudged_at is None or now - nudged_at < close_after:
+        return False
+    episode_id = result.facts.author_nudge_episode_id or ""
+    if not episode_id or episode_id != (entry.get("episode_id") or ""):
+        return False
+    # The reminder being on the PR is what tells the author the clock is
+    # running, so never close on a nudge that cannot be found.
+    if existing_nudge_comment(repo, pr_number, episode_id) is None:
+        return False
+
+    snapshot = fetch_routing_snapshot(repo, pr_number)
+    if (
+        snapshot.state != "OPEN"
+        or snapshot.is_draft
+        or snapshot.head_sha != result.facts.head_sha
+        or snapshot.routing_input_fingerprint
+        != result.facts.routing_input_fingerprint
+    ):
+        return False
+    pr = gh_api(f"/repos/{repo}/pulls/{pr_number}") or {}
+    if pr.get("state") != "open" or pr.get("draft"):
+        return False
+    labels = {label.get("name") for label in pr.get("labels") or []}
+    if labels & exempt_labels:
+        return False
+
+    marker = stale_close_marker(episode_id)
+    comments = gh_api(
+        f"/repos/{repo}/issues/{pr_number}/comments?per_page=100",
+        paginate=True,
+    )
+    if not any(
+        is_dashboard_app_comment(comment) and marker in (comment.get("body") or "")
+        for comment in comments or []
+    ):
+        status_comments = managed_status_comments(repo, pr_number)
+        if not status_comments or not status_comments[0].get("html_url"):
+            raise RuntimeError(f"dashboard status comment not found for PR #{pr_number}")
+        author = result.facts.author.strip()
+        author = author or str((pr.get("user") or {}).get("login") or "").strip()
+        if not author:
+            raise RuntimeError(f"author not found for PR #{pr_number}")
+        run_gh([
+            "gh", "api", "--method", "POST",
+            f"repos/{repo}/issues/{pr_number}/comments",
+            "-f",
+            "body="
+            + render_stale_close(
+                author,
+                status_comments[0]["html_url"],
+                episode_id,
+                close_after,
+            ),
+        ])
+    run_gh([
+        "gh", "api", "--method", "PATCH",
+        f"repos/{repo}/pulls/{pr_number}",
+        "-f", "state=closed",
+    ])
+    return True
+
+
 def comment_minimization_reason(node_id: str) -> str:
     data = gh_graphql(COMMENT_MINIMIZATION_STATE_QUERY, {"id": node_id})
     node = (data.get("data") or {}).get("node")
@@ -476,6 +594,8 @@ def deliver_prepared_author_nudges(
     excluded_pr_numbers = excluded_pr_numbers or set()
     updated = dict(load_author_nudges(retry_snapshot_path))
     errors: list[str] = []
+    close_after = close_stale_after()
+    exempt_labels = close_stale_exempt_labels()
     for key, entry in sorted(updated.items(), key=lambda item: int(item[0])):
         pr_number = int(key)
         if pr_number in excluded_pr_numbers:
@@ -541,6 +661,25 @@ def deliver_prepared_author_nudges(
             entry.pop("completions", None)
         if delivered_completion_ids:
             entry["delivered_completion_ids"] = delivered_completion_ids
+        if (
+            close_after is not None
+            and entry.get("nudged_at")
+            and not entry.get("pending_at")
+            and isinstance(result, StoredDashboardResult)
+            and waiting_on_author(result)
+        ):
+            try:
+                close_stale_pull_request(
+                    repo,
+                    pr_number,
+                    result,
+                    entry,
+                    now,
+                    close_after,
+                    exempt_labels,
+                )
+            except Exception as e:
+                errors.append(f"PR #{pr_number}: {e}")
         if not entry.get("waiting_since") and not entry.get("pending_at"):
             if entry:
                 updated[key] = entry

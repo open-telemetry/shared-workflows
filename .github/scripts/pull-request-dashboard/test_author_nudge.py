@@ -1431,6 +1431,124 @@ class AuthorNudgeProcessingTest(unittest.TestCase):
         publish_status.assert_not_called()
         run_gh.assert_not_called()
 
+class StaleCloseTest(unittest.TestCase):
+    NUDGED = {
+        "1": {
+            "waiting_since": "2026-06-01T00:00:00+00:00",
+            "nudged_at": "2026-07-01T00:00:00+00:00",
+            "episode_id": "episode-1",
+        }
+    }
+
+    def deliver(
+        self,
+        *,
+        env: dict[str, str] | None = None,
+        snapshot=None,
+        pr: dict | None = None,
+        existing_nudge: dict | None = {"id": 7},
+        comments: list | None = None,
+        nudges: dict | None = None,
+    ):
+        env = {"CLOSE_STALE_AFTER_DAYS": "14"} if env is None else env
+        pr = {"state": "open", "draft": False, "labels": [], **(pr or {})}
+        with patch.dict("os.environ", env, clear=False), \
+            patch.object(author_nudge, "save_author_nudges"), \
+            patch.object(
+                author_nudge,
+                "load_author_nudges",
+                return_value=nudges or self.NUDGED,
+            ), \
+            patch.object(
+                author_nudge,
+                "load_dashboard_state_cache",
+                return_value=build_dashboard_state(author_result()),
+            ), \
+            patch.object(
+                author_nudge,
+                "fetch_routing_snapshot",
+                return_value=snapshot or routing_snapshot(),
+            ), \
+            patch.object(
+                author_nudge, "existing_nudge_comment", return_value=existing_nudge
+            ), \
+            patch.object(
+                author_nudge,
+                "managed_status_comments",
+                return_value=[{"html_url": "https://example.test/status"}],
+            ), \
+            patch.object(
+                author_nudge,
+                "gh_api",
+                side_effect=lambda path, **_: (
+                    pr if "/pulls/" in path else (comments or [])
+                ),
+            ), \
+            patch.object(author_nudge, "run_gh") as run_gh:
+            errors = author_nudge.deliver_prepared_author_nudges(
+                "open-telemetry/example",
+                NOW,
+            )
+        self.assertEqual([], errors)
+        return run_gh
+
+    def test_closes_with_comment_after_deadline(self) -> None:
+        run_gh = self.deliver()
+
+        self.assertEqual(2, run_gh.call_count)
+        comment_call, close_call = (call.args[0] for call in run_gh.call_args_list)
+        self.assertIn("issues/1/comments", comment_call[4])
+        self.assertIn(
+            "<!-- pull-request-dashboard-stale-close:episode-1 -->",
+            comment_call[-1],
+        )
+        self.assertIn("@alice", comment_call[-1])
+        self.assertEqual(
+            ["gh", "api", "--method", "PATCH",
+             "repos/open-telemetry/example/pulls/1", "-f", "state=closed"],
+            close_call,
+        )
+
+    def test_retry_closes_without_second_comment(self) -> None:
+        run_gh = self.deliver(comments=[{
+            "body": author_nudge.stale_close_marker("episode-1"),
+            "performed_via_github_app": {"slug": author_nudge.DASHBOARD_APP_SLUG},
+        }])
+
+        run_gh.assert_called_once()
+        self.assertIn("state=closed", run_gh.call_args.args[0])
+
+    def test_disabled_by_default(self) -> None:
+        run_gh = self.deliver(env={"CLOSE_STALE_AFTER_DAYS": ""})
+
+        run_gh.assert_not_called()
+
+    def test_waits_for_full_period_after_reminder(self) -> None:
+        run_gh = self.deliver(env={"CLOSE_STALE_AFTER_DAYS": "30"})
+
+        run_gh.assert_not_called()
+
+    def test_exempt_label_prevents_close(self) -> None:
+        run_gh = self.deliver(
+            env={
+                "CLOSE_STALE_AFTER_DAYS": "14",
+                "CLOSE_STALE_EXEMPT_LABELS_JSON": '["never-stale"]',
+            },
+            pr={"labels": [{"name": "never-stale"}]},
+        )
+
+        run_gh.assert_not_called()
+
+    def test_changed_routing_input_prevents_close(self) -> None:
+        run_gh = self.deliver(snapshot=routing_snapshot(fingerprint="newer"))
+
+        run_gh.assert_not_called()
+
+    def test_missing_reminder_prevents_close(self) -> None:
+        run_gh = self.deliver(existing_nudge=None)
+
+        run_gh.assert_not_called()
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -426,6 +426,10 @@ class DashboardBatchProcessor:
             "REQUIRE_CLEAN_COPILOT_REVIEW_BRANCHES_JSON": json.dumps(
                 config.get("require_clean_copilot_review_branches", [])
             ),
+            "CLOSE_STALE_AFTER_DAYS": str(config.get("close_stale_after_days", 0)),
+            "CLOSE_STALE_EXEMPT_LABELS_JSON": json.dumps(
+                config.get("close_stale_exempt_labels", [])
+            ),
             "SLACK_CHANNEL": config.get("slack_channel", ""),
             "SLACK_USER_MAP_JSON": json.dumps(config.get("slack_user_mapping", {})),
         }
