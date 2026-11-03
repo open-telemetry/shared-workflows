@@ -217,7 +217,6 @@ class PublishablePrsTest(unittest.TestCase):
             publish_dashboard.publish_accepted_dashboard(
                 "open-telemetry/example",
                 "state-branch",
-                True,
                 ["size/*"],
                 ["example-approvers"],
             )
@@ -226,7 +225,6 @@ class PublishablePrsTest(unittest.TestCase):
         set_state_dir.assert_called_once_with(checkout_dir / "example")
         render_dashboard_markdown.assert_called_once_with(
             "open-telemetry/example",
-            True,
             ["size/*"],
             ["example-approvers"],
         )
@@ -253,7 +251,6 @@ class PublishablePrsTest(unittest.TestCase):
             publish_dashboard.publish_accepted_dashboard(
                 "open-telemetry/example",
                 "state-branch",
-                False,
             )
 
         self.assertEqual(
@@ -292,7 +289,6 @@ class PublishablePrsTest(unittest.TestCase):
         publish_accepted.assert_called_once_with(
             "open-telemetry/example",
             "state",
-            False,
             [],
             ["example-approvers"],
         )
@@ -314,7 +310,7 @@ class PublishablePrsTest(unittest.TestCase):
         ):
             self.assertEqual(0, publish_dashboard.main())
 
-        self.assertEqual([], publish_accepted.call_args.args[4])
+        self.assertEqual([], publish_accepted.call_args.args[3])
 
     def test_passes_labels_and_approvers_to_renderer(self) -> None:
         prs = [
@@ -359,7 +355,6 @@ class PublishablePrsTest(unittest.TestCase):
                     output_path,
                     publish_dashboard.render_dashboard_markdown(
                         "open-telemetry/example",
-                        False,
                         ["size/*"],
                         ["example-approvers"],
                     ),
@@ -372,7 +367,6 @@ class PublishablePrsTest(unittest.TestCase):
         render_pr_tables.assert_called_once_with(
             prs,
             results,
-            max_rows_per_section=None,
             skip_drafts=False,
             labels_to_display=["size/*"],
             approver_logins=frozenset({"approver"}),
@@ -397,7 +391,6 @@ class PublishablePrsTest(unittest.TestCase):
             ):
                 publish_dashboard.render_dashboard_markdown(
                     "open-telemetry/example",
-                    False,
                 )
 
         load_team_members.assert_not_called()
@@ -445,7 +438,6 @@ class PublishablePrsTest(unittest.TestCase):
             ):
                 path = publish_dashboard.render_dashboard_markdown(
                     "open-telemetry/example",
-                    False,
                 )
                 markdown = path.read_text(encoding="utf-8")
 
@@ -456,7 +448,7 @@ class PublishablePrsTest(unittest.TestCase):
             "/repos/open-telemetry/example/pulls/8/commits?per_page=1"
         )
 
-    def test_large_repo_skips_draft_author_and_age_fetches(self) -> None:
+    def test_oversized_non_draft_dashboard_skips_draft_metadata_fetches(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             output_path = Path(tmp) / "dashboard.md"
             with (
@@ -468,11 +460,23 @@ class PublishablePrsTest(unittest.TestCase):
                 patch.object(
                     publish_dashboard,
                     "list_open_prs",
-                    return_value=[{
-                        "number": 7,
-                        "isDraft": True,
-                        "author": {"login": "Copilot"},
-                    }],
+                    return_value=[
+                        {
+                            "number": 1,
+                            "title": "x" * publish_dashboard.ISSUE_BODY_MAX_CHARS,
+                            "isDraft": False,
+                        },
+                        {
+                            "number": 7,
+                            "isDraft": True,
+                            "author": {"login": "Copilot"},
+                        },
+                    ],
+                ),
+                patch.object(
+                    publish_dashboard,
+                    "results_from_dashboard_state",
+                    return_value=(stored_dashboard_result(1),),
                 ),
                 patch.object(publish_dashboard, "add_draft_authors") as add_authors,
                 patch.object(publish_dashboard, "add_draft_since") as add_since,
@@ -484,13 +488,38 @@ class PublishablePrsTest(unittest.TestCase):
             ):
                 path = publish_dashboard.render_dashboard_markdown(
                     "open-telemetry/example",
-                    True,
                 )
                 markdown = path.read_text(encoding="utf-8")
 
-        self.assertNotIn("## Draft pull requests", markdown)
+        self.assertIn("## Draft pull requests\n\n_More 1 PR not shown_", markdown)
+        self.assertIn("All drafts are omitted to fit GitHub's issue-body limit.", markdown)
+        self.assertNotIn("| #7 ", markdown)
+        self.assertLessEqual(len(markdown), publish_dashboard.ISSUE_BODY_MAX_CHARS)
         add_authors.assert_not_called()
         add_since.assert_not_called()
+
+    def test_publisher_retains_the_final_size_guard(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            with (
+                patch.object(
+                    publish_dashboard,
+                    "load_dashboard_state_cache",
+                    return_value=dashboard_state(),
+                ),
+                patch.object(publish_dashboard, "list_open_prs", return_value=[]),
+                patch.object(
+                    publish_dashboard,
+                    "render_pr_tables",
+                    return_value="x" * (publish_dashboard.ISSUE_BODY_MAX_CHARS + 1),
+                ),
+                patch.object(
+                    publish_dashboard,
+                    "dashboard_markdown_path",
+                    return_value=Path(tmp) / "dashboard.md",
+                ),
+                self.assertRaisesRegex(RuntimeError, "exceeds GitHub's"),
+            ):
+                publish_dashboard.render_dashboard_markdown("open-telemetry/example")
 
 
 if __name__ == "__main__":

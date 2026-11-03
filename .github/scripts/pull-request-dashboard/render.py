@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
-from dataclasses import replace
+from dataclasses import dataclass, replace
 from datetime import datetime
 from fnmatch import fnmatchcase
 from typing import Any
@@ -26,15 +26,43 @@ from utils import (
 )
 
 
-def _limit_rows(rows: list[Any], max_rows: int | None) -> tuple[list[Any], int]:
-    if max_rows is None or max_rows <= 0 or len(rows) <= max_rows:
-        return rows, 0
-    return rows[:max_rows], len(rows) - max_rows
+ISSUE_BODY_MAX_CHARS = 65536
 
 
 def _truncation_note(count: int) -> str:
     plural = "PR" if count == 1 else "PRs"
     return f"_More {count} {plural} not shown_"
+
+
+@dataclass
+class _PrSection:
+    heading: str
+    table_header: tuple[str, str]
+    rows: list[str]
+    omitted: int = 0
+
+    def lines(self) -> list[str]:
+        lines = [self.heading, ""]
+        if self.rows:
+            lines.extend(self.table_header)
+            lines.extend(self.rows)
+            lines.append("")
+        if self.omitted:
+            lines.extend([_truncation_note(self.omitted), ""])
+        return lines
+
+    def trim_last_row(self) -> int:
+        previous_footer_chars = (
+            len(_truncation_note(self.omitted)) + 2 if self.omitted else 0
+        )
+        removed_chars = len(self.rows.pop()) + 1
+        self.omitted += 1
+        if not self.rows:
+            removed_chars += sum(len(line) + 1 for line in self.table_header) + 1
+        return (
+            removed_chars + previous_footer_chars
+            - len(_truncation_note(self.omitted)) - 2
+        )
 
 
 def _pr_cell_text(
@@ -105,20 +133,24 @@ def author_cell_text(
     return f"{author}&nbsp;{badge}" if badge else author
 
 
-def render_draft_pr_section(
+def _draft_pr_section(
     prs: list[dict[str, Any]],
-    max_rows_per_section: int | None = None,
     labels_to_display: list[str] | None = None,
     approver_logins: frozenset[str] = frozenset(),
-) -> list[str]:
+    skip_drafts: bool = False,
+) -> _PrSection | None:
     drafts = [p for p in prs if p.get("isDraft")]
     if not drafts:
-        return []
+        return None
+    section = _PrSection(
+        "## Draft pull requests",
+        ("| PR | Author | Draft age |", "|---|---|:---:|"),
+        [],
+    )
+    if skip_drafts:
+        section.omitted = len(drafts)
+        return section
     drafts.sort(key=lambda p: p.get("draftSince") or p.get("createdAt") or "")
-    drafts, truncated = _limit_rows(drafts, max_rows_per_section)
-    lines = ["## Draft pull requests", ""]
-    lines.append("| PR | Author | Draft age |")
-    lines.append("|---|---|:---:|")
     for pr in drafts:
         author = author_cell_text(
             pr,
@@ -130,14 +162,19 @@ def render_draft_pr_section(
         )
         # GitHub autolinks same-repo PR numbers; avoid full URLs so large
         # dashboards can show more PRs before hitting the issue body limit.
-        lines.append(
+        section.rows.append(
             f"| {_pr_cell_text(pr, labels_to_display)} | {author} | {draft_age} |"
         )
-    lines.append("")
-    if truncated:
-        lines.append(_truncation_note(truncated))
-        lines.append("")
-    return lines
+    return section
+
+
+def render_draft_pr_section(
+    prs: list[dict[str, Any]],
+    labels_to_display: list[str] | None = None,
+    approver_logins: frozenset[str] = frozenset(),
+) -> list[str]:
+    section = _draft_pr_section(prs, labels_to_display, approver_logins)
+    return section.lines() if section is not None else []
 
 
 def ci_cell(facts: DashboardFacts) -> str:
@@ -275,25 +312,18 @@ def reviewers_cell_text(facts: DashboardFacts) -> str:
 def render_pr_tables(
     prs: list[dict[str, Any]],
     results: Iterable[StoredDashboardResult],
-    max_rows_per_section: int | None = None,
+    max_chars: int | None = ISSUE_BODY_MAX_CHARS,
     skip_drafts: bool = False,
     labels_to_display: list[str] | None = None,
     approver_logins: frozenset[str] = frozenset(),
 ) -> str:
+    if max_chars is not None and max_chars <= 0:
+        raise ValueError("max_chars must be positive")
     results_by_number = {
         result.pr_number: result
         for result in results
     }
     source_url = "https://github.com/open-telemetry/shared-workflows/blob/main/.github/scripts/pull-request-dashboard/dashboard.py"
-    draft_note = (
-        "Draft PRs are omitted to keep this dashboard concise."
-        if skip_drafts
-        else "Draft PRs are listed separately."
-    )
-    grouping_note = (
-        f"Open non-draft PRs grouped by who is expected to act next. {draft_note} The grouping is "
-        f"partly performed by an LLM ([source]({source_url})) and could contain mistakes."
-    )
     author_note = (
         "Author column: 🆕 first-time contributor · 🔭 open-telemetry member · "
         "🛠️ approver or maintainer · 🤖 bot."
@@ -308,18 +338,6 @@ def render_pr_tables(
         "CI column: ✅ passing · ⏳ running · ❌ failing · "
         "🔐 workflow action required."
     )
-    out: list[str] = [
-        "> [!NOTE]",
-        f"> {grouping_note}",
-        ">",
-        f"> {author_note}",
-        ">",
-        f"> {reviewers_note}",
-        ">",
-        f"> {ci_note}",
-        "",
-    ]
-
     by_route: dict[str, list[dict[str, Any]]] = {}
     for pr in prs:
         if pr.get("isDraft"):
@@ -340,16 +358,20 @@ def render_pr_tables(
         activity = age_seconds(facts)
         return (activity if activity is not None else -1, pr["number"])
 
+    sections: list[_PrSection] = []
     for route in ROUTE_ORDER:
         rows = by_route.get(route) or []
         if not rows:
             continue
         rows.sort(key=row_sort_key, reverse=True)
-        rows, truncated = _limit_rows(rows, max_rows_per_section)
-        out.append(f"## {route_label(route)}")
-        out.append("")
-        out.append("| PR | Author | Reviewers | CI | Conflicts | Age |")
-        out.append("|---|---|---|:---:|:---:|:---:|")
+        section = _PrSection(
+            f"## {route_label(route)}",
+            (
+                "| PR | Author | Reviewers | CI | Conflicts | Age |",
+                "|---|---|---|:---:|:---:|:---:|",
+            ),
+            [],
+        )
         for pr in rows:
             number = pr["number"]
             res = results_by_number.get(number)
@@ -364,20 +386,77 @@ def render_pr_tables(
             # GitHub autolinks same-repo PR numbers; avoid full URLs so large
             # dashboards can show more PRs before hitting the issue body limit.
             pr_cell = _pr_cell_text(pr, labels_to_display)
-            out.append(
+            section.rows.append(
                 f"| {pr_cell} | {author} | {reviewers_cell} | {ci_cell(facts)} | "
                 f"{conflicts_cell(facts)} | {activity_cell} |"
             )
-        out.append("")
-        if truncated:
-            out.append(_truncation_note(truncated))
-            out.append("")
+        sections.append(section)
 
-    if not skip_drafts:
-        out.extend(render_draft_pr_section(
-            prs,
-            max_rows_per_section,
-            labels_to_display,
-            approver_logins,
-        ))
-    return "\n".join(out) + "\n"
+    draft_section = _draft_pr_section(
+        prs, labels_to_display, approver_logins, skip_drafts,
+    )
+    if draft_section is not None:
+        sections.append(draft_section)
+    truncated = any(section.omitted for section in sections)
+
+    def intro_lines() -> list[str]:
+        draft_note = (
+            "All drafts are omitted to fit GitHub's issue-body limit."
+            if draft_section is not None and not draft_section.rows
+            else "Draft PRs are listed separately."
+        )
+        grouping_note = (
+            f"Open non-draft PRs grouped by who is expected to act next. {draft_note} The grouping is "
+            f"partly performed by an LLM ([source]({source_url})) and could contain mistakes."
+        )
+        lines = [
+            "> [!NOTE]",
+            f"> {grouping_note}",
+            ">",
+            f"> {author_note}",
+            ">",
+            f"> {reviewers_note}",
+            ">",
+            f"> {ci_note}",
+            "",
+        ]
+        if truncated:
+            lines.extend([
+                "> [!WARNING]",
+                "> This dashboard is truncated to fit GitHub's issue-body limit. "
+                "Sections are trimmed from bottom to top. "
+                "The longest-waiting PRs in each section are kept.",
+                "",
+            ])
+        return lines
+
+    def markdown() -> str:
+        lines = intro_lines()
+        for section in sections:
+            lines.extend(section.lines())
+        return "\n".join(lines) + "\n"
+
+    body = markdown()
+    if max_chars is None or len(body) <= max_chars:
+        return body
+
+    intro_chars = sum(len(line) + 1 for line in intro_lines())
+    truncated = True
+    new_intro_chars = sum(len(line) + 1 for line in intro_lines())
+    body_chars = len(body) + new_intro_chars - intro_chars
+    intro_chars = new_intro_chars
+    for section in reversed(sections):
+        while section.rows and body_chars > max_chars:
+            body_chars -= section.trim_last_row()
+            new_intro_chars = sum(len(line) + 1 for line in intro_lines())
+            body_chars += new_intro_chars - intro_chars
+            intro_chars = new_intro_chars
+        if body_chars <= max_chars:
+            break
+
+    body = markdown()
+    if len(body) > max_chars:
+        raise RuntimeError(
+            f"dashboard headings and omission notices exceed the {max_chars}-character limit"
+        )
+    return body

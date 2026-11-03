@@ -698,8 +698,6 @@ class DashboardBatchProcessor:
             "--labels-to-display-json",
             json.dumps(config.get("labels_to_display", [])),
         ]
-        if config.get("large_repo", False):
-            command.append("--large-repo")
         self._run(command, env=env)
 
     def _run(
