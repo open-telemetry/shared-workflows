@@ -241,6 +241,67 @@ class AuthorNudgeEpisodeTest(unittest.TestCase):
 
         self.assertEqual("abc123", facts.author_nudge_episode_id)
 
+    @patch("pull_request_evaluation.uuid.uuid4")
+    def test_starts_new_episode_after_stale_close(self, uuid4: Mock) -> None:
+        uuid4.return_value.hex = "def456"
+        app = {"slug": "opentelemetry-pr-dashboard"}
+        facts = _assign_author_nudge_episode(
+            dashboard_facts(),
+            DashboardRoute.AUTHOR,
+            None,
+            [
+                {
+                    "performed_via_github_app": app,
+                    "body": (
+                        "<!-- pull-request-dashboard-status -->\n"
+                        "<!-- pull-request-dashboard-author-nudge-episode:abc123 -->"
+                    ),
+                },
+                {
+                    "performed_via_github_app": app,
+                    "body": "<!-- pull-request-dashboard-stale-close:abc123 -->",
+                },
+            ],
+        )
+
+        self.assertEqual("def456", facts.author_nudge_episode_id)
+
+    @patch("pull_request_evaluation.uuid.uuid4")
+    def test_starts_new_episode_when_reopened_before_refresh(
+        self, uuid4: Mock
+    ) -> None:
+        uuid4.return_value.hex = "def456"
+        facts = _assign_author_nudge_episode(
+            dashboard_facts(),
+            DashboardRoute.AUTHOR,
+            stored_dashboard_result(
+                facts=dashboard_facts(author_nudge_episode_id="abc123"),
+            ),
+            [{
+                "performed_via_github_app": {"slug": "opentelemetry-pr-dashboard"},
+                "body": "<!-- pull-request-dashboard-stale-close:abc123 -->",
+            }],
+        )
+
+        self.assertEqual("def456", facts.author_nudge_episode_id)
+
+    def test_pending_stale_close_does_not_reset_episode(self) -> None:
+        # The PR is still open and the close was interrupted, so the retry
+        # must finish it under the same episode.
+        facts = _assign_author_nudge_episode(
+            dashboard_facts(),
+            DashboardRoute.AUTHOR,
+            stored_dashboard_result(
+                facts=dashboard_facts(author_nudge_episode_id="abc123"),
+            ),
+            [{
+                "performed_via_github_app": {"slug": "opentelemetry-pr-dashboard"},
+                "body": "<!-- pull-request-dashboard-stale-close-pending:abc123 -->",
+            }],
+        )
+
+        self.assertEqual("abc123", facts.author_nudge_episode_id)
+
     def test_preserves_episode_while_route_is_held_for_gates(self) -> None:
         facts = _assign_author_nudge_episode(
             dashboard_facts(route_held_for_gates=True),

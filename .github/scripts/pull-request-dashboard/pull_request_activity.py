@@ -36,6 +36,9 @@ class PullRequestActivity:
     latest_participant_activity_at: datetime | None
     latest_author_activity_at: datetime | None
     latest_approver_activity_at: datetime | None
+    # Like `latest_participant_activity_at`, but dated by when each comment was
+    # created or review submitted, so edits to existing comments do not count.
+    latest_new_participant_activity_at: datetime | None = None
 
 
 def role_for(login: str, author: str, reviewers: set[str]) -> str:
@@ -219,9 +222,15 @@ def _ordered_events(source: ActivityInput) -> tuple[Mapping[str, Any], ...]:
 def _latest_substantive_activity(
     events: tuple[Mapping[str, Any], ...],
     actor_roles: set[str],
+    *,
+    ignore_edits: bool = False,
 ) -> datetime | None:
     timestamps = [
-        parse_ts(event.get("content_timestamp") or event["timestamp"])
+        parse_ts(
+            (event.get("created_timestamp") if ignore_edits else None)
+            or event.get("content_timestamp")
+            or event["timestamp"]
+        )
         for event in events
         if event.get("actor_role") in actor_roles
         and is_substantive_activity(event)
@@ -237,6 +246,11 @@ def build_activity_timeline(source: ActivityInput) -> PullRequestActivity:
         latest_participant_activity_at=_latest_substantive_activity(
             events,
             _PARTICIPANT_ACTOR_ROLES,
+        ),
+        latest_new_participant_activity_at=_latest_substantive_activity(
+            events,
+            _PARTICIPANT_ACTOR_ROLES,
+            ignore_edits=True,
         ),
         latest_author_activity_at=_latest_substantive_activity(
             events,

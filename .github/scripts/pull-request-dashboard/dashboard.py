@@ -172,6 +172,9 @@ Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
                                                   than PR creation time.
     last_author_activity_at         str (iso)
     last_approver_activity_at       str (iso)
+    last_new_activity_at            str (iso)     Like last_activity_at, but
+                                                  edits to existing comments
+                                                  and reviews do not count.
 
     Stage 2 — resolve_routing (depends on pending actions + the previous result):
     copilot_review_outstanding      bool          The Copilot review gate applies

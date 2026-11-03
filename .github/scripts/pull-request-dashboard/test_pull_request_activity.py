@@ -366,6 +366,38 @@ class ActivityClockTest(unittest.TestCase):
             timeline.latest_approver_activity_at,
         )
 
+    def test_new_activity_clock_ignores_edits_to_existing_comments(self) -> None:
+        timeline = activity(
+            issue_comments=[
+                {
+                    "id": 1,
+                    "created_at": "2026-07-14T01:00:00Z",
+                    "updated_at": "2026-07-16T01:00:00Z",
+                    "user": {"login": "outsider"},
+                    "body": "Edited much later",
+                },
+            ],
+            reviews=[
+                {
+                    "id": 2,
+                    "submitted_at": "2026-07-14T02:00:00Z",
+                    "content_updated_at": "2026-07-16T02:00:00Z",
+                    "user": {"login": "reviewer"},
+                    "state": "CHANGES_REQUESTED",
+                    "body": "Edited much later",
+                },
+            ],
+        )
+
+        self.assertEqual(
+            datetime(2026, 7, 16, 2, tzinfo=timezone.utc),
+            timeline.latest_participant_activity_at,
+        )
+        self.assertEqual(
+            datetime(2026, 7, 14, 2, tzinfo=timezone.utc),
+            timeline.latest_new_participant_activity_at,
+        )
+
     def test_all_activity_clocks_are_independent(self) -> None:
         timeline = activity(
             issue_comments=[
