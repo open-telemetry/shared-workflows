@@ -304,6 +304,11 @@ def main() -> int:
         help="git branch used for workflow state",
     )
     parser.add_argument(
+        "--large-repo",
+        action="store_true",
+        help="deprecated compatibility flag; dashboard sizing is always automatic",
+    )
+    parser.add_argument(
         "--labels-to-display-json",
         default="[]",
         help="JSON array of label name patterns to display",

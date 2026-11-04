@@ -312,6 +312,40 @@ class PublishablePrsTest(unittest.TestCase):
 
         self.assertEqual([], publish_accepted.call_args.args[3])
 
+    @patch.object(publish_dashboard, "publish_accepted_dashboard")
+    def test_main_accepts_legacy_large_repo_flag_without_changing_publication(
+        self,
+        publish_accepted: object,
+    ) -> None:
+        for flags in ([], ["--large-repo"]):
+            with self.subTest(flags=flags):
+                publish_accepted.reset_mock()
+                with (
+                    patch.object(
+                        sys,
+                        "argv",
+                        [
+                            "publish_dashboard.py",
+                            "--repo", "example",
+                            "--state-branch", "state",
+                            "--labels-to-display-json", '["size/*"]',
+                            *flags,
+                        ],
+                    ),
+                    patch.dict(
+                        os.environ,
+                        {"APPROVER_TEAMS_JSON": '["example-approvers"]'},
+                    ),
+                ):
+                    self.assertEqual(0, publish_dashboard.main())
+
+                publish_accepted.assert_called_once_with(
+                    "open-telemetry/example",
+                    "state",
+                    ["size/*"],
+                    ["example-approvers"],
+                )
+
     def test_passes_labels_and_approvers_to_renderer(self) -> None:
         prs = [
             {

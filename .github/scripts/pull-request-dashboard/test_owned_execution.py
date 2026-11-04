@@ -497,6 +497,35 @@ class OwnedExecutionTest(unittest.TestCase):
                 env=env,
             )
 
+    def test_collector_contrib_preserves_sizing_flag_for_pinned_stable_publisher(self) -> None:
+        config_path = Path(__file__).with_name("repositories.json")
+        processor = DashboardBatchProcessor(config_path, script_dir=Path("promoted-code"))
+        config = processor.config["opentelemetry-collector-contrib"]
+        self.assertIs(True, config["large_repo"])
+
+        with mock.patch.object(processor, "_run") as run:
+            processor._publish(
+                "open-telemetry/opentelemetry-collector-contrib",
+                "dashboard-state",
+                config,
+                {},
+            )
+
+        run.assert_called_once_with(
+            [
+                processor.python_executable,
+                str(Path("promoted-code") / "publish_dashboard.py"),
+                "--state-branch",
+                "dashboard-state",
+                "--repo",
+                "open-telemetry/opentelemetry-collector-contrib",
+                "--labels-to-display-json",
+                "[]",
+                "--large-repo",
+            ],
+            env={},
+        )
+
     def test_backfill_failure_can_publish_accepted_partial_state_but_never_succeeds(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             config = Path(directory) / "config.json"
