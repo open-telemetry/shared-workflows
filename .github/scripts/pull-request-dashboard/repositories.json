@@ -2,7 +2,9 @@
   {
     "name": "opentelemetry-collector-contrib",
     "approver_teams": ["collector-contrib-approvers"],
-    "large_repo": true
+    "large_repo": true,
+    "close_stale_after_days": 14,
+    "close_stale_exempt_labels": ["never-stale"]
   },
   {
     "name": "opentelemetry-dotnet",
