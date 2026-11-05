@@ -87,13 +87,14 @@ turn it on (see **Workflow export**). This setup emits no log records yet.
   the OpenTelemetry packages are installed. The processes that
   `drain_queue.py` starts run in the virtual environment of
   `execution_code.py`, which installs `requirements.txt`. The workflow steps
-  that export install `requirements-telemetry.txt` before they run (see
+  that export install `requirements-telemetry.lock` before they run (see
   **Workflow export**). Other workflow steps run the system `python3` without
   the packages. These steps only set `TRACEPARENT` for later use. Only `process_queue_batch.py` injects the context into the commands it starts
   (dashboard scripts and `gh`). `drain_queue.py` runs each job with a copy
   of the current context. Other children, for example the children of
   `drain_queue.py`, get `TRACEPARENT` only because they inherit the
-  environment. The Copilot CLI child gets only `TRACEPARENT` and `TRACESTATE`.
+  environment. The Copilot CLI child gets none of the `OTEL_EXPORTER_OTLP_*`
+  settings. Of the trace context, it gets only `TRACEPARENT` and `TRACESTATE`.
 - **Copilot SDK** propagates the current context in its RPC calls when
   `opentelemetry-api` is installed. It does this also when export is off.
 - **Workflow steps** set `TRACEPARENT` with `github_traceparent.sh`. The script
@@ -133,16 +134,31 @@ turn it on (see **Workflow export**). This setup emits no log records yet.
   - If `GHA_OTLP_ENDPOINT` is empty or not set, export stays off and no
     stderr line shows.
   - Before each of these steps, the job runs `actions/setup-python` and
-    `python -m pip install -r requirements-telemetry.txt`. This file holds the
-    OpenTelemetry pins. `requirements.txt` includes it with
-    `-r requirements-telemetry.txt`, so the versions are in one file.
+    installs `requirements-telemetry.lock` with
+    `pip install --require-hashes --only-binary=:all: --no-deps`. The lock
+    pins every package and its hashes. pip installs only wheels whose hashes
+    match. The install command removes the OIDC variables
+    `ACTIONS_ID_TOKEN_REQUEST_TOKEN` and `ACTIONS_ID_TOKEN_REQUEST_URL`.
+  - `requirements-telemetry.txt` holds the top-level OpenTelemetry pins.
+    `requirements.txt` includes it with `-r requirements-telemetry.txt`, so the
+    versions are in one file. Do not add hashes to these two files. A hash
+    turns on hash checking for the full `requirements.txt` install.
+  - After you change `requirements-telemetry.txt`, regenerate the lock in
+    `.github/scripts/pull-request-dashboard`. Use the command in the lock
+    header:
+    `uv pip compile requirements-telemetry.txt --generate-hashes --universal --python-version=3.15 --output-file=requirements-telemetry.lock`.
+    Renovate updates the lock with the same command.
+  - The install step has `continue-on-error: true`. If the install fails, the
+    job does not fail. The scripts then run without export.
   - To stop export, remove the four entries from the steps.
-  - A test checks the list of steps, the four values, and the install order.
+  - A test checks the list of steps, the four values, the install command,
+    and the install order.
 - **Secrets in child processes**: `OTEL_EXPORTER_OTLP_HEADERS` holds the
   token. It is in `PREPARATION_SECRET_NAMES` in `drain_queue.py`, so the
   `pip install` of the execution code does not get it. The dashboard processes
   that `drain_queue.py` starts get it, because they export. The Copilot CLI
-  child gets only `TRACEPARENT` and `TRACESTATE`.
+  child gets none of the `OTEL_EXPORTER_OTLP_*` settings. Of the trace
+  context, it gets only `TRACEPARENT` and `TRACESTATE`.
 - **Resource** has `service.name=pull-request-dashboard` (`OTEL_SERVICE_NAME`
   overrides it) plus the `vcs.*` and `cicd.pipeline.*` attributes from the GitHub
   Actions environment.
