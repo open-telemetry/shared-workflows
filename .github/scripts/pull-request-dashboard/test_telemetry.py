@@ -582,5 +582,95 @@ class WorkflowTraceparentWiringTest(unittest.TestCase):
         self.assertGreaterEqual(checked, 6)
 
 
+def workflow_jobs(text: str) -> dict[str, str]:
+    """Return the text of each job under the top-level `jobs:` key, by job ID."""
+    jobs: dict[str, list[str]] = {}
+    current: list[str] | None = None
+    in_jobs = False
+    for line in text.splitlines():
+        if re.match(r"^\S", line):
+            in_jobs = line.rstrip() == "jobs:"
+            current = None
+            continue
+        if not in_jobs:
+            continue
+        header = re.match(r"^  ([\w-]+):\s*$", line)
+        if header:
+            current = jobs.setdefault(header.group(1), [])
+        elif current is not None:
+            current.append(line)
+    return {job: "\n".join(lines) for job, lines in jobs.items()}
+
+
+OTLP_EXPORT_ENV = {
+    "PR_DASHBOARD_OTEL_ENABLED": "true",
+    "OTEL_EXPORTER_OTLP_ENDPOINT": "${{ secrets.GHA_OTLP_ENDPOINT }}",
+    "OTEL_EXPORTER_OTLP_PROTOCOL": "http/protobuf",
+    "OTEL_EXPORTER_OTLP_HEADERS": "Authorization=Bearer%20${{ secrets.GHA_OTLP_TOKEN }}",
+}
+OTLP_EXPORT_STEPS = {
+    ("pull-request-dashboard-drain.yml", "owned-drain", "Process owned queue work"),
+    ("pull-request-dashboard.yml", "enqueue", "Accept work or report request progress"),
+    ("pull-request-dashboard-refresh-author-nudges.yml", "enqueue", "Accept author reminder sweep"),
+    ("pull-request-dashboard-refresh-author-nudges.yml", "sweep", "Refresh author reminders"),
+    ("pull-request-dashboard-refresh-author-nudges.yml", "sweep", "Report GitHub App rate limits"),
+}
+TELEMETRY_INSTALL = re.compile(r"\bpython3? -m pip install -r requirements-telemetry\.txt\b")
+SCRIPT_WORKING_DIRECTORY = ".github/scripts/pull-request-dashboard"
+
+
+class WorkflowOtlpExportWiringTest(unittest.TestCase):
+    def job_steps(self) -> list[tuple[str, str, list[dict[str, str]]]]:
+        return [
+            (path.name, job, [step_sections(lines) for lines in workflow_steps(text)])
+            for path in sorted(WORKFLOWS.glob("*.yml"))
+            for job, text in workflow_jobs(path.read_text(encoding="utf-8")).items()
+        ]
+
+    def exporting_steps(self) -> list[tuple[tuple[str, str, str], list[dict[str, str]], int]]:
+        return [
+            ((workflow, job, unquote(sections.get("name", ""))), steps, index)
+            for workflow, job, steps in self.job_steps()
+            for index, sections in enumerate(steps)
+            if "PR_DASHBOARD_OTEL_ENABLED" in step_env(sections.get("env", ""))
+        ]
+
+    def test_exporting_steps_are_the_expected_steps(self) -> None:
+        self.assertEqual(OTLP_EXPORT_STEPS, {key for key, _, _ in self.exporting_steps()})
+
+    def test_exporting_steps_use_the_exact_export_settings(self) -> None:
+        for key, steps, index in self.exporting_steps():
+            with self.subTest(step=key):
+                env = step_env(steps[index].get("env", ""))
+                self.assertEqual(OTLP_EXPORT_ENV, {name: env.get(name) for name in OTLP_EXPORT_ENV})
+
+    def test_exporting_steps_install_the_sdk_first_in_the_same_job(self) -> None:
+        for key, steps, index in self.exporting_steps():
+            with self.subTest(step=key):
+                earlier = steps[:index]
+                setup = [i for i, s in enumerate(earlier) if "actions/setup-python@" in s.get("uses", "")]
+                install = [
+                    i for i, s in enumerate(earlier)
+                    if TELEMETRY_INSTALL.search(s.get("run", ""))
+                    and unquote(s.get("working-directory", "")) == SCRIPT_WORKING_DIRECTORY
+                ]
+                self.assertTrue(setup, "no actions/setup-python before the step")
+                self.assertTrue(install, "no requirements-telemetry.txt install before the step")
+                self.assertLess(setup[0], install[0])
+
+
+class TelemetryRequirementsTest(unittest.TestCase):
+    def test_requirements_include_the_single_telemetry_pin_list(self) -> None:
+        requirements = (SCRIPT_DIR / "requirements.txt").read_text(encoding="utf-8").splitlines()
+        telemetry_pins = (SCRIPT_DIR / "requirements-telemetry.txt").read_text(encoding="utf-8").splitlines()
+        self.assertIn("-r requirements-telemetry.txt", requirements)
+        self.assertFalse([line for line in requirements if line.startswith("opentelemetry")])
+        self.assertEqual(
+            ["opentelemetry-api", "opentelemetry-exporter-otlp-proto-http", "opentelemetry-sdk"],
+            sorted(line.split("==")[0] for line in telemetry_pins if line.strip()),
+        )
+        self.assertTrue(all("==" in line for line in telemetry_pins if line.strip()))
+
+
 if __name__ == "__main__":
     unittest.main()

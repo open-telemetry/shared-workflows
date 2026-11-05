@@ -53,6 +53,9 @@ jobs:
         run: |
           npm ci --prefix .github/scripts/pull-request-dashboard
           mkdir -p .github/scripts/pull-request-dashboard/.cache/classifications
+      - name: Install telemetry dependencies
+        working-directory: .github/scripts/pull-request-dashboard
+        run: python -m pip install -r requirements-telemetry.txt
       - name: Restore classification cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
@@ -69,6 +72,10 @@ jobs:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
           OTEL_GITHUB_STEP_NAME: Process owned queue work
           OTEL_GITHUB_CHECK_RUN_ID: ${{ job.check_run_id }}
+          PR_DASHBOARD_OTEL_ENABLED: "true"
+          OTEL_EXPORTER_OTLP_ENDPOINT: ${{ secrets.GHA_OTLP_ENDPOINT }}
+          OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+          OTEL_EXPORTER_OTLP_HEADERS: Authorization=Bearer%20${{ secrets.GHA_OTLP_TOKEN }}
         run: |
           set -euo pipefail
           [[ "$DISPATCHER_GENERATION" =~ ^[1-9][0-9]*$ ]] || { echo "bad dispatcher generation"; exit 1; }

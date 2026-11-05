@@ -59,8 +59,9 @@ configuration; changing those settings cannot reuse results from the old configu
 ## Telemetry
 
 The dashboard scripts have an optional OpenTelemetry setup for traces and the
-logs bridge (`telemetry.py`). It is off by default and does not change the
-scripts' output, exit codes, or behavior. This setup emits no log records yet.
+logs bridge (`telemetry.py`). It is off by default in the code and does not
+change the scripts' output, exit codes, or behavior. The dashboard workflows
+turn it on (see **Workflow export**). This setup emits no log records yet.
 
 - **Spans** follow the OpenTelemetry semantic conventions for CLI programs
   (status Development). Each entry point makes one `INTERNAL` span for its run.
@@ -83,11 +84,12 @@ scripts' output, exit codes, or behavior. This setup emits no log records yet.
 - **Context propagation** uses the environment variables `TRACEPARENT`,
   `TRACESTATE`, and `BAGGAGE`, as the OpenTelemetry specification defines.
   An entry point extracts the parent context from its environment only when
-  the OpenTelemetry packages are installed. Today, only the processes that
-  `drain_queue.py` starts have these packages. They run in the virtual
-  environment of `execution_code.py`, which installs `requirements.txt`. Other
-  workflow steps run the system `python3`. These steps only set `TRACEPARENT`
-  for later use. Only `process_queue_batch.py` injects the context into the commands it starts
+  the OpenTelemetry packages are installed. The processes that
+  `drain_queue.py` starts run in the virtual environment of
+  `execution_code.py`, which installs `requirements.txt`. The workflow steps
+  that export install `requirements-telemetry.txt` before they run (see
+  **Workflow export**). Other workflow steps run the system `python3` without
+  the packages. These steps only set `TRACEPARENT` for later use. Only `process_queue_batch.py` injects the context into the commands it starts
   (dashboard scripts and `gh`). `drain_queue.py` runs each job with a copy
   of the current context. Other children, for example the children of
   `drain_queue.py`, get `TRACEPARENT` only because they inherit the
@@ -107,6 +109,40 @@ scripts' output, exit codes, or behavior. This setup emits no log records yet.
   `OTEL_EXPORTER_OTLP_ENDPOINT` (or a `_TRACES_`/`_LOGS_` signal endpoint) is
   set, and `OTEL_SDK_DISABLED` is not `true`. Exporters use OTLP over HTTP with the
   standard `OTEL_EXPORTER_OTLP_*` settings and SDK default shutdown.
+- **Workflow export**: these workflow steps send traces (and, later, logs)
+  over OTLP/HTTP:
+  - `pull-request-dashboard.yml`: "Accept work or report request progress"
+  - `pull-request-dashboard-drain.yml`: "Process owned queue work"
+  - `pull-request-dashboard-refresh-author-nudges.yml`: "Accept author
+    reminder sweep", "Refresh author reminders", and "Report GitHub App rate
+    limits"
+
+  Each of these steps sets the same four entries in its `env:` block. The
+  flag is explicit in the workflow so that a reviewer can see it:
+
+  ```yaml
+  PR_DASHBOARD_OTEL_ENABLED: "true"
+  OTEL_EXPORTER_OTLP_ENDPOINT: ${{ secrets.GHA_OTLP_ENDPOINT }}
+  OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+  OTEL_EXPORTER_OTLP_HEADERS: Authorization=Bearer%20${{ secrets.GHA_OTLP_TOKEN }}
+  ```
+
+  - `GHA_OTLP_ENDPOINT` and `GHA_OTLP_TOKEN` are repository secrets. The
+    endpoint is the base URL. The SDK adds `/v1/traces` and `/v1/logs`.
+  - `%20` is the space in the header value. The SDK decodes it.
+  - If `GHA_OTLP_ENDPOINT` is empty or not set, export stays off and no
+    stderr line shows.
+  - Before each of these steps, the job runs `actions/setup-python` and
+    `python -m pip install -r requirements-telemetry.txt`. This file holds the
+    OpenTelemetry pins. `requirements.txt` includes it with
+    `-r requirements-telemetry.txt`, so the versions are in one file.
+  - To stop export, remove the four entries from the steps.
+  - A test checks the list of steps, the four values, and the install order.
+- **Secrets in child processes**: `OTEL_EXPORTER_OTLP_HEADERS` holds the
+  token. It is in `PREPARATION_SECRET_NAMES` in `drain_queue.py`, so the
+  `pip install` of the execution code does not get it. The dashboard processes
+  that `drain_queue.py` starts get it, because they export. The Copilot CLI
+  child gets only `TRACEPARENT` and `TRACESTATE`.
 - **Resource** has `service.name=pull-request-dashboard` (`OTEL_SERVICE_NAME`
   overrides it) plus the `vcs.*` and `cicd.pipeline.*` attributes from the GitHub
   Actions environment.

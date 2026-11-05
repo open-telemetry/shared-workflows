@@ -116,6 +116,7 @@ class DrainQueueTest(unittest.TestCase):
             "COPILOT_GITHUB_TOKEN": "copilot",
             "COPILOT_REVIEW_FALLBACK_TOKEN": "request-token",
             "GITHUB_TOKEN": "github",
+            "OTEL_EXPORTER_OTLP_HEADERS": "Authorization=Bearer%20otlp-token",
             "PR_DASHBOARD_PRIVATE_KEY": "key",
             "SLACK_WEBHOOK_URL": "https://slack.example",
         }
@@ -123,6 +124,18 @@ class DrainQueueTest(unittest.TestCase):
             environment = drain_queue.code_preparation_environment()
         self.assertEqual("/bin", environment["PATH"])
         self.assertTrue(secrets.keys().isdisjoint(environment))
+
+    def test_child_process_environment_keeps_otlp_export_settings(self) -> None:
+        export = {
+            "OTEL_EXPORTER_OTLP_ENDPOINT": "https://collector.example",
+            "OTEL_EXPORTER_OTLP_HEADERS": "Authorization=Bearer%20otlp-token",
+            "PR_DASHBOARD_OTEL_ENABLED": "true",
+        }
+        credentials = {"PR_DASHBOARD_CLIENT_ID": "client", "PR_DASHBOARD_PRIVATE_KEY": "key"}
+        with mock.patch.dict(os.environ, {**export, **credentials}):
+            environment = drain_queue.child_process_environment()
+        self.assertEqual(export, {name: environment.get(name) for name in export})
+        self.assertTrue(credentials.keys().isdisjoint(environment))
 
     def test_main_reports_invalid_canary_repositories_json(self) -> None:
         argv = [
