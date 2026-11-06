@@ -159,7 +159,7 @@ There is no direct-dispatch fallback or return-to-legacy execution mode.
 
 ## Dashboard columns
 
-The dashboard groups open non-draft pull requests by who is expected to act next (e.g. *Waiting on reviewers*, *Waiting on authors*, *Waiting on maintainers*). Draft PRs are listed separately at the bottom unless `large_repo` rendering is enabled. Within each group, rows are sorted longest-waiting first. Every row has these six columns:
+The dashboard groups open non-draft pull requests by who is expected to act next (e.g. *Waiting on reviewers*, *Waiting on authors*, *Waiting on maintainers*). Draft PRs are listed separately at the bottom. Within each group, rows are sorted longest-waiting first. Every row has these six columns:
 
 - **PR** — Pull request number and title, followed by any configured matching labels. The number autolinks to the PR on GitHub. Configured labels are rendered inline for both active and draft PRs.
 - **Author** — Effective author of the PR, including in the draft section. For Copilot-authored PRs, this is the human assignee or first-commit committer when available. The login is followed by at most one badge, checked in this order:
@@ -242,7 +242,13 @@ Fields:
 | `close_stale_exempt_labels` | no | Case-sensitive label names that exempt a PR from `close_stale_after_days`, for example `["never-stale"]`. Defaults to `[]`. |
 | `slack_channel` | no | Slack channel for notifications. Omit to skip Slack processing for this repository. |
 | `slack_user_mapping` | no | Map of GitHub login to Slack user ID for at-mentions. |
-| `large_repo` | no | If `true`, apply rendering presets that keep the dashboard body under GitHub's 65,536-character issue-body limit: cap each section (each *Waiting on …* table and the *Draft pull requests* table) at 100 rows, and omit the *Draft pull requests* section entirely. Truncated sections get a `_More X PRs not shown_` footer. Defaults to `false` (no cap, drafts shown). Enable this for very large repos with hundreds of PRs. |
+| `large_repo` | no | Deprecated. Pinned releases without automatic sizing use `true` to cap each non-draft section at 100 rows and omit drafts. The automatic publisher ignores this setting. Keep existing entries until automatic sizing has been promoted to stable. |
+
+Dashboard sizing is automatic. All rows, including drafts, are shown whenever the complete Markdown body fits GitHub's 65,536-character issue-body limit. Otherwise, complete rows are removed from the bottom of the dashboard: drafts first, then unknown PRs, transient GitHub failures, PRs waiting on authors, PRs waiting on reviewers, and finally PRs waiting on maintainers. Each lower section is exhausted before the next section is trimmed. Non-draft sections keep their longest-waiting PRs; the draft section keeps the PRs that have been drafts longest.
+
+A truncated dashboard includes a size-limit warning and a `_More X PRs not shown_` footer in each affected section. Section headings and omission counts remain even when all their rows are omitted. The introductory note explicitly says when all drafts are omitted. Notices and footers count toward the size limit. Truncation only affects the dashboard display, not PR processing, routing, or notifications.
+
+Automatic sizing follows the canary-to-stable release rollout. Until its release is promoted, stable repositories retain the pinned publisher's behavior. The queue forwards `--large-repo` for configured repositories to preserve their sizing protection; the automatic publisher accepts the flag as a no-op. Remove the legacy configuration entries, flag forwarding, and compatibility flag only after the automatic publisher is promoted to stable.
 
 `labels_to_display` only controls which labels are shown. It does not filter pull requests or affect dashboard routing, notifications, or status comments. All matching labels are displayed in the order returned by GitHub; a label matching more than one configured pattern is shown once.
 

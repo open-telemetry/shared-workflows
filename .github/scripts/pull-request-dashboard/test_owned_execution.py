@@ -258,7 +258,7 @@ class OwnedExecutionTest(unittest.TestCase):
     def test_entry_inputs_preserve_target_and_head_validation(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             config = Path(directory) / "config.json"
-            config.write_text('[{"name":"a"},{"name":"b","large_repo":true}]', encoding="utf-8")
+            config.write_text('[{"name":"a"},{"name":"b"}]', encoding="utf-8")
             self.assertEqual(
                 [(item["repository"], item["kind"], item["triggerEvent"]) for item in requests(config, "", "", "", "schedule")],
                 [("a", "backfill", "schedule"), ("b", "backfill", "schedule")],
@@ -448,7 +448,7 @@ class OwnedExecutionTest(unittest.TestCase):
     def test_bounded_initial_backfill_continues_until_full_publication(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             config = Path(directory) / "config.json"
-            config.write_text('[{"name":"example","large_repo":true}]', encoding="utf-8")
+            config.write_text('[{"name":"example"}]', encoding="utf-8")
             processor = DashboardBatchProcessor(config)
             item = WorkItem("example", None, (
                 Claim("example#backfill", 1, "example", None, "", 0, ("schedule",), "backfill"),
@@ -467,8 +467,64 @@ class OwnedExecutionTest(unittest.TestCase):
             self.assertEqual(second[0]["outcome"], "success")
             self.assertEqual(update.call_args.args[1], None)
             self.assertEqual(update.call_args.args[4]["PREPARE_AUTHOR_NUDGES"], "true")
-            self.assertTrue(publish.call_args.args[2]["large_repo"])
+            self.assertEqual("example", publish.call_args.args[2]["name"])
             receipt.assert_called_once()
+
+    def test_publication_only_passes_repository_state_and_labels(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            config = Path(directory) / "config.json"
+            config.write_text('[{"name":"example"}]', encoding="utf-8")
+            processor = DashboardBatchProcessor(config)
+            env = {"APPROVER_TEAMS_JSON": '["example-approvers"]'}
+            with mock.patch.object(processor, "_run") as run:
+                processor._publish(
+                    "open-telemetry/example",
+                    "dashboard-state",
+                    {"labels_to_display": ["size/*"]},
+                    env,
+                )
+            run.assert_called_once_with(
+                [
+                    processor.python_executable,
+                    str(processor.script_dir / "publish_dashboard.py"),
+                    "--state-branch",
+                    "dashboard-state",
+                    "--repo",
+                    "open-telemetry/example",
+                    "--labels-to-display-json",
+                    '["size/*"]',
+                ],
+                env=env,
+            )
+
+    def test_collector_contrib_preserves_sizing_flag_for_pinned_stable_publisher(self) -> None:
+        config_path = Path(__file__).with_name("repositories.json")
+        processor = DashboardBatchProcessor(config_path, script_dir=Path("promoted-code"))
+        config = processor.config["opentelemetry-collector-contrib"]
+        self.assertIs(True, config["large_repo"])
+
+        with mock.patch.object(processor, "_run") as run:
+            processor._publish(
+                "open-telemetry/opentelemetry-collector-contrib",
+                "dashboard-state",
+                config,
+                {},
+            )
+
+        run.assert_called_once_with(
+            [
+                processor.python_executable,
+                str(Path("promoted-code") / "publish_dashboard.py"),
+                "--state-branch",
+                "dashboard-state",
+                "--repo",
+                "open-telemetry/opentelemetry-collector-contrib",
+                "--labels-to-display-json",
+                "[]",
+                "--large-repo",
+            ],
+            env={},
+        )
 
     def test_backfill_failure_can_publish_accepted_partial_state_but_never_succeeds(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

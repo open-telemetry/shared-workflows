@@ -25,7 +25,7 @@ from github_cli import (
 from dashboard_contracts import StoredDashboardResult
 from pull_request_author import effective_author, is_copilot_author
 from pull_request_source import normalize_commits, normalize_pull_request
-from render import render_pr_tables
+from render import ISSUE_BODY_MAX_CHARS, render_pr_tables
 from state import (
     dashboard_markdown_path,
     load_dashboard_state_cache,
@@ -40,8 +40,6 @@ DASHBOARD_TITLE = "Pull Request Dashboard"
 DASHBOARD_LABEL = "dashboard"
 DASHBOARD_LABEL_COLOR = "cfd3d7"
 DASHBOARD_LABEL_DESCRIPTION = "Pull request dashboard"
-ISSUE_BODY_MAX_CHARS = 65536
-LARGE_REPO_MAX_ROWS_PER_SECTION = 100
 
 
 def _parse_string_list_json(raw: str, source: str) -> list[str]:
@@ -225,7 +223,6 @@ def add_draft_since(repo: str, prs: list[dict[str, Any]]) -> None:
 
 def render_dashboard_markdown(
     repo: str,
-    large_repo: bool,
     labels_to_display: list[str] | None = None,
     approver_teams: list[str] | None = None,
 ) -> Path:
@@ -239,16 +236,26 @@ def render_dashboard_markdown(
         else ()
     )
     prs = list_open_prs(repo)
-    if not large_repo:
-        add_draft_authors(repo, prs)
-        add_draft_since(repo, prs)
     open_non_draft_pr_numbers = {p["number"] for p in prs if not p.get("isDraft")}
     results = results_from_dashboard_state(dashboard_state, open_non_draft_pr_numbers)
+    prs = publishable_prs(prs, results)
+    skip_drafts = False
+    if any(pr.get("isDraft") for pr in prs):
+        non_draft_md = render_pr_tables(
+            [pr for pr in prs if not pr.get("isDraft")],
+            results,
+            max_chars=None,
+            labels_to_display=labels_to_display,
+            approver_logins=approver_logins,
+        )
+        skip_drafts = len(non_draft_md) >= ISSUE_BODY_MAX_CHARS
+        if not skip_drafts:
+            add_draft_authors(repo, prs)
+            add_draft_since(repo, prs)
     md = render_pr_tables(
-        publishable_prs(prs, results),
+        prs,
         results,
-        max_rows_per_section=LARGE_REPO_MAX_ROWS_PER_SECTION if large_repo else None,
-        skip_drafts=large_repo,
+        skip_drafts=skip_drafts,
         labels_to_display=labels_to_display,
         approver_logins=approver_logins,
     )
@@ -271,7 +278,6 @@ def render_dashboard_markdown(
 def publish_accepted_dashboard(
     repo: str,
     state_branch_name: str,
-    large_repo: bool,
     labels_to_display: list[str] | None = None,
     approver_teams: list[str] | None = None,
 ) -> None:
@@ -283,7 +289,6 @@ def publish_accepted_dashboard(
             repo,
             render_dashboard_markdown(
                 repo,
-                large_repo,
                 labels_to_display,
                 approver_teams,
             ),
@@ -301,7 +306,7 @@ def main() -> int:
     parser.add_argument(
         "--large-repo",
         action="store_true",
-        help="apply large-repo rendering presets",
+        help="deprecated compatibility flag; dashboard sizing is always automatic",
     )
     parser.add_argument(
         "--labels-to-display-json",
@@ -314,7 +319,6 @@ def main() -> int:
     publish_accepted_dashboard(
         repo,
         args.state_branch,
-        args.large_repo,
         parse_labels_to_display_json(args.labels_to_display_json),
         parse_approver_teams_json(os.environ.get(APPROVER_TEAMS_ENV) or "[]"),
     )
