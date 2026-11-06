@@ -4,6 +4,10 @@
     "config:best-practices",
     "helpers:pinGitHubActionDigestsToSemver"
   ],
+  // update the hash-locked telemetry install from the command in its header
+  "pip-compile": {
+    "managerFilePatterns": ["/(^|/)requirements-telemetry\\.lock$/"]
+  },
   "packageRules": [
     {
       "groupName": "all patch versions",

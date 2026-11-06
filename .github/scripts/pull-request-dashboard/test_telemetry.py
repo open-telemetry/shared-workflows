@@ -529,6 +529,13 @@ def step_env(section: str) -> dict[str, str]:
     }
 
 
+def scope_env(text: str) -> dict[str, str]:
+    """Return the `env:` entries of a workflow or job, not of its steps."""
+    indent = min(len(line) - len(line.lstrip(" ")) for line in text.splitlines() if line.strip())
+    header = re.search(rf"^ {{{indent}}}env:\s*\n((?: {{{indent + 1},}}\S.*\n?|\s*\n)*)", text, re.MULTILINE)
+    return step_env(header.group(1)) if header else {}
+
+
 def first_entry_point_call(run: str) -> re.Match[str] | None:
     """Return the first entry-point call on a line that does not run unittest or pip."""
     for call in ENTRY_POINT_CALL.finditer(run):
@@ -580,6 +587,138 @@ class WorkflowTraceparentWiringTest(unittest.TestCase):
                 env = step_env(sections.get("env", ""))
                 self.assertEqual(name, env.get("OTEL_GITHUB_STEP_NAME"))
         self.assertGreaterEqual(checked, 6)
+
+
+def workflow_jobs(text: str) -> dict[str, str]:
+    """Return the text of each job under the top-level `jobs:` key, by job ID."""
+    jobs: dict[str, list[str]] = {}
+    current: list[str] | None = None
+    in_jobs = False
+    for line in text.splitlines():
+        if not line.strip() or line.lstrip().startswith("#"):
+            continue
+        if re.match(r"^\S", line):
+            in_jobs = line.rstrip() == "jobs:"
+            current = None
+            continue
+        if not in_jobs:
+            continue
+        header = re.match(r"^  ([\w-]+):\s*$", line)
+        if header:
+            current = jobs.setdefault(header.group(1), [])
+        elif current is not None:
+            current.append(line)
+    return {job: "\n".join(lines) for job, lines in jobs.items()}
+
+
+OTLP_EXPORT_ENV = {
+    "PR_DASHBOARD_OTEL_ENABLED": "true",
+    "OTEL_EXPORTER_OTLP_ENDPOINT": "${{ secrets.GHA_OTLP_ENDPOINT }}",
+    "OTEL_EXPORTER_OTLP_PROTOCOL": "http/protobuf",
+    "OTEL_EXPORTER_OTLP_HEADERS": "Authorization=Bearer%20${{ secrets.GHA_OTLP_TOKEN }}",
+}
+OTLP_EXPORT_STEPS = {
+    ("pull-request-dashboard-drain.yml", "owned-drain", "Process owned queue work"),
+    ("pull-request-dashboard.yml", "enqueue", "Accept work or report request progress"),
+    ("pull-request-dashboard-refresh-author-nudges.yml", "enqueue", "Accept author reminder sweep"),
+    ("pull-request-dashboard-refresh-author-nudges.yml", "sweep", "Refresh author reminders"),
+    ("pull-request-dashboard-refresh-author-nudges.yml", "sweep", "Report GitHub App rate limits"),
+}
+TELEMETRY_INSTALL = re.compile(
+    r"^env -u ACTIONS_ID_TOKEN_REQUEST_TOKEN -u ACTIONS_ID_TOKEN_REQUEST_URL"
+    r" python -m pip install --disable-pip-version-check --require-hashes --only-binary=:all:"
+    r" --no-deps -r requirements-telemetry\.lock$"
+)
+SCRIPT_WORKING_DIRECTORY = ".github/scripts/pull-request-dashboard"
+
+
+class WorkflowOtlpExportWiringTest(unittest.TestCase):
+    def job_steps(self) -> list[tuple[str, str, list[dict[str, str]]]]:
+        return [
+            (path.name, job, [step_sections(lines) for lines in workflow_steps(text)])
+            for path in sorted(WORKFLOWS.glob("*.yml"))
+            for job, text in workflow_jobs(path.read_text(encoding="utf-8")).items()
+        ]
+
+    def exporting_steps(self) -> list[tuple[tuple[str, str, str], list[dict[str, str]], int]]:
+        return [
+            ((workflow, job, unquote(sections.get("name", ""))), steps, index)
+            for workflow, job, steps in self.job_steps()
+            for index, sections in enumerate(steps)
+            if "PR_DASHBOARD_OTEL_ENABLED" in step_env(sections.get("env", ""))
+        ]
+
+    def test_exporting_steps_are_the_expected_steps(self) -> None:
+        self.assertEqual(OTLP_EXPORT_STEPS, {key for key, _, _ in self.exporting_steps()})
+
+    def test_exporting_steps_use_the_exact_export_settings(self) -> None:
+        for key, steps, index in self.exporting_steps():
+            with self.subTest(step=key):
+                env = step_env(steps[index].get("env", ""))
+                self.assertEqual(OTLP_EXPORT_ENV, {name: env.get(name) for name in OTLP_EXPORT_ENV})
+
+    def test_exporting_steps_install_the_sdk_first_in_the_same_job(self) -> None:
+        for key, steps, index in self.exporting_steps():
+            with self.subTest(step=key):
+                earlier = steps[:index]
+                setup = [i for i, s in enumerate(earlier) if "actions/setup-python@" in s.get("uses", "")]
+                install = [
+                    i for i, s in enumerate(earlier)
+                    if TELEMETRY_INSTALL.search(unquote(s.get("run", "")))
+                    and unquote(s.get("working-directory", "")) == SCRIPT_WORKING_DIRECTORY
+                ]
+                self.assertTrue(setup, "no actions/setup-python before the step")
+                self.assertTrue(install, "no requirements-telemetry.lock install before the step")
+                self.assertLess(setup[0], install[0])
+                for i in install:
+                    self.assertEqual("true", unquote(earlier[i].get("continue-on-error", "")))
+                    self.assertNotIn("secrets.", earlier[i].get("env", ""))
+
+    def test_otlp_secrets_appear_only_in_the_exporting_steps(self) -> None:
+        texts = [path.read_text(encoding="utf-8") for path in sorted(WORKFLOWS.glob("*.yml"))]
+        for secret in ("secrets.GHA_OTLP_TOKEN", "secrets.GHA_OTLP_ENDPOINT"):
+            with self.subTest(secret=secret):
+                self.assertEqual(len(OTLP_EXPORT_STEPS), sum(text.count(secret) for text in texts))
+
+    def test_workflow_and_job_env_do_not_set_export_settings(self) -> None:
+        for path in sorted(WORKFLOWS.glob("*.yml")):
+            text = path.read_text(encoding="utf-8")
+            blocks = {"<workflow>": text, **workflow_jobs(text)}
+            for scope, block in blocks.items():
+                with self.subTest(workflow=path.name, scope=scope):
+                    self.assertFalse(set(OTLP_EXPORT_ENV) & set(scope_env(block)))
+
+
+class TelemetryRequirementsTest(unittest.TestCase):
+    def test_requirements_include_the_single_telemetry_pin_list(self) -> None:
+        requirements = (SCRIPT_DIR / "requirements.txt").read_text(encoding="utf-8").splitlines()
+        telemetry_pins = (SCRIPT_DIR / "requirements-telemetry.txt").read_text(encoding="utf-8").splitlines()
+        self.assertIn("-r requirements-telemetry.txt", requirements)
+        self.assertFalse([line for line in requirements if line.startswith("opentelemetry")])
+        self.assertEqual(
+            ["opentelemetry-api", "opentelemetry-exporter-otlp-proto-http", "opentelemetry-sdk"],
+            sorted(line.split("==")[0] for line in telemetry_pins if line.strip()),
+        )
+        self.assertTrue(all("==" in line for line in telemetry_pins if line.strip()))
+
+    def test_lock_pins_and_hashes_every_package(self) -> None:
+        lock = (SCRIPT_DIR / "requirements-telemetry.lock").read_text(encoding="utf-8")
+        entries = re.split(r"\n(?=\S)", re.sub(r"^\s*#.*\n?", "", lock, flags=re.MULTILINE).strip())
+        self.assertGreaterEqual(len(entries), 3)
+        for entry in entries:
+            with self.subTest(entry=entry.split()[0]):
+                self.assertRegex(entry, r"^[A-Za-z0-9][\w.-]*==[\w.!+-]+\s")
+                self.assertIn("--hash=sha256:", entry)
+        locked = dict(entry.split()[0].split("==", 1) for entry in entries)
+        telemetry_pins = (SCRIPT_DIR / "requirements-telemetry.txt").read_text(encoding="utf-8").split()
+        pins = dict(pin.split("==", 1) for pin in telemetry_pins)
+        self.assertEqual(pins, {name: locked.get(name) for name in pins})
+
+    def test_pip_requirements_files_have_no_hashes(self) -> None:
+        # Any hash turns on hash-checking for the whole unhashed requirements.txt install.
+        for name in ("requirements.txt", "requirements-telemetry.txt"):
+            with self.subTest(file=name):
+                self.assertNotIn("--hash", (SCRIPT_DIR / name).read_text(encoding="utf-8"))
 
 
 if __name__ == "__main__":

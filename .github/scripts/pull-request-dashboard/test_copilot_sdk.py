@@ -88,6 +88,8 @@ class CopilotSdkModelRunnerTest(unittest.IsolatedAsyncioTestCase):
                 "COPILOT_REVIEW_FALLBACK_TOKEN": "request-token",
                 "PR_DASHBOARD_PRIVATE_KEY": "private-key",
                 "SLACK_WEBHOOK_URL": "slack-secret",
+                "OTEL_EXPORTER_OTLP_ENDPOINT": "https://collector.example",
+                "OTEL_EXPORTER_OTLP_HEADERS": "Authorization=Bearer%20otlp-secret",
                 "COPILOT_CLI_PATH": "ambient-runtime",
                 "COPILOT_OTEL_EXPORTER_TYPE": "otlp-http",
                 "HOME": "ambient-home",
