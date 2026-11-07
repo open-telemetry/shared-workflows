@@ -218,6 +218,10 @@ Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
                                                   handoff reaches reviewers,
                                                   restarted when a re-review
                                                   returns the PR to approvers,
+                                                  or dated by the later of an
+                                                  explicit reviewer handoff
+                                                  and pending human re-requests
+                                                  using their event timestamps,
                                                   and otherwise never moves
                                                   forward on a reviewer route.
     waiting_age_basis               str           Which heuristic chose

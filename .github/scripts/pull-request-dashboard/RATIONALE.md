@@ -391,6 +391,13 @@ the implementation understandable and operationally cheap.
   threads, so reviewers are not charged for time before the explicit handoff.
   That timestamp remains a lower bound while the handoff is active, including
   across refreshes and pushes, without replacing a later review re-request.
+- Handoffs and pending human re-requests are ordered by their GitHub event
+  timestamps, not by when a refresh discovers them or which clock rule runs
+  first. Pending review requests have no timestamp themselves, so the timestamp
+  comes from the paginated review-request timeline. An active handoff uses the
+  later of its command and the pending re-requests, including without cached
+  routing state. An undated request cannot supersede a dated handoff. Completing
+  a re-request preserves its cached wait as the PR progresses to maintainers.
 - PRs from unattended automation never route to their author because the
   automation cannot respond to a dashboard action. Copilot-delegated PRs are
   different. The dashboard recovers a human assignee or the first commit's

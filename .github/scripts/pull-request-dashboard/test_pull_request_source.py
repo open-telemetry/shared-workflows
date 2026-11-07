@@ -111,7 +111,8 @@ class PullRequestSourceNormalizationTest(unittest.TestCase):
                         "requestedReviewer": {
                             "__typename": "Team",
                             "slug": "maintainers",
-                        }
+                        },
+                        "requested_at": "2026-08-20T08:00:00Z",
                     }
                 ],
                 "review_threads": [
@@ -194,6 +195,7 @@ class PullRequestSourceNormalizationTest(unittest.TestCase):
         )
         self.assertEqual(13, source.reviews[0].database_id)
         self.assertEqual("maintainers", source.review_requests[0].login)
+        self.assertEqual("2026-08-20T08:00:00Z", source.review_requests[0].requested_at)
         self.assertEqual(
             "2026-08-20T08:30:00Z",
             source.review_threads[0].comments[0].updated_at,

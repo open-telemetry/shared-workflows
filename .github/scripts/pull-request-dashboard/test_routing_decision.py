@@ -28,6 +28,7 @@ class RoutingTestMixin:
         require_clean_copilot_review: bool = False,
         manual_reviewer_handoff: bool = False,
         pending_human_reviewer_logins: frozenset[str] = frozenset(),
+        pending_review_requested_at: dict[str, str] | None = None,
         now: datetime = NOW,
     ) -> RoutingOutcome:
         typed_facts = (
@@ -54,6 +55,7 @@ class RoutingTestMixin:
                 require_clean_copilot_review=require_clean_copilot_review,
                 manual_reviewer_handoff=manual_reviewer_handoff,
                 pending_human_reviewer_logins=pending_human_reviewer_logins,
+                pending_review_requested_at=pending_review_requested_at or {},
                 now=now,
             )
         )
@@ -977,6 +979,7 @@ class RoutingWaitAgeTest(RoutingTestMixin, unittest.TestCase):
                         "waiting_age_basis": previous_basis,
                     },
                     pending_human_reviewer_logins=frozenset({"reviewer"}),
+                    pending_review_requested_at={"reviewer": "2026-08-16T11:00:00Z"},
                     manual_reviewer_handoff=True,
                 )
                 carried = self.resolve(
@@ -984,17 +987,111 @@ class RoutingWaitAgeTest(RoutingTestMixin, unittest.TestCase):
                     previous_route=started.route,
                     previous_facts=started.facts,
                     pending_human_reviewer_logins=frozenset({"reviewer"}),
+                    pending_review_requested_at={"reviewer": "2026-08-16T11:00:00Z"},
                     manual_reviewer_handoff=True,
                     now=NOW + timedelta(hours=1),
                 )
 
                 for outcome in (started, carried):
                     self.assertEqual(
-                        "2026-08-16T12:00:00+00:00", outcome.facts.waiting_since
+                        "2026-08-16T11:00:00+00:00", outcome.facts.waiting_since
                     )
                     self.assertEqual(
                         "review_rerequest", outcome.facts.waiting_age_basis
                     )
+
+    def test_handoff_and_rerequest_clocks_follow_event_order_not_refresh_time(self) -> None:
+        for requested_at, expected_since, expected_basis in (
+            ("2026-08-16T08:00:00Z", "2026-08-16T09:00:00+00:00", "reviewer_handoff"),
+            ("2026-08-16T09:00:00Z", "2026-08-16T09:00:00+00:00", "reviewer_handoff"),
+            ("2026-08-16T10:00:00Z", "2026-08-16T10:00:00+00:00", "review_rerequest"),
+            ("2026-08-16T04:00:00-07:00", "2026-08-16T04:00:00-07:00", "review_rerequest"),
+            ("", "2026-08-16T09:00:00+00:00", "reviewer_handoff"),
+        ):
+            for previous_route in (None, "author", "approver", "maintainer"):
+                with self.subTest(requested_at=requested_at, previous_route=previous_route):
+                    facts = dashboard_facts(
+                        head_sha="abc",
+                        dashboard_override_head_sha="abc",
+                        dashboard_override_since="2026-08-16T09:00:00Z",
+                        last_author_activity_at="2026-07-29T08:00:00Z",
+                        reviewers=[{"login": "reviewer", "pending_review": True}],
+                    )
+                    started = self.resolve(
+                        facts,
+                        previous_route=previous_route,
+                        previous_facts={
+                            "waiting_since": "2026-07-29T08:00:00Z",
+                            "waiting_age_basis": "last_author_activity",
+                        },
+                        pending_human_reviewer_logins=frozenset({"reviewer"}),
+                        pending_review_requested_at={"reviewer": requested_at},
+                        manual_reviewer_handoff=True,
+                    )
+                    carried = self.resolve(
+                        facts,
+                        previous_route=started.route,
+                        previous_facts=started.facts,
+                        pending_human_reviewer_logins=frozenset({"reviewer"}),
+                        pending_review_requested_at={"reviewer": requested_at},
+                        manual_reviewer_handoff=True,
+                        now=NOW + timedelta(hours=1),
+                    )
+                    for outcome in (started, carried):
+                        self.assertEqual(expected_since, outcome.facts.waiting_since)
+                        self.assertEqual(expected_basis, outcome.facts.waiting_age_basis)
+
+    def test_completed_rerequest_does_not_roll_back_the_handoff_wait(self) -> None:
+        outcome = self.resolve(
+            {
+                "approval_count": 1,
+                "head_sha": "abc",
+                "dashboard_override_head_sha": "abc",
+                "dashboard_override_since": "2026-08-16T09:00:00Z",
+            },
+            previous_route="approver",
+            previous_facts={
+                "dashboard_override_since": "2026-08-16T09:00:00Z",
+                "waiting_since": "2026-08-16T10:00:00Z",
+                "waiting_age_basis": "review_rerequest",
+            },
+            manual_reviewer_handoff=True,
+        )
+
+        self.assertEqual("maintainer", outcome.route)
+        self.assertEqual("2026-08-16T10:00:00+00:00", outcome.facts.waiting_since)
+        self.assertEqual("review_rerequest", outcome.facts.waiting_age_basis)
+
+    def test_multiple_pending_rerequests_use_the_latest_event(self) -> None:
+        outcome = self.resolve(
+            {
+                "head_sha": "abc",
+                "dashboard_override_head_sha": "abc",
+                "dashboard_override_since": "2026-08-16T09:00:00Z",
+            },
+            pending_human_reviewer_logins=frozenset({"first", "second"}),
+            pending_review_requested_at={
+                "first": "2026-08-16T08:00:00Z",
+                "second": "2026-08-16T10:00:00Z",
+                "not-pending": "2026-08-16T11:00:00Z",
+            },
+            manual_reviewer_handoff=True,
+        )
+
+        self.assertEqual("2026-08-16T10:00:00+00:00", outcome.facts.waiting_since)
+        self.assertEqual("review_rerequest", outcome.facts.waiting_age_basis)
+
+    def test_rerequest_without_a_handoff_uses_the_event_time(self) -> None:
+        outcome = self.resolve(
+            {"ci_pending_count": 0},
+            previous_route="maintainer",
+            previous_facts={"waiting_since": "2026-08-16T08:00:00Z"},
+            pending_human_reviewer_logins=frozenset({"reviewer"}),
+            pending_review_requested_at={"reviewer": "2026-08-16T10:00:00Z"},
+        )
+
+        self.assertEqual("2026-08-16T10:00:00+00:00", outcome.facts.waiting_since)
+        self.assertEqual("review_rerequest", outcome.facts.waiting_age_basis)
 
     def test_held_route_carries_the_previous_wait_forward(self) -> None:
         outcome = self.resolve(

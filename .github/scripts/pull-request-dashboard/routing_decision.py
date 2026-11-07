@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -33,6 +33,7 @@ class RoutingInput:
     require_clean_copilot_review: bool
     manual_reviewer_handoff: bool
     pending_human_reviewer_logins: frozenset[str]
+    pending_review_requested_at: Mapping[str, str] = field(default_factory=dict)
     now: datetime | None = None
 
 
@@ -242,6 +243,7 @@ def _add_wait_age_facts(
     previous_facts: DashboardFacts,
     now: datetime,
     pending_human_reviewer_logins: frozenset[str],
+    pending_review_requested_at: Mapping[str, str],
 ) -> DashboardFacts:
     handoff_ts = (
         parse_ts(facts.dashboard_override_since)
@@ -249,6 +251,29 @@ def _add_wait_age_facts(
         else None
     )
     previous_wait_ts = parse_ts(previous_facts.waiting_since)
+    request_times = [
+        timestamp
+        for login in pending_human_reviewer_logins
+        if (timestamp := parse_ts(pending_review_requested_at.get(login))) is not None
+    ]
+    latest_request_ts = max(request_times, default=None)
+    if handoff_ts is not None:
+        wait_ts, basis = handoff_ts, "reviewer_handoff"
+        if latest_request_ts is not None and latest_request_ts > wait_ts:
+            wait_ts, basis = latest_request_ts, "review_rerequest"
+        if (
+            previous_route is not None
+            and previous_route.value in _REVIEWER_ROUTES
+            and previous_facts.waiting_age_basis == "review_rerequest"
+            and parse_ts(previous_facts.dashboard_override_since) == handoff_ts
+            and previous_wait_ts is not None
+            and previous_wait_ts > wait_ts
+        ):
+            wait_ts, basis = previous_wait_ts, "review_rerequest"
+        return facts.with_changes(
+            waiting_since=format_ts(wait_ts),
+            waiting_age_basis=basis,
+        )
     previous_pending_reviewers = {
         reviewer.login
         for reviewer in previous_facts.reviewers
@@ -260,18 +285,8 @@ def _add_wait_age_facts(
         and pending_human_reviewer_logins - previous_pending_reviewers
     ):
         return facts.with_changes(
-            waiting_since=format_ts(now),
+            waiting_since=format_ts(latest_request_ts or now),
             waiting_age_basis="review_rerequest",
-        )
-    if handoff_ts is not None and (
-        previous_route is None
-        or previous_route.value not in _REVIEWER_ROUTES
-        or previous_wait_ts is None
-        or previous_wait_ts < handoff_ts
-    ):
-        return facts.with_changes(
-            waiting_since=format_ts(handoff_ts),
-            waiting_age_basis="reviewer_handoff",
         )
     if facts.route_held_for_gates and previous_facts.waiting_since:
         return facts.with_changes(
@@ -337,9 +352,6 @@ def _add_wait_age_facts(
     ):
         wait_ts = previous_wait_ts
         basis = previous_facts.waiting_age_basis
-    if handoff_ts is not None and (wait_ts is None or wait_ts < handoff_ts):
-        wait_ts = handoff_ts
-        basis = "reviewer_handoff"
     return facts.with_changes(
         waiting_since=format_ts(wait_ts),
         waiting_age_basis=basis,
@@ -385,5 +397,6 @@ def resolve_routing(routing_input: RoutingInput) -> RoutingOutcome:
         routing_input.previous_facts,
         now,
         routing_input.pending_human_reviewer_logins,
+        routing_input.pending_review_requested_at,
     )
     return RoutingOutcome(route=route, facts=facts)

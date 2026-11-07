@@ -247,6 +247,8 @@ The dashboard groups open non-draft pull requests by who is expected to act next
   `/dashboard route:reviewers` handoff starts the reviewer wait at the command's
   timestamp, even when older author activity or pending threads remain. Refreshes
   and pushes do not restart that wait while the handoff stays active.
+  A later human review re-request starts a new wait at its GitHub event
+  timestamp; a re-request before the command does not override the handoff.
   Format: `<1m`, `Xm`, `Xh`, or `Xd`.
 
 Merge conflicts remain visible without overriding normal CI, discussion, and
