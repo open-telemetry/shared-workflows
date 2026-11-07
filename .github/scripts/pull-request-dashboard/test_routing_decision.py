@@ -218,6 +218,7 @@ class RoutingDecisionTest(RoutingTestMixin, unittest.TestCase):
             "ci_pending_count": 1,
             "head_sha": "abc",
             "dashboard_override_head_sha": "abc",
+            "dashboard_override_since": "2026-08-16T11:55:00Z",
             "last_author_activity_at": "2026-08-16T08:00:00+00:00",
             "copilot_review_exists": False,
             "copilot_review_requested": False,
@@ -240,8 +241,8 @@ class RoutingDecisionTest(RoutingTestMixin, unittest.TestCase):
                     "required_checks_settled": False,
                     "route_hold_expired": False,
                     "route_held_for_gates": False,
-                    "waiting_since": "2026-08-16T08:00:00+00:00",
-                    "waiting_age_basis": "last_author_activity",
+                    "waiting_since": "2026-08-16T11:55:00+00:00",
+                    "waiting_age_basis": "reviewer_handoff",
                 }),
             ),
             outcome,
@@ -830,6 +831,162 @@ class RoutingDecisionTest(RoutingTestMixin, unittest.TestCase):
 
 
 class RoutingWaitAgeTest(RoutingTestMixin, unittest.TestCase):
+    def test_manual_handoff_restarts_the_wait_from_the_command_timestamp(self) -> None:
+        for previous_route in (None, "author", "approver", "maintainer"):
+            for approval_count in (0, 1):
+                for held in (False, True):
+                    with self.subTest(
+                        previous_route=previous_route,
+                        approval_count=approval_count,
+                        held=held,
+                    ):
+                        outcome = self.resolve(
+                            {
+                                "approval_count": approval_count,
+                                "head_sha": "abc",
+                                "dashboard_override_head_sha": "abc",
+                                "dashboard_override_since": "2026-08-16T11:55:00Z",
+                                "last_author_activity_at": "2026-07-29T08:00:00Z",
+                            },
+                            {"thread": {
+                                "action": "reviewer",
+                                "since": "2026-07-30T08:00:00Z",
+                            }},
+                            previous_route=previous_route,
+                            previous_facts={
+                                "head_sha": "abc",
+                                "route_held_for_gates": held,
+                                "waiting_since": "2026-07-29T08:00:00Z",
+                                "waiting_age_basis": "last_author_activity",
+                            },
+                            manual_reviewer_handoff=True,
+                        )
+
+                        self.assertEqual(
+                            DashboardRoute.APPROVER
+                            if approval_count == 0 else DashboardRoute.MAINTAINER,
+                            outcome.route,
+                        )
+                        self.assertEqual(
+                            "2026-08-16T11:55:00+00:00", outcome.facts.waiting_since
+                        )
+                        self.assertEqual(
+                            "reviewer_handoff", outcome.facts.waiting_age_basis
+                        )
+
+    def test_manual_handoff_wait_survives_refresh_push_and_route_progression(self) -> None:
+        facts = dashboard_facts(
+            head_sha="abc",
+            dashboard_override_head_sha="abc",
+            dashboard_override_since="2026-08-16T11:55:00Z",
+            dashboard_override_persistent=True,
+            last_author_activity_at="2026-07-29T08:00:00Z",
+        )
+        started = self.resolve(facts, manual_reviewer_handoff=True)
+        for head_sha, approval_count, last_author_activity_at in (
+            ("abc", 0, "2026-07-29T08:00:00Z"),
+            ("new-head", 0, "2026-08-16T12:30:00Z"),
+            ("new-head", 1, "2026-08-16T12:30:00Z"),
+        ):
+            with self.subTest(head_sha=head_sha, approval_count=approval_count):
+                outcome = self.resolve(
+                    facts.with_changes(
+                        head_sha=head_sha,
+                        approval_count=approval_count,
+                        last_author_activity_at=last_author_activity_at,
+                    ),
+                    {"thread": {
+                        "action": "reviewer",
+                        "since": "2026-07-30T08:00:00Z",
+                    }},
+                    previous_route=started.route,
+                    previous_facts=started.facts,
+                    manual_reviewer_handoff=True,
+                    now=NOW + timedelta(hours=1),
+                )
+
+                self.assertEqual(
+                    "2026-08-16T11:55:00+00:00", outcome.facts.waiting_since
+                )
+                self.assertEqual(
+                    "reviewer_handoff", outcome.facts.waiting_age_basis
+                )
+
+    def test_manual_handoff_without_cached_state_survives_a_push(self) -> None:
+        outcome = self.resolve(
+            {
+                "head_sha": "new-head",
+                "dashboard_override_head_sha": "abc",
+                "dashboard_override_since": "2026-08-16T11:55:00Z",
+                "dashboard_override_persistent": True,
+                "last_author_activity_at": "2026-08-16T12:30:00Z",
+            },
+            manual_reviewer_handoff=True,
+            now=NOW + timedelta(hours=1),
+        )
+
+        self.assertEqual("2026-08-16T11:55:00+00:00", outcome.facts.waiting_since)
+        self.assertEqual("reviewer_handoff", outcome.facts.waiting_age_basis)
+
+    def test_inactive_or_undated_handoff_keeps_normal_wait_age(self) -> None:
+        for changes in (
+            {"dashboard_override_since": ""},
+            {"dashboard_override_since": "invalid"},
+            {"dashboard_override_head_sha": ""},
+            {"dashboard_override_head_sha": "old-head"},
+            {"dashboard_override_cleared_by_feedback": True},
+        ):
+            with self.subTest(changes=changes):
+                facts = dashboard_facts(
+                    head_sha="abc",
+                    ci_pending_count=0,
+                    dashboard_override_head_sha="abc",
+                    dashboard_override_since="2026-08-16T11:55:00Z",
+                    last_author_activity_at="2026-07-29T08:00:00Z",
+                ).with_changes(**changes)
+                outcome = self.resolve(
+                    facts,
+                    manual_reviewer_handoff=reviewer_handoff_active(facts),
+                )
+
+                self.assertEqual(
+                    "2026-07-29T08:00:00+00:00", outcome.facts.waiting_since
+                )
+                self.assertEqual(
+                    "last_author_activity", outcome.facts.waiting_age_basis
+                )
+
+    def test_manual_handoff_does_not_replace_a_later_review_rerequest(self) -> None:
+        facts = dashboard_facts(
+            head_sha="abc",
+            dashboard_override_head_sha="abc",
+            dashboard_override_since="2026-08-16T10:00:00Z",
+            last_author_activity_at="2026-07-29T08:00:00Z",
+            reviewers=[{"login": "reviewer", "pending_review": True}],
+        )
+        started = self.resolve(
+            facts,
+            previous_route="maintainer",
+            previous_facts={
+                "waiting_since": "2026-08-16T10:00:00Z",
+                "waiting_age_basis": "reviewer_handoff",
+            },
+            pending_human_reviewer_logins=frozenset({"reviewer"}),
+            manual_reviewer_handoff=True,
+        )
+        carried = self.resolve(
+            facts,
+            previous_route=started.route,
+            previous_facts=started.facts,
+            pending_human_reviewer_logins=frozenset({"reviewer"}),
+            manual_reviewer_handoff=True,
+            now=NOW + timedelta(hours=1),
+        )
+
+        for outcome in (started, carried):
+            self.assertEqual("2026-08-16T12:00:00+00:00", outcome.facts.waiting_since)
+            self.assertEqual("review_rerequest", outcome.facts.waiting_age_basis)
+
     def test_held_route_carries_the_previous_wait_forward(self) -> None:
         outcome = self.resolve(
             {

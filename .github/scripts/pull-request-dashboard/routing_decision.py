@@ -243,6 +243,22 @@ def _add_wait_age_facts(
     now: datetime,
     pending_human_reviewer_logins: frozenset[str],
 ) -> DashboardFacts:
+    handoff_ts = (
+        parse_ts(facts.dashboard_override_since)
+        if route.value in _REVIEWER_ROUTES and reviewer_handoff_active(facts)
+        else None
+    )
+    previous_wait_ts = parse_ts(previous_facts.waiting_since)
+    if handoff_ts is not None and (
+        previous_route is None
+        or previous_route.value not in _REVIEWER_ROUTES
+        or previous_wait_ts is None
+        or previous_wait_ts < handoff_ts
+    ):
+        return facts.with_changes(
+            waiting_since=format_ts(handoff_ts),
+            waiting_age_basis="reviewer_handoff",
+        )
     previous_pending_reviewers = {
         reviewer.login
         for reviewer in previous_facts.reviewers
@@ -311,7 +327,6 @@ def _add_wait_age_facts(
     if wait_ts is None:
         wait_ts = parse_ts(facts.created_at)
         basis = "created"
-    previous_wait_ts = parse_ts(previous_facts.waiting_since)
     if (
         route.value in _REVIEWER_ROUTES
         and previous_route is not None
@@ -322,6 +337,9 @@ def _add_wait_age_facts(
     ):
         wait_ts = previous_wait_ts
         basis = previous_facts.waiting_age_basis
+    if handoff_ts is not None and (wait_ts is None or wait_ts < handoff_ts):
+        wait_ts = handoff_ts
+        basis = "reviewer_handoff"
     return facts.with_changes(
         waiting_since=format_ts(wait_ts),
         waiting_age_basis=basis,

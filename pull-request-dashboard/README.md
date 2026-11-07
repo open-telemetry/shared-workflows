@@ -243,8 +243,11 @@ The dashboard groups open non-draft pull requests by who is expected to act next
   reviewer comment yesterday shows `1d` when it is waiting on the author. When
   possible, this is based on the oldest pending thread for the routed party;
   otherwise it falls back to the latest activity from the opposite party, then
-  to recent PR activity or PR creation time. Format: `<1m`, `Xm`, `Xh`, or
-  `Xd`.
+  to recent PR activity or PR creation time. An explicit
+  `/dashboard route:reviewers` handoff starts the reviewer wait at the command's
+  timestamp, even when older author activity or pending threads remain. Refreshes
+  and pushes do not restart that wait while the handoff stays active.
+  Format: `<1m`, `Xm`, `Xh`, or `Xd`.
 
 Merge conflicts remain visible without overriding normal CI, discussion, and
 approval routing. A conflicted PR can therefore stay with reviewers or
