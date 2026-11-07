@@ -913,7 +913,7 @@ class PullRequestEvaluationTest(unittest.IsolatedAsyncioTestCase):
                 submitted_at="2026-08-16T08:00:00Z",
                 body="",
             ),),
-            review_requests=(review_request(),),
+            review_requests=(review_request(requested_at="2026-08-16T09:00:00Z"),),
         )
 
         result = await evaluate_pr(
@@ -926,6 +926,10 @@ class PullRequestEvaluationTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(
             frozenset({"reviewer"}),
             routing_input.pending_human_reviewer_logins,
+        )
+        self.assertEqual(
+            {"reviewer": "2026-08-16T09:00:00Z"},
+            routing_input.pending_review_requested_at,
         )
         self.assertEqual(
             (ReviewerSummary(login="reviewer", pending_review=True),),

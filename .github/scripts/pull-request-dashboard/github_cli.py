@@ -1012,6 +1012,53 @@ query($owner: String!, $name: String!, $number: Int!, $after: String) {
 """
 
 
+REVIEW_REQUEST_EVENTS_QUERY = """
+query($owner: String!, $name: String!, $number: Int!, $after: String) {
+    repository(owner: $owner, name: $name) {
+        pullRequest(number: $number) {
+            timelineItems(first: 100, after: $after, itemTypes: [REVIEW_REQUESTED_EVENT]) {
+                pageInfo {
+                    hasNextPage
+                    endCursor
+                }
+                nodes {
+                    ... on ReviewRequestedEvent {
+                        createdAt
+                        requestedReviewer {
+                            ... on User {
+                                login
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+"""
+
+
+def _review_request_times(owner: str, repo_name: str, number: int) -> dict[str, str]:
+    requested_at: dict[str, str] = {}
+    after: str | None = None
+    while True:
+        data = gh_graphql(
+            REVIEW_REQUEST_EVENTS_QUERY,
+            {"owner": owner, "name": repo_name, "number": number, "after": after},
+        )
+        page = (((data.get("data") or {}).get("repository") or {}).get("pullRequest") or {}).get("timelineItems") or {}
+        for event in page.get("nodes") or []:
+            login = (event.get("requestedReviewer") or {}).get("login")
+            timestamp = event.get("createdAt")
+            if login and timestamp:
+                key = login.casefold()
+                requested_at[key] = max(timestamp, requested_at.get(key, ""))
+        page_info = page.get("pageInfo") or {}
+        if not page_info.get("hasNextPage"):
+            return requested_at
+        after = page_info.get("endCursor") or ""
+
+
 def fetch_review_requests(owner: str, repo_name: str, number: int) -> list[dict[str, Any]]:
     # `gh pr view --json reviewRequests` silently drops Bot reviewers, so a
     # pending Copilot request looks absent. Ask GraphQL for the Bot node
@@ -1030,5 +1077,16 @@ def fetch_review_requests(owner: str, repo_name: str, number: int) -> list[dict[
                 reviewers.append(reviewer)
         page_info = page.get("pageInfo") or {}
         if not page_info.get("hasNextPage"):
-            return reviewers
+            break
         after = page_info.get("endCursor") or ""
+    human_reviewers = [
+        reviewer for reviewer in reviewers
+        if reviewer.get("__typename") == "User" and reviewer.get("login")
+    ]
+    if human_reviewers:
+        requested_at = _review_request_times(owner, repo_name, number)
+        for reviewer in human_reviewers:
+            timestamp = requested_at.get(reviewer["login"].casefold())
+            if timestamp:
+                reviewer["requested_at"] = timestamp
+    return reviewers

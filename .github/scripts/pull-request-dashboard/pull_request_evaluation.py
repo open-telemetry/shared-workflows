@@ -576,6 +576,11 @@ async def evaluate_pull_request(
                 pending_human_reviewer_logins=(
                     prepared_reviewers.pending_human_reviewer_logins
                 ),
+                pending_review_requested_at={
+                    request.login: request.requested_at
+                    for request in pr_source.review_requests
+                    if request.login in prepared_reviewers.pending_human_reviewer_logins
+                },
             )
         )
         route = routing_outcome.route

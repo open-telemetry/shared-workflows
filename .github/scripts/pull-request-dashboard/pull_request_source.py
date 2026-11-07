@@ -271,6 +271,7 @@ class Review:
 class ReviewRequest:
     kind: str = ""
     login: str = ""
+    requested_at: str = ""
 
     @property
     def is_copilot_reviewer(self) -> bool:
@@ -639,6 +640,7 @@ def normalize_review_requests(values: Any) -> tuple[ReviewRequest, ...]:
                 or ("Team" if reviewer.get("slug") else "")
             ),
             login=_text(reviewer.get("login") or reviewer.get("slug")),
+            requested_at=_text(item.get("requested_at")),
         ))
     return tuple(requests)
 

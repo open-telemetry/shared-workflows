@@ -36,12 +36,12 @@ from github_cli import (
 from pull_request_source import fetch_pull_request_source
 
 
-def _review_requests_page(nodes, has_next=False, cursor=""):
+def _review_requests_page(nodes, has_next=False, cursor="", connection="reviewRequests"):
     return {
         "data": {
             "repository": {
                 "pullRequest": {
-                    "reviewRequests": {
+                    connection: {
                         "pageInfo": {
                             "hasNextPage": has_next,
                             "endCursor": cursor,
@@ -240,7 +240,7 @@ class FetchReviewRequestsTest(unittest.TestCase):
             reviewers,
         )
         # A Bot login is only returned when the query asks for it explicitly.
-        self.assertIn("... on Bot", gh_graphql.call_args.args[0])
+        self.assertIn("... on Bot", gh_graphql.call_args_list[0].args[0])
 
     def test_skips_reviewers_the_caller_cannot_see(self) -> None:
         page = _review_requests_page([
@@ -266,6 +266,7 @@ class FetchReviewRequestsTest(unittest.TestCase):
             _review_requests_page(
                 [{"requestedReviewer": {"__typename": "User", "login": "second"}}],
             ),
+            _review_requests_page([], connection="timelineItems"),
         ]
 
         with patch("github_cli.gh_graphql", side_effect=pages) as gh_graphql:
@@ -276,6 +277,64 @@ class FetchReviewRequestsTest(unittest.TestCase):
             "cursor-1",
             gh_graphql.call_args_list[1].args[1]["after"],
         )
+
+    def test_attaches_latest_request_time_across_timeline_pages(self) -> None:
+        pages = [
+            _review_requests_page([
+                {"requestedReviewer": {"__typename": "User", "login": "reviewer"}},
+                {"requestedReviewer": {"__typename": "Team", "slug": "approvers"}},
+            ]),
+            _review_requests_page(
+                [
+                    {"createdAt": "2026-08-16T08:00:00Z",
+                     "requestedReviewer": {"login": "reviewer"}},
+                    {"createdAt": "2026-08-16T09:00:00Z",
+                     "requestedReviewer": None},
+                ],
+                has_next=True,
+                cursor="timeline-next",
+                connection="timelineItems",
+            ),
+            _review_requests_page(
+                [
+                    {"createdAt": "2026-08-16T11:00:00Z",
+                     "requestedReviewer": {"login": "Reviewer"}},
+                    {"createdAt": "2026-08-16T10:00:00Z",
+                     "requestedReviewer": {"login": "reviewer"}},
+                ],
+                connection="timelineItems",
+            ),
+        ]
+        with patch("github_cli.gh_graphql", side_effect=pages) as query:
+            reviewers = fetch_review_requests("owner", "repo", 7)
+
+        self.assertEqual([
+            {"__typename": "User", "login": "reviewer",
+             "requested_at": "2026-08-16T11:00:00Z"},
+            {"__typename": "Team", "slug": "approvers"},
+        ], reviewers)
+        self.assertEqual("timeline-next", query.call_args_list[2].args[1]["after"])
+
+    def test_does_not_fetch_timeline_for_bot_and_team_requests(self) -> None:
+        page = _review_requests_page([
+            {"requestedReviewer": {"__typename": "Bot", "login": "Copilot"}},
+            {"requestedReviewer": {"__typename": "Team", "slug": "approvers"}},
+        ])
+        with patch("github_cli.gh_graphql", return_value=page) as query:
+            fetch_review_requests("owner", "repo", 7)
+
+        query.assert_called_once()
+
+    def test_timeline_failure_is_not_treated_as_missing_timestamps(self) -> None:
+        page = _review_requests_page([
+            {"requestedReviewer": {"__typename": "User", "login": "reviewer"}},
+        ])
+        with patch(
+            "github_cli.gh_graphql",
+            side_effect=[page, TransientGhError("timeline unavailable")],
+        ):
+            with self.assertRaisesRegex(TransientGhError, "timeline unavailable"):
+                fetch_review_requests("owner", "repo", 7)
 
 
 class GithubCliTest(unittest.TestCase):

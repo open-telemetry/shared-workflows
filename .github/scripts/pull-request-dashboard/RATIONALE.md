@@ -381,10 +381,23 @@ the implementation understandable and operationally cheap.
   gate would arrive older still. Either way the age blames reviewers for a wait
   they could not have answered, and sorts the PR above ones they really have
   been sitting on.
-- Only the handoff from the author restarts the wait. A held PR that was already
-  with reviewers and is released to maintainers keeps its wait, because it never
-  left the people who owe it a response, and restarting there would present an
-  approval a week old as a merge request that just arrived.
+- Without an explicit command, only the handoff from the author restarts the
+  wait. A held PR already with reviewers and released to maintainers keeps its
+  wait, because it never left the people who owe it a response, and restarting
+  there would present an approval a week old as a merge request that just arrived.
+- An explicit `/dashboard route:reviewers` command starts the reviewer wait at
+  the command's effective timestamp, including when an approver issues it or the
+  PR is already with reviewers. The handoff overrides older activity and pending
+  threads, so reviewers are not charged for time before the explicit handoff.
+  That timestamp remains a lower bound while the handoff is active, including
+  across refreshes and pushes, without replacing a later review re-request.
+- Handoffs and pending human re-requests are ordered by their GitHub event
+  timestamps, not by when a refresh discovers them or which clock rule runs
+  first. Pending review requests have no timestamp themselves, so the timestamp
+  comes from the paginated review-request timeline. An active handoff uses the
+  later of its command and the pending re-requests, including without cached
+  routing state. An undated request cannot supersede a dated handoff. Completing
+  a re-request preserves its cached wait as the PR progresses to maintainers.
 - PRs from unattended automation never route to their author because the
   automation cannot respond to a dashboard action. Copilot-delegated PRs are
   different. The dashboard recovers a human assignee or the first commit's
