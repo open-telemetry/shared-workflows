@@ -249,6 +249,20 @@ def _add_wait_age_facts(
         else None
     )
     previous_wait_ts = parse_ts(previous_facts.waiting_since)
+    previous_pending_reviewers = {
+        reviewer.login
+        for reviewer in previous_facts.reviewers
+        if reviewer.pending_review
+    }
+    if (
+        route is DashboardRoute.APPROVER
+        and previous_route is DashboardRoute.MAINTAINER
+        and pending_human_reviewer_logins - previous_pending_reviewers
+    ):
+        return facts.with_changes(
+            waiting_since=format_ts(now),
+            waiting_age_basis="review_rerequest",
+        )
     if handoff_ts is not None and (
         previous_route is None
         or previous_route.value not in _REVIEWER_ROUTES
@@ -259,11 +273,6 @@ def _add_wait_age_facts(
             waiting_since=format_ts(handoff_ts),
             waiting_age_basis="reviewer_handoff",
         )
-    previous_pending_reviewers = {
-        reviewer.login
-        for reviewer in previous_facts.reviewers
-        if reviewer.pending_review
-    }
     if facts.route_held_for_gates and previous_facts.waiting_since:
         return facts.with_changes(
             waiting_since=previous_facts.waiting_since,
@@ -277,15 +286,6 @@ def _add_wait_age_facts(
         return facts.with_changes(
             waiting_since=format_ts(now),
             waiting_age_basis="gate_release",
-        )
-    if (
-        route is DashboardRoute.APPROVER
-        and previous_route is DashboardRoute.MAINTAINER
-        and pending_human_reviewer_logins - previous_pending_reviewers
-    ):
-        return facts.with_changes(
-            waiting_since=format_ts(now),
-            waiting_age_basis="review_rerequest",
         )
     if (
         route.value in _REVIEWER_ROUTES

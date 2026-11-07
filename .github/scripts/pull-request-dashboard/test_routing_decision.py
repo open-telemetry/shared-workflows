@@ -964,28 +964,37 @@ class RoutingWaitAgeTest(RoutingTestMixin, unittest.TestCase):
             last_author_activity_at="2026-07-29T08:00:00Z",
             reviewers=[{"login": "reviewer", "pending_review": True}],
         )
-        started = self.resolve(
-            facts,
-            previous_route="maintainer",
-            previous_facts={
-                "waiting_since": "2026-08-16T10:00:00Z",
-                "waiting_age_basis": "reviewer_handoff",
-            },
-            pending_human_reviewer_logins=frozenset({"reviewer"}),
-            manual_reviewer_handoff=True,
-        )
-        carried = self.resolve(
-            facts,
-            previous_route=started.route,
-            previous_facts=started.facts,
-            pending_human_reviewer_logins=frozenset({"reviewer"}),
-            manual_reviewer_handoff=True,
-            now=NOW + timedelta(hours=1),
-        )
+        for previous_since, previous_basis in (
+            ("2026-08-16T10:00:00Z", "reviewer_handoff"),
+            ("2026-07-29T08:00:00Z", "last_author_activity"),
+        ):
+            with self.subTest(previous_since=previous_since):
+                started = self.resolve(
+                    facts,
+                    previous_route="maintainer",
+                    previous_facts={
+                        "waiting_since": previous_since,
+                        "waiting_age_basis": previous_basis,
+                    },
+                    pending_human_reviewer_logins=frozenset({"reviewer"}),
+                    manual_reviewer_handoff=True,
+                )
+                carried = self.resolve(
+                    facts,
+                    previous_route=started.route,
+                    previous_facts=started.facts,
+                    pending_human_reviewer_logins=frozenset({"reviewer"}),
+                    manual_reviewer_handoff=True,
+                    now=NOW + timedelta(hours=1),
+                )
 
-        for outcome in (started, carried):
-            self.assertEqual("2026-08-16T12:00:00+00:00", outcome.facts.waiting_since)
-            self.assertEqual("review_rerequest", outcome.facts.waiting_age_basis)
+                for outcome in (started, carried):
+                    self.assertEqual(
+                        "2026-08-16T12:00:00+00:00", outcome.facts.waiting_since
+                    )
+                    self.assertEqual(
+                        "review_rerequest", outcome.facts.waiting_age_basis
+                    )
 
     def test_held_route_carries_the_previous_wait_forward(self) -> None:
         outcome = self.resolve(
