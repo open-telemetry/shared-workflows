@@ -53,7 +53,9 @@
   {
     "name": "opentelemetry-python-genai",
     "approver_teams": ["python-genai-approvers"],
-    "require_clean_copilot_review_branches": ["main"]
+    "require_clean_copilot_review_branches": ["main"],
+    "close_stale_after_days": 14,
+    "close_stale_exempt_labels": ["never-stale"]
   },
   {
     "name": "opentelemetry-python",
