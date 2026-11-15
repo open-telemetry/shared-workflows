@@ -97,12 +97,16 @@ class ExecutionCodeLoader:
         archive.unlink()
         script_dir = directory / ".github" / "scripts" / "pull-request-dashboard"
         environment = directory / "venv"
-        self._run([sys.executable, "-m", "venv", str(environment)])
+        # Install uv in the environment
+        self._run([sys.executable, "-m", "pip", "install", "--quiet", "uv"])
+        # Use uv to create and sync the environment
+        self._run(["uv", "venv", str(environment)])
         python = str(
             environment / "Scripts" / "python.exe" if sys.platform == "win32"
             else environment / "bin" / "python"
         )
-        self._run([python, "-m", "pip", "install", "--quiet", "-r", str(script_dir / "requirements.txt")])
+        # Install dependencies with uv sync --frozen for reproducible builds
+        self._run(["uv", "sync", "--frozen", "--project", str(script_dir)])
         self._run(["npm", "ci", "--quiet", "--prefix", str(script_dir)])
         self._run([python, "-m", "copilot", "download-runtime"])
         result = ExecutionCode(ref, script_dir, python)
