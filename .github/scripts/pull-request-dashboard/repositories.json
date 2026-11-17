@@ -53,7 +53,9 @@
   {
     "name": "opentelemetry-python-genai",
     "approver_teams": ["python-genai-approvers"],
-    "require_clean_copilot_review_branches": ["main"]
+    "require_clean_copilot_review_branches": ["main"],
+    "close_stale_after_days": 14,
+    "close_stale_exempt_labels": ["never-stale"]
   },
   {
     "name": "opentelemetry-python",
@@ -87,7 +89,8 @@
   {
     "name": "semantic-conventions",
     "approver_teams": ["specs-semconv-approvers"],
-    "required_approvals": 2
+    "required_approvals": 2,
+    "require_clean_copilot_review_branches": ["main"]
   },
   {
     "name": "semantic-conventions-conformance",
