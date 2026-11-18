@@ -35,7 +35,7 @@ jobs:
       PR_DASHBOARD_QUEUE_LANE: ${{ inputs.queue_lane || 'live' }}
       PR_DASHBOARD_QUEUE_ENDPOINT: https://otel-pull-request-dashboard.netlify.app/.netlify/functions/dashboard-queue-worker
       WORKER_ID: ${{ github.run_id }}-${{ github.run_attempt }}
-      CANARY_REPOSITORIES: '["opentelemetry-java-instrumentation", "shared-workflows"]'
+      CANARY_REPOSITORIES: '["opentelemetry-java-instrumentation", "semantic-conventions-genai", "shared-workflows"]'
       CANARY_CODE_REF: ${{ github.sha }}
       PR_DASHBOARD_CLASSIFICATION_CACHE_ROOT: ${{ github.workspace }}/.github/scripts/pull-request-dashboard/.cache/classifications
     steps:
