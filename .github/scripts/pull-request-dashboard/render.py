@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import re
 from collections.abc import Iterable
 from dataclasses import dataclass, replace
 from datetime import datetime
 from fnmatch import fnmatchcase
 from typing import Any
+from urllib.parse import quote, urlencode
 
 from dashboard_contracts import (
     DashboardFacts,
@@ -65,29 +67,42 @@ class _PrSection:
         )
 
 
+def _label_badge(name: str, color: object, repo: str | None) -> str:
+    text = re.sub(r"([*_`~])", r"\\\1", markdown_escape(name))
+    if isinstance(color, str) and re.fullmatch(r"[0-9a-fA-F]{6}", color):
+        badge_query = urlencode({"label": "", "message": name, "color": color, "style": "flat"})
+        text = f"![{text}](https://img.shields.io/static/v1?{badge_query})"
+    if repo is None:
+        return text
+    label_query = name.replace("\\", "\\\\").replace('"', '\\"')
+    search_query = urlencode({"q": f'is:pr is:open label:"{label_query}"'})
+    return f"[{text}](https://github.com/{quote(repo, safe='/')}/pulls?{search_query})"
+
+
 def _pr_cell_text(
     pr: dict[str, Any],
-    labels_to_display: list[str] | None = None,
+    labels_to_display: list[str] | None,
+    repo: str | None,
 ) -> str:
     number = pr["number"]
     title = markdown_escape(pr.get("title", ""))
     pr_cell = f"#{number} {title}"
     patterns = labels_to_display or []
 
-    matched_labels: list[str] = []
+    badges: list[str] = []
     seen: set[str] = set()
     for label in pr.get("labels") or []:
-        if not isinstance(label, str) or not label or label in seen:
+        if not isinstance(label, dict):
             continue
-        if any(fnmatchcase(label, pattern) for pattern in patterns):
-            matched_labels.append(label)
-            seen.add(label)
-    if not matched_labels:
+        name = label.get("name")
+        if not isinstance(name, str) or not name or name in seen:
+            continue
+        if any(fnmatchcase(name, pattern) for pattern in patterns):
+            badges.append(_label_badge(name, label.get("color"), repo))
+            seen.add(name)
+    if not badges:
         return pr_cell
-    rendered_labels = " · ".join(
-        f"<code>{markdown_escape(label)}</code>" for label in matched_labels
-    )
-    return f"{pr_cell} · {rendered_labels}"
+    return f"{pr_cell} · {' · '.join(badges)}"
 
 
 FIRST_TIME_AUTHOR_ASSOCIATIONS = ("FIRST_TIME_CONTRIBUTOR", "FIRST_TIMER")
@@ -138,6 +153,8 @@ def _draft_pr_section(
     labels_to_display: list[str] | None = None,
     approver_logins: frozenset[str] = frozenset(),
     skip_drafts: bool = False,
+    *,
+    repo: str | None = None,
 ) -> _PrSection | None:
     drafts = [p for p in prs if p.get("isDraft")]
     if not drafts:
@@ -163,7 +180,7 @@ def _draft_pr_section(
         # GitHub autolinks same-repo PR numbers; avoid full URLs so large
         # dashboards can show more PRs before hitting the issue body limit.
         section.rows.append(
-            f"| {_pr_cell_text(pr, labels_to_display)} | {author} | {draft_age} |"
+            f"| {_pr_cell_text(pr, labels_to_display, repo)} | {author} | {draft_age} |"
         )
     return section
 
@@ -172,8 +189,10 @@ def render_draft_pr_section(
     prs: list[dict[str, Any]],
     labels_to_display: list[str] | None = None,
     approver_logins: frozenset[str] = frozenset(),
+    *,
+    repo: str | None = None,
 ) -> list[str]:
-    section = _draft_pr_section(prs, labels_to_display, approver_logins)
+    section = _draft_pr_section(prs, labels_to_display, approver_logins, repo=repo)
     return section.lines() if section is not None else []
 
 
@@ -316,6 +335,8 @@ def render_pr_tables(
     skip_drafts: bool = False,
     labels_to_display: list[str] | None = None,
     approver_logins: frozenset[str] = frozenset(),
+    *,
+    repo: str | None = None,
 ) -> str:
     if max_chars is not None and max_chars <= 0:
         raise ValueError("max_chars must be positive")
@@ -385,7 +406,7 @@ def render_pr_tables(
             activity_cell = age_cell(facts)
             # GitHub autolinks same-repo PR numbers; avoid full URLs so large
             # dashboards can show more PRs before hitting the issue body limit.
-            pr_cell = _pr_cell_text(pr, labels_to_display)
+            pr_cell = _pr_cell_text(pr, labels_to_display, repo)
             section.rows.append(
                 f"| {pr_cell} | {author} | {reviewers_cell} | {ci_cell(facts)} | "
                 f"{conflicts_cell(facts)} | {activity_cell} |"
@@ -393,7 +414,7 @@ def render_pr_tables(
         sections.append(section)
 
     draft_section = _draft_pr_section(
-        prs, labels_to_display, approver_logins, skip_drafts,
+        prs, labels_to_display, approver_logins, skip_drafts, repo=repo,
     )
     if draft_section is not None:
         sections.append(draft_section)
