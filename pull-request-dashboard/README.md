@@ -531,8 +531,8 @@ a small set of repositories before it reaches everyone.
   commit and pick up a change as soon as it merges. The canary set is the
   `CANARY_REPOSITORIES` list in
   [`pull-request-dashboard-drain.yml`](../.github/workflows/pull-request-dashboard-drain.yml),
-  which currently holds `shared-workflows` itself and
-  `opentelemetry-java-instrumentation`.
+  which currently includes `opentelemetry-java-instrumentation`,
+  `semantic-conventions-genai`, and `shared-workflows`.
 - **Every other repository** runs them from the promoted release's commit SHA
   in [`stable-release.json`](../.github/scripts/pull-request-dashboard/stable-release.json).
   The file records one lowercase 40-character SHA and one stable semantic release.
