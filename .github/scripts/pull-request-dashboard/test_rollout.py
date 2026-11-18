@@ -95,16 +95,21 @@ class RolloutWiringTest(unittest.TestCase):
 
     def test_sdk_installation_remains_per_execution_ref(self) -> None:
         loader = (SCRIPT_DIR / "execution_code.py").read_text(encoding="utf-8")
+        # Verify legacy path for old refs and modern path for new refs
         self.assertIn('"pip", "install", "--quiet", "-r"', loader)
+        self.assertIn('"uv", "sync", "--frozen"', loader)
         self.assertIn('[python, "-m", "copilot", "download-runtime"]', loader)
         body = job_blocks(DRAIN_WORKFLOW.read_text(encoding="utf-8"))["owned-drain"]
         self.assertIn("actions/setup-python@", body)
         self.assertRegex(body, r"(?m)^ +python-version: ['\"]3\.\d+['\"]$")
         dependencies = json.loads((SCRIPT_DIR / "package.json").read_text(encoding="utf-8"))
         self.assertNotIn("@github/copilot", dependencies["dependencies"])
-        self.assertRegex((SCRIPT_DIR / "requirements.txt").read_text(), r"(?m)^github-copilot-sdk==\d+\.\d+\.\d+$")
+        # Verify pyproject.toml contains github-copilot-sdk dependency
+        pyproject_text = (SCRIPT_DIR / "pyproject.toml").read_text()
+        self.assertRegex(pyproject_text, r"github-copilot-sdk>=\d+\.\d+\.\d+")
+        # Verify test workflow uses uv sync instead of pip
         tests = (WORKFLOWS / "pull-request-dashboard-test.yml").read_text()
-        self.assertIn("python -m pip install -r requirements.txt", tests)
+        self.assertIn("uv sync --frozen", tests)
         self.assertNotIn("download-runtime", tests)
 
     def test_collector_fetches_history_for_heads_without_snapshot_metadata_unconditionally(self) -> None:

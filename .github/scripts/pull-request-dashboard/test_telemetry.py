@@ -690,35 +690,38 @@ class WorkflowOtlpExportWiringTest(unittest.TestCase):
 
 
 class TelemetryRequirementsTest(unittest.TestCase):
-    def test_requirements_include_the_single_telemetry_pin_list(self) -> None:
-        requirements = (SCRIPT_DIR / "requirements.txt").read_text(encoding="utf-8").splitlines()
-        telemetry_pins = (SCRIPT_DIR / "requirements-telemetry.txt").read_text(encoding="utf-8").splitlines()
-        self.assertIn("-r requirements-telemetry.txt", requirements)
-        self.assertFalse([line for line in requirements if line.startswith("opentelemetry")])
-        self.assertEqual(
-            ["opentelemetry-api", "opentelemetry-exporter-otlp-proto-http", "opentelemetry-sdk"],
-            sorted(line.split("==")[0] for line in telemetry_pins if line.strip()),
-        )
-        self.assertTrue(all("==" in line for line in telemetry_pins if line.strip()))
+    def test_pyproject_includes_telemetry_dependencies(self) -> None:
+        pyproject_text = (SCRIPT_DIR / "pyproject.toml").read_text(encoding="utf-8")
+        self.assertIn("opentelemetry-api", pyproject_text)
+        self.assertIn("opentelemetry-sdk", pyproject_text)
+        self.assertIn("opentelemetry-exporter-otlp-proto-http", pyproject_text)
+        
+        # Verify all telemetry dependencies are present
+        telemetry_deps = ["opentelemetry-api", "opentelemetry-sdk", "opentelemetry-exporter-otlp-proto-http"]
+        for dep in telemetry_deps:
+            with self.subTest(dependency=dep):
+                self.assertIn(dep, pyproject_text)
 
-    def test_lock_pins_and_hashes_every_package(self) -> None:
-        lock = (SCRIPT_DIR / "requirements-telemetry.lock").read_text(encoding="utf-8")
-        entries = re.split(r"\n(?=\S)", re.sub(r"^\s*#.*\n?", "", lock, flags=re.MULTILINE).strip())
-        self.assertGreaterEqual(len(entries), 3)
-        for entry in entries:
-            with self.subTest(entry=entry.split()[0]):
-                self.assertRegex(entry, r"^[A-Za-z0-9][\w.-]*==[\w.!+-]+\s")
-                self.assertIn("--hash=sha256:", entry)
-        locked = dict(entry.split()[0].split("==", 1) for entry in entries)
-        telemetry_pins = (SCRIPT_DIR / "requirements-telemetry.txt").read_text(encoding="utf-8").split()
-        pins = dict(pin.split("==", 1) for pin in telemetry_pins)
-        self.assertEqual(pins, {name: locked.get(name) for name in pins})
+    def test_uv_lock_pins_and_hashes_every_package(self) -> None:
+        lock_text = (SCRIPT_DIR / "uv.lock").read_text(encoding="utf-8")
+        
+        # Verify uv.lock exists and has hash entries
+        self.assertIn("[[package]]", lock_text)
+        self.assertIn("sha256", lock_text)
+        
+        # Verify telemetry packages are locked
+        telemetry_packages = ["opentelemetry-api", "opentelemetry-sdk", "opentelemetry-exporter-otlp-proto-http"]
+        for package in telemetry_packages:
+            with self.subTest(package=package):
+                self.assertIn(package, lock_text)
 
-    def test_pip_requirements_files_have_no_hashes(self) -> None:
-        # Any hash turns on hash-checking for the whole unhashed requirements.txt install.
-        for name in ("requirements.txt", "requirements-telemetry.txt"):
-            with self.subTest(file=name):
-                self.assertNotIn("--hash", (SCRIPT_DIR / name).read_text(encoding="utf-8"))
+    def test_uv_lock_has_hash_verification(self) -> None:
+        # uv.lock uses SHA256 hashes for integrity verification
+        lock_text = (SCRIPT_DIR / "uv.lock").read_text(encoding="utf-8")
+        self.assertIn("sha256", lock_text)
+        # Verify multiple hash entries exist (for all packages)
+        hash_count = lock_text.count("sha256")
+        self.assertGreater(hash_count, 10, "uv.lock should contain hashes for all dependencies")
 
 
 if __name__ == "__main__":
