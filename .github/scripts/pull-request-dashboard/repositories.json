@@ -99,7 +99,8 @@
   {
     "name": "semantic-conventions-genai",
     "approver_teams": ["semconv-genai-approvers"],
-    "required_approvals": 2
+    "required_approvals": 2,
+    "require_clean_copilot_review_branches": ["main"]
   },
   {
     "name": "shared-workflows",
