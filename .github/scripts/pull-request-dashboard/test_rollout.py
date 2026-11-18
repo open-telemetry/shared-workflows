@@ -73,7 +73,10 @@ class RolloutWiringTest(unittest.TestCase):
         canary = re.search(r"^ {6}CANARY_REPOSITORIES: '(\[[^']*\])'$", body, re.MULTILINE)
         self.assertIsNotNone(canary)
         configured = {entry["name"] for entry in json.loads((SCRIPT_DIR / "repositories.json").read_text())}
-        self.assertEqual(json.loads(canary.group(1)), ["opentelemetry-java-instrumentation", "shared-workflows"])
+        self.assertEqual(
+            json.loads(canary.group(1)),
+            ["opentelemetry-java-instrumentation", "semantic-conventions-genai", "shared-workflows"],
+        )
         self.assertTrue(set(json.loads(canary.group(1))) <= configured)
 
     def test_workflows_do_not_depend_on_retired_snapshot_flag(self) -> None:
