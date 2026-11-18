@@ -351,7 +351,7 @@ class PublishablePrsTest(unittest.TestCase):
             {
                 "number": 1,
                 "isDraft": False,
-                "labels": ["size/L"],
+                "labels": [{"name": "size/L", "color": "5319e7"}],
             },
         ]
         results = (stored_dashboard_result(1),)

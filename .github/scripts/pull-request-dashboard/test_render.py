@@ -481,13 +481,13 @@ class RenderTest(unittest.TestCase):
                 "author": {"login": "author"},
                 "isDraft": False,
                 "labels": [
-                    "size/L",
-                    "breaking change",
-                    "documentation",
-                    "size/L",
-                    "Size/XL",
-                    'danger | [x] <tag> & @owner "quoted"',
-                    "v1.0",
+                    {"name": "size/L", "color": "5319e7"},
+                    {"name": "breaking change", "color": "b60205"},
+                    {"name": "documentation", "color": "0075ca"},
+                    {"name": "size/L", "color": "5319e7"},
+                    {"name": "Size/XL", "color": "5319e7"},
+                    {"name": 'danger | [x] <tag> & @owner "quoted"', "color": "a11b22"},
+                    {"name": "uncolored", "color": "bad&style=plastic"},
                 ],
             },
             {
@@ -495,7 +495,7 @@ class RenderTest(unittest.TestCase):
                 "title": "Documentation",
                 "author": {"login": "author"},
                 "isDraft": False,
-                "labels": ["documentation"],
+                "labels": [{"name": "documentation", "color": "0075ca"}],
             },
         ]
         results = (
@@ -506,19 +506,30 @@ class RenderTest(unittest.TestCase):
         markdown = render_pr_tables(
             prs,
             results,
-            labels_to_display=["size/*", "size/L", "breaking change", "danger*", "v1.0"],
+            labels_to_display=["size/*", "size/L", "breaking change", "danger*", "uncolored"],
             repo="open-telemetry/example",
         )
 
         self.assertIn(
-            "#123 Feature · <https://github.com/open-telemetry/example/labels/size%2FL>"
-            " · <https://github.com/open-telemetry/example/labels/breaking%20change>"
-            " · <https://github.com/open-telemetry/example/labels/"
-            "danger%20%7C%20%5Bx%5D%20%3Ctag%3E%20%26%20%40owner%20%22quoted%22>"
-            " · <code>v1.0</code> |",
+            "#123 Feature · [![size/L](https://img.shields.io/static/v1?"
+            "label=&message=size%2FL&color=5319e7&style=flat)]"
+            "(https://github.com/open-telemetry/example/pulls?q=is%3Apr+is%3Aopen+label%3A%22size%2FL%22)"
+            " · [![breaking change](https://img.shields.io/static/v1?"
+            "label=&message=breaking+change&color=b60205&style=flat)]"
+            "(https://github.com/open-telemetry/example/pulls?q=is%3Apr+is%3Aopen+label%3A%22breaking+change%22)"
+            ' · [![danger \\| \\[x\\] &lt;tag&gt; &amp; &#64;owner "quoted"]'
+            "(https://img.shields.io/static/v1?label=&message="
+            "danger+%7C+%5Bx%5D+%3Ctag%3E+%26+%40owner+%22quoted%22&color=a11b22&style=flat)]"
+            "(https://github.com/open-telemetry/example/pulls?q=is%3Apr+is%3Aopen+label%3A%22"
+            "danger+%7C+%5Bx%5D+%3Ctag%3E+%26+%40owner+%5C%22quoted%5C%22%22)"
+            " · [uncolored](https://github.com/open-telemetry/example/pulls?"
+            "q=is%3Apr+is%3Aopen+label%3A%22uncolored%22)",
             markdown,
         )
-        self.assertIn("| #124 Documentation |", markdown)
+        self.assertEqual(1, markdown.count("![size/L]"))
+        self.assertNotIn("![Size/XL]", markdown)
+        self.assertNotIn("![documentation]", markdown)
+        self.assertIn("#124 Documentation", markdown)
 
     def test_renders_matching_labels_on_draft_prs(self) -> None:
         markdown = render_pr_tables(
@@ -528,7 +539,7 @@ class RenderTest(unittest.TestCase):
                     "title": "Work in progress",
                     "author": {"login": "author"},
                     "isDraft": True,
-                    "labels": ["size/S"],
+                    "labels": [{"name": "size/S", "color": "0075ca"}],
                 },
             ],
             (),
@@ -537,7 +548,9 @@ class RenderTest(unittest.TestCase):
         )
 
         self.assertIn(
-            "| #125 Work in progress · <https://github.com/open-telemetry/example/labels/size%2FS>"
+            "| #125 Work in progress · [![size/S](https://img.shields.io/static/v1?"
+            "label=&message=size%2FS&color=0075ca&style=flat)]"
+            "(https://github.com/open-telemetry/example/pulls?q=is%3Apr+is%3Aopen+label%3A%22size%2FS%22)"
             " | author |",
             markdown,
         )
@@ -646,21 +659,16 @@ class RenderTest(unittest.TestCase):
                 "title": "Feature",
                 "author": {"login": "author"},
                 "isDraft": False,
-                "labels": ["size/L"],
+                "labels": [{"name": "size/L", "color": "5319e7"}],
             },
         ]
         results = (stored_dashboard_result(126),)
 
         self.assertEqual(
-            render_pr_tables(prs, results, repo="open-telemetry/example"),
-            render_pr_tables(
-                prs, results, labels_to_display=[], repo="open-telemetry/example"
-            ),
+            render_pr_tables(prs, results),
+            render_pr_tables(prs, results, labels_to_display=[]),
         )
-        self.assertIn(
-            "| #126 Feature |",
-            render_pr_tables(prs, results, repo="open-telemetry/example"),
-        )
+        self.assertNotIn("img.shields.io", render_pr_tables(prs, results))
 
 
 if __name__ == "__main__":

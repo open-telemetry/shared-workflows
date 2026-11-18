@@ -307,7 +307,7 @@ A truncated dashboard includes a size-limit warning and a `_More X PRs not shown
 
 Automatic sizing follows the canary-to-stable release rollout. Until its release is promoted, stable repositories retain the pinned publisher's behavior. The queue forwards `--large-repo` for configured repositories to preserve their sizing protection; the automatic publisher accepts the flag as a no-op. Remove the legacy configuration entries, flag forwarding, and compatibility flag only after the automatic publisher is promoted to stable.
 
-Matching labels appear after the PR title as native GitHub badges that link to the repository's label pages. GitHub does not render badges for label names that contain a period, so the dashboard shows those names as text.
+Matching labels appear after the PR title as Shields.io badges in their GitHub colors. Each badge links to the repository's open PRs with that label. If GitHub doesn't return a valid color, the dashboard shows a text link instead. Only enable `labels_to_display` for public labels because the badge image URL contains the label name and color.
 
 The dashboard lists matching labels in the order GitHub returns them and shows each label once. This setting does not filter pull requests or affect routing, notifications, or status comments.
 
