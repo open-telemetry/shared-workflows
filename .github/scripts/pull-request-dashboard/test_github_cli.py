@@ -639,7 +639,7 @@ class GithubCliTest(unittest.TestCase):
                 "updated_at": "2026-07-17T00:00:00Z",
                 "html_url": f"https://example.test/pull/{number}",
                 "labels": [
-                    {"name": "size/L", "color": "5319e7"},
+                    {"name": "size/L"},
                     {"name": ""},
                     {"name": "   "},
                     {"color": "ffffff"},
@@ -662,7 +662,7 @@ class GithubCliTest(unittest.TestCase):
                 "isDraft": True,
                 "createdAt": "2026-07-01T00:00:00Z",
                 "url": "https://example.test/pull/501",
-                "labels": [{"name": "size/L", "color": "5319e7"}],
+                "labels": ["size/L"],
             },
             prs[-1],
         )

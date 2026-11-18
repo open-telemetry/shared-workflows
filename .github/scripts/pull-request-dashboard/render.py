@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-import re
 from collections.abc import Iterable
 from dataclasses import dataclass, replace
 from datetime import datetime
 from fnmatch import fnmatchcase
 from typing import Any
-from urllib.parse import quote, urlencode
+from urllib.parse import quote
 
 from dashboard_contracts import (
     DashboardFacts,
@@ -67,16 +66,11 @@ class _PrSection:
         )
 
 
-def _label_badge(name: str, color: object, repo: str | None) -> str:
-    text = re.sub(r"([*_`~])", r"\\\1", markdown_escape(name))
-    if isinstance(color, str) and re.fullmatch(r"[0-9a-fA-F]{6}", color):
-        badge_query = urlencode({"label": "", "message": name, "color": color, "style": "flat"})
-        text = f"![{text}](https://img.shields.io/static/v1?{badge_query})"
-    if repo is None:
-        return text
-    label_query = name.replace("\\", "\\\\").replace('"', '\\"')
-    search_query = urlencode({"q": f'is:pr is:open label:"{label_query}"'})
-    return f"[{text}](https://github.com/{quote(repo, safe='/')}/pulls?{search_query})"
+def _render_label(name: str, repo: str | None) -> str:
+    # GitHub only turns same-repo label URLs into badges and skips names with periods.
+    if repo is None or "." in name:
+        return f"<code>{markdown_escape(name)}</code>"
+    return f"<https://github.com/{quote(repo)}/labels/{quote(name, safe='')}>"
 
 
 def _pr_cell_text(
@@ -89,20 +83,17 @@ def _pr_cell_text(
     pr_cell = f"#{number} {title}"
     patterns = labels_to_display or []
 
-    badges: list[str] = []
+    matched_labels: list[str] = []
     seen: set[str] = set()
     for label in pr.get("labels") or []:
-        if not isinstance(label, dict):
+        if not isinstance(label, str) or not label or label in seen:
             continue
-        name = label.get("name")
-        if not isinstance(name, str) or not name or name in seen:
-            continue
-        if any(fnmatchcase(name, pattern) for pattern in patterns):
-            badges.append(_label_badge(name, label.get("color"), repo))
-            seen.add(name)
-    if not badges:
+        if any(fnmatchcase(label, pattern) for pattern in patterns):
+            matched_labels.append(_render_label(label, repo))
+            seen.add(label)
+    if not matched_labels:
         return pr_cell
-    return f"{pr_cell} · {' · '.join(badges)}"
+    return f"{pr_cell} · {' · '.join(matched_labels)}"
 
 
 FIRST_TIME_AUTHOR_ASSOCIATIONS = ("FIRST_TIME_CONTRIBUTOR", "FIRST_TIMER")
