@@ -75,7 +75,7 @@ jobs:
           python3 .github/scripts/pull-request-dashboard/promote_rollout.py "$RELEASE" "$RELEASE_SHA"
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v3
+        uses: astral-sh/setup-uv@8d55fbecc275b1c35dbe060458839f8d30439ccf # v3.0.0
 
       - name: Install Python dependencies
         working-directory: .github/scripts/pull-request-dashboard
