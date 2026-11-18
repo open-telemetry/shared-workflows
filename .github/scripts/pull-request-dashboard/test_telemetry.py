@@ -703,23 +703,64 @@ class TelemetryRequirementsTest(unittest.TestCase):
                 self.assertIn(dep, pyproject_text)
 
     def test_uv_lock_pins_and_hashes_every_package(self) -> None:
-        lock_text = (SCRIPT_DIR / "uv.lock").read_text(encoding="utf-8")
+        import tomllib
         
-        # Verify uv.lock exists and has hash entries
-        self.assertIn("[[package]]", lock_text)
-        self.assertIn("sha256", lock_text)
+        lock_content = (SCRIPT_DIR / "uv.lock").read_bytes()
+        lock = tomllib.loads(lock_content.decode("utf-8"))
         
-        # Verify telemetry packages are locked
+        # Verify lock file structure
+        self.assertIn("package", lock)
+        packages = lock["package"]
+        self.assertIsInstance(packages, list)
+        self.assertGreater(len(packages), 3, "Lock should contain multiple packages")
+        
+        # Verify each registry package has version and hashes
+        registry_packages = [
+            pkg for pkg in packages 
+            if pkg.get("source", {}).get("registry") is not None
+        ]
+        self.assertGreater(len(registry_packages), 0, "Should have registry packages")
+        
+        for pkg in registry_packages:
+            name = pkg.get("name")
+            with self.subTest(package=name):
+                # Each package must have a name and version
+                self.assertIsNotNone(name)
+                self.assertIn("version", pkg)
+                
+                # Each package must have at least one artifact (sdist or wheel) with hash
+                has_hash = False
+                
+                # Check sdist for hash
+                if "sdist" in pkg:
+                    sdist = pkg["sdist"]
+                    if "hash" in sdist:
+                        self.assertIn("sha256:", sdist["hash"])
+                        has_hash = True
+                
+                # Check wheels for hashes
+                if "wheels" in pkg:
+                    wheels = pkg["wheels"]
+                    self.assertIsInstance(wheels, list)
+                    for wheel in wheels:
+                        if "hash" in wheel:
+                            self.assertIn("sha256:", wheel["hash"])
+                            has_hash = True
+                
+                self.assertTrue(has_hash, f"Package {name} must have at least one SHA256 hash")
+        
+        # Verify telemetry packages are present in lock
+        package_names = {pkg["name"] for pkg in packages}
         telemetry_packages = ["opentelemetry-api", "opentelemetry-sdk", "opentelemetry-exporter-otlp-proto-http"]
         for package in telemetry_packages:
-            with self.subTest(package=package):
-                self.assertIn(package, lock_text)
+            with self.subTest(telemetry_package=package):
+                self.assertIn(package, package_names)
 
     def test_uv_lock_has_hash_verification(self) -> None:
-        # uv.lock uses SHA256 hashes for integrity verification
+        # Verify uv.lock format includes hash verification
         lock_text = (SCRIPT_DIR / "uv.lock").read_text(encoding="utf-8")
         self.assertIn("sha256", lock_text)
-        # Verify multiple hash entries exist (for all packages)
+        # Basic sanity check that multiple packages have hashes
         hash_count = lock_text.count("sha256")
         self.assertGreater(hash_count, 10, "uv.lock should contain hashes for all dependencies")
 
