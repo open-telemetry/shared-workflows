@@ -5,6 +5,7 @@ from collections.abc import Iterable
 from dataclasses import dataclass, replace
 from datetime import datetime
 from fnmatch import fnmatchcase
+from html import escape
 from typing import Any
 from urllib.parse import quote, urlencode
 
@@ -68,15 +69,25 @@ class _PrSection:
 
 
 def _label_badge(name: str, color: object, repo: str | None) -> str:
-    text = re.sub(r"([*_`~])", r"\\\1", markdown_escape(name))
+    search_url = None
+    if repo is not None:
+        label_query = name.replace("\\", "\\\\").replace('"', '\\"')
+        search_query = urlencode({"q": f'is:pr is:open label:"{label_query}"'})
+        search_url = f"https://github.com/{quote(repo, safe='/')}/pulls?{search_query}"
+
     if isinstance(color, str) and re.fullmatch(r"[0-9a-fA-F]{6}", color):
         badge_query = urlencode({"label": "", "message": name, "color": color, "style": "flat"})
-        text = f"![{text}](https://img.shields.io/static/v1?{badge_query})"
-    if repo is None:
-        return text
-    label_query = name.replace("\\", "\\\\").replace('"', '\\"')
-    search_query = urlencode({"q": f'is:pr is:open label:"{label_query}"'})
-    return f"[{text}](https://github.com/{quote(repo, safe='/')}/pulls?{search_query})"
+        # A literal pipe in an HTML attribute still splits a Markdown table cell.
+        alt = escape(" ".join(name.splitlines())).replace("|", "&#124;")
+        # GitHub keeps the image's align attribute but strips inline CSS.
+        image = (
+            f'<img align="texttop" alt="{alt}" '
+            f'src="https://img.shields.io/static/v1?{escape(badge_query)}">'
+        )
+        return f'<a href="{search_url}">{image}</a>' if search_url else image
+
+    text = re.sub(r"([*_`~])", r"\\\1", markdown_escape(name))
+    return f"[{text}]({search_url})" if search_url else text
 
 
 def _pr_cell_text(
