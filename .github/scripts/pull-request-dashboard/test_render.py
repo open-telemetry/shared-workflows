@@ -511,24 +511,26 @@ class RenderTest(unittest.TestCase):
         )
 
         self.assertIn(
-            "#123 Feature · [![size/L](https://img.shields.io/static/v1?"
-            "label=&message=size%2FL&color=5319e7&style=flat)]"
-            "(https://github.com/open-telemetry/example/pulls?q=is%3Apr+is%3Aopen+label%3A%22size%2FL%22)"
-            " · [![breaking change](https://img.shields.io/static/v1?"
-            "label=&message=breaking+change&color=b60205&style=flat)]"
-            "(https://github.com/open-telemetry/example/pulls?q=is%3Apr+is%3Aopen+label%3A%22breaking+change%22)"
-            ' · [![danger \\| \\[x\\] &lt;tag&gt; &amp; &#64;owner "quoted"]'
-            "(https://img.shields.io/static/v1?label=&message="
-            "danger+%7C+%5Bx%5D+%3Ctag%3E+%26+%40owner+%22quoted%22&color=a11b22&style=flat)]"
-            "(https://github.com/open-telemetry/example/pulls?q=is%3Apr+is%3Aopen+label%3A%22"
-            "danger+%7C+%5Bx%5D+%3Ctag%3E+%26+%40owner+%5C%22quoted%5C%22%22)"
+            '#123 Feature · <a href="https://github.com/open-telemetry/example/pulls?'
+            'q=is%3Apr+is%3Aopen+label%3A%22size%2FL%22">'
+            '<img align="texttop" alt="size/L" src="https://img.shields.io/static/v1?'
+            'label=&amp;message=size%2FL&amp;color=5319e7&amp;style=flat"></a>'
+            ' · <a href="https://github.com/open-telemetry/example/pulls?'
+            'q=is%3Apr+is%3Aopen+label%3A%22breaking+change%22">'
+            '<img align="texttop" alt="breaking change" src="https://img.shields.io/static/v1?'
+            'label=&amp;message=breaking+change&amp;color=b60205&amp;style=flat"></a>'
+            ' · <a href="https://github.com/open-telemetry/example/pulls?q=is%3Apr+is%3Aopen+label%3A%22'
+            'danger+%7C+%5Bx%5D+%3Ctag%3E+%26+%40owner+%5C%22quoted%5C%22%22">'
+            '<img align="texttop" alt="danger &#124; [x] &lt;tag&gt; &amp; @owner &quot;quoted&quot;"'
+            ' src="https://img.shields.io/static/v1?label=&amp;message='
+            'danger+%7C+%5Bx%5D+%3Ctag%3E+%26+%40owner+%22quoted%22&amp;color=a11b22&amp;style=flat"></a>'
             " · [uncolored](https://github.com/open-telemetry/example/pulls?"
             "q=is%3Apr+is%3Aopen+label%3A%22uncolored%22)",
             markdown,
         )
-        self.assertEqual(1, markdown.count("![size/L]"))
-        self.assertNotIn("![Size/XL]", markdown)
-        self.assertNotIn("![documentation]", markdown)
+        self.assertEqual(1, markdown.count('alt="size/L"'))
+        self.assertNotIn('alt="Size/XL"', markdown)
+        self.assertNotIn('alt="documentation"', markdown)
         self.assertIn("#124 Documentation", markdown)
 
     def test_renders_matching_labels_on_draft_prs(self) -> None:
@@ -548,9 +550,10 @@ class RenderTest(unittest.TestCase):
         )
 
         self.assertIn(
-            "| #125 Work in progress · [![size/S](https://img.shields.io/static/v1?"
-            "label=&message=size%2FS&color=0075ca&style=flat)]"
-            "(https://github.com/open-telemetry/example/pulls?q=is%3Apr+is%3Aopen+label%3A%22size%2FS%22)"
+            '| #125 Work in progress · <a href="https://github.com/open-telemetry/example/pulls?'
+            'q=is%3Apr+is%3Aopen+label%3A%22size%2FS%22">'
+            '<img align="texttop" alt="size/S" src="https://img.shields.io/static/v1?'
+            'label=&amp;message=size%2FS&amp;color=0075ca&amp;style=flat"></a>'
             " | author |",
             markdown,
         )
