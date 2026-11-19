@@ -189,11 +189,11 @@ class DataSnapshotTest(unittest.TestCase):
                 "routing_input_fingerprint": "current-fingerprint",
                 "completions": [
                     {
-                        "episode_id": "legacy-nudge:2026-07-10T00:00:00+00:00",
+                        "episode_id": "old-episode",
                         "completed_at": "2026-07-17T00:00:00+00:00",
                     },
                     {
-                        "episode_id": "old-episode",
+                        "episode_id": "legacy-nudge:2026-07-10T00:00:00+00:00",
                         "completed_at": "2026-07-17T00:00:00+00:00",
                     },
                 ],
@@ -210,7 +210,6 @@ class DataSnapshotTest(unittest.TestCase):
             nonlocal attempts
             attempts += 1
             if attempts == 1:
-                (self.worker / "ledger.json").write_text('{"sent":[1,2]}\n', encoding="utf-8")
                 (self.worker / "author-nudge-state.json").write_text(json.dumps({
                     "version": state.AUTHOR_NUDGE_STATE_VERSION,
                     "prs": {"1": {"delivered_completion_ids": ["other-episode"]}},
@@ -221,7 +220,8 @@ class DataSnapshotTest(unittest.TestCase):
 
         def update() -> int:
             self.assertEqual(
-                ["PR #1: new reminder unavailable"],
+                (["PR #1: legacy lookup failed"] if attempts == 0 else [])
+                + ["PR #1: new reminder unavailable"],
                 author_nudge.deliver_prepared_author_nudges(
                     "open-telemetry/example",
                     datetime(2026, 7, 17, tzinfo=timezone.utc),
@@ -241,7 +241,7 @@ class DataSnapshotTest(unittest.TestCase):
             ),
             patch.object(
                 author_nudge, "recover_legacy_nudge_episode_id",
-                return_value="old-episode",
+                side_effect=[RuntimeError("legacy lookup failed"), "old-episode"],
             ) as recover,
             patch.object(
                 author_nudge, "ensure_nudge_completed",
@@ -259,13 +259,6 @@ class DataSnapshotTest(unittest.TestCase):
                 state_branch="data",
                 retry_snapshots=[(worktree / "author-nudge-state.json", retry_snapshot)],
             )
-            accepted_state["prs"]["1"]["completions"].append({
-                "episode_id": "other-episode",
-                "completed_at": "2026-07-17T00:00:00+00:00",
-            })
-            (accepted / "author-nudge-state.json").write_text(
-                json.dumps(accepted_state), encoding="utf-8",
-            )
             self.assertEqual(
                 ["PR #1: new reminder unavailable"],
                 author_nudge.deliver_prepared_author_nudges(
@@ -276,7 +269,7 @@ class DataSnapshotTest(unittest.TestCase):
         self.assertEqual(0, status)
         self.assertEqual(2, attempts)
         complete.assert_called_once()
-        recover.assert_called_once()
+        self.assertEqual(2, recover.call_count)
         receipts = json.loads(
             (worktree / "author-nudge-state.json").read_text(encoding="utf-8")
         )["prs"]["1"]

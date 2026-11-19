@@ -665,79 +665,6 @@ def record_author_nudge_observation(
     save_author_nudges(updated)
 
 
-def complete_pending_nudges(
-    repo: str,
-    pr_number: int,
-    dashboard_state: DashboardState,
-    entry: dict[str, Any] | None,
-) -> tuple[dict[str, Any], list[str]]:
-    """Finish obsolete reminders, preserving receipts and retryable failures."""
-    entry = dict(entry or {})
-    delivered_completion_ids = list(
-        dict.fromkeys(entry.get("delivered_completion_ids") or [])
-    )
-    remaining_completions: list[dict[str, Any]] = []
-    errors: list[str] = []
-    for completion in entry.get("completions") or []:
-        completion_id = completion.get("episode_id") or ""
-        if completion_id in delivered_completion_ids:
-            continue
-        completed_at = parse_ts(completion.get("completed_at") or "")
-        kind = completion.get("kind") or "left_author"
-        if (
-            not completion_id
-            or completed_at is None
-            or kind not in ("left_author", "routing_changed")
-        ):
-            errors.append(f"PR #{pr_number}: invalid pending nudge completion")
-            remaining_completions.append(completion)
-            continue
-        episode_id = completion_id
-        try:
-            if episode_id.startswith(LEGACY_EPISODE_PREFIX):
-                episode_id = recover_legacy_nudge_episode_id(
-                    repo,
-                    pr_number,
-                    episode_id,
-                )
-                if not episode_id:
-                    print(
-                        f"PR #{pr_number}: legacy author nudge comment not found; "
-                        "discarding completion",
-                        file=sys.stderr,
-                    )
-            if episode_id and episode_id not in delivered_completion_ids:
-                ensure_nudge_completed(
-                    repo,
-                    pr_number,
-                    episode_id,
-                    dashboard_state,
-                    completed_at,
-                    kind,
-                )
-        except GhReadOnlyConversationError:
-            print(
-                f"PR #{pr_number}: conversation is archived and read-only; "
-                f"retiring author nudge cleanup for episode {episode_id}",
-                file=sys.stderr,
-            )
-        except Exception as e:
-            errors.append(f"PR #{pr_number}: {e}")
-            remaining_completions.append(completion)
-            continue
-        if using_delivery_state():
-            for delivered_id in (completion_id, episode_id):
-                if delivered_id and delivered_id not in delivered_completion_ids:
-                    delivered_completion_ids.append(delivered_id)
-    if remaining_completions:
-        entry["completions"] = remaining_completions
-    else:
-        entry.pop("completions", None)
-    if delivered_completion_ids:
-        entry["delivered_completion_ids"] = delivered_completion_ids
-    return entry, errors
-
-
 def deliver_prepared_author_nudges(
     repo: str,
     now: datetime,
@@ -758,11 +685,63 @@ def deliver_prepared_author_nudges(
         if pr_number in excluded_pr_numbers:
             continue
         result = dashboard_state.result_for(pr_number)
-        entry, completion_errors = complete_pending_nudges(
-            repo, pr_number, dashboard_state, entry,
+        completions = list((entry or {}).get("completions") or [])
+        delivered_completion_ids = list(
+            dict.fromkeys((entry or {}).get("delivered_completion_ids") or [])
         )
+        remaining_completions: list[dict[str, Any]] = []
+        for completion in completions:
+            completion_id = completion.get("episode_id") or ""
+            if completion_id in delivered_completion_ids:
+                continue
+            completed_at = parse_ts(completion.get("completed_at") or "")
+            kind = completion.get("kind") or "left_author"
+            if (
+                not completion_id
+                or completed_at is None
+                or kind not in ("left_author", "routing_changed")
+            ):
+                errors.append(f"PR #{pr_number}: invalid pending nudge completion")
+                remaining_completions.append(completion)
+                continue
+            episode_id = completion_id
+            try:
+                if episode_id.startswith(LEGACY_EPISODE_PREFIX):
+                    episode_id = recover_legacy_nudge_episode_id(
+                        repo, pr_number, episode_id,
+                    )
+                    if not episode_id:
+                        print(
+                            f"PR #{pr_number}: legacy author nudge comment not found; "
+                            "discarding completion",
+                            file=sys.stderr,
+                        )
+                if episode_id and episode_id not in delivered_completion_ids:
+                    ensure_nudge_completed(
+                        repo, pr_number, episode_id, dashboard_state, completed_at, kind,
+                    )
+            except GhReadOnlyConversationError:
+                print(
+                    f"PR #{pr_number}: conversation is archived and read-only; "
+                    f"retiring author nudge cleanup for episode {episode_id}",
+                    file=sys.stderr,
+                )
+            except Exception as e:
+                errors.append(f"PR #{pr_number}: {e}")
+                remaining_completions.append(completion)
+                continue
+            if using_delivery_state():
+                for delivered_id in (completion_id, episode_id):
+                    if delivered_id and delivered_id not in delivered_completion_ids:
+                        delivered_completion_ids.append(delivered_id)
+        entry = dict(entry or {})
+        if remaining_completions:
+            entry["completions"] = remaining_completions
+        else:
+            entry.pop("completions", None)
+        if delivered_completion_ids:
+            entry["delivered_completion_ids"] = delivered_completion_ids
         updated[key] = entry
-        errors.extend(completion_errors)
         if (
             close_after is not None
             and entry.get("nudged_at")
@@ -794,10 +773,9 @@ def deliver_prepared_author_nudges(
                         now,
                         "routing_changed",
                     )
-                    entry = {
-                        **(completion_only(entry) or {}),
-                        "completions": completions,
-                    }
+                    entry = {"completions": completions}
+                    if delivered_completion_ids:
+                        entry["delivered_completion_ids"] = delivered_completion_ids
                     updated[key] = entry
                     continue
         if not entry.get("waiting_since") and not entry.get("pending_at"):

@@ -166,147 +166,53 @@ class RunGhJsonTest(unittest.TestCase):
 
     @patch("github_cli.sleep_for_retry")
     @patch("github_cli.subprocess.run")
-    def test_archived_conversation_raises_typed_error_without_retry(
-        self, run, sleep
-    ) -> None:
-        run.return_value = subprocess.CompletedProcess(
-            ["gh"], 1, "",
-            "gh: Pull request is archived and its conversation is "
-            "read-only. (HTTP 403)",
-        )
-
-        with self.assertRaises(GhReadOnlyConversationError):
-            run_gh_json(["gh", "api", "/test"])
-
-        run.assert_called_once()
-        sleep.assert_not_called()
-
-    @patch("github_cli.subprocess.run")
-    def test_rest_archived_error_does_not_hide_other_failures(self, run) -> None:
-        message = "Pull request is archived and its conversation is read-only."
-        for stderr in (
-            f"gh: {message} (HTTP 403)\nResource not accessible by integration",
-            f"gh: {message} (HTTP 401)",
-            f"gh: Permission denied: {message} (HTTP 403)",
-        ):
-            with self.subTest(stderr=stderr):
-                run.return_value = subprocess.CompletedProcess(["gh"], 1, "", stderr)
-
-                with self.assertRaises(RuntimeError) as raised:
-                    run_gh_json(["gh", "api", "/test"])
-
-                self.assertNotIsInstance(raised.exception, GhReadOnlyConversationError)
-
-    @patch("github_cli.subprocess.run")
-    def test_other_forbidden_errors_are_not_archived_conversations(self, run) -> None:
-        run.return_value = subprocess.CompletedProcess(
-            ["gh"], 1, "",
-            "gh: Resource not accessible by integration (HTTP 403)",
-        )
-
-        with self.assertRaises(RuntimeError) as raised:
-            run_gh_json([
-                "gh", "api", "--method", "PATCH", "/test",
-                "-f", "body=Pull request is archived and its conversation is read-only.",
-            ])
-
-        self.assertNotIsInstance(raised.exception, GhReadOnlyConversationError)
-
-    @patch("github_cli.sleep_for_retry")
-    @patch("github_cli.subprocess.run")
-    def test_graphql_archived_conversation_raises_typed_error(self, run, sleep) -> None:
-        message = "Pull request is archived and its conversation is read-only."
-        run.return_value = subprocess.CompletedProcess(
-            ["gh"], 1,
-            json.dumps({
-                "data": {"minimizeComment": None},
-                "errors": [{
-                    "type": "UNPROCESSABLE",
-                    "path": ["minimizeComment"],
-                    "message": message,
-                }],
-            }),
-            f"gh: {message}",
-        )
-
-        with self.assertRaises(GhReadOnlyConversationError):
-            run_gh_json(["gh", "api", "graphql"])
-
-        run.assert_called_once()
-        sleep.assert_not_called()
-
-    @patch("github_cli.subprocess.run")
-    def test_graphql_archived_error_does_not_hide_other_failures(self, run) -> None:
+    def test_cleanup_error_classification(self, run, sleep) -> None:
         message = "Pull request is archived and its conversation is read-only."
         archived = {"type": "UNPROCESSABLE", "message": message}
-        forbidden = {"type": "FORBIDDEN", "message": "Resource not accessible by integration"}
-        for response in (
-            json.dumps({"errors": [archived, forbidden]}),
-            json.dumps({"errors": [forbidden, archived]}),
-            json.dumps({"errors": [{
-                "type": "FORBIDDEN",
-                "message": f"{message} Resource not accessible by integration",
-            }]}),
-            json.dumps({"errors": []}),
-            "{broken",
+        missing = {
+            "type": "NOT_FOUND",
+            "message": "Could not resolve to a node with the global id of 'IC_17'.",
+        }
+        forbidden = {"type": "FORBIDDEN", "message": "Resource not accessible"}
+        stderr = f"gh: {message} (HTTP 403)"
+        for endpoint, response, error_text, expected in (
+            ("/test", {}, stderr, GhReadOnlyConversationError),
+            ("/test", {}, "gh: Resource not accessible (HTTP 403)", RuntimeError),
+            ("/test", {}, f"gh: {message} (HTTP 401)", RuntimeError),
+            ("/test", {}, f"{stderr}\nResource not accessible", RuntimeError),
+            ("/test", {}, f"gh: Permission denied: {message} (HTTP 403)", RuntimeError),
+            ("graphql", {"errors": [archived]}, stderr, GhReadOnlyConversationError),
+            ("graphql", {"errors": [missing]}, missing["message"], GhGraphQLNodeNotFoundError),
+            ("graphql", {"errors": [archived, forbidden]}, stderr, RuntimeError),
+            ("graphql", {"errors": [forbidden, archived]}, stderr, RuntimeError),
+            ("graphql", {"errors": [missing, forbidden]}, stderr, RuntimeError),
+            ("graphql", {"errors": [{**missing, "type": "FORBIDDEN"}]}, stderr, RuntimeError),
+            (
+                "graphql", {"errors": [{**missing, "message": "Missing repository"}]},
+                stderr, RuntimeError,
+            ),
+            (
+                "graphql", {"errors": [{**archived, "message": f"{message} Forbidden"}]},
+                stderr, RuntimeError,
+            ),
+            ("graphql", {"errors": []}, stderr, RuntimeError),
+            ("graphql", "{broken", stderr, RuntimeError),
         ):
-            with self.subTest(response=response):
+            with self.subTest(endpoint=endpoint, response=response, stderr=error_text):
+                run.reset_mock()
                 run.return_value = subprocess.CompletedProcess(
-                    ["gh"], 1, response,
-                    f"gh: {message}\nResource not accessible by integration",
+                    ["gh"], 1,
+                    response if isinstance(response, str) else json.dumps(response),
+                    error_text,
                 )
+                with self.assertRaises(expected) as raised:
+                    run_gh_json(["gh", "api", endpoint])
 
-                with self.assertRaises(RuntimeError) as raised:
-                    run_gh_json(["gh", "api", "graphql"])
-
-                self.assertNotIsInstance(raised.exception, GhReadOnlyConversationError)
-
-    @patch("github_cli.sleep_for_retry")
-    @patch("github_cli.subprocess.run")
-    def test_graphql_missing_node_identifies_the_exact_node(self, run, sleep) -> None:
-        run.return_value = subprocess.CompletedProcess(
-            ["gh"], 1,
-            json.dumps({
-                "data": {"node": None},
-                "errors": [{
-                    "type": "NOT_FOUND",
-                    "message": "Could not resolve to a node with the global id of 'IC_17'.",
-                    "path": ["node"],
-                }],
-            }),
-            "gh: Could not resolve to a node with the global id of 'IC_17'.",
-        )
-
-        with self.assertRaises(GhGraphQLNodeNotFoundError) as raised:
-            run_gh_json([
-                "gh", "api", "graphql", "-f",
-                'query=query { node(id: "IC_17") { id } }',
-            ])
-
-        self.assertEqual("IC_17", raised.exception.node_id)
-        run.assert_called_once()
-        sleep.assert_not_called()
-
-    @patch("github_cli.subprocess.run")
-    def test_other_graphql_errors_are_not_missing_nodes(self, run) -> None:
-        message = "Could not resolve to a node with the global id of 'IC_17'."
-        for errors in (
-            [{"type": "FORBIDDEN", "message": message}],
-            [{"type": "NOT_FOUND", "message": "Could not resolve to a Repository"}],
-            [
-                {"type": "NOT_FOUND", "message": message},
-                {"type": "FORBIDDEN", "message": "Resource not accessible"},
-            ],
-        ):
-            with self.subTest(errors=errors):
-                run.return_value = subprocess.CompletedProcess(
-                    ["gh"], 1, json.dumps({"errors": errors}), f"gh: {message}",
-                )
-
-                with self.assertRaises(RuntimeError) as raised:
-                    run_gh_json(["gh", "api", "graphql"])
-
-                self.assertNotIsInstance(raised.exception, GhGraphQLNodeNotFoundError)
+                self.assertIs(expected, type(raised.exception))
+                if expected is GhGraphQLNodeNotFoundError:
+                    self.assertEqual("IC_17", raised.exception.node_id)
+                run.assert_called_once()
+                sleep.assert_not_called()
 
     @patch("github_cli.sleep_for_retry")
     @patch("github_cli.subprocess.run")
