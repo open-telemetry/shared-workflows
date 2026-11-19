@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import subprocess
 import time
 from fnmatch import fnmatchcase
@@ -50,6 +51,12 @@ class GhNotFoundError(RuntimeError):
 
 class GhReadOnlyConversationError(RuntimeError):
     pass
+
+
+class GhGraphQLNodeNotFoundError(RuntimeError):
+    def __init__(self, message: str, node_id: str) -> None:
+        super().__init__(message)
+        self.node_id = node_id
 
 
 _RETRYABLE_GH_ERROR_FRAGMENTS = (
@@ -122,6 +129,21 @@ def _run_gh(
         raise GhNotFoundError(message)
     if "pull request is archived and its conversation is read-only." in last_stderr.lower():
         raise GhReadOnlyConversationError(message)
+    if cmd[1:3] == ["api", "graphql"]:
+        try:
+            response = json.loads(proc.stdout)
+        except json.JSONDecodeError:
+            raise RuntimeError(message) from None
+        errors = response.get("errors") if isinstance(response, dict) else None
+        if isinstance(errors, list) and len(errors) == 1:
+            error = errors[0]
+            if isinstance(error, dict) and error.get("type") == "NOT_FOUND":
+                match = re.fullmatch(
+                    r"Could not resolve to a node with the global id of '([^']+)'\.",
+                    error.get("message") or "",
+                )
+                if match:
+                    raise GhGraphQLNodeNotFoundError(message, match[1])
     raise RuntimeError(message)
 
 

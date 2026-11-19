@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 from contextlib import contextmanager
+from datetime import datetime, timezone
+import json
 import os
 from pathlib import Path
 import subprocess
@@ -10,6 +12,9 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
+import author_nudge
+from dashboard_test_support import dashboard_state
+import state
 import state_branch
 from test_state_branch import run_git
 
@@ -168,6 +173,65 @@ class DataSnapshotTest(unittest.TestCase):
         self.assertEqual(accepted, self.remote_git("rev-parse", "data").strip())
         self.assertEqual(accepted, run_git(worktree, "rev-parse", "HEAD").stdout.strip())
         self.assertEqual(1, state_branch.snapshot_generation("HEAD", worktree))
+
+    def test_rejected_push_preserves_retired_author_nudge_cleanup(self) -> None:
+        worktree = self.root / "dashboard"
+        accepted = self.root / "accepted"
+        accepted.mkdir()
+        (accepted / "author-nudge-state.json").write_text(json.dumps({
+            "version": state.AUTHOR_NUDGE_STATE_VERSION,
+            "prs": {"1": {"completions": [{
+                "episode_id": "old-episode",
+                "completed_at": "2026-07-17T00:00:00+00:00",
+            }]}},
+        }), encoding="utf-8")
+        retry_snapshot = self.root / "retry" / "author-nudge-state.json"
+        real_push = state_branch.push_state
+        attempts = 0
+
+        def competing_push(directory: Path, branch: str, expected: str) -> bool:
+            nonlocal attempts
+            attempts += 1
+            if attempts == 1:
+                (self.worker / "ledger.json").write_text('{"sent":[1,2]}\n', encoding="utf-8")
+                self.snapshot(self.worker, self.legacy)
+                self.assertTrue(real_push(self.worker, branch, self.legacy))
+            return real_push(directory, branch, expected)
+
+        def update() -> int:
+            self.assertEqual([], author_nudge.deliver_prepared_author_nudges(
+                "open-telemetry/example",
+                datetime(2026, 7, 17, tzinfo=timezone.utc),
+                retry_snapshot_path=retry_snapshot,
+            ))
+            return 0
+
+        with (
+            working_directory(self.worker),
+            patch.object(state, "_state_dir", worktree),
+            patch.object(state, "_accepted_state_dir", accepted),
+            patch.object(state, "_using_delivery_state", True),
+            patch.object(author_nudge, "load_dashboard_state_cache", return_value=dashboard_state()),
+            patch.object(
+                author_nudge, "ensure_nudge_completed",
+                side_effect=author_nudge.GhReadOnlyConversationError("archived"),
+            ) as complete,
+            patch.object(state_branch, "push_state", side_effect=competing_push),
+            patch.object(state_branch.time, "sleep"),
+        ):
+            status = state_branch.push_state_changes(
+                worktree, "Retire author reminder cleanup", update,
+                state_branch="data",
+                retry_snapshots=[(worktree / "author-nudge-state.json", retry_snapshot)],
+            )
+
+        self.assertEqual(0, status)
+        self.assertEqual(2, attempts)
+        complete.assert_called_once()
+        self.assertEqual(
+            {"1": {"delivered_completion_ids": ["old-episode"]}},
+            json.loads((worktree / "author-nudge-state.json").read_text(encoding="utf-8"))["prs"],
+        )
 
     def test_fetch_ignores_stale_snapshots_and_legacy_heads(self) -> None:
         first = self.snapshot(self.worker, self.legacy)

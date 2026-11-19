@@ -7,6 +7,7 @@ from unittest.mock import ANY, call, patch
 
 from github_cli import (
     GH_RETRY_ATTEMPTS,
+    GhGraphQLNodeNotFoundError,
     GhNotFoundError,
     GhReadOnlyConversationError,
     TransientGhError,
@@ -197,6 +198,53 @@ class RunGhJsonTest(unittest.TestCase):
             ])
 
         self.assertNotIsInstance(raised.exception, GhReadOnlyConversationError)
+
+    @patch("github_cli.sleep_for_retry")
+    @patch("github_cli.subprocess.run")
+    def test_graphql_missing_node_identifies_the_exact_node(self, run, sleep) -> None:
+        run.return_value = subprocess.CompletedProcess(
+            ["gh"], 1,
+            json.dumps({
+                "data": {"node": None},
+                "errors": [{
+                    "type": "NOT_FOUND",
+                    "message": "Could not resolve to a node with the global id of 'IC_17'.",
+                    "path": ["node"],
+                }],
+            }),
+            "gh: Could not resolve to a node with the global id of 'IC_17'.",
+        )
+
+        with self.assertRaises(GhGraphQLNodeNotFoundError) as raised:
+            run_gh_json([
+                "gh", "api", "graphql", "-f",
+                'query=query { node(id: "IC_17") { id } }',
+            ])
+
+        self.assertEqual("IC_17", raised.exception.node_id)
+        run.assert_called_once()
+        sleep.assert_not_called()
+
+    @patch("github_cli.subprocess.run")
+    def test_other_graphql_errors_are_not_missing_nodes(self, run) -> None:
+        message = "Could not resolve to a node with the global id of 'IC_17'."
+        for errors in (
+            [{"type": "FORBIDDEN", "message": message}],
+            [{"type": "NOT_FOUND", "message": "Could not resolve to a Repository"}],
+            [
+                {"type": "NOT_FOUND", "message": message},
+                {"type": "FORBIDDEN", "message": "Resource not accessible"},
+            ],
+        ):
+            with self.subTest(errors=errors):
+                run.return_value = subprocess.CompletedProcess(
+                    ["gh"], 1, json.dumps({"errors": errors}), f"gh: {message}",
+                )
+
+                with self.assertRaises(RuntimeError) as raised:
+                    run_gh_json(["gh", "api", "graphql"])
+
+                self.assertNotIsInstance(raised.exception, GhGraphQLNodeNotFoundError)
 
     @patch("github_cli.sleep_for_retry")
     @patch("github_cli.subprocess.run")

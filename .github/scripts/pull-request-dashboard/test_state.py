@@ -1124,6 +1124,52 @@ class StateTest(unittest.TestCase):
             ),
         )
 
+    def test_retry_snapshot_preserves_retired_completion_receipts(self) -> None:
+        for retry_clock in (
+            {},
+            {"waiting_since": "2026-07-10T02:00:00Z", "nudged_at": "2026-07-20T02:00:00Z"},
+            {"waiting_since": "2026-07-01T02:00:00Z", "nudged_at": "2026-07-08T02:00:00Z"},
+        ):
+            with self.subTest(retry_clock=retry_clock):
+                intent = {"7": {
+                    "waiting_since": "2026-07-10T02:00:00Z",
+                    "episode_id": "episode-1",
+                    "completions": [
+                        {"episode_id": "old-episode", "completed_at": "2026-07-20T02:00:00Z"},
+                        {"episode_id": "pending-episode", "completed_at": "2026-07-21T02:00:00Z"},
+                    ],
+                }}
+                merged = union_merge_author_nudges(
+                    {"7": {**intent["7"], "delivered_completion_ids": ["earlier-episode"]}},
+                    {"7": {**retry_clock, "delivered_completion_ids": ["old-episode", "earlier-episode"]}},
+                )
+
+                self.assertEqual(
+                    ["earlier-episode", "old-episode"],
+                    merged["7"]["delivered_completion_ids"],
+                )
+                self.assertNotIn(
+                    "old-episode",
+                    [item["episode_id"] for item in merged["7"].get("completions", [])],
+                )
+                reconciled = reconcile_author_nudges(intent, merged)["7"]
+                self.assertNotIn(
+                    "old-episode",
+                    [item["episode_id"] for item in reconciled["completions"]],
+                )
+                self.assertIn(
+                    "pending-episode",
+                    [item["episode_id"] for item in reconciled["completions"]],
+                )
+
+    def test_retry_snapshot_retains_receipt_without_a_baseline_entry(self) -> None:
+        self.assertEqual(
+            {"7": {"delivered_completion_ids": ["old-episode"]}},
+            union_merge_author_nudges(
+                {}, {"7": {"delivered_completion_ids": ["old-episode"]}},
+            ),
+        )
+
     def test_retry_snapshot_completes_posted_nudge_removed_from_baseline(self) -> None:
         self.assertEqual(
             {
@@ -1326,6 +1372,10 @@ class StateTest(unittest.TestCase):
                 "waiting_since": "2026-07-01T00:00:00Z",
                 "nudged_at": "2026-07-08T00:00:00Z",
                 "delivered_completion_ids": ["old-episode"],
+                "completions": [{
+                    "episode_id": "old-episode",
+                    "completed_at": "2026-07-08T00:00:00Z",
+                }],
             }
         }
 
