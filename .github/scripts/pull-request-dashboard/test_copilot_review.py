@@ -56,6 +56,10 @@ INSUFFICIENT_QUOTA_FAILURE_BODY = (
     "Copilot was unable to review this pull request because the user who "
     "requested the review has insufficient remaining quota."
 )
+INSUFFICIENT_QUOTA_FAILURE_WITH_GUIDANCE_BODY = (
+    f"{INSUFFICIENT_QUOTA_FAILURE_BODY} "
+    "Try requesting a review at a lower effort level."
+)
 ERROR_BODY = (
     "Copilot encountered an error and was unable to review this pull request. "
     "You can try again by re-requesting a review."
@@ -181,19 +185,21 @@ class CopilotReviewStatusTest(unittest.TestCase):
     @patch("copilot_review.sleep_for_retry")
     @patch("copilot_review.fetch_review_requests", return_value=[])
     @patch("copilot_review.fetch_pr_reviews")
-    def test_error_notice_does_not_confirm_delivery(
+    def test_failure_notice_does_not_confirm_delivery(
         self, fetch_reviews, _fetch_requests, _sleep
     ) -> None:
-        fetch_reviews.return_value = [{
-            "user": {"login": "copilot-pull-request-reviewer[bot]"},
-            "commit_id": "current-head",
-            "state": "COMMENTED",
-            "body": ERROR_BODY,
-        }]
+        for body in (ERROR_BODY, INSUFFICIENT_QUOTA_FAILURE_WITH_GUIDANCE_BODY):
+            with self.subTest(body=body):
+                fetch_reviews.return_value = [{
+                    "user": {"login": "copilot-pull-request-reviewer[bot]"},
+                    "commit_id": "current-head",
+                    "state": "COMMENTED",
+                    "body": body,
+                }]
 
-        self.assertFalse(copilot_review_request_landed(
-            "open-telemetry", "example", 7, "current-head"
-        ))
+                self.assertFalse(copilot_review_request_landed(
+                    "open-telemetry", "example", 7, "current-head"
+                ))
 
     def test_quota_failure_requires_the_copilot_actor_and_exact_notice(self) -> None:
         failure = review_source(
@@ -207,17 +213,25 @@ class CopilotReviewStatusTest(unittest.TestCase):
         self.assertFalse(is_copilot_quota_failure(
             replace(failure, actor=actor("reviewer"))
         ))
-        insufficient = replace(failure, body=INSUFFICIENT_QUOTA_FAILURE_BODY)
-        self.assertTrue(is_copilot_quota_failure(insufficient))
-        self.assertTrue(is_copilot_quota_failure(
-            replace(insufficient, body=f"\n{INSUFFICIENT_QUOTA_FAILURE_BODY}\n")
-        ))
-        self.assertFalse(is_copilot_quota_failure(
-            replace(insufficient, actor=actor("reviewer"))
-        ))
-        self.assertFalse(is_copilot_quota_failure(
-            replace(insufficient, body=f"> {INSUFFICIENT_QUOTA_FAILURE_BODY}")
-        ))
+        for body in (
+            INSUFFICIENT_QUOTA_FAILURE_BODY,
+            INSUFFICIENT_QUOTA_FAILURE_WITH_GUIDANCE_BODY,
+        ):
+            with self.subTest(body=body):
+                insufficient = replace(failure, body=body)
+                self.assertTrue(is_copilot_quota_failure(insufficient))
+                self.assertTrue(is_copilot_quota_failure(
+                    replace(insufficient, body=f"\n{body}\n")
+                ))
+                self.assertFalse(is_copilot_quota_failure(
+                    replace(insufficient, actor=actor("reviewer"))
+                ))
+                self.assertFalse(is_copilot_quota_failure(
+                    replace(insufficient, body=f"> {body}")
+                ))
+                self.assertFalse(is_copilot_quota_failure(
+                    replace(insufficient, body=f"{body}\nAdditional review findings.")
+                ))
         self.assertFalse(is_copilot_quota_failure(
             replace(failure, body=f"Handle this failure:\n> {QUOTA_FAILURE_BODY}")
         ))
@@ -247,6 +261,11 @@ class CopilotReviewStatusTest(unittest.TestCase):
                 (False, False),
             ),
             (
+                "insufficient_quota_with_guidance",
+                (replace(quota_failure, body=INSUFFICIENT_QUOTA_FAILURE_WITH_GUIDANCE_BODY),),
+                (False, False),
+            ),
+            (
                 "current_review_then_failure",
                 (completed_review, quota_failure),
                 (True, False),
@@ -259,6 +278,14 @@ class CopilotReviewStatusTest(unittest.TestCase):
             (
                 "stale_review_then_failure",
                 (replace(completed_review, commit_id="old-head"), quota_failure),
+                (True, True),
+            ),
+            (
+                "stale_review_then_insufficient_quota_with_guidance",
+                (
+                    replace(completed_review, commit_id="old-head"),
+                    replace(quota_failure, body=INSUFFICIENT_QUOTA_FAILURE_WITH_GUIDANCE_BODY),
+                ),
                 (True, True),
             ),
             (
@@ -470,6 +497,26 @@ class CopilotFallbackDeliveryTest(unittest.TestCase):
             load_copilot_review_fallbacks()["7"],
         )
         self.request.assert_called_with("PR_node", token="request-token")
+
+    def test_quota_notice_with_guidance_uses_and_exhausts_fallback(self) -> None:
+        self.reviews = [
+            self.quota_notice(10, INSUFFICIENT_QUOTA_FAILURE_WITH_GUIDANCE_BODY),
+        ]
+        self.assertEqual([], self.deliver())
+        self.assertEqual(
+            CopilotReviewFallback((10,), format_ts(NOW)),
+            load_copilot_review_fallbacks()["7"],
+        )
+        self.request.assert_called_once_with("PR_node", token="request-token")
+
+        self.reviews.append(
+            self.quota_notice(11, INSUFFICIENT_QUOTA_FAILURE_WITH_GUIDANCE_BODY)
+        )
+        self.enqueue()
+        self.assertEqual([], self.deliver())
+        self.assertTrue(load_copilot_review_fallbacks()["7"].exhausted)
+        self.assertEqual({}, load_copilot_review_requests())
+        self.request.assert_called_once_with("PR_node", token="request-token")
 
     def test_uses_app_until_a_live_quota_notice_arrives(self) -> None:
         self.assertEqual([], self.deliver())

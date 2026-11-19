@@ -27,6 +27,9 @@ COPILOT_QUOTA_FAILURE_BODIES = frozenset({
     "requested the review has reached their quota limit.",
     "Copilot was unable to review this pull request because the user who "
     "requested the review has insufficient remaining quota.",
+    "Copilot was unable to review this pull request because the user who "
+    "requested the review has insufficient remaining quota. "
+    "Try requesting a review at a lower effort level.",
 })
 COPILOT_ERROR_BODY = (
     "Copilot encountered an error and was unable to review this pull request. "

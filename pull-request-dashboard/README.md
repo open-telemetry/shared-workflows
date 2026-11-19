@@ -330,6 +330,9 @@ longer waits for Copilot. Required checks and findings needing author action sti
 apply. A new commit resets the error budget. The normal four-hour gate timeout
 remains the backstop for reviews that never report.
 
+Quota notices, including those suggesting a lower review effort, do not count as
+completed reviews or confirm delivery.
+
 When Copilot reports quota exhaustion and no fallback token is configured, the
 dashboard immediately stops automatic review requests for that PR and releases
 the Copilot review gate without waiting for a completed review or the four-hour

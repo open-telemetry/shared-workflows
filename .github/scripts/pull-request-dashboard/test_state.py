@@ -906,12 +906,12 @@ class StateTest(unittest.TestCase):
     def test_notification_state_version_is_independent(self) -> None:
         self.assertEqual(BACKFILL_STATE_VERSION, 3)
         self.assertEqual(NOTIFICATION_STATE_VERSION, 3)
-        self.assertEqual(DASHBOARD_STATE_VERSION, 20)
+        self.assertEqual(DASHBOARD_STATE_VERSION, 21)
         self.assertEqual(DASHBOARD_STATE_COMPATIBLE_VERSIONS, ())
         self.assertEqual(STATUS_COMMENT_ROLLOUT_STATE_VERSION, 3)
         self.assertEqual(STATUS_COMMENT_REVISION, 22)
         self.assertEqual(AUTHOR_NUDGE_STATE_VERSION, 4)
-        self.assertEqual(COPILOT_REVIEW_REQUEST_STATE_VERSION, 8)
+        self.assertEqual(COPILOT_REVIEW_REQUEST_STATE_VERSION, 9)
 
     def test_version_fifteen_dashboard_state_is_regenerated(self) -> None:
         with (
