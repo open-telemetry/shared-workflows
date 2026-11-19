@@ -201,40 +201,29 @@ class CopilotReviewStatusTest(unittest.TestCase):
                     "open-telemetry", "example", 7, "current-head"
                 ))
 
-    def test_quota_failure_requires_the_copilot_actor_and_exact_notice(self) -> None:
-        failure = review_source(
-            actor=actor("copilot"),
-            body=QUOTA_FAILURE_BODY,
-        )
-        self.assertTrue(is_copilot_quota_failure(failure))
-        self.assertTrue(is_copilot_quota_failure(
-            replace(failure, body=f"\n{QUOTA_FAILURE_BODY}\n")
-        ))
-        self.assertFalse(is_copilot_quota_failure(
-            replace(failure, actor=actor("reviewer"))
-        ))
-        for body in (
-            INSUFFICIENT_QUOTA_FAILURE_BODY,
-            INSUFFICIENT_QUOTA_FAILURE_WITH_GUIDANCE_BODY,
-        ):
-            with self.subTest(body=body):
-                insufficient = replace(failure, body=body)
-                self.assertTrue(is_copilot_quota_failure(insufficient))
-                self.assertTrue(is_copilot_quota_failure(
-                    replace(insufficient, body=f"\n{body}\n")
-                ))
-                self.assertFalse(is_copilot_quota_failure(
-                    replace(insufficient, actor=actor("reviewer"))
-                ))
-                self.assertFalse(is_copilot_quota_failure(
-                    replace(insufficient, body=f"> {body}")
-                ))
-                self.assertFalse(is_copilot_quota_failure(
-                    replace(insufficient, body=f"{body}\nAdditional review findings.")
-                ))
-        self.assertFalse(is_copilot_quota_failure(
-            replace(failure, body=f"Handle this failure:\n> {QUOTA_FAILURE_BODY}")
-        ))
+    def test_quota_failure_requires_the_copilot_actor_and_notice_prefix(self) -> None:
+        for body in (QUOTA_FAILURE_BODY, INSUFFICIENT_QUOTA_FAILURE_BODY):
+            for suffix in (
+                "",
+                " Try requesting a review at a lower effort level.",
+                "\n\nTry again later.",
+            ):
+                with self.subTest(body=body, suffix=suffix):
+                    notice = f"{body}{suffix}"
+                    failure = review_source(
+                        actor=actor("copilot"),
+                        body=f"\n{notice}\n",
+                    )
+                    self.assertTrue(is_copilot_quota_failure(failure))
+                    self.assertFalse(is_copilot_quota_failure(
+                        replace(failure, actor=actor("reviewer"))
+                    ))
+                    self.assertFalse(is_copilot_quota_failure(
+                        replace(failure, body=f"> {notice}")
+                    ))
+                    self.assertFalse(is_copilot_quota_failure(
+                        replace(failure, body=f"Handle this failure:\n> {notice}")
+                    ))
 
     def test_quota_failures_do_not_count_as_completed_reviews(self) -> None:
         quota_failure = review_source(
@@ -498,7 +487,7 @@ class CopilotFallbackDeliveryTest(unittest.TestCase):
         )
         self.request.assert_called_with("PR_node", token="request-token")
 
-    def test_quota_notice_with_guidance_uses_and_exhausts_fallback(self) -> None:
+    def test_quota_notices_with_different_guidance_use_and_exhaust_fallback(self) -> None:
         self.reviews = [
             self.quota_notice(10, INSUFFICIENT_QUOTA_FAILURE_WITH_GUIDANCE_BODY),
         ]
@@ -510,7 +499,7 @@ class CopilotFallbackDeliveryTest(unittest.TestCase):
         self.request.assert_called_once_with("PR_node", token="request-token")
 
         self.reviews.append(
-            self.quota_notice(11, INSUFFICIENT_QUOTA_FAILURE_WITH_GUIDANCE_BODY)
+            self.quota_notice(11, f"{INSUFFICIENT_QUOTA_FAILURE_BODY}\n\nTry again later.")
         )
         self.enqueue()
         self.assertEqual([], self.deliver())
