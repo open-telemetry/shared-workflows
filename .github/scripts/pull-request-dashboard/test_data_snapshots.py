@@ -13,7 +13,7 @@ import unittest
 from unittest.mock import patch
 
 import author_nudge
-from dashboard_test_support import dashboard_state
+from dashboard_test_support import dashboard_state, stored_dashboard_result
 import state
 import state_branch
 from test_state_branch import run_git
@@ -174,17 +174,34 @@ class DataSnapshotTest(unittest.TestCase):
         self.assertEqual(accepted, run_git(worktree, "rev-parse", "HEAD").stdout.strip())
         self.assertEqual(1, state_branch.snapshot_generation("HEAD", worktree))
 
-    def test_rejected_push_preserves_retired_author_nudge_cleanup(self) -> None:
+    def test_retirement_survives_reminder_failure_rejected_push_and_reload(self) -> None:
         worktree = self.root / "dashboard"
         accepted = self.root / "accepted"
         accepted.mkdir()
-        (accepted / "author-nudge-state.json").write_text(json.dumps({
+        accepted_state = {
             "version": state.AUTHOR_NUDGE_STATE_VERSION,
-            "prs": {"1": {"completions": [{
-                "episode_id": "old-episode",
-                "completed_at": "2026-07-17T00:00:00+00:00",
-            }]}},
-        }), encoding="utf-8")
+            "prs": {"1": {
+                "waiting_since": "2026-07-10T00:00:00+00:00",
+                "nudged_at": "",
+                "episode_id": "new-episode",
+                "pending_at": "2026-07-17T00:00:00+00:00",
+                "head_sha": "current-head",
+                "routing_input_fingerprint": "current-fingerprint",
+                "completions": [
+                    {
+                        "episode_id": "legacy-nudge:2026-07-10T00:00:00+00:00",
+                        "completed_at": "2026-07-17T00:00:00+00:00",
+                    },
+                    {
+                        "episode_id": "old-episode",
+                        "completed_at": "2026-07-17T00:00:00+00:00",
+                    },
+                ],
+            }},
+        }
+        (accepted / "author-nudge-state.json").write_text(
+            json.dumps(accepted_state), encoding="utf-8",
+        )
         retry_snapshot = self.root / "retry" / "author-nudge-state.json"
         real_push = state_branch.push_state
         attempts = 0
@@ -194,16 +211,23 @@ class DataSnapshotTest(unittest.TestCase):
             attempts += 1
             if attempts == 1:
                 (self.worker / "ledger.json").write_text('{"sent":[1,2]}\n', encoding="utf-8")
+                (self.worker / "author-nudge-state.json").write_text(json.dumps({
+                    "version": state.AUTHOR_NUDGE_STATE_VERSION,
+                    "prs": {"1": {"delivered_completion_ids": ["other-episode"]}},
+                }), encoding="utf-8")
                 self.snapshot(self.worker, self.legacy)
                 self.assertTrue(real_push(self.worker, branch, self.legacy))
             return real_push(directory, branch, expected)
 
         def update() -> int:
-            self.assertEqual([], author_nudge.deliver_prepared_author_nudges(
-                "open-telemetry/example",
-                datetime(2026, 7, 17, tzinfo=timezone.utc),
-                retry_snapshot_path=retry_snapshot,
-            ))
+            self.assertEqual(
+                ["PR #1: new reminder unavailable"],
+                author_nudge.deliver_prepared_author_nudges(
+                    "open-telemetry/example",
+                    datetime(2026, 7, 17, tzinfo=timezone.utc),
+                    retry_snapshot_path=retry_snapshot,
+                ),
+            )
             return 0
 
         with (
@@ -211,11 +235,22 @@ class DataSnapshotTest(unittest.TestCase):
             patch.object(state, "_state_dir", worktree),
             patch.object(state, "_accepted_state_dir", accepted),
             patch.object(state, "_using_delivery_state", True),
-            patch.object(author_nudge, "load_dashboard_state_cache", return_value=dashboard_state()),
+            patch.object(
+                author_nudge, "load_dashboard_state_cache",
+                return_value=dashboard_state(stored_dashboard_result(route="author")),
+            ),
+            patch.object(
+                author_nudge, "recover_legacy_nudge_episode_id",
+                return_value="old-episode",
+            ) as recover,
             patch.object(
                 author_nudge, "ensure_nudge_completed",
                 side_effect=author_nudge.GhReadOnlyConversationError("archived"),
             ) as complete,
+            patch.object(
+                author_nudge, "fetch_routing_snapshot",
+                side_effect=RuntimeError("new reminder unavailable"),
+            ),
             patch.object(state_branch, "push_state", side_effect=competing_push),
             patch.object(state_branch.time, "sleep"),
         ):
@@ -224,13 +259,36 @@ class DataSnapshotTest(unittest.TestCase):
                 state_branch="data",
                 retry_snapshots=[(worktree / "author-nudge-state.json", retry_snapshot)],
             )
+            accepted_state["prs"]["1"]["completions"].append({
+                "episode_id": "other-episode",
+                "completed_at": "2026-07-17T00:00:00+00:00",
+            })
+            (accepted / "author-nudge-state.json").write_text(
+                json.dumps(accepted_state), encoding="utf-8",
+            )
+            self.assertEqual(
+                ["PR #1: new reminder unavailable"],
+                author_nudge.deliver_prepared_author_nudges(
+                    "open-telemetry/example", datetime(2026, 7, 17, tzinfo=timezone.utc),
+                ),
+            )
 
         self.assertEqual(0, status)
         self.assertEqual(2, attempts)
         complete.assert_called_once()
+        recover.assert_called_once()
+        receipts = json.loads(
+            (worktree / "author-nudge-state.json").read_text(encoding="utf-8")
+        )["prs"]["1"]
+        self.assertCountEqual(
+            ["other-episode", "legacy-nudge:2026-07-10T00:00:00+00:00", "old-episode"],
+            receipts["delivered_completion_ids"],
+        )
+        self.assertNotIn("completions", receipts)
+        self.assertEqual("2026-07-17T00:00:00+00:00", receipts["pending_at"])
         self.assertEqual(
-            {"1": {"delivered_completion_ids": ["old-episode"]}},
-            json.loads((worktree / "author-nudge-state.json").read_text(encoding="utf-8"))["prs"],
+            receipts,
+            json.loads(self.remote_git("show", "data:author-nudge-state.json"))["prs"]["1"],
         )
 
     def test_fetch_ignores_stale_snapshots_and_legacy_heads(self) -> None:

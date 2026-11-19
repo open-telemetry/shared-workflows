@@ -147,7 +147,7 @@ def _run_gh(
                     )
                     if match:
                         raise GhGraphQLNodeNotFoundError(message, match[1])
-    elif read_only_message in last_stderr.lower():
+    elif last_stderr.lower() == f"gh: {read_only_message} (http 403)":
         raise GhReadOnlyConversationError(message)
     raise RuntimeError(message)
 

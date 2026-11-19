@@ -169,20 +169,33 @@ class RunGhJsonTest(unittest.TestCase):
     def test_archived_conversation_raises_typed_error_without_retry(
         self, run, sleep
     ) -> None:
-        for suffix in ("HTTP 403", "minimizeComment"):
-            with self.subTest(suffix=suffix):
-                run.reset_mock()
-                run.return_value = subprocess.CompletedProcess(
-                    ["gh"], 1, "",
-                    "gh: Pull request is archived and its conversation is "
-                    f"read-only. ({suffix})",
-                )
+        run.return_value = subprocess.CompletedProcess(
+            ["gh"], 1, "",
+            "gh: Pull request is archived and its conversation is "
+            "read-only. (HTTP 403)",
+        )
 
-                with self.assertRaises(GhReadOnlyConversationError):
+        with self.assertRaises(GhReadOnlyConversationError):
+            run_gh_json(["gh", "api", "/test"])
+
+        run.assert_called_once()
+        sleep.assert_not_called()
+
+    @patch("github_cli.subprocess.run")
+    def test_rest_archived_error_does_not_hide_other_failures(self, run) -> None:
+        message = "Pull request is archived and its conversation is read-only."
+        for stderr in (
+            f"gh: {message} (HTTP 403)\nResource not accessible by integration",
+            f"gh: {message} (HTTP 401)",
+            f"gh: Permission denied: {message} (HTTP 403)",
+        ):
+            with self.subTest(stderr=stderr):
+                run.return_value = subprocess.CompletedProcess(["gh"], 1, "", stderr)
+
+                with self.assertRaises(RuntimeError) as raised:
                     run_gh_json(["gh", "api", "/test"])
 
-                run.assert_called_once()
-                sleep.assert_not_called()
+                self.assertNotIsInstance(raised.exception, GhReadOnlyConversationError)
 
     @patch("github_cli.subprocess.run")
     def test_other_forbidden_errors_are_not_archived_conversations(self, run) -> None:
