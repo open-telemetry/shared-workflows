@@ -48,6 +48,10 @@ class GhNotFoundError(RuntimeError):
     pass
 
 
+class GhReadOnlyConversationError(RuntimeError):
+    pass
+
+
 _RETRYABLE_GH_ERROR_FRAGMENTS = (
     "http 499",
     "http 5",
@@ -116,6 +120,8 @@ def _run_gh(
         raise TransientGhError(message)
     if last_stderr.strip().lower() == "gh: not found (http 404)":
         raise GhNotFoundError(message)
+    if "pull request is archived and its conversation is read-only." in last_stderr.lower():
+        raise GhReadOnlyConversationError(message)
     raise RuntimeError(message)
 
 

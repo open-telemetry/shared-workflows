@@ -910,7 +910,7 @@ class StateTest(unittest.TestCase):
         self.assertEqual(DASHBOARD_STATE_COMPATIBLE_VERSIONS, ())
         self.assertEqual(STATUS_COMMENT_ROLLOUT_STATE_VERSION, 3)
         self.assertEqual(STATUS_COMMENT_REVISION, 22)
-        self.assertEqual(AUTHOR_NUDGE_STATE_VERSION, 4)
+        self.assertEqual(AUTHOR_NUDGE_STATE_VERSION, 5)
         self.assertEqual(COPILOT_REVIEW_REQUEST_STATE_VERSION, 8)
 
     def test_version_fifteen_dashboard_state_is_regenerated(self) -> None:
@@ -974,6 +974,33 @@ class StateTest(unittest.TestCase):
                     },
                 },
                 load_author_nudges(),
+            )
+
+    def test_author_nudge_version_four_preserves_pending_cleanup_and_receipts(self) -> None:
+        entries = {
+            "123": {
+                "waiting_since": "2026-07-10T00:00:00Z",
+                "nudged_at": "2026-07-17T00:00:00Z",
+                "episode_id": "current-episode",
+                "completions": [{
+                    "episode_id": "pending-episode",
+                    "completed_at": "2026-07-17T00:00:00Z",
+                }],
+                "delivered_completion_ids": ["completed-episode"],
+            },
+        }
+        with tempfile.TemporaryDirectory() as temp_dir, patch("state._state_dir", Path(temp_dir)):
+            author_nudge_state_path().write_text(
+                json.dumps({"version": 4, "prs": entries}),
+                encoding="utf-8",
+            )
+
+            self.assertEqual(entries, load_author_nudges())
+            save_author_nudges(load_author_nudges())
+
+            self.assertEqual(
+                {"version": 5, "prs": entries},
+                json.loads(author_nudge_state_path().read_text(encoding="utf-8")),
             )
 
     def test_copilot_review_request_state_round_trip(self) -> None:

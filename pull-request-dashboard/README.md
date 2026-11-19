@@ -501,6 +501,11 @@ remains there for another week, the dashboard posts another reminder. Reminders
 are delivered by hourly runs when the pull request is next refreshed, so a due
 reminder in a large repository may wait for a later round-robin run.
 
+If GitHub rejects cleanup of an obsolete reminder because the pull request's
+conversation is archived and read-only, the dashboard logs the skipped cleanup
+and records it as handled so it does not block delivery. Other cleanup failures
+remain pending for retry.
+
 ## Configuration
 
 The dashboard separates calculation from delivery. The update job uses

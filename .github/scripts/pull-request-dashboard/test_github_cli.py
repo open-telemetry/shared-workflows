@@ -8,6 +8,7 @@ from unittest.mock import ANY, call, patch
 from github_cli import (
     GH_RETRY_ATTEMPTS,
     GhNotFoundError,
+    GhReadOnlyConversationError,
     TransientGhError,
     check_bucket,
     code_scanning_tools,
@@ -161,6 +162,41 @@ class RunGhJsonTest(unittest.TestCase):
 
         self.assertEqual(1, run.call_count)
         sleep.assert_not_called()
+
+    @patch("github_cli.sleep_for_retry")
+    @patch("github_cli.subprocess.run")
+    def test_archived_conversation_raises_typed_error_without_retry(
+        self, run, sleep
+    ) -> None:
+        for suffix in ("HTTP 403", "minimizeComment"):
+            with self.subTest(suffix=suffix):
+                run.reset_mock()
+                run.return_value = subprocess.CompletedProcess(
+                    ["gh"], 1, "",
+                    "gh: Pull request is archived and its conversation is "
+                    f"read-only. ({suffix})",
+                )
+
+                with self.assertRaises(GhReadOnlyConversationError):
+                    run_gh_json(["gh", "api", "/test"])
+
+                run.assert_called_once()
+                sleep.assert_not_called()
+
+    @patch("github_cli.subprocess.run")
+    def test_other_forbidden_errors_are_not_archived_conversations(self, run) -> None:
+        run.return_value = subprocess.CompletedProcess(
+            ["gh"], 1, "",
+            "gh: Resource not accessible by integration (HTTP 403)",
+        )
+
+        with self.assertRaises(RuntimeError) as raised:
+            run_gh_json([
+                "gh", "api", "--method", "PATCH", "/test",
+                "-f", "body=Pull request is archived and its conversation is read-only.",
+            ])
+
+        self.assertNotIsInstance(raised.exception, GhReadOnlyConversationError)
 
     @patch("github_cli.sleep_for_retry")
     @patch("github_cli.subprocess.run")

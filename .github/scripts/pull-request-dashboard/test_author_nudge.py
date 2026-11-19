@@ -700,6 +700,72 @@ class AuthorNudgeProcessingTest(unittest.TestCase):
         ensure_nudge.assert_not_called()
         save_nudges.assert_called_once_with({"1": {"completions": [completion]}})
 
+    def test_archived_completion_is_retired_with_a_receipt(self) -> None:
+        for stage in ("patch", "minimize", "unminimize"):
+            with (
+                self.subTest(stage=stage),
+                patch.object(author_nudge, "using_delivery_state", return_value=True),
+                patch.object(
+                    author_nudge,
+                    "load_dashboard_state_cache",
+                    return_value=build_dashboard_state(),
+                ),
+                patch.object(
+                    author_nudge,
+                    "load_author_nudges",
+                    return_value={
+                        "1": {
+                            "completions": [{
+                                "episode_id": "previous-episode",
+                                "completed_at": "2026-07-17T00:00:00+00:00",
+                            }],
+                        },
+                    },
+                ),
+                patch.object(author_nudge, "save_author_nudges") as save_nudges,
+                patch.object(
+                    author_nudge,
+                    "existing_nudge_comment",
+                    return_value={"id": 17, "node_id": "IC_17", "body": "Reminder"},
+                ),
+                patch.object(
+                    author_nudge,
+                    "managed_status_comments",
+                    return_value=[{"html_url": "https://example.test/status"}],
+                ),
+                patch.object(author_nudge, "run_gh") as run_gh,
+                patch.object(
+                    author_nudge,
+                    "comment_minimization_reason",
+                    return_value="SPAM" if stage == "unminimize" else "",
+                ),
+                patch.object(author_nudge, "minimize_comment") as minimize,
+                patch.object(author_nudge, "unminimize_comment") as unminimize,
+                patch("sys.stderr") as stderr,
+            ):
+                failed_action = {
+                    "patch": run_gh,
+                    "minimize": minimize,
+                    "unminimize": unminimize,
+                }[stage]
+                failed_action.side_effect = author_nudge.GhReadOnlyConversationError(
+                    "Pull request is archived and its conversation is read-only."
+                )
+
+                errors = author_nudge.deliver_prepared_author_nudges(
+                    "open-telemetry/example", NOW,
+                )
+
+                self.assertEqual([], errors)
+                failed_action.assert_called_once()
+                save_nudges.assert_called_once_with({
+                    "1": {"delivered_completion_ids": ["previous-episode"]},
+                })
+                stderr.write.assert_any_call(
+                    "PR #1: conversation is archived and read-only; "
+                    "retiring author nudge cleanup for episode previous-episode"
+                )
+
     def test_failed_completion_survives_successful_new_nudge(self) -> None:
         completion = {
             "episode_id": "previous-episode",

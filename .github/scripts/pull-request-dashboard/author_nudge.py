@@ -18,6 +18,7 @@ from dashboard_contracts import (
     StoredDashboardResult,
 )
 from github_cli import (
+    GhReadOnlyConversationError,
     gh_api,
     gh_graphql,
     run_gh,
@@ -711,14 +712,18 @@ def deliver_prepared_author_nudges(
                     completed_at,
                     kind,
                 )
+            except GhReadOnlyConversationError:
+                print(
+                    f"PR #{pr_number}: conversation is archived and read-only; "
+                    f"retiring author nudge cleanup for episode {episode_id}",
+                    file=sys.stderr,
+                )
             except Exception as e:
                 errors.append(f"PR #{pr_number}: {e}")
                 remaining_completions.append(completion)
-            else:
-                if not using_delivery_state():
-                    continue
-                if episode_id not in delivered_completion_ids:
-                    delivered_completion_ids.append(episode_id)
+                continue
+            if using_delivery_state() and episode_id not in delivered_completion_ids:
+                delivered_completion_ids.append(episode_id)
         entry = dict(entry or {})
         if remaining_completions:
             entry["completions"] = remaining_completions
