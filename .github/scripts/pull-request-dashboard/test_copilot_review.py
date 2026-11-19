@@ -460,6 +460,7 @@ class CopilotFallbackDeliveryTest(unittest.TestCase):
             "user": {"login": "copilot"},
             "commit_id": "current-head",
             "body": body,
+            "submitted_at": format_ts(NOW),
         }
 
     def error_notice(self, review_id: int) -> dict:
@@ -505,6 +506,22 @@ class CopilotFallbackDeliveryTest(unittest.TestCase):
         self.assertEqual([], self.deliver())
         self.assertTrue(load_copilot_review_fallbacks()["7"].exhausted)
         self.assertEqual({}, load_copilot_review_requests())
+        self.request.assert_called_once_with("PR_node", token="request-token")
+
+    def test_persisted_fallback_ignores_older_newly_recognized_notices(self) -> None:
+        fallback = CopilotReviewFallback((10,), format_ts(NOW))
+        save_copilot_review_fallbacks({"7": fallback})
+        self.reviews = [
+            {
+                **self.quota_notice(9, INSUFFICIENT_QUOTA_FAILURE_WITH_GUIDANCE_BODY),
+                "submitted_at": "2026-07-20T01:59:00Z",
+            },
+            self.quota_notice(10),
+        ]
+
+        self.assertEqual([], self.deliver())
+
+        self.assertEqual(fallback, load_copilot_review_fallbacks()["7"])
         self.request.assert_called_once_with("PR_node", token="request-token")
 
     def test_uses_app_until_a_live_quota_notice_arrives(self) -> None:
@@ -703,6 +720,36 @@ class CopilotFallbackDeliveryTest(unittest.TestCase):
         human = replace(old, database_id=11, actor=actor("reviewer"))
         self.assertFalse(copilot_fallback_exhausted(fallback, (old, human)))
         self.assertTrue(copilot_fallback_exhausted(fallback, (old, replace(old, database_id=12))))
+
+    def test_quota_notice_in_attempt_second_exhausts_fallback(self) -> None:
+        fallback = CopilotReviewFallback((10,), format_ts(NOW.replace(microsecond=500000)))
+        notice = review_source(
+            database_id=11,
+            actor=actor("copilot"),
+            body=INSUFFICIENT_QUOTA_FAILURE_WITH_GUIDANCE_BODY,
+            submitted_at="2026-07-20T02:00:00Z",
+        )
+
+        self.assertTrue(copilot_fallback_exhausted(fallback, (notice,)))
+
+    def test_invalid_fallback_comparison_timestamps_fail_explicitly(self) -> None:
+        fallback = CopilotReviewFallback((10,), format_ts(NOW))
+        notice = review_source(
+            database_id=11,
+            actor=actor("copilot"),
+            body=QUOTA_FAILURE_BODY,
+            submitted_at=format_ts(NOW),
+        )
+        for timestamp in ("", "invalid", "2026-07-20T02:00:00"):
+            with self.subTest(timestamp=timestamp):
+                with self.assertRaisesRegex(RuntimeError, "invalid attempt timestamp"):
+                    copilot_fallback_exhausted(
+                        replace(fallback, attempted_at=timestamp), (notice,)
+                    )
+                with self.assertRaisesRegex(RuntimeError, "valid submission timestamp"):
+                    copilot_fallback_exhausted(
+                        fallback, (replace(notice, submitted_at=timestamp),)
+                    )
 
 
 class CopilotReviewRequestStateTest(unittest.TestCase):
