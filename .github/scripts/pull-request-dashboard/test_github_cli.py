@@ -201,6 +201,55 @@ class RunGhJsonTest(unittest.TestCase):
 
     @patch("github_cli.sleep_for_retry")
     @patch("github_cli.subprocess.run")
+    def test_graphql_archived_conversation_raises_typed_error(self, run, sleep) -> None:
+        message = "Pull request is archived and its conversation is read-only."
+        run.return_value = subprocess.CompletedProcess(
+            ["gh"], 1,
+            json.dumps({
+                "data": {"minimizeComment": None},
+                "errors": [{
+                    "type": "UNPROCESSABLE",
+                    "path": ["minimizeComment"],
+                    "message": message,
+                }],
+            }),
+            f"gh: {message}",
+        )
+
+        with self.assertRaises(GhReadOnlyConversationError):
+            run_gh_json(["gh", "api", "graphql"])
+
+        run.assert_called_once()
+        sleep.assert_not_called()
+
+    @patch("github_cli.subprocess.run")
+    def test_graphql_archived_error_does_not_hide_other_failures(self, run) -> None:
+        message = "Pull request is archived and its conversation is read-only."
+        archived = {"type": "UNPROCESSABLE", "message": message}
+        forbidden = {"type": "FORBIDDEN", "message": "Resource not accessible by integration"}
+        for response in (
+            json.dumps({"errors": [archived, forbidden]}),
+            json.dumps({"errors": [forbidden, archived]}),
+            json.dumps({"errors": [{
+                "type": "FORBIDDEN",
+                "message": f"{message} Resource not accessible by integration",
+            }]}),
+            json.dumps({"errors": []}),
+            "{broken",
+        ):
+            with self.subTest(response=response):
+                run.return_value = subprocess.CompletedProcess(
+                    ["gh"], 1, response,
+                    f"gh: {message}\nResource not accessible by integration",
+                )
+
+                with self.assertRaises(RuntimeError) as raised:
+                    run_gh_json(["gh", "api", "graphql"])
+
+                self.assertNotIsInstance(raised.exception, GhReadOnlyConversationError)
+
+    @patch("github_cli.sleep_for_retry")
+    @patch("github_cli.subprocess.run")
     def test_graphql_missing_node_identifies_the_exact_node(self, run, sleep) -> None:
         run.return_value = subprocess.CompletedProcess(
             ["gh"], 1,

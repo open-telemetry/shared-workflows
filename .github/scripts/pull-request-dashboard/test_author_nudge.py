@@ -952,6 +952,62 @@ class AuthorNudgeProcessingTest(unittest.TestCase):
                     }
                 })
 
+    def test_retirement_receipt_survives_failed_new_nudge(self) -> None:
+        pending = {"1": {
+            "waiting_since": "2026-07-10T00:00:00+00:00",
+            "nudged_at": "",
+            "episode_id": "episode-1",
+            "pending_at": "2026-07-17T00:00:00+00:00",
+            "head_sha": "current-head",
+            "routing_input_fingerprint": "current-fingerprint",
+            "completions": [{
+                "episode_id": "previous-episode",
+                "completed_at": "2026-07-17T00:00:00+00:00",
+            }],
+        }}
+        for stage in ("routing", "publication"):
+            with (
+                self.subTest(stage=stage),
+                patch.object(author_nudge, "using_delivery_state", return_value=True),
+                patch.object(author_nudge, "load_author_nudges", return_value=pending) as load_nudges,
+                patch.object(author_nudge, "save_author_nudges") as save_nudges,
+                patch.object(
+                    author_nudge, "load_dashboard_state_cache",
+                    return_value=build_dashboard_state(author_result()),
+                ),
+                patch.object(
+                    author_nudge, "ensure_nudge_completed",
+                    side_effect=author_nudge.GhReadOnlyConversationError("archived"),
+                ) as complete,
+                patch.object(
+                    author_nudge, "fetch_routing_snapshot",
+                    return_value=routing_snapshot(),
+                ) as routing,
+                patch.object(author_nudge, "ensure_nudge") as publish,
+                patch("sys.stderr"),
+            ):
+                (routing if stage == "routing" else publish).side_effect = RuntimeError(
+                    "new reminder failed"
+                )
+
+                errors = author_nudge.deliver_prepared_author_nudges(
+                    "open-telemetry/example", NOW,
+                )
+
+                self.assertEqual(["PR #1: new reminder failed"], errors)
+                receipts = save_nudges.call_args.args[0]
+                self.assertEqual(["previous-episode"], receipts["1"]["delivered_completion_ids"])
+                self.assertNotIn("completions", receipts["1"])
+                self.assertEqual("2026-07-17T00:00:00+00:00", receipts["1"]["pending_at"])
+                load_nudges.return_value = reconcile_author_nudges(pending, receipts)
+
+                errors = author_nudge.deliver_prepared_author_nudges(
+                    "open-telemetry/example", NOW,
+                )
+
+                self.assertEqual(["PR #1: new reminder failed"], errors)
+                complete.assert_called_once()
+
     def test_planning_preserves_retired_completion_receipts(self) -> None:
         for result, clock in (
             (None, {"nudged_at": "2026-07-10T00:00:00Z"}),

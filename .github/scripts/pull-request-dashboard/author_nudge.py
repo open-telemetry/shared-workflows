@@ -753,6 +753,7 @@ def deliver_prepared_author_nudges(
             entry.pop("completions", None)
         if delivered_completion_ids:
             entry["delivered_completion_ids"] = delivered_completion_ids
+        updated[key] = entry
         if (
             close_after is not None
             and entry.get("nudged_at")

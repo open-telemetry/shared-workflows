@@ -127,8 +127,7 @@ def _run_gh(
         raise TransientGhError(message)
     if last_stderr.strip().lower() == "gh: not found (http 404)":
         raise GhNotFoundError(message)
-    if "pull request is archived and its conversation is read-only." in last_stderr.lower():
-        raise GhReadOnlyConversationError(message)
+    read_only_message = "pull request is archived and its conversation is read-only."
     if cmd[1:3] == ["api", "graphql"]:
         try:
             response = json.loads(proc.stdout)
@@ -137,13 +136,19 @@ def _run_gh(
         errors = response.get("errors") if isinstance(response, dict) else None
         if isinstance(errors, list) and len(errors) == 1:
             error = errors[0]
-            if isinstance(error, dict) and error.get("type") == "NOT_FOUND":
-                match = re.fullmatch(
-                    r"Could not resolve to a node with the global id of '([^']+)'\.",
-                    error.get("message") or "",
-                )
-                if match:
-                    raise GhGraphQLNodeNotFoundError(message, match[1])
+            if isinstance(error, dict):
+                error_message = error.get("message") or ""
+                if error_message.lower() == read_only_message:
+                    raise GhReadOnlyConversationError(message)
+                if error.get("type") == "NOT_FOUND":
+                    match = re.fullmatch(
+                        r"Could not resolve to a node with the global id of '([^']+)'\.",
+                        error_message,
+                    )
+                    if match:
+                        raise GhGraphQLNodeNotFoundError(message, match[1])
+    elif read_only_message in last_stderr.lower():
+        raise GhReadOnlyConversationError(message)
     raise RuntimeError(message)
 
 
