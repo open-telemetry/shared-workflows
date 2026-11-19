@@ -161,10 +161,11 @@ def plan_nudge(
                 now,
                 "routing_changed",
             )
-            return False, {
-                **(completion_only(entry) or {}),
-                "completions": completions,
-            }
+            new_entry = completion_only(entry)
+            if new_entry is None:
+                new_entry = {}
+            new_entry["completions"] = completions
+            return False, new_entry
         return False, completion_only(entry)
     facts = result.facts
     current_episode_id = facts.author_nudge_episode_id or ""
@@ -183,10 +184,11 @@ def plan_nudge(
             )
             completions = list(entry.get("completions") or [])
             queue_completion(completions, episode_id, now, completion_kind)
-            return False, {
-                **(completion_only(entry) or {}),
-                "completions": completions,
-            }
+            new_entry = completion_only(entry)
+            if new_entry is None:
+                new_entry = {}
+            new_entry["completions"] = completions
+            return False, new_entry
         return False, completion_only(entry)
     completions = list(entry.get("completions") or [])
     previous_episode_id = entry.get("episode_id") or ""
@@ -200,15 +202,15 @@ def plan_nudge(
                 now,
                 "routing_changed",
             )
-        entry = {
-            **(completion_only(entry) or {}),
-            "waiting_since": format_ts(now),
-            "nudged_at": "",
-            "episode_id": current_episode_id,
-        }
+        new_entry = completion_only(entry)
+        if new_entry is None:
+            new_entry = {}
+        new_entry["waiting_since"] = format_ts(now)
+        new_entry["nudged_at"] = ""
+        new_entry["episode_id"] = current_episode_id
         if completions:
-            entry["completions"] = completions
-        return False, entry
+            new_entry["completions"] = completions
+        return False, new_entry
     if current_episode_id:
         entry["episode_id"] = current_episode_id
     if nudged_at:
@@ -216,16 +218,16 @@ def plan_nudge(
 
     waiting_since = parse_ts(entry.get("waiting_since") or "")
     if waiting_since is None:
-        entry = {
-            **(completion_only(entry) or {}),
-            "waiting_since": format_ts(now),
-            "nudged_at": "",
-        }
+        new_entry = completion_only(entry)
+        if new_entry is None:
+            new_entry = {}
+        new_entry["waiting_since"] = format_ts(now)
+        new_entry["nudged_at"] = ""
         if current_episode_id:
-            entry["episode_id"] = current_episode_id
+            new_entry["episode_id"] = current_episode_id
         if completions:
-            entry["completions"] = completions
-        return False, entry
+            new_entry["completions"] = completions
+        return False, new_entry
     return now - waiting_since >= NUDGE_AFTER, entry
 
 
@@ -846,12 +848,13 @@ def deliver_prepared_author_nudges(
                 or entry.get("episode_id")
                 or ""
             )
-            updated[key] = {
-                **(completion_only(entry) or {}),
-                "waiting_since": entry.get("waiting_since") or "",
-                "nudged_at": nudged_at,
-            }
+            new_entry = completion_only(entry)
+            if new_entry is None:
+                new_entry = {}
+            new_entry["waiting_since"] = entry.get("waiting_since") or ""
+            new_entry["nudged_at"] = nudged_at
             if episode_id:
-                updated[key]["episode_id"] = episode_id
+                new_entry["episode_id"] = episode_id
+            updated[key] = new_entry
     save_author_nudges(updated)
     return errors
