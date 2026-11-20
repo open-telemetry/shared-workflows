@@ -51,7 +51,7 @@ BACKFILL_STATE_VERSION = 3
 # notification-state.json: pending and delivered Slack notification records.
 NOTIFICATION_STATE_VERSION = 3
 # author-nudge-state.json: waiting episodes and delivered author reminders.
-AUTHOR_NUDGE_STATE_VERSION = 4
+AUTHOR_NUDGE_STATE_VERSION = 5
 # copilot-review-request-state.json: pending and delivered review requests.
 COPILOT_REVIEW_REQUEST_STATE_VERSION = 8
 COPILOT_REVIEW_FALLBACK_STATE_VERSION = 1
@@ -1108,7 +1108,7 @@ def load_author_nudge_state_file(path: Path) -> dict[str, Any]:
     state = load_state_file(
         path,
         AUTHOR_NUDGE_STATE_VERSION,
-        compatible_versions=(2, 3),
+        compatible_versions=(2, 3, 4),
     )
     if state is None or not isinstance(state.get("prs"), dict):
         return {}
@@ -1157,6 +1157,23 @@ def union_merge_author_nudges(
                 })
             baseline_entry["completions"] = completions
             merged[key] = baseline_entry
+        delivered_completion_ids = list(dict.fromkeys([
+            *((baseline_nudges.get(key) or {}).get("delivered_completion_ids") or []),
+            *((retry_entry or {}).get("delivered_completion_ids") or []),
+        ]))
+        if delivered_completion_ids:
+            entry = dict(merged.get(key) or {})
+            entry["delivered_completion_ids"] = delivered_completion_ids
+            completions = [
+                completion
+                for completion in entry.get("completions") or []
+                if completion.get("episode_id") not in delivered_completion_ids
+            ]
+            if completions:
+                entry["completions"] = completions
+            else:
+                entry.pop("completions", None)
+            merged[key] = entry
     return merged
 
 
@@ -1174,7 +1191,9 @@ def reconcile_author_nudges(
         pending_completions = {
             completion.get("episode_id"): completion
             for completion in receipt.get("completions") or []
-            if isinstance(completion, dict) and completion.get("episode_id")
+            if isinstance(completion, dict)
+            and completion.get("episode_id")
+            and completion["episode_id"] not in delivered_completion_ids
         }
         for completion in intent.get("completions") or []:
             if not isinstance(completion, dict):

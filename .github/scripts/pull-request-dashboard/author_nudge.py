@@ -18,6 +18,8 @@ from dashboard_contracts import (
     StoredDashboardResult,
 )
 from github_cli import (
+    GhGraphQLNodeNotFoundError,
+    GhReadOnlyConversationError,
     gh_api,
     gh_graphql,
     run_gh,
@@ -159,7 +161,11 @@ def plan_nudge(
                 now,
                 "routing_changed",
             )
-            return False, {"completions": completions}
+            new_entry = completion_only(entry)
+            if new_entry is None:
+                new_entry = {}
+            new_entry["completions"] = completions
+            return False, new_entry
         return False, completion_only(entry)
     facts = result.facts
     current_episode_id = facts.author_nudge_episode_id or ""
@@ -178,7 +184,11 @@ def plan_nudge(
             )
             completions = list(entry.get("completions") or [])
             queue_completion(completions, episode_id, now, completion_kind)
-            return False, {"completions": completions}
+            new_entry = completion_only(entry)
+            if new_entry is None:
+                new_entry = {}
+            new_entry["completions"] = completions
+            return False, new_entry
         return False, completion_only(entry)
     completions = list(entry.get("completions") or [])
     previous_episode_id = entry.get("episode_id") or ""
@@ -192,14 +202,15 @@ def plan_nudge(
                 now,
                 "routing_changed",
             )
-        entry = {
-            "waiting_since": format_ts(now),
-            "nudged_at": "",
-            "episode_id": current_episode_id,
-        }
+        new_entry = completion_only(entry)
+        if new_entry is None:
+            new_entry = {}
+        new_entry["waiting_since"] = format_ts(now)
+        new_entry["nudged_at"] = ""
+        new_entry["episode_id"] = current_episode_id
         if completions:
-            entry["completions"] = completions
-        return False, entry
+            new_entry["completions"] = completions
+        return False, new_entry
     if current_episode_id:
         entry["episode_id"] = current_episode_id
     if nudged_at:
@@ -207,15 +218,16 @@ def plan_nudge(
 
     waiting_since = parse_ts(entry.get("waiting_since") or "")
     if waiting_since is None:
-        entry = {
-            "waiting_since": format_ts(now),
-            "nudged_at": "",
-        }
+        new_entry = completion_only(entry)
+        if new_entry is None:
+            new_entry = {}
+        new_entry["waiting_since"] = format_ts(now)
+        new_entry["nudged_at"] = ""
         if current_episode_id:
-            entry["episode_id"] = current_episode_id
+            new_entry["episode_id"] = current_episode_id
         if completions:
-            entry["completions"] = completions
-        return False, entry
+            new_entry["completions"] = completions
+        return False, new_entry
     return now - waiting_since >= NUDGE_AFTER, entry
 
 
@@ -604,11 +616,20 @@ def ensure_nudge_completed(
             f"body={body}",
         ])
 
-    minimized_reason = comment_minimization_reason(node_id)
-    if minimized_reason != "OUTDATED":
-        if minimized_reason:
-            unminimize_comment(node_id)
-        minimize_comment(node_id)
+    try:
+        minimized_reason = comment_minimization_reason(node_id)
+        if minimized_reason != "OUTDATED":
+            if minimized_reason:
+                unminimize_comment(node_id)
+            minimize_comment(node_id)
+    except GhGraphQLNodeNotFoundError as error:
+        if error.node_id != node_id:
+            raise
+        print(
+            f"PR #{pr_number}: completion note recorded but reminder node "
+            f"{node_id} is unavailable; skipping outdated collapse",
+            file=sys.stderr,
+        )
 
 
 def record_author_nudge_observation(
@@ -672,53 +693,49 @@ def deliver_prepared_author_nudges(
         )
         remaining_completions: list[dict[str, Any]] = []
         for completion in completions:
-            episode_id = completion.get("episode_id") or ""
-            if episode_id.startswith(LEGACY_EPISODE_PREFIX):
-                recovered_episode_id = recover_legacy_nudge_episode_id(
-                    repo,
-                    pr_number,
-                    episode_id,
-                )
-                if recovered_episode_id:
-                    completion = {
-                        **completion,
-                        "episode_id": recovered_episode_id,
-                    }
-                    episode_id = recovered_episode_id
-                else:
-                    print(
-                        f"PR #{pr_number}: legacy author nudge comment not found; "
-                        "discarding completion",
-                        file=sys.stderr,
-                    )
-                    continue
+            completion_id = completion.get("episode_id") or ""
+            if completion_id in delivered_completion_ids:
+                continue
             completed_at = parse_ts(completion.get("completed_at") or "")
             kind = completion.get("kind") or "left_author"
             if (
-                not episode_id
+                not completion_id
                 or completed_at is None
                 or kind not in ("left_author", "routing_changed")
             ):
                 errors.append(f"PR #{pr_number}: invalid pending nudge completion")
                 remaining_completions.append(completion)
                 continue
+            episode_id = completion_id
             try:
-                ensure_nudge_completed(
-                    repo,
-                    pr_number,
-                    episode_id,
-                    dashboard_state,
-                    completed_at,
-                    kind,
+                if episode_id.startswith(LEGACY_EPISODE_PREFIX):
+                    episode_id = recover_legacy_nudge_episode_id(
+                        repo, pr_number, episode_id,
+                    )
+                    if not episode_id:
+                        print(
+                            f"PR #{pr_number}: legacy author nudge comment not found; "
+                            "discarding completion",
+                            file=sys.stderr,
+                        )
+                if episode_id and episode_id not in delivered_completion_ids:
+                    ensure_nudge_completed(
+                        repo, pr_number, episode_id, dashboard_state, completed_at, kind,
+                    )
+            except GhReadOnlyConversationError:
+                print(
+                    f"PR #{pr_number}: conversation is archived and read-only; "
+                    f"retiring author nudge cleanup for episode {episode_id}",
+                    file=sys.stderr,
                 )
             except Exception as e:
                 errors.append(f"PR #{pr_number}: {e}")
                 remaining_completions.append(completion)
-            else:
-                if not using_delivery_state():
-                    continue
-                if episode_id not in delivered_completion_ids:
-                    delivered_completion_ids.append(episode_id)
+                continue
+            if using_delivery_state():
+                for delivered_id in (completion_id, episode_id):
+                    if delivered_id and delivered_id not in delivered_completion_ids:
+                        delivered_completion_ids.append(delivered_id)
         entry = dict(entry or {})
         if remaining_completions:
             entry["completions"] = remaining_completions
@@ -726,6 +743,7 @@ def deliver_prepared_author_nudges(
             entry.pop("completions", None)
         if delivered_completion_ids:
             entry["delivered_completion_ids"] = delivered_completion_ids
+        updated[key] = entry
         if (
             close_after is not None
             and entry.get("nudged_at")
@@ -830,14 +848,13 @@ def deliver_prepared_author_nudges(
                 or entry.get("episode_id")
                 or ""
             )
-            updated[key] = {
-                "waiting_since": entry.get("waiting_since") or "",
-                "nudged_at": nudged_at,
-            }
+            new_entry = completion_only(entry)
+            if new_entry is None:
+                new_entry = {}
+            new_entry["waiting_since"] = entry.get("waiting_since") or ""
+            new_entry["nudged_at"] = nudged_at
             if episode_id:
-                updated[key]["episode_id"] = episode_id
-            completions = list(entry.get("completions") or [])
-            if completions:
-                updated[key]["completions"] = completions
+                new_entry["episode_id"] = episode_id
+            updated[key] = new_entry
     save_author_nudges(updated)
     return errors
