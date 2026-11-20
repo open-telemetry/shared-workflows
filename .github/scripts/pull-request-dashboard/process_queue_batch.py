@@ -27,6 +27,7 @@ from telemetry import session as telemetry_session
 SCRIPT_DIR = Path(__file__).resolve().parent
 OWNER = "open-telemetry"
 MAX_ATTEMPTS = 3
+INITIAL_BACKFILL_REQUEUE_DELAY_MS = 60_000
 
 
 class LeaseMonitor:
@@ -241,12 +242,14 @@ def process_claims(
     dead_letters = sum(result["outcome"] == "dead" for result in results)
     retries = sum(result["outcome"] == "retry" for result in results)
     continues = sum(result["outcome"] == "continue" for result in results)
+    requeues = sum(result["outcome"] == "requeue" for result in results)
     return (
         {
             "claims": len(claims),
             "work_items": len(work_items),
-            "successes": len(results) - retries - dead_letters - continues,
+            "successes": len(results) - retries - dead_letters - continues - requeues,
             "continues": continues,
+            "requeues": requeues,
             "retries": retries,
             "dead_letters": dead_letters,
         },
@@ -289,7 +292,7 @@ def resolve_work_items(
 
 def coalesce_acknowledgments(results: list[dict[str, Any]]) -> list[dict[str, Any]]:
     combined: dict[str, dict[str, Any]] = {}
-    severity = {"success": 0, "continue": 1, "retry": 2, "dead": 3}
+    severity = {"success": 0, "continue": 1, "requeue": 1, "retry": 2, "dead": 3}
     for result in results:
         key = result["itemKey"]
         previous = combined.get(key)
@@ -456,7 +459,18 @@ class DashboardBatchProcessor:
                 if self.lease_check:
                     self.lease_check()
                 if item.kind == "refresh" and not initial_backfill_complete:
-                    results.extend(acknowledgment(claim, "success") for claim in item.claims)
+                    print(
+                        f"{repository}: initial backfill incomplete; "
+                        f"deferring refresh for PR #{item.pr_number}",
+                        file=sys.stderr,
+                    )
+                    results.extend(
+                        acknowledgment(
+                            claim, "requeue",
+                            retry_after_ms=INITIAL_BACKFILL_REQUEUE_DELAY_MS,
+                        )
+                        for claim in item.claims
+                    )
                     continue
                 item_env = dict(env)
                 if item.kind == "backfill" and any(

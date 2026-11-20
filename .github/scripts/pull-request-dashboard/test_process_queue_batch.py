@@ -551,7 +551,67 @@ class QueueBatchTest(unittest.TestCase):
 
         initial_backfill_complete.assert_called_once()
         update_dashboard.assert_not_called()
-        self.assertEqual([result["outcome"] for result in results], ["success", "success"])
+        self.assertEqual([result["outcome"] for result in results], ["requeue", "requeue"])
+        self.assertEqual([result["retryAfterMs"] for result in results], [60_000, 60_000])
+
+    def test_refresh_is_requeued_until_initial_backfill_finishes(self) -> None:
+        initialized = False
+        scripts = []
+        acknowledgments = []
+
+        class Client:
+            def call(self, action: str, **payload: object) -> dict[str, object]:
+                if action == "heartbeat":
+                    return {"dispatcher": True, "leaseDurationMs": 900_000}
+                if action == "acquire-delivery":
+                    return {"acquired": True, "leaseGeneration": 7}
+                if action == "release-delivery":
+                    return {"released": True}
+                acknowledgments.append(payload)
+                return {"status": "removed" if initialized else "requeued"}
+
+        def run(command: list[str], _lease_check, **_kwargs):
+            script = Path(command[1]).name
+            scripts.append(script)
+            if script == "delivery.py":
+                output = Path(command[command.index("--github-output") + 1])
+                output.write_text("active=true\nfull_publish_generation=0\n", encoding="utf-8")
+            return subprocess.CompletedProcess(
+                command, 0,
+                stdout=f"{str(initialized).lower()}\n" if script == "state.py" else "",
+                stderr="",
+            )
+
+        pending = Claim("example#pr:680", 1, "example", 680, "", 2)
+        with tempfile.TemporaryDirectory() as directory:
+            config = Path(directory) / "repositories.json"
+            config.write_text('[{"name":"example"}]', encoding="utf-8")
+            with mock.patch.object(process_queue_batch, "run_monitored", side_effect=run):
+                for _ in range(process_queue_batch.MAX_ATTEMPTS + 1):
+                    summary, _results = process_claims(
+                        [pending], Path(directory) / "results.json", Client(), 1, "live",
+                        config_path=config,
+                    )
+                    self.assertEqual(summary["successes"], 0)
+                    self.assertEqual(summary["requeues"], 1)
+                    self.assertEqual(summary["retries"], 0)
+                    self.assertEqual(summary["dead_letters"], 0)
+                    self.assertEqual(acknowledgments[-1]["outcome"], "requeue")
+                    self.assertEqual(acknowledgments[-1]["retryAfterMs"], 60_000)
+
+                self.assertEqual(set(scripts), {"state.py"})
+                initialized = True
+                summary, _results = process_claims(
+                    [pending], Path(directory) / "results.json", Client(), 1, "live",
+                    config_path=config,
+                )
+
+        self.assertEqual(summary["successes"], 1)
+        self.assertEqual(summary["requeues"], 0)
+        self.assertEqual(acknowledgments[-1]["outcome"], "success")
+        self.assertIn("dashboard.py", scripts)
+        self.assertIn("delivery.py", scripts)
+        self.assertIn("publish_dashboard.py", scripts)
 
     def test_repository_failure_does_not_suppress_other_results(self) -> None:
         items = [
