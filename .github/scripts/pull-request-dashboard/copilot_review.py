@@ -20,14 +20,15 @@ from pull_request_source import (
     normalize_review_requests,
     normalize_reviews,
 )
+from utils import parse_ts
 
 
-COPILOT_QUOTA_FAILURE_BODIES = frozenset({
+COPILOT_QUOTA_FAILURE_PREFIXES = (
     "Copilot was unable to review this pull request because the user who "
     "requested the review has reached their quota limit.",
     "Copilot was unable to review this pull request because the user who "
     "requested the review has insufficient remaining quota.",
-})
+)
 COPILOT_ERROR_BODY = (
     "Copilot encountered an error and was unable to review this pull request. "
     "You can try again by re-requesting a review."
@@ -53,7 +54,7 @@ def is_copilot_reviewer(
 def is_copilot_quota_failure(review: Review) -> bool:
     return (
         is_copilot_reviewer(review)
-        and review.body.strip() in COPILOT_QUOTA_FAILURE_BODIES
+        and review.body.lstrip().startswith(COPILOT_QUOTA_FAILURE_PREFIXES)
     )
 
 
@@ -84,10 +85,29 @@ def copilot_fallback_exhausted(
     fallback: CopilotReviewFallback | None,
     reviews: Sequence[Review],
 ) -> bool:
-    return fallback is not None and (
-        fallback.exhausted
-        or bool(set(copilot_quota_failure_ids(reviews)) - set(fallback.quota_failure_ids))
-    )
+    if fallback is None:
+        return False
+    if fallback.exhausted:
+        return True
+    new_failure_ids = set(copilot_quota_failure_ids(reviews)) - set(fallback.quota_failure_ids)
+    if not new_failure_ids:
+        return False
+    attempted_at = parse_ts(fallback.attempted_at)
+    if attempted_at is None or attempted_at.tzinfo is None:
+        raise RuntimeError("Copilot review fallback has an invalid attempt timestamp")
+    # GitHub reports review submissions with second precision.
+    attempted_at = attempted_at.replace(microsecond=0)
+    for review in reviews:
+        if review.database_id not in new_failure_ids:
+            continue
+        submitted_at = parse_ts(review.submitted_at)
+        if submitted_at is None or submitted_at.tzinfo is None:
+            raise RuntimeError(
+                "GitHub returned a Copilot quota notice without a valid submission timestamp"
+            )
+        if submitted_at >= attempted_at:
+            return True
+    return False
 
 
 def copilot_reviews_disabled(facts: DashboardFacts) -> bool:
