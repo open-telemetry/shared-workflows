@@ -423,6 +423,25 @@ class DrainQueueTest(unittest.TestCase):
         )
         self.assertEqual([item.item_key for item in queue.queued], ["example#pr:2"])
 
+    def test_initialization_requeues_are_not_reclaimed_in_the_same_drain(self) -> None:
+        queue = FakeQueue(["example#pr:680"])
+
+        def defer(claims: list[Claim], _job: int) -> JobResult:
+            if process_job.call_count == 1:
+                queue.queued.extend(claims)
+            return drain_queue.job_result([
+                {"itemKey": item.item_key, "outcome": "requeue"}
+                for item in claims
+            ])
+
+        process_job = mock.Mock(side_effect=defer)
+        result = run_drain(100_000, queue.claim, process_job, now=lambda: 0)
+
+        self.assertEqual(result, DrainResult(1, 0, "queue_empty", 1))
+        process_job.assert_called_once()
+        self.assertEqual([item.item_key for item in queue.queued], ["example#pr:680"])
+        self.assertEqual(queue.calls[-1], (4, ["example#pr:680"], []))
+
     def test_reports_failed_repository_job_after_other_jobs_finish(self) -> None:
         queue = FakeQueue(["removed#pr:1", "valid#pr:1"])
         processed: list[str] = []
