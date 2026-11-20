@@ -1103,6 +1103,45 @@ test("delayed requeue keeps refreshes pending without dispatching or claiming th
   assert.equal((await queue.itemStatus(request)).status, "completed");
 });
 
+test("delayed requeue honors its delay when a webhook arrives during processing", async () => {
+  const { queue, advance } = fixture();
+  const request = await queue.enqueue({
+    repository: "example", prNumber: 680, triggerEvent: "issue_comment",
+  });
+  const dispatcher = await queue.requestDispatcher("request");
+  await queue.activateDispatcher({ generation: dispatcher.generation, workerId: "worker" });
+  const [claimed] = await queue.claimWave({ generation: dispatcher.generation, workerId: "worker" });
+  const followUp = await queue.enqueue({
+    repository: "example", prNumber: 680, triggerEvent: "pull_request",
+  });
+  await queue.acknowledge({
+    ...claimed,
+    generation: dispatcher.generation,
+    workerId: "worker",
+    outcome: "requeue",
+    retryAfterMs: 500,
+  });
+
+  assert.equal((await queue.itemStatus(request)).status, "queued");
+  advance(499);
+  assert.deepEqual(await queue.claimWave({
+    generation: dispatcher.generation, workerId: "worker",
+  }), []);
+  assert.equal((await queue.finishDispatcher({
+    generation: dispatcher.generation, workerId: "worker",
+  })).requested, false);
+
+  advance(1);
+  const successor = await queue.requestDispatcher("next-request");
+  await queue.activateDispatcher({ generation: successor.generation, workerId: "next-worker" });
+  const [available] = await queue.claimWave({
+    generation: successor.generation, workerId: "next-worker",
+  });
+  assert.equal(available.claimGeneration, followUp.generation);
+  assert.equal(available.attempts, 0);
+  assert.deepEqual(available.triggerEvents, ["issue_comment", "pull_request"]);
+});
+
 test("requeue gives a dirty follow-up generation a fresh retry budget", async () => {
   const { queue, store } = fixture();
   const request = await queue.enqueue({

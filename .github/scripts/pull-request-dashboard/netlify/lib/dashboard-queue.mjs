@@ -644,7 +644,7 @@ export class DashboardQueue {
       item.attempts = outcome === "requeue" && !hasFollowUp
         ? item.attempts
         : outcome === "retry" && !hasFollowUp ? item.attempts + 1 : 0;
-      item.notBefore = ["retry", "requeue"].includes(outcome) && !hasFollowUp && retryAfterMs > 0
+      item.notBefore = (outcome === "requeue" || (outcome === "retry" && !hasFollowUp)) && retryAfterMs > 0
         ? this.#isoAfter(retryAfterMs)
         : null;
       item.lastError = outcome === "retry"
