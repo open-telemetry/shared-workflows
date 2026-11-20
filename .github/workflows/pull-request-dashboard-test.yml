@@ -32,6 +32,10 @@ jobs:
         working-directory: .github/scripts/pull-request-dashboard
         run: npm ci
 
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.15'
+
       - name: Install uv
         uses: astral-sh/setup-uv@8d55fbecc275b1c35dbe060458839f8d30439ccf # v3.0.0
 
@@ -41,7 +45,7 @@ jobs:
 
       - name: Run Python tests
         working-directory: .github/scripts/pull-request-dashboard
-        run: uv run python -m unittest discover -p 'test_*.py'
+        run: uv run --locked python -m unittest discover -p 'test_*.py'
 
       - name: Run JavaScript tests
         working-directory: .github/scripts/pull-request-dashboard

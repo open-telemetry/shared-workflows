@@ -626,9 +626,9 @@ OTLP_EXPORT_STEPS = {
 }
 TELEMETRY_INSTALL = re.compile(
     r"^env -u ACTIONS_ID_TOKEN_REQUEST_TOKEN -u ACTIONS_ID_TOKEN_REQUEST_URL"
-    r" python -m pip install --disable-pip-version-check --require-hashes --only-binary=:all:"
-    r" --no-deps -r requirements-telemetry\.lock$"
+    r" uv sync --frozen --no-build && echo \"\$PWD/\.venv/bin\" >> \"\$GITHUB_PATH\"$"
 )
+SETUP_UV = "astral-sh/setup-uv@"
 SCRIPT_WORKING_DIRECTORY = ".github/scripts/pull-request-dashboard"
 
 
@@ -662,14 +662,17 @@ class WorkflowOtlpExportWiringTest(unittest.TestCase):
             with self.subTest(step=key):
                 earlier = steps[:index]
                 setup = [i for i, s in enumerate(earlier) if "actions/setup-python@" in s.get("uses", "")]
+                setup_uv = [i for i, s in enumerate(earlier) if SETUP_UV in s.get("uses", "")]
                 install = [
                     i for i, s in enumerate(earlier)
                     if TELEMETRY_INSTALL.search(unquote(s.get("run", "")))
                     and unquote(s.get("working-directory", "")) == SCRIPT_WORKING_DIRECTORY
                 ]
                 self.assertTrue(setup, "no actions/setup-python before the step")
-                self.assertTrue(install, "no requirements-telemetry.lock install before the step")
+                self.assertTrue(setup_uv, "no astral-sh/setup-uv before the step")
+                self.assertTrue(install, "no frozen uv telemetry install before the step")
                 self.assertLess(setup[0], install[0])
+                self.assertLess(setup_uv[0], install[0])
                 for i in install:
                     self.assertEqual("true", unquote(earlier[i].get("continue-on-error", "")))
                     self.assertNotIn("secrets.", earlier[i].get("env", ""))
@@ -728,27 +731,18 @@ class TelemetryRequirementsTest(unittest.TestCase):
                 self.assertIsNotNone(name)
                 self.assertIn("version", pkg)
                 
-                # Each package must have at least one artifact (sdist or wheel) with hash
-                has_hash = False
-                
-                # Check sdist for hash
+                # Every artifact (sdist and each wheel) must carry a SHA256 digest.
+                artifacts = list(pkg.get("wheels", []))
                 if "sdist" in pkg:
-                    sdist = pkg["sdist"]
-                    if "hash" in sdist:
-                        self.assertIn("sha256:", sdist["hash"])
-                        has_hash = True
-                
-                # Check wheels for hashes
-                if "wheels" in pkg:
-                    wheels = pkg["wheels"]
-                    self.assertIsInstance(wheels, list)
-                    for wheel in wheels:
-                        if "hash" in wheel:
-                            self.assertIn("sha256:", wheel["hash"])
-                            has_hash = True
-                
-                self.assertTrue(has_hash, f"Package {name} must have at least one SHA256 hash")
-        
+                    artifacts.append(pkg["sdist"])
+                self.assertTrue(artifacts, f"Package {name} must have at least one artifact")
+                for artifact in artifacts:
+                    self.assertRegex(
+                        artifact.get("hash", ""),
+                        r"^sha256:[0-9a-f]{64}$",
+                        f"{name} artifact {artifact.get('url')} must have a SHA256 hash",
+                    )
+
         # Verify telemetry packages are present in lock
         package_names = {pkg["name"] for pkg in packages}
         telemetry_packages = ["opentelemetry-api", "opentelemetry-sdk", "opentelemetry-exporter-otlp-proto-http"]

@@ -35,7 +35,7 @@ jobs:
       PR_DASHBOARD_QUEUE_LANE: ${{ inputs.queue_lane || 'live' }}
       PR_DASHBOARD_QUEUE_ENDPOINT: https://otel-pull-request-dashboard.netlify.app/.netlify/functions/dashboard-queue-worker
       WORKER_ID: ${{ github.run_id }}-${{ github.run_attempt }}
-      CANARY_REPOSITORIES: '["opentelemetry-java-instrumentation", "shared-workflows"]'
+      CANARY_REPOSITORIES: '["opentelemetry-java-instrumentation", "semantic-conventions-genai", "shared-workflows"]'
       CANARY_CODE_REF: ${{ github.sha }}
       PR_DASHBOARD_CLASSIFICATION_CACHE_ROOT: ${{ github.workspace }}/.github/scripts/pull-request-dashboard/.cache/classifications
     steps:
@@ -57,7 +57,8 @@ jobs:
           mkdir -p .github/scripts/pull-request-dashboard/.cache/classifications
       - name: Install telemetry dependencies
         working-directory: .github/scripts/pull-request-dashboard
-        run: uv sync --frozen
+        continue-on-error: true
+        run: 'env -u ACTIONS_ID_TOKEN_REQUEST_TOKEN -u ACTIONS_ID_TOKEN_REQUEST_URL uv sync --frozen --no-build && echo "$PWD/.venv/bin" >> "$GITHUB_PATH"'
       - name: Restore classification cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:

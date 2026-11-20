@@ -182,7 +182,7 @@ wheels = [
 
 [[package]]
 name = "github-copilot-sdk"
-version = "1.0.34"
+version = "1.0.35"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "httpx" },
@@ -190,7 +190,7 @@ dependencies = [
     { name = "python-dateutil" },
 ]
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/6e/3f/9b8405bf4943dfb6ecd5d0ac2179e1fab896a61bd31273c94267faeae5c9/github_copilot_sdk-1.0.34-py3-none-any.whl", hash = "sha256:0d9cffccdb59f5d90512e9b94a70d482859a5fc9e0d2d0926e1bb138a1e593c4", size = 1116400, upload-time = "2026-11-14T00:08:47.124Z" },
+    { url = "https://files.pythonhosted.org/packages/d6/1a/9da1f7dcf98bdbe842ce947e91aa16b597081b000d4c97be47073ba5d2a8/github_copilot_sdk-1.0.35-py3-none-any.whl", hash = "sha256:a13f2f791e8531e298d7e2b3e04d0232a10b45c9cd4036bcd83c3d69fd94f29a", size = 1116512, upload-time = "2026-11-18T23:07:11.335Z" },
 ]
 
 [[package]]
@@ -391,7 +391,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "github-copilot-sdk", specifier = ">=1.0.34" },
+    { name = "github-copilot-sdk", specifier = ">=1.0.35" },
     { name = "opentelemetry-api", specifier = ">=1.45.2" },
     { name = "opentelemetry-exporter-otlp-proto-http", specifier = ">=1.45.2" },
     { name = "opentelemetry-sdk", specifier = ">=1.45.2" },

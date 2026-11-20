@@ -83,7 +83,7 @@ jobs:
 
       - name: Run pull request dashboard tests
         working-directory: .github/scripts/pull-request-dashboard
-        run: uv run python -m unittest discover -p 'test_*.py'
+        run: uv run --locked python -m unittest discover -p 'test_*.py'
 
       - uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
         id: otelbot-token

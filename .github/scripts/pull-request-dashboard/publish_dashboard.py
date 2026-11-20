@@ -247,6 +247,7 @@ def render_dashboard_markdown(
             max_chars=None,
             labels_to_display=labels_to_display,
             approver_logins=approver_logins,
+            repo=repo,
         )
         skip_drafts = len(non_draft_md) >= ISSUE_BODY_MAX_CHARS
         if not skip_drafts:
@@ -258,6 +259,7 @@ def render_dashboard_markdown(
         skip_drafts=skip_drafts,
         labels_to_display=labels_to_display,
         approver_logins=approver_logins,
+        repo=repo,
     )
     output_path = dashboard_markdown_path()
     output_path.parent.mkdir(parents=True, exist_ok=True)

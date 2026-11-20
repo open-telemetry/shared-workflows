@@ -802,7 +802,7 @@ def list_open_prs(repo: str) -> list[dict[str, Any]]:
             "createdAt": pull.get("created_at"),
             "url": pull.get("html_url"),
             "labels": [
-                label["name"]
+                {"name": label["name"], "color": label.get("color")}
                 for label in pull.get("labels") or []
                 if (
                     isinstance(label, dict)

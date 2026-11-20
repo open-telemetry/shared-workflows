@@ -35,14 +35,14 @@ general coding-agent prompt overhead without sharing conversation history.
 
 ## Running classifier evaluation locally
 
-Use Python 3.11 or later and install the SDK and its matching runtime from the
-dashboard script directory:
+Use Python 3.11 or later with [uv](https://docs.astral.sh/uv/) and install the
+SDK and its matching runtime from the dashboard script directory:
 
 ```sh
 cd .github/scripts/pull-request-dashboard
-python -m pip install -r requirements.txt
-python -m copilot download-runtime
-python eval/score_reviewer_feedback.py --classifier reviewer_feedback --model gpt-5.6-luna
+uv sync --frozen
+uv run python -m copilot download-runtime
+uv run python eval/score_reviewer_feedback.py --classifier reviewer_feedback --model gpt-5.6-luna
 ```
 
 Set `COPILOT_GITHUB_TOKEN` to a token with Copilot access. Local runs also accept
@@ -86,8 +86,10 @@ turn it on (see **Workflow export**). This setup emits no log records yet.
   An entry point extracts the parent context from its environment only when
   the OpenTelemetry packages are installed. The processes that
   `drain_queue.py` starts run in the virtual environment of
-  `execution_code.py`, which installs `requirements.txt`. The workflow steps
-  that export install `requirements-telemetry.lock` before they run (see
+  `execution_code.py`, which runs `uv sync --frozen` against `pyproject.toml`
+  and `uv.lock` (refs that predate the migration still install
+  `requirements.txt`). The workflow steps that export install the same lock
+  before they run (see
   **Workflow export**). Other workflow steps run the system `python3` without
   the packages. These steps only set `TRACEPARENT` for later use. Only `process_queue_batch.py` injects the context into the commands it starts
   (dashboard scripts and `gh`). `drain_queue.py` runs each job with a copy
@@ -134,20 +136,16 @@ turn it on (see **Workflow export**). This setup emits no log records yet.
   - If `GHA_OTLP_ENDPOINT` is empty or not set, export stays off and no
     stderr line shows.
   - Before each of these steps, the job runs `actions/setup-python` and
-    installs `requirements-telemetry.lock` with
-    `pip install --require-hashes --only-binary=:all: --no-deps`. The lock
-    pins every package and its hashes. pip installs only wheels whose hashes
-    match. The install command removes the OIDC variables
-    `ACTIONS_ID_TOKEN_REQUEST_TOKEN` and `ACTIONS_ID_TOKEN_REQUEST_URL`.
-  - `requirements-telemetry.txt` holds the top-level OpenTelemetry pins.
-    `requirements.txt` includes it with `-r requirements-telemetry.txt`, so the
-    versions are in one file. Do not add hashes to these two files. A hash
-    turns on hash checking for the full `requirements.txt` install.
-  - After you change `requirements-telemetry.txt`, regenerate the lock in
-    `.github/scripts/pull-request-dashboard`. Use the command in the lock
-    header:
-    `uv pip compile requirements-telemetry.txt --generate-hashes --universal --python-version=3.15 --output-file=requirements-telemetry.lock`.
-    Renovate updates the lock with the same command.
+    `astral-sh/setup-uv`, then `uv sync --frozen --no-build`. `uv.lock` pins
+    every package and its hashes, and `--no-build` allows only prebuilt
+    wheels. The install command removes the OIDC variables
+    `ACTIONS_ID_TOKEN_REQUEST_TOKEN` and `ACTIONS_ID_TOKEN_REQUEST_URL`. It
+    then adds the project `.venv/bin` to `GITHUB_PATH` so the later `python3`
+    steps use the installed packages.
+  - `pyproject.toml` holds the top-level pins for the dashboard and for
+    OpenTelemetry. After you change it, regenerate the lock in
+    `.github/scripts/pull-request-dashboard` with `uv lock`. Renovate updates
+    `pyproject.toml` and `uv.lock` together.
   - The install step has `continue-on-error: true`. If the install fails, the
     job does not fail. The scripts then run without export.
   - To stop export, remove the four entries from the steps.
@@ -155,7 +153,7 @@ turn it on (see **Workflow export**). This setup emits no log records yet.
     and the install order.
 - **Secrets in child processes**: `OTEL_EXPORTER_OTLP_HEADERS` holds the
   token. It is in `PREPARATION_SECRET_NAMES` in `drain_queue.py`, so the
-  `pip install` of the execution code does not get it. The dashboard processes
+  dependency install of the execution code does not get it. The dashboard processes
   that `drain_queue.py` starts get it, because they export. The Copilot CLI
   child gets none of the `OTEL_EXPORTER_OTLP_*` settings. Of the trace
   context, it gets only `TRACEPARENT` and `TRACESTATE`.
@@ -307,7 +305,9 @@ A truncated dashboard includes a size-limit warning and a `_More X PRs not shown
 
 Automatic sizing follows the canary-to-stable release rollout. Until its release is promoted, stable repositories retain the pinned publisher's behavior. The queue forwards `--large-repo` for configured repositories to preserve their sizing protection; the automatic publisher accepts the flag as a no-op. Remove the legacy configuration entries, flag forwarding, and compatibility flag only after the automatic publisher is promoted to stable.
 
-`labels_to_display` only controls which labels are shown. It does not filter pull requests or affect dashboard routing, notifications, or status comments. All matching labels are displayed in the order returned by GitHub; a label matching more than one configured pattern is shown once.
+Matching labels appear after the PR title as Shields.io badges in their GitHub colors. Each badge links to the repository's open PRs with that label. If GitHub doesn't return a valid color, the dashboard shows a text link instead. Only enable `labels_to_display` for public labels because the badge image URL contains the label name and color.
+
+The dashboard lists matching labels in the order GitHub returns them and shows each label once. This setting does not filter pull requests or affect routing, notifications, or status comments.
 
 For each listed branch, the dashboard requests initial Copilot reviews and
 re-reviews using its GitHub App installation token with pull-request write
@@ -529,8 +529,8 @@ a small set of repositories before it reaches everyone.
   commit and pick up a change as soon as it merges. The canary set is the
   `CANARY_REPOSITORIES` list in
   [`pull-request-dashboard-drain.yml`](../.github/workflows/pull-request-dashboard-drain.yml),
-  which currently holds `shared-workflows` itself and
-  `opentelemetry-java-instrumentation`.
+  which currently includes `opentelemetry-java-instrumentation`,
+  `semantic-conventions-genai`, and `shared-workflows`.
 - **Every other repository** runs them from the promoted release's commit SHA
   in [`stable-release.json`](../.github/scripts/pull-request-dashboard/stable-release.json).
   The file records one lowercase 40-character SHA and one stable semantic release.

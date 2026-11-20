@@ -351,7 +351,7 @@ class PublishablePrsTest(unittest.TestCase):
             {
                 "number": 1,
                 "isDraft": False,
-                "labels": ["size/L"],
+                "labels": [{"name": "size/L", "color": "5319e7"}],
             },
         ]
         results = (stored_dashboard_result(1),)
@@ -404,6 +404,7 @@ class PublishablePrsTest(unittest.TestCase):
             skip_drafts=False,
             labels_to_display=["size/*"],
             approver_logins=frozenset({"approver"}),
+            repo="open-telemetry/example",
         )
 
     def test_skips_team_lookup_without_approver_teams(self) -> None:
