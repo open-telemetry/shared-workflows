@@ -36,13 +36,16 @@ jobs:
         with:
           python-version: '3.15'
 
+      - name: Install uv
+        uses: astral-sh/setup-uv@8d55fbecc275b1c35dbe060458839f8d30439ccf # v3.0.0
+
       - name: Install Python dependencies
         working-directory: .github/scripts/pull-request-dashboard
-        run: python -m pip install -r requirements.txt
+        run: uv sync --frozen
 
       - name: Run Python tests
         working-directory: .github/scripts/pull-request-dashboard
-        run: python3 -m unittest discover -p 'test_*.py'
+        run: uv run --locked python -m unittest discover -p 'test_*.py'
 
       - name: Run JavaScript tests
         working-directory: .github/scripts/pull-request-dashboard

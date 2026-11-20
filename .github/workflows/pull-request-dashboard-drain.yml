@@ -49,6 +49,8 @@ jobs:
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: '3.15'
+      - name: Install uv
+        uses: astral-sh/setup-uv@8d55fbecc275b1c35dbe060458839f8d30439ccf # v3.0.0
       - name: Install worker dependencies
         run: |
           npm ci --prefix .github/scripts/pull-request-dashboard
@@ -56,7 +58,7 @@ jobs:
       - name: Install telemetry dependencies
         working-directory: .github/scripts/pull-request-dashboard
         continue-on-error: true
-        run: 'env -u ACTIONS_ID_TOKEN_REQUEST_TOKEN -u ACTIONS_ID_TOKEN_REQUEST_URL python -m pip install --disable-pip-version-check --require-hashes --only-binary=:all: --no-deps -r requirements-telemetry.lock'
+        run: 'env -u ACTIONS_ID_TOKEN_REQUEST_TOKEN -u ACTIONS_ID_TOKEN_REQUEST_URL uv sync --frozen --no-build && echo "$PWD/.venv/bin" >> "$GITHUB_PATH"'
       - name: Restore classification cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
