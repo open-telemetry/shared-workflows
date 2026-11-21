@@ -110,10 +110,10 @@ class DashboardOverrideTest(unittest.TestCase):
         )
 
         self.assertEqual(
-            source.issue_comments[3],
-            dashboard_override.latest_authorized_command(
+            4,
+            dashboard_override.dashboard_override_facts(
                 source, "author", {"approver"}
-            ),
+            ).command_id,
         )
 
     def test_latest_authorized_command_uses_content_update_time(self) -> None:
@@ -151,9 +151,8 @@ class DashboardOverrideTest(unittest.TestCase):
             ),
         )
 
-        self.assertIsNone(
-            dashboard_override.latest_authorized_command(source, "author", set()),
-        )
+        facts = dashboard_override.dashboard_override_facts(source, "author")
+        self.assertEqual(0, facts.command_id)
 
     def test_latest_authorized_command_ignores_previously_rejected_command(self) -> None:
         source = override_input(
@@ -169,10 +168,11 @@ class DashboardOverrideTest(unittest.TestCase):
             ),
         )
 
-        self.assertIsNone(
-            dashboard_override.latest_authorized_command(
+        self.assertEqual(
+            0,
+            dashboard_override.dashboard_override_facts(
                 source, "author", {"new-approver"}
-            ),
+            ).command_id,
         )
 
     def test_is_authorized_commander_matches_author_or_approver(self) -> None:
@@ -242,17 +242,18 @@ class DashboardOverrideTest(unittest.TestCase):
             ),
         )
 
-        replies = dashboard_override.pending_command_replies(
+        facts = dashboard_override.dashboard_override_facts(
             source, "author", {"approver"}
         )
 
+        self.assertEqual(6, facts.command_id)
         self.assertEqual(
             (
                 DashboardCommandReply(2, "unauthorized", "outsider", "route:reviewers"),
                 DashboardCommandReply(3, "unknown_command", "reviewer", "frobnicate"),
                 DashboardCommandReply(4, "unknown_command", "author"),
             ),
-            replies,
+            facts.command_replies,
         )
 
     def test_already_replied_commands_are_not_repeated(self) -> None:
@@ -271,7 +272,7 @@ class DashboardOverrideTest(unittest.TestCase):
 
         self.assertEqual(
             (),
-            dashboard_override.pending_command_replies(source, "author"),
+            dashboard_override.dashboard_override_facts(source, "author").command_replies,
         )
 
     def test_forged_marker_from_non_app_user_does_not_suppress_reply(self) -> None:
@@ -291,7 +292,7 @@ class DashboardOverrideTest(unittest.TestCase):
             ),
         )
 
-        replies = dashboard_override.pending_command_replies(source, "author")
+        facts = dashboard_override.dashboard_override_facts(source, "author")
 
         self.assertEqual(
             (
@@ -302,7 +303,7 @@ class DashboardOverrideTest(unittest.TestCase):
                     "route:reviewers",
                 ),
             ),
-            replies,
+            facts.command_replies,
         )
 
     def test_renders_command_replies(self) -> None:
@@ -1532,11 +1533,16 @@ class DashboardOverrideTest(unittest.TestCase):
         self.assertEqual(0, facts.command_id)
         self.assertEqual((), facts.command_replies)
 
-    def test_newest_acknowledgement_consumes_older_authorized_commands(self) -> None:
+    def test_acknowledgement_retires_older_commands_but_not_rejections(self) -> None:
         source = override_input(
             issue_comment(
                 database_id=3,
                 body="/dashboard route:reviewers",
+            ),
+            issue_comment(
+                database_id=4,
+                actor=actor("outsider"),
+                body="/dashboard route:author",
             ),
             issue_comment(
                 database_id=5,
@@ -1549,8 +1555,12 @@ class DashboardOverrideTest(unittest.TestCase):
             ),
         )
 
-        self.assertIsNone(
-            dashboard_override.latest_authorized_command(source, "author", set()),
+        facts = dashboard_override.dashboard_override_facts(source, "author")
+        self.assertEqual(0, facts.command_id)
+        self.assertEqual(5, facts.handoff.command_id)
+        self.assertEqual(
+            (DashboardCommandReply(4, "unauthorized", "outsider", "route:author"),),
+            facts.command_replies,
         )
 
     def test_command_that_cleared_nothing_is_acknowledged_where_it_is_routed(self) -> None:

@@ -127,32 +127,49 @@ def is_authorized_commander(login: str, author: str, reviewers: set[str] | None)
     return bool(low) and (low == author.lower() or low in (reviewers or set()))
 
 
-def latest_authorized_command(
-    source: DashboardOverrideInput,
+def _inspect_commands(
+    comments: Sequence[IssueComment],
     author: str,
     reviewers: set[str] | None,
+    acknowledged_id: int,
     *,
-    author_can_act: bool = True,
-) -> IssueComment | None:
-    comments = source.issue_comments
-    acknowledged_id = acknowledged_handoff(comments).command_id
+    author_can_act: bool,
+) -> tuple[
+    tuple[IssueComment, HandoffTarget] | None,
+    tuple[DashboardCommandReply, ...],
+]:
     replied_ids = _replied_command_ids(comments)
-    best = None
+    winner: tuple[IssueComment, HandoffTarget] | None = None
+    replies: list[DashboardCommandReply] = []
     for comment in comments:
-        subcommand = parse_dashboard_command(comment)
-        if subcommand != DASHBOARD_OVERRIDE_SUBCOMMAND and not (
-            subcommand == AUTHOR_OVERRIDE_SUBCOMMAND and author_can_act
-        ):
-            continue
-        commenter = comment.actor.login
-        if not is_authorized_commander(commenter, author, reviewers):
-            continue
         comment_id = comment.database_id
-        if comment_id <= acknowledged_id or comment_id in replied_ids:
+        if comment_id in replied_ids:
             continue
-        if best is None or comment_id > best.database_id:
-            best = comment
-    return best
+        subcommand = parse_dashboard_command(comment)
+        if subcommand is None:
+            continue
+
+        commenter = comment.actor.login
+        if subcommand not in (DASHBOARD_OVERRIDE_SUBCOMMAND, AUTHOR_OVERRIDE_SUBCOMMAND):
+            kind = "unknown_command"
+        elif not is_authorized_commander(commenter, author, reviewers):
+            kind = "unauthorized"
+        elif subcommand == AUTHOR_OVERRIDE_SUBCOMMAND and not author_can_act:
+            kind = "author_unavailable"
+        else:
+            if comment_id > acknowledged_id and (
+                winner is None or comment_id > winner[0].database_id
+            ):
+                target = (
+                    HandoffTarget.AUTHOR
+                    if subcommand == AUTHOR_OVERRIDE_SUBCOMMAND
+                    else HandoffTarget.REVIEWERS
+                )
+                winner = (comment, target)
+            continue
+
+        replies.append(DashboardCommandReply(comment_id, kind, commenter, subcommand))
+    return winner, tuple(replies)
 
 
 def _effective_command_timestamp(comment: IssueComment) -> str:
@@ -179,29 +196,31 @@ def dashboard_override_facts(
     *,
     author_can_act: bool = True,
 ) -> DashboardOverrideFacts:
-    command = latest_authorized_command(
-        source,
+    acknowledged = acknowledged_handoff(source.issue_comments)
+    winner, replies = _inspect_commands(
+        source.issue_comments,
         author,
         reviewers,
+        acknowledged.command_id,
         author_can_act=author_can_act,
     )
     previous_facts = previous_facts or DashboardFacts()
     previous = previous_facts.handoff
     new_reviewer_cutoff = ""
-    if command is not None:
-        target = (
-            HandoffTarget.AUTHOR
-            if parse_dashboard_command(command) == AUTHOR_OVERRIDE_SUBCOMMAND
-            else HandoffTarget.REVIEWERS
-        )
-        same_command = command.database_id == previous.command_id and target is previous.target
+    command_id = 0
+    command_user = ""
+    if winner is not None:
+        command, target = winner
+        command_id = command.database_id
+        command_user = command.actor.login
+        same_command = command_id == previous.command_id and target is previous.target
         if same_command and (previous.head_sha or target is HandoffTarget.REVIEWERS):
             handoff = replace(
                 previous, since=previous.since or _effective_command_timestamp(command)
             )
         else:
             handoff = RoutingHandoff(
-                command_id=command.database_id,
+                command_id=command_id,
                 head_sha=head_sha,
                 since=_effective_command_timestamp(command),
                 target=target,
@@ -210,7 +229,7 @@ def dashboard_override_facts(
         if not same_command and target is HandoffTarget.REVIEWERS:
             new_reviewer_cutoff = handoff.since
     else:
-        handoff = acknowledged_handoff(source.issue_comments)
+        handoff = acknowledged
         if handoff.matches(previous):
             handoff = replace(
                 handoff,
@@ -224,17 +243,15 @@ def dashboard_override_facts(
     ):
         handoff = handoff.release()
     return DashboardOverrideFacts(
-        command_id=command.database_id if command else 0,
-        command_user=command.actor.login if command else "",
+        command_id=command_id,
+        command_user=command_user,
         handoff=handoff,
         top_level_feedback_cutoff=_latest_valid_timestamp(
             previous_facts.dashboard_top_level_feedback_cutoff,
             new_reviewer_cutoff,
             acknowledged_top_level_feedback_cutoff(source.issue_comments),
         ),
-        command_replies=pending_command_replies(
-            source, author, reviewers, author_can_act=author_can_act
-        ),
+        command_replies=replies,
     )
 
 
@@ -369,48 +386,6 @@ def _override_command_effective_at(
         if comment.database_id == command_id:
             return _effective_command_timestamp(comment)
     return ""
-
-
-def pending_command_replies(
-    source: DashboardOverrideInput,
-    author: str,
-    reviewers: set[str] | None = None,
-    *,
-    author_can_act: bool = True,
-) -> tuple[DashboardCommandReply, ...]:
-    """Return replies owed to unsupported or unauthorized `/dashboard` commands.
-
-    The override flow handles authorized routing commands with a valid target.
-    Commands that already have a reply comment are skipped.
-    """
-    comments = source.issue_comments
-    replied_ids = _replied_command_ids(comments)
-
-    replies: list[DashboardCommandReply] = []
-    for comment in comments:
-        subcommand = parse_dashboard_command(comment)
-        if subcommand is None:
-            continue
-        comment_id = comment.database_id
-        if comment_id in replied_ids:
-            continue
-        commenter = comment.actor.login
-        if subcommand in (DASHBOARD_OVERRIDE_SUBCOMMAND, AUTHOR_OVERRIDE_SUBCOMMAND):
-            if not is_authorized_commander(commenter, author, reviewers):
-                kind = "unauthorized"
-            elif subcommand == AUTHOR_OVERRIDE_SUBCOMMAND and not author_can_act:
-                kind = "author_unavailable"
-            else:
-                continue
-        else:
-            kind = "unknown_command"
-        replies.append(DashboardCommandReply(
-            comment_id=comment_id,
-            kind=kind,
-            user=commenter,
-            subcommand=subcommand,
-        ))
-    return tuple(replies)
 
 
 def command_reply_marker(comment_id: int) -> str:

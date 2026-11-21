@@ -5,6 +5,7 @@ from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import Enum
+from itertools import chain
 from typing import Any, TypedDict
 
 from classification_policy import (
@@ -66,6 +67,7 @@ class DiscussionLifecycleOutcome:
     top_level_history: dict[str, dict[str, Any]]
     failed_classifications: tuple[ClassificationFailure, ...]
     mode: LifecycleMode
+    latest_completed_author_reply_at: datetime | None = None
 
     def dashboard_fields(self) -> dict[str, Any]:
         fields = {
@@ -602,34 +604,30 @@ def _author_comment_outcomes(
 
 
 def _author_reply_is_superseded(
-    outcomes: list[AuthorCommentOutcome],
+    latest_handoff: AuthorCommentOutcome | None,
     source_id: int | None,
     timestamp: str,
-    feedback_id: str,
 ) -> bool:
-    return any(
-        outcome["feedback_id"] == feedback_id
-        and outcome["action"] == "author"
+    return (
+        latest_handoff is not None
         and (
-            outcome["timestamp"] > timestamp
+            latest_handoff["timestamp"] > timestamp
             or (
-                outcome["timestamp"] == timestamp
+                latest_handoff["timestamp"] == timestamp
                 and (
                     source_id is None
-                    or outcome["source_id"] >= source_id
+                    or latest_handoff["source_id"] >= source_id
                 )
             )
         )
-        for outcome in outcomes
     )
 
 
 def _should_restore_author_reply(
-    outcomes: list[AuthorCommentOutcome],
+    latest_handoff: AuthorCommentOutcome | None,
     source_state: AuthorCommentSourceState | None,
     source_id: int | None,
     timestamp: str,
-    feedback_id: str,
 ) -> bool:
     if source_state is not None and source_id is not None:
         if (
@@ -638,73 +636,9 @@ def _should_restore_author_reply(
         ):
             return False
     return not _author_reply_is_superseded(
-        outcomes,
+        latest_handoff,
         source_id,
         timestamp,
-        feedback_id,
-    )
-
-
-def _completed_author_reply_after(
-    feedback_id: str,
-    root_timestamp: str,
-    outcomes: list[AuthorCommentOutcome],
-    *,
-    after: datetime | None = None,
-) -> tuple[str, int | None] | None:
-    for outcome in outcomes:
-        if (
-            outcome["timestamp"] > root_timestamp
-            and outcome["action"] == "none"
-            and outcome["feedback_id"] == feedback_id
-            and (
-                after is None
-                or (parse_ts(outcome["timestamp"]) or _MIN_TIMESTAMP) > after
-            )
-            and not _author_reply_is_superseded(
-                outcomes,
-                outcome["source_id"],
-                outcome["timestamp"],
-                feedback_id,
-            )
-        ):
-            return outcome["timestamp"], outcome["source_id"]
-    return None
-
-
-def has_completed_author_reply_after(
-    lifecycle: DiscussionLifecycleOutcome,
-    handoff_since: str,
-) -> bool:
-    cutoff = parse_ts(handoff_since)
-    if cutoff is None:
-        return False
-    # A "complete" inline reply puts the next action with the reviewer.
-    if any(
-        not classification.failed
-        and not classification.deferred
-        and isinstance(classification.decision, ActionDecision)
-        and classification.decision.action is DiscussionAction.REVIEWER
-        and (parse_ts(classification.since) or _MIN_TIMESTAMP) > cutoff
-        for classification in lifecycle.classifications.review_threads
-    ):
-        return True
-    if not lifecycle.top_level_history:
-        return False
-    outcomes = _author_comment_outcomes(
-        lifecycle.prepared.top_level_author_comment_items,
-        lifecycle.classifications.top_level_author_comments,
-    )
-    return any(
-        discussion["discussion_id"] in lifecycle.top_level_history
-        and _completed_author_reply_after(
-            discussion["discussion_id"],
-            _top_level_feedback_timestamp(discussion),
-            outcomes,
-            after=cutoff,
-        )
-        is not None
-        for discussion in lifecycle.prepared.top_level_items
     )
 
 
@@ -736,8 +670,16 @@ def _collect_author_evidence(
     previous_entry: dict[str, Any],
     author_comment_outcomes: list[AuthorCommentOutcome],
     author_comment_source_state: AuthorCommentSourceState | None,
-) -> tuple[dict[str, str], int | None]:
+) -> tuple[dict[str, str], int | None, datetime | None]:
+    feedback_id = discussion["discussion_id"]
     feedback_timestamp = _top_level_feedback_timestamp(discussion)
+    latest_handoff = next(
+        (
+            outcome for outcome in reversed(author_comment_outcomes)
+            if outcome["feedback_id"] == feedback_id and outcome["action"] == "author"
+        ),
+        None,
+    )
     evidence: dict[str, str] = {}
     reply_source_id: int | None = None
     previous_reply = (previous_entry.get("evidence") or {}).get("reply") or ""
@@ -745,25 +687,29 @@ def _collect_author_evidence(
     if (
         previous_reply > feedback_timestamp
         and _should_restore_author_reply(
-            author_comment_outcomes,
+            latest_handoff,
             author_comment_source_state,
             previous_reply_source_id
             if isinstance(previous_reply_source_id, int)
             else None,
             previous_reply,
-            discussion["discussion_id"],
         )
     ):
         evidence["reply"] = previous_reply
         reply_source_id = previous_reply_source_id
 
-    completed_reply = _completed_author_reply_after(
-        discussion["discussion_id"],
-        feedback_timestamp,
-        author_comment_outcomes,
-    )
-    if completed_reply:
-        timestamp, source_id = completed_reply
+    # History keeps the earliest reply. The handoff uses the latest reply
+    # confirmed by this refresh, which can differ from restored history.
+    latest_reply_at = None
+    for outcome in author_comment_outcomes:
+        if outcome["feedback_id"] != feedback_id or outcome["action"] != "none":
+            continue
+        timestamp = outcome["timestamp"]
+        source_id = outcome["source_id"]
+        if timestamp <= feedback_timestamp or _author_reply_is_superseded(
+            latest_handoff, source_id, timestamp
+        ):
+            continue
         if (
             not evidence.get("reply")
             or timestamp < evidence["reply"]
@@ -771,7 +717,12 @@ def _collect_author_evidence(
         ):
             evidence["reply"] = timestamp
             reply_source_id = source_id
-    return evidence, reply_source_id
+        reply_at = parse_ts(timestamp)
+        if reply_at is not None and (
+            latest_reply_at is None or reply_at > latest_reply_at
+        ):
+            latest_reply_at = reply_at
+    return evidence, reply_source_id, latest_reply_at
 
 
 def _pending_action_for(action: str) -> str:
@@ -824,10 +775,11 @@ def _advance_top_level_actions(
     previous_history: dict[str, dict[str, Any]],
     author_comment_outcomes: list[AuthorCommentOutcome],
     author_comment_source_state: AuthorCommentSourceState | None,
-) -> tuple[dict[str, dict[str, Any]], dict[str, dict[str, Any]]]:
+) -> tuple[dict[str, dict[str, Any]], dict[str, dict[str, Any]], datetime | None]:
     by_id = _discussions_by_id(top_level_items)
     pending_actions: dict[str, dict[str, Any]] = {}
     top_level_history: dict[str, dict[str, Any]] = {}
+    latest_reply_at = None
     for classification in classifications:
         discussion = by_id.get(classification.identity.discussion_id)
         decision = classification.decision
@@ -849,12 +801,16 @@ def _advance_top_level_actions(
         ):
             continue
         previous_entry = previous_history.get(discussion["discussion_id"]) or {}
-        evidence, reply_source_id = _collect_author_evidence(
+        evidence, reply_source_id, reply_at = _collect_author_evidence(
             discussion,
             previous_entry,
             author_comment_outcomes,
             author_comment_source_state,
         )
+        if reply_at is not None and (
+            latest_reply_at is None or reply_at > latest_reply_at
+        ):
+            latest_reply_at = reply_at
         if evidence:
             top_level_history[discussion["discussion_id"]] = {"evidence": evidence}
             if reply_source_id is not None:
@@ -878,7 +834,7 @@ def _advance_top_level_actions(
             "action": _pending_action_for(action.value),
             "since": root_timestamp,
         }
-    return pending_actions, top_level_history
+    return pending_actions, top_level_history, latest_reply_at
 
 
 def resolve_discussions(
@@ -947,12 +903,32 @@ def resolve_discussions(
         prepared.review_threads,
         classifications.review_threads,
     )
-    top_level_pending_actions, top_level_history = _advance_top_level_actions(
+    (
+        top_level_pending_actions,
+        top_level_history,
+        top_level_reply_at,
+    ) = _advance_top_level_actions(
         prepared.top_level_items,
         classifications.top_level_items,
         history,
         author_comment_outcomes,
         author_comment_source_state,
+    )
+    # A completed inline reply puts the next action with the reviewer.
+    inline_replies = (
+        parse_ts(classification.since)
+        for classification in classifications.review_threads
+        if not classification.failed
+        and not classification.deferred
+        and isinstance(classification.decision, ActionDecision)
+        and classification.decision.action is DiscussionAction.REVIEWER
+    )
+    latest_completed_author_reply_at = max(
+        (
+            reply_at for reply_at in chain(inline_replies, (top_level_reply_at,))
+            if reply_at is not None
+        ),
+        default=None,
     )
     return DiscussionLifecycleOutcome(
         prepared,
@@ -961,4 +937,5 @@ def resolve_discussions(
         top_level_history,
         (),
         mode,
+        latest_completed_author_reply_at=latest_completed_author_reply_at,
     )

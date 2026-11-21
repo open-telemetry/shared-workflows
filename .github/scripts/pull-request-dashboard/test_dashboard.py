@@ -1663,6 +1663,11 @@ class PullRequestEvaluationTest(unittest.IsolatedAsyncioTestCase):
                 issue_comment(
                     database_id=3,
                     body="The limit keeps the queue within memory. Does that address it?",
+                    created_at="2026-08-16T08:00:00Z",
+                ),
+                issue_comment(
+                    database_id=4,
+                    body="I also added a comment explaining the limit.",
                     created_at="2026-08-16T09:00:00Z",
                 ),
             ),
@@ -1672,14 +1677,19 @@ class PullRequestEvaluationTest(unittest.IsolatedAsyncioTestCase):
             feedback_id, DiscussionKind.TOP_LEVEL_FEEDBACK, DiscussionAction.AUTHOR,
             "The reviewer asks a question.",
         )
-        for outcomes in ((), (FeedbackOutcome(feedback_id, DiscussionAction.NONE, "Answered"),)):
+        completed = (FeedbackOutcome(feedback_id, DiscussionAction.NONE, "Answered"),)
+        first_reply = ClassificationSuccess(
+            DiscussionIdentity("pr-author-reply-3", DiscussionKind.TOP_LEVEL_AUTHOR_REPLY),
+            AuthorCommentDecision(completed),
+        )
+        for outcomes in ((), completed):
             with self.subTest(outcomes=outcomes):
                 reply = ClassificationSuccess(
-                    DiscussionIdentity("pr-author-reply-3", DiscussionKind.TOP_LEVEL_AUTHOR_REPLY),
+                    DiscussionIdentity("pr-author-reply-4", DiscussionKind.TOP_LEVEL_AUTHOR_REPLY),
                     AuthorCommentDecision(outcomes),
                 )
                 classifier = FakeClassificationOperation(
-                    DiscussionClassifications((), (feedback,), (reply,))
+                    DiscussionClassifications((), (feedback,), (first_reply, reply))
                 )
                 result = await evaluate_pr({"number": 7}, classification_service=classifier)
                 assert isinstance(result, EvaluationSuccess)

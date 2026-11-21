@@ -224,14 +224,14 @@ class StateTest(unittest.TestCase):
         self.assertEqual("true\n", output.getvalue())
         load_state.assert_called_once_with("open-telemetry/example", "state-branch")
 
-    def test_loads_accepted_dashboard_state_from_state_branch(self) -> None:
+    def test_loads_accepted_v21_dashboard_state_from_state_branch(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             checkout_dir = Path(temp_dir)
             state_path = checkout_dir / "example" / "dashboard-state.json"
             state_path.parent.mkdir()
             state_path.write_text(
                 json.dumps({
-                    "version": DASHBOARD_STATE_VERSION,
+                    "version": 21,
                     "initial_backfill_complete": True,
                     "prs": {"123": {"route": "author"}},
                 }),
@@ -319,7 +319,7 @@ class StateTest(unittest.TestCase):
             )
 
     def test_dashboard_state_rejects_incompatible_versions(self) -> None:
-        for version in range(11, min(DASHBOARD_STATE_COMPATIBLE_VERSIONS)):
+        for version in (*range(11, 21), 22):
             with self.subTest(version=version), tempfile.TemporaryDirectory() as temp_dir:
                 with (
                     patch("state._state_dir", Path(temp_dir)),
@@ -919,7 +919,7 @@ class StateTest(unittest.TestCase):
         self.assertEqual(BACKFILL_STATE_VERSION, 3)
         self.assertEqual(NOTIFICATION_STATE_VERSION, 3)
         self.assertEqual(DASHBOARD_STATE_VERSION, 23)
-        self.assertEqual(DASHBOARD_STATE_COMPATIBLE_VERSIONS, (21, 22))
+        self.assertEqual(DASHBOARD_STATE_COMPATIBLE_VERSIONS, (21,))
         self.assertEqual(STATUS_COMMENT_ROLLOUT_STATE_VERSION, 3)
         self.assertEqual(STATUS_COMMENT_REVISION, 24)
         self.assertEqual(AUTHOR_NUDGE_STATE_VERSION, 4)

@@ -52,7 +52,6 @@ from discussion_lifecycle import (
     DiscussionLifecycleOutcome,
     LifecycleMode,
     PreparedDiscussions,
-    has_completed_author_reply_after,
     prepare_discussions,
     prepare_reviewer_handoff_feedback,
     resolve_discussions,
@@ -555,8 +554,11 @@ async def evaluate_pull_request(
                     "discussion classification(s) failed"
                 ),
             )
-        if author_handoff_active(facts) and has_completed_author_reply_after(
-            lifecycle, facts.handoff.since
+        if (
+            author_handoff_active(facts)
+            and lifecycle.latest_completed_author_reply_at is not None
+            and (handoff_since := parse_ts(facts.handoff.since)) is not None
+            and lifecycle.latest_completed_author_reply_at > handoff_since
         ):
             facts = facts.with_changes(handoff=facts.handoff.release())
         pending_actions = lifecycle.pending_actions

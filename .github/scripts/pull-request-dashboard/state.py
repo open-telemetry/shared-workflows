@@ -46,7 +46,7 @@ FULL_PUBLISH_DELIVERED_FILE = "full-publish-delivered.json"
 # caches. Every constant ending in _STATE_VERSION or _REVISION is included.
 # dashboard-state.json: accepted routing results and backfill readiness.
 DASHBOARD_STATE_VERSION = 23
-DASHBOARD_STATE_COMPATIBLE_VERSIONS = (21, 22)
+DASHBOARD_STATE_COMPATIBLE_VERSIONS = (21,)
 # backfill-state.json: round-robin cursor used by full dashboard refreshes.
 BACKFILL_STATE_VERSION = 3
 # notification-state.json: pending and delivered Slack notification records.
@@ -662,14 +662,6 @@ def _encode_handoff(handoff: RoutingHandoff) -> dict[str, Any]:
 def _decode_facts_handoff(value: dict[str, Any]) -> RoutingHandoff:
     if "handoff" in value:
         return _decode_handoff(value["handoff"])
-    to_author = _boolean(
-        value.get("dashboard_override_to_author", _MISSING),
-        "facts.dashboard_override_to_author",
-    )
-    release_key = (
-        "dashboard_override_author_released"
-        if to_author else "dashboard_override_cleared_by_feedback"
-    )
     return RoutingHandoff(
         command_id=(
             _integer(value.get("dashboard_override_bound_command_id", _MISSING),
@@ -681,9 +673,11 @@ def _decode_facts_handoff(value: dict[str, Any]) -> RoutingHandoff:
                          "facts.dashboard_override_head_sha"),
         since=_string(value.get("dashboard_override_since", _MISSING),
                       "facts.dashboard_override_since"),
-        target=HandoffTarget.AUTHOR if to_author else HandoffTarget.REVIEWERS,
-        released=_boolean(value.get(release_key, _MISSING), f"facts.{release_key}"),
-        persistent=not to_author and _boolean(
+        released=_boolean(
+            value.get("dashboard_override_cleared_by_feedback", _MISSING),
+            "facts.dashboard_override_cleared_by_feedback",
+        ),
+        persistent=_boolean(
             value.get("dashboard_override_persistent", _MISSING),
             "facts.dashboard_override_persistent",
         ),
