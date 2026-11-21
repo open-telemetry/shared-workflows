@@ -5,7 +5,7 @@ from __future__ import annotations
 import sys
 import traceback
 import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Any
 
 from classification_execution import (
@@ -52,6 +52,8 @@ from discussion_lifecycle import (
     DiscussionLifecycleOutcome,
     LifecycleMode,
     PreparedDiscussions,
+    latest_completed_inline_reply_at,
+    prepare_author_handoff_reply_threads,
     prepare_discussions,
     prepare_reviewer_handoff_feedback,
     resolve_discussions,
@@ -349,7 +351,7 @@ def _evaluation_diagnostics(
     lifecycle: DiscussionLifecycleOutcome,
 ) -> EvaluationDiagnostics:
     return EvaluationDiagnostics(
-        review_threads=lifecycle.prepared.review_thread_candidates,
+        review_threads=lifecycle.prepared.review_threads,
         top_level_items=lifecycle.prepared.top_level_items,
         top_level_author_comment_items=(
             lifecycle.prepared.top_level_author_comment_items
@@ -370,6 +372,8 @@ async def _classify_discussions(
     classifier_model: str,
     previous_top_level_history: dict[str, dict[str, Any]],
     classification_service: ClassificationOperation,
+    *,
+    preserve_cache: bool,
 ) -> DiscussionLifecycleOutcome:
     classifications = await classification_service.classify(
         ClassificationExecutionRequest(
@@ -377,7 +381,7 @@ async def _classify_discussions(
             model=classifier_model,
             review_threads=tuple(
                 ClassificationDiscussion.from_record(discussion)
-                for discussion in prepared.review_thread_candidates
+                for discussion in prepared.review_threads
             ),
             top_level_items=tuple(
                 ClassificationDiscussion.from_record(discussion)
@@ -387,6 +391,7 @@ async def _classify_discussions(
                 ClassificationDiscussion.from_record(discussion)
                 for discussion in prepared.top_level_author_comment_items
             ),
+            preserve_cache=preserve_cache,
         )
     )
     return resolve_discussions(
@@ -467,7 +472,6 @@ async def evaluate_pull_request(
             config.copilot_review_fallback_available,
             config.copilot_review_fallback,
         )
-        manual_reviewer_handoff = reviewer_handoff_active(facts)
         discussion_input = DiscussionInput(
             pr_source.review_threads,
             activity.events,
@@ -478,11 +482,8 @@ async def evaluate_pull_request(
         prepared_discussions = prepare_discussions(
             discussion_input,
             top_level_feedback_cutoff=facts.dashboard_top_level_feedback_cutoff,
-            author_handoff_since=(
-                facts.handoff.since if author_handoff_active(facts) else ""
-            ),
         )
-        if manual_reviewer_handoff:
+        if reviewer_handoff_active(facts):
             # Old discussions cannot block a break-glass handoff. Only newer
             # human feedback is classified to decide whether the reviewer has
             # handed the pull request back to its author.
@@ -512,26 +513,24 @@ async def evaluate_pull_request(
                 if has_handoff_feedback
                 else ()
             )
-            feedback_routes_to_author = _handoff_feedback_routes_to_author(
-                feedback_classifications
-            )
-            if feedback_routes_to_author:
+            if _handoff_feedback_routes_to_author(feedback_classifications):
                 facts = facts.with_changes(handoff=facts.handoff.release())
-                manual_reviewer_handoff = False
-                lifecycle = await _classify_discussions(
-                    number,
-                    prepared_discussions,
-                    config.classifier_model,
-                    previous_top_level_history,
-                    classification_service,
-                )
-            else:
-                lifecycle = resolve_discussions(
-                    prepared_discussions,
-                    None,
-                    previous_top_level_history,
-                    mode=LifecycleMode.REVIEWER_HANDOFF,
-                )
+
+        handoff_since = (
+            parse_ts(facts.handoff.since) if author_handoff_active(facts) else None
+        )
+        release_threads = (
+            prepare_author_handoff_reply_threads(discussion_input, handoff_since)
+            if handoff_since is not None
+            else ()
+        )
+        if reviewer_handoff_active(facts):
+            lifecycle = resolve_discussions(
+                prepared_discussions,
+                None,
+                previous_top_level_history,
+                mode=LifecycleMode.REVIEWER_HANDOFF,
+            )
         else:
             lifecycle = await _classify_discussions(
                 number,
@@ -539,6 +538,7 @@ async def evaluate_pull_request(
                 config.classifier_model,
                 previous_top_level_history,
                 classification_service,
+                preserve_cache=bool(release_threads),
             )
         diagnostics = _evaluation_diagnostics(lifecycle)
         if lifecycle.failed_classifications:
@@ -554,13 +554,31 @@ async def evaluate_pull_request(
                     "discussion classification(s) failed"
                 ),
             )
-        if (
-            author_handoff_active(facts)
-            and lifecycle.latest_completed_author_reply_at is not None
-            and (handoff_since := parse_ts(facts.handoff.since)) is not None
-            and lifecycle.latest_completed_author_reply_at > handoff_since
-        ):
-            facts = facts.with_changes(handoff=facts.handoff.release())
+        if handoff_since is not None:
+            reply_at = lifecycle.latest_completed_author_reply_at
+            if release_threads and (reply_at is None or reply_at <= handoff_since):
+                # Resolved threads can release a handoff but cannot block routing.
+                extra = await classification_service.classify(
+                    ClassificationExecutionRequest(
+                        pr_number=number,
+                        model=config.classifier_model,
+                        review_threads=tuple(
+                            ClassificationDiscussion.from_record(thread)
+                            for thread in release_threads
+                        ),
+                        preserve_cache=True,
+                    )
+                )
+                diagnostics = replace(
+                    diagnostics,
+                    review_threads=diagnostics.review_threads + release_threads,
+                    review_thread_classifications=(
+                        diagnostics.review_thread_classifications + extra.review_threads
+                    ),
+                )
+                reply_at = latest_completed_inline_reply_at(extra.review_threads)
+            if reply_at is not None and reply_at > handoff_since:
+                facts = facts.with_changes(handoff=facts.handoff.release())
         pending_actions = lifecycle.pending_actions
         review_threads = list(prepared_discussions.review_threads)
         top_level_items = list(prepared_discussions.top_level_items)
@@ -579,7 +597,6 @@ async def evaluate_pull_request(
                     pr.base_branch
                     in config.require_clean_copilot_review_branches
                 ),
-                manual_reviewer_handoff=manual_reviewer_handoff,
                 pending_human_reviewer_logins=(
                     prepared_reviewers.pending_human_reviewer_logins
                 ),

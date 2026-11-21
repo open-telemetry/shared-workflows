@@ -464,9 +464,10 @@ post either command in a top-level pull request comment:
   requires a human author who can act on the PR. Normal routing resumes on a
   successful refresh that sees a different head commit or finds a completed
   author reply to existing feedback. A reply can count even if the author
-  resolves the thread before the next refresh. A promise to make changes later
-  does not end the handoff. Use `/dashboard route:reviewers` to hand it back
-  explicitly, including when there is no feedback to reply to.
+  resolves the thread before the next refresh. If the dashboard can't classify
+  a resolved thread, it still refreshes using the other feedback. A promise to
+  make changes later does not end the handoff. Use `/dashboard route:reviewers`
+  to hand it back explicitly, including when there is no feedback to reply to.
 - `/dashboard route:reviewers` hands the pull request to reviewers or
   maintainers, depending on approvals, without waiting on feedback, checks,
   Copilot review, or merge conflicts. It retires older top-level feedback
@@ -477,7 +478,6 @@ post either command in a top-level pull request comment:
 The dashboard records the head it sees when it first reads the command. When
 both commands are present, the newer authorized command takes precedence. When
 that handoff ends, normal routing resumes without restoring an older command.
-Ending a handoff restores normal routing without reactivating an older one.
 
 ## Author reminder
 

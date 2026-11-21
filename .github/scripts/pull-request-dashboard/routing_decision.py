@@ -31,7 +31,6 @@ class RoutingInput:
     previous_facts: DashboardFacts
     required_approvals: int
     require_clean_copilot_review: bool
-    manual_reviewer_handoff: bool
     pending_human_reviewer_logins: frozenset[str]
     pending_review_requested_at: Mapping[str, str] = field(default_factory=dict)
     now: datetime | None = None
@@ -372,6 +371,7 @@ def resolve_routing(routing_input: RoutingInput) -> RoutingOutcome:
     """Resolve the final route and return an enriched copy of the input facts."""
     facts = routing_input.facts
     now = routing_input.now or utc_now()
+    manual_reviewer_handoff = reviewer_handoff_active(facts)
     route = (
         DashboardRoute.AUTHOR
         if author_handoff_active(facts)
@@ -379,12 +379,12 @@ def resolve_routing(routing_input: RoutingInput) -> RoutingOutcome:
             facts,
             routing_input.pending_actions,
             routing_input.required_approvals,
-            manual_reviewer_handoff=routing_input.manual_reviewer_handoff,
+            manual_reviewer_handoff=manual_reviewer_handoff,
         )
     )
     copilot_review_gate_enabled = (
         routing_input.require_clean_copilot_review
-        and not routing_input.manual_reviewer_handoff
+        and not manual_reviewer_handoff
     )
     copilot_review_request_enabled = (
         copilot_review_gate_enabled and facts.conflicts != "yes"
@@ -400,7 +400,7 @@ def resolve_routing(routing_input: RoutingInput) -> RoutingOutcome:
         routing_input.previous_route,
         routing_input.previous_facts,
         require_clean_copilot_review=copilot_review_gate_enabled,
-        bypass_gates=routing_input.manual_reviewer_handoff,
+        bypass_gates=manual_reviewer_handoff,
         now=now,
     )
     facts = _add_wait_age_facts(

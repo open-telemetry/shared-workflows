@@ -1,11 +1,9 @@
 from __future__ import annotations
 
-import sys
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import Enum
-from itertools import chain
 from typing import Any, TypedDict
 
 from classification_policy import (
@@ -52,11 +50,6 @@ class PreparedDiscussions:
     review_threads: tuple[dict[str, Any], ...]
     top_level_items: tuple[dict[str, Any], ...]
     top_level_author_comment_items: tuple[dict[str, Any], ...]
-    author_handoff_release_threads: tuple[dict[str, Any], ...] = ()
-
-    @property
-    def review_thread_candidates(self) -> tuple[dict[str, Any], ...]:
-        return self.review_threads + self.author_handoff_release_threads
 
 
 @dataclass(frozen=True)
@@ -71,7 +64,7 @@ class DiscussionLifecycleOutcome:
 
     def dashboard_fields(self) -> dict[str, Any]:
         fields = {
-            "review_threads": list(self.prepared.review_thread_candidates),
+            "review_threads": list(self.prepared.review_threads),
             "top_level_items": list(self.prepared.top_level_items),
             "top_level_author_comment_items": list(
                 self.prepared.top_level_author_comment_items
@@ -190,10 +183,9 @@ def _group_review_threads(
 ) -> list[dict[str, Any]]:
     discussions: list[dict[str, Any]] = []
     reviewers = set(source.reviewers)
-    for discussion in source.review_threads:
-        if discussion.is_outdated or (
-            discussion.is_resolved and author_handoff_cutoff is None
-        ):
+    resolved_only = author_handoff_cutoff is not None
+    for index, discussion in enumerate(source.review_threads, start=1):
+        if discussion.is_outdated or discussion.is_resolved != resolved_only:
             continue
         raw_comments = discussion.comments
         ordered = sorted(raw_comments, key=lambda comment: comment.created_at)
@@ -215,7 +207,7 @@ def _group_review_threads(
             comment["actor_role"] == "author" for comment in comments
         ):
             continue
-        if discussion.is_resolved and author_handoff_cutoff is not None and not any(
+        if author_handoff_cutoff is not None and not any(
             comment["actor_role"] == "author"
             and (
                 parse_ts(comment.get("activity_timestamp") or comment["timestamp"])
@@ -229,8 +221,7 @@ def _group_review_threads(
             _add_discussion_facts(
                 {
                     "discussion_id": (
-                        discussion.node_id
-                        or f"review-discussion-{len(discussions) + 1}"
+                        discussion.node_id or f"review-discussion-{index}"
                     ),
                     "discussion_kind": "review-comment-thread",
                     "path": discussion.path or None,
@@ -419,11 +410,8 @@ def prepare_discussions(
     source: DiscussionInput,
     *,
     top_level_feedback_cutoff: str = "",
-    author_handoff_since: str = "",
 ) -> PreparedDiscussions:
-    review_threads = _group_review_threads(
-        source, author_handoff_cutoff=parse_ts(author_handoff_since)
-    )
+    review_threads = _group_review_threads(source)
     top_level_items = _top_level_items_after_cutoff(
         _derive_top_level_items(source),
         top_level_feedback_cutoff,
@@ -433,11 +421,16 @@ def prepare_discussions(
         top_level_items,
     )
     return PreparedDiscussions(
-        tuple(thread for thread in review_threads if not thread["resolved"]),
+        tuple(review_threads),
         tuple(top_level_items),
         tuple(top_level_author_comment_items),
-        tuple(thread for thread in review_threads if thread["resolved"]),
     )
+
+
+def prepare_author_handoff_reply_threads(
+    source: DiscussionInput, since: datetime
+) -> tuple[dict[str, Any], ...]:
+    return tuple(_group_review_threads(source, author_handoff_cutoff=since))
 
 
 def _filter_handoff_feedback(
@@ -736,10 +729,6 @@ def _review_thread_pending_actions(
     by_id = _discussions_by_id(review_threads)
     pending_actions: dict[str, dict[str, Any]] = {}
     for classification in classifications:
-        discussion_id = classification.identity.discussion_id
-        discussion = by_id.get(discussion_id)
-        if discussion is None:
-            continue
         decision = classification.decision
         if not isinstance(decision, ActionDecision):
             raise TypeError(
@@ -748,8 +737,10 @@ def _review_thread_pending_actions(
                 f"({classification.identity.kind.value}) requires "
                 f"ActionDecision, got {type(decision).__name__}"
             )
+        discussion_id = classification.identity.discussion_id
+        discussion = by_id.get(discussion_id)
         action = decision.action
-        comments = discussion.get("comments") or []
+        comments = (discussion or {}).get("comments") or []
         if action is not DiscussionAction.NONE and comments:
             entry = {
                 "action": _pending_action_for(action.value),
@@ -837,6 +828,23 @@ def _advance_top_level_actions(
     return pending_actions, top_level_history, latest_reply_at
 
 
+def latest_completed_inline_reply_at(
+    classifications: tuple[ClassificationResult, ...],
+) -> datetime | None:
+    return max(
+        (
+            reply_at
+            for classification in classifications
+            if not classification.failed
+            and not classification.deferred
+            and isinstance(classification.decision, ActionDecision)
+            and classification.decision.action is DiscussionAction.REVIEWER
+            and (reply_at := parse_ts(classification.since)) is not None
+        ),
+        default=None,
+    )
+
+
 def resolve_discussions(
     prepared: PreparedDiscussions,
     classifications: DiscussionClassifications | None,
@@ -859,26 +867,13 @@ def resolve_discussions(
     if classifications is None:
         raise ValueError("classified lifecycle requires classifications")
 
-    release_thread_ids = {
-        discussion["discussion_id"]
-        for discussion in prepared.author_handoff_release_threads
-    }
-    failed_classifications = []
-    for classification in classifications.review_threads:
-        if not isinstance(classification, ClassificationFailure):
-            continue
-        thread_id = classification.identity.discussion_id
-        if thread_id in release_thread_ids:
-            print(
-                f"  warning: could not classify resolved thread {thread_id} for author handoff",
-                file=sys.stderr,
-            )
-        else:
-            failed_classifications.append(classification)
-    failed_classifications.extend(
+    failed_classifications = tuple(
         classification
-        for classification in classifications.top_level_items
-        + classifications.top_level_author_comments
+        for classification in (
+            classifications.review_threads
+            + classifications.top_level_items
+            + classifications.top_level_author_comments
+        )
         if isinstance(classification, ClassificationFailure)
     )
     if failed_classifications:
@@ -887,7 +882,7 @@ def resolve_discussions(
             classifications,
             {},
             {},
-            tuple(failed_classifications),
+            failed_classifications,
             mode,
         )
 
@@ -914,18 +909,10 @@ def resolve_discussions(
         author_comment_outcomes,
         author_comment_source_state,
     )
-    # A completed inline reply puts the next action with the reviewer.
-    inline_replies = (
-        parse_ts(classification.since)
-        for classification in classifications.review_threads
-        if not classification.failed
-        and not classification.deferred
-        and isinstance(classification.decision, ActionDecision)
-        and classification.decision.action is DiscussionAction.REVIEWER
-    )
+    inline_reply_at = latest_completed_inline_reply_at(classifications.review_threads)
     latest_completed_author_reply_at = max(
         (
-            reply_at for reply_at in chain(inline_replies, (top_level_reply_at,))
+            reply_at for reply_at in (inline_reply_at, top_level_reply_at)
             if reply_at is not None
         ),
         default=None,

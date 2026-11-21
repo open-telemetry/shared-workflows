@@ -1236,6 +1236,37 @@ class DashboardOverrideTest(unittest.TestCase):
 
         self.assertEqual((), facts.dashboard_command_replies)
 
+    def test_status_preserves_legacy_cutoff_when_a_newer_handoff_releases(self) -> None:
+        app = actor("opentelemetry-pr-dashboard[bot]")
+        cutoff = "2026-08-16T08:00:00Z"
+        previous_comment = issue_comment(
+            database_id=13,
+            actor=app,
+            body="\n".join((
+                "<!-- pull-request-dashboard-reviewer-handoff-cleared:12:old-head -->",
+                dashboard_override.top_level_feedback_cutoff_marker(12, cutoff),
+            )),
+        )
+        rendered = "\n".join((
+            "<!-- pull-request-dashboard-status -->",
+            "<!-- pull-request-dashboard-status-revision:4 -->",
+            *dashboard_override.released_handoff_markers(
+                RoutingHandoff(command_id=14, head_sha="new-head", released=True), ""
+            ),
+        ))
+
+        merged = dashboard_override.preserve_released_handoff_markers(
+            rendered, (previous_comment,)
+        )
+        recovered = dashboard_override.dashboard_override_facts(
+            override_input(issue_comment(database_id=13, actor=app, body=merged)),
+            "author",
+        )
+
+        self.assertEqual(14, recovered.handoff.command_id)
+        self.assertTrue(recovered.handoff.released)
+        self.assertEqual(cutoff, recovered.top_level_feedback_cutoff)
+
     def test_status_markers_recover_clearance_after_cache_loss(self) -> None:
         source = override_input(
             issue_comment(

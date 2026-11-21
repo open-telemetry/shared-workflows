@@ -27,7 +27,6 @@ class RoutingTestMixin:
         previous_facts: DashboardFacts | dict[str, object] | None = None,
         required_approvals: int = 1,
         require_clean_copilot_review: bool = False,
-        manual_reviewer_handoff: bool = False,
         pending_human_reviewer_logins: frozenset[str] = frozenset(),
         pending_review_requested_at: dict[str, str] | None = None,
         now: datetime = NOW,
@@ -54,7 +53,6 @@ class RoutingTestMixin:
                 previous_facts=typed_previous_facts,
                 required_approvals=required_approvals,
                 require_clean_copilot_review=require_clean_copilot_review,
-                manual_reviewer_handoff=manual_reviewer_handoff,
                 pending_human_reviewer_logins=pending_human_reviewer_logins,
                 pending_review_requested_at=pending_review_requested_at or {},
                 now=now,
@@ -229,7 +227,6 @@ class RoutingDecisionTest(RoutingTestMixin, unittest.TestCase):
         outcome = self.resolve(
             facts,
             require_clean_copilot_review=True,
-            manual_reviewer_handoff=True,
         )
 
         self.assertEqual(
@@ -271,6 +268,7 @@ class RoutingDecisionTest(RoutingTestMixin, unittest.TestCase):
                     outcome = self.resolve(
                         dashboard_facts(
                             head_sha="current-head",
+                            handoff=RoutingHandoff(head_sha="current-head"),
                             approval_count=approvals,
                             is_maintenance_bot=maintenance_bot,
                             ci_failing_count=1 if blocked else 0,
@@ -291,7 +289,6 @@ class RoutingDecisionTest(RoutingTestMixin, unittest.TestCase):
                         ),
                         required_approvals=required,
                         require_clean_copilot_review=True,
-                        manual_reviewer_handoff=True,
                     )
 
                     self.assertEqual(expected, outcome.route)
@@ -857,7 +854,6 @@ class RoutingWaitAgeTest(RoutingTestMixin, unittest.TestCase):
                                 "waiting_since": "2026-07-29T08:00:00Z",
                                 "waiting_age_basis": "last_author_activity",
                             },
-                            manual_reviewer_handoff=True,
                         )
 
                         self.assertEqual(
@@ -878,7 +874,7 @@ class RoutingWaitAgeTest(RoutingTestMixin, unittest.TestCase):
             handoff=RoutingHandoff(head_sha='abc', since='2026-08-16T11:55:00Z', persistent=True),
             last_author_activity_at="2026-07-29T08:00:00Z",
         )
-        started = self.resolve(facts, manual_reviewer_handoff=True)
+        started = self.resolve(facts)
         for head_sha, approval_count, last_author_activity_at in (
             ("abc", 0, "2026-07-29T08:00:00Z"),
             ("new-head", 0, "2026-08-16T12:30:00Z"),
@@ -897,7 +893,6 @@ class RoutingWaitAgeTest(RoutingTestMixin, unittest.TestCase):
                     }},
                     previous_route=started.route,
                     previous_facts=started.facts,
-                    manual_reviewer_handoff=True,
                     now=NOW + timedelta(hours=1),
                 )
 
@@ -919,7 +914,6 @@ class RoutingWaitAgeTest(RoutingTestMixin, unittest.TestCase):
                 ),
                 "last_author_activity_at": "2026-08-16T12:30:00Z",
             },
-            manual_reviewer_handoff=True,
             now=NOW + timedelta(hours=1),
         )
 
@@ -942,10 +936,7 @@ class RoutingWaitAgeTest(RoutingTestMixin, unittest.TestCase):
                     handoff=replace(handoff, **changes),
                     last_author_activity_at="2026-07-29T08:00:00Z",
                 )
-                outcome = self.resolve(
-                    facts,
-                    manual_reviewer_handoff=reviewer_handoff_active(facts),
-                )
+                outcome = self.resolve(facts)
 
                 self.assertEqual(
                     "2026-07-29T08:00:00+00:00", outcome.facts.waiting_since
@@ -975,7 +966,6 @@ class RoutingWaitAgeTest(RoutingTestMixin, unittest.TestCase):
                     },
                     pending_human_reviewer_logins=frozenset({"reviewer"}),
                     pending_review_requested_at={"reviewer": "2026-08-16T11:00:00Z"},
-                    manual_reviewer_handoff=True,
                 )
                 carried = self.resolve(
                     facts,
@@ -983,7 +973,6 @@ class RoutingWaitAgeTest(RoutingTestMixin, unittest.TestCase):
                     previous_facts=started.facts,
                     pending_human_reviewer_logins=frozenset({"reviewer"}),
                     pending_review_requested_at={"reviewer": "2026-08-16T11:00:00Z"},
-                    manual_reviewer_handoff=True,
                     now=NOW + timedelta(hours=1),
                 )
 
@@ -1020,7 +1009,6 @@ class RoutingWaitAgeTest(RoutingTestMixin, unittest.TestCase):
                         },
                         pending_human_reviewer_logins=frozenset({"reviewer"}),
                         pending_review_requested_at={"reviewer": requested_at},
-                        manual_reviewer_handoff=True,
                     )
                     carried = self.resolve(
                         facts,
@@ -1028,7 +1016,6 @@ class RoutingWaitAgeTest(RoutingTestMixin, unittest.TestCase):
                         previous_facts=started.facts,
                         pending_human_reviewer_logins=frozenset({"reviewer"}),
                         pending_review_requested_at={"reviewer": requested_at},
-                        manual_reviewer_handoff=True,
                         now=NOW + timedelta(hours=1),
                     )
                     for outcome in (started, carried):
@@ -1048,7 +1035,6 @@ class RoutingWaitAgeTest(RoutingTestMixin, unittest.TestCase):
                 "waiting_since": "2026-08-16T10:00:00Z",
                 "waiting_age_basis": "review_rerequest",
             },
-            manual_reviewer_handoff=True,
         )
 
         self.assertEqual("maintainer", outcome.route)
@@ -1067,7 +1053,6 @@ class RoutingWaitAgeTest(RoutingTestMixin, unittest.TestCase):
                 "second": "2026-08-16T10:00:00Z",
                 "not-pending": "2026-08-16T11:00:00Z",
             },
-            manual_reviewer_handoff=True,
         )
 
         self.assertEqual("2026-08-16T10:00:00+00:00", outcome.facts.waiting_since)

@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from collections.abc import Sequence
 from dataclasses import dataclass, replace
-from datetime import datetime
+from datetime import datetime, timezone
 
 from dashboard_contracts import (
     DashboardCommandReply,
@@ -14,11 +14,7 @@ from dashboard_contracts import (
     HandoffTarget,
     RoutingHandoff,
 )
-from dashboard_status import (
-    DASHBOARD_APP_SLUG,
-    reviewer_handoff_cleared_marker,
-    status_reviewer_handoff_clearance,
-)
+from dashboard_status import DASHBOARD_APP_SLUG
 from pull_request_source import IssueComment
 from route_presentation import held_gate_phrase
 from utils import parse_ts
@@ -53,9 +49,11 @@ _TOP_LEVEL_FEEDBACK_CUTOFF_MARKER_RE = re.compile(
 PERSISTENT_HANDOFF_MARKER_PREFIX = (
     "<!-- pull-request-dashboard-persistent-reviewer-handoff:"
 )
-_PERSISTENT_HANDOFF_MARKER_RE = re.compile(
-    r"<!-- pull-request-dashboard-persistent-reviewer-handoff:"
-    r"(\d+):([^:\s>]+) -->"
+REVIEWER_HANDOFF_CLEARED_MARKER_PREFIX = (
+    "<!-- pull-request-dashboard-reviewer-handoff-cleared:"
+)
+_REVIEWER_HANDOFF_CLEARED_MARKER_RE = re.compile(
+    r"<!-- pull-request-dashboard-reviewer-handoff-cleared:(\d+):([^\s>]+) -->"
 )
 PRE_REVIEW_ROUTES = ("author",)
 
@@ -198,7 +196,7 @@ def dashboard_override_facts(
 ) -> DashboardOverrideFacts:
     previous_facts = previous_facts or DashboardFacts()
     previous = previous_facts.handoff
-    acknowledged = acknowledged_handoff(source.issue_comments)
+    acknowledged, acknowledged_cutoff = _read_handoff_markers(source.issue_comments)
     winner, replies = _inspect_commands(
         source.issue_comments,
         author,
@@ -252,7 +250,7 @@ def dashboard_override_facts(
         top_level_feedback_cutoff=_latest_valid_timestamp(
             previous_facts.dashboard_top_level_feedback_cutoff,
             new_reviewer_cutoff,
-            acknowledged_top_level_feedback_cutoff(source.issue_comments),
+            acknowledged_cutoff,
         ),
         command_replies=replies,
     )
@@ -277,106 +275,101 @@ def _replied_command_ids(comments: Sequence[IssueComment]) -> set[int]:
     return replied_ids
 
 
-def acknowledges_override(text: str, command_id: int, head_sha: str) -> bool:
-    """Return whether the text already acknowledges this command and bound head.
-
-    The acknowledgement's cutoff timestamp is ignored, so a marker that records
-    a different cutoff for the same binding still counts as present.
-    """
-    return any(
-        int(match["id"]) == command_id and (match["head"] or "") == head_sha
-        for match in _OVERRIDE_ACK_MARKER_RE.finditer(text)
-    )
-
-
-def acknowledged_top_level_feedback_cutoff(
+def _read_handoff_markers(
     comments: Sequence[IssueComment],
-    command_id: int = 0,
-) -> str:
-    # A cutoff must belong to a command the app acknowledged.
-    command_ids = {command_id} if command_id else {
-        int(match["id"])
+    *,
+    rendered_status_body: str = "",
+) -> tuple[RoutingHandoff, str]:
+    """Read the newest app-owned binding and the independent feedback cutoff."""
+    oldest = datetime.min.replace(tzinfo=timezone.utc)
+    bodies = [
+        (
+            comment.body,
+            comment.created_at,
+            parse_ts(
+                comment.content_updated_at or comment.updated_at or comment.created_at
+            ) or oldest,
+        )
         for comment in comments
         if _is_dashboard_app_comment(comment)
-        for match in _OVERRIDE_ACK_MARKER_RE.finditer(comment.body)
-    }
-    candidates: list[tuple[datetime, int, str]] = []
-    for comment in comments or []:
-        if not _is_dashboard_app_comment(comment):
-            continue
-        for match in _TOP_LEVEL_FEEDBACK_CUTOFF_MARKER_RE.finditer(comment.body):
-            marker_command_id = int(match.group(1))
-            if marker_command_id not in command_ids:
-                continue
-            value = match.group(2)
-            parsed = parse_ts(value)
-            if parsed is not None:
-                candidates.append((parsed, marker_command_id, value))
-    if not candidates:
-        return ""
-    return max(candidates, key=lambda item: (item[0], item[1]))[2]
-
-
-def acknowledges_persistent_handoff(
-    comments: Sequence[IssueComment],
-    command_id: int,
-    head_sha: str,
-) -> bool:
-    if not command_id or not head_sha:
-        return False
-    return any(
-        _is_dashboard_app_comment(comment)
-        and any(
-            int(match.group(1)) == command_id
-            and match.group(2) == head_sha
-            for match in _PERSISTENT_HANDOFF_MARKER_RE.finditer(comment.body)
+    ]
+    if rendered_status_body:
+        bodies.insert(
+            0, (rendered_status_body, "", datetime.max.replace(tzinfo=timezone.utc))
         )
-        for comment in comments or []
-    )
 
-
-def acknowledged_handoff(
-    comments: Sequence[IssueComment],
-) -> RoutingHandoff:
-    best = RoutingHandoff()
-    created_at = ""
-    best_rank = (0, False, False, False)
-    for comment in comments or []:
-        if not _is_dashboard_app_comment(comment):
-            continue
-        for match in _OVERRIDE_ACK_MARKER_RE.finditer(comment.body):
-            comment_id = int(match["id"])
-            head = match["head"] or ""
-            since = match["since"] or ""
-            author_marker = match["author"] or ""
-            rank = (comment_id, author_marker == "author-released", bool(head), bool(since))
-            if rank > best_rank:
-                best_rank = rank
-                best = RoutingHandoff(
-                    command_id=comment_id,
-                    head_sha=head,
-                    since=since,
-                    target=HandoffTarget.AUTHOR if author_marker else HandoffTarget.REVIEWERS,
-                    released=author_marker == "author-released",
-                )
-                created_at = comment.created_at
-    if not best.command_id:
-        return best
-    best = replace(
-        best,
-        since=(
-            best.since
-            or _override_command_effective_at(comments, best.command_id)
-            or created_at
+    acknowledgements = [
+        (match, created_at)
+        for body, created_at, _ in bodies
+        for match in _OVERRIDE_ACK_MARKER_RE.finditer(body)
+    ]
+    ack, created_at = max(
+        acknowledgements,
+        key=lambda item: (
+            int(item[0]["id"]), bool(item[0]["head"]), bool(item[0]["since"])
         ),
+        default=(None, ""),
     )
-    if best.target is HandoffTarget.AUTHOR or not best.head_sha:
-        return best
-    return replace(
-        best,
-        persistent=acknowledges_persistent_handoff(comments, best.command_id, best.head_sha),
-        released=status_reviewer_handoff_clearance(comments) == (best.command_id, best.head_sha),
+    # A legacy clearance can survive without its acknowledgement.
+    clearances = [
+        (int(match[1]), updated_at, match[2])
+        for body, _, updated_at in bodies
+        for match in _REVIEWER_HANDOFF_CLEARED_MARKER_RE.finditer(body)
+    ]
+    cleared_id, _, cleared_head = max(
+        reversed(clearances),
+        key=lambda item: (item[0], item[1]),
+        default=(0, oldest, ""),
     )
+    handoff = RoutingHandoff()
+    if cleared_id > (int(ack["id"]) if ack else 0):
+        handoff = RoutingHandoff(command_id=cleared_id, head_sha=cleared_head, released=True)
+        created_at = ""
+    elif ack:
+        command_id = int(ack["id"])
+        head_sha = ack["head"] or ""
+        target = HandoffTarget.AUTHOR if ack["author"] else HandoffTarget.REVIEWERS
+        handoff = RoutingHandoff(
+            command_id=command_id,
+            head_sha=head_sha,
+            since=ack["since"] or "",
+            target=target,
+            released=(
+                any(
+                    match["author"] == "author-released"
+                    and int(match["id"]) == command_id
+                    and (match["head"] or "") == head_sha
+                    for match, _ in acknowledgements
+                )
+                if target is HandoffTarget.AUTHOR
+                else (cleared_id, cleared_head) == (command_id, head_sha)
+            ),
+            persistent=bool(
+                target is HandoffTarget.REVIEWERS and head_sha and any(
+                    persistent_handoff_marker(command_id, head_sha) in body
+                    for body, _, _ in bodies
+                )
+            ),
+        )
+    if handoff.command_id and not handoff.since:
+        handoff = replace(
+            handoff,
+            since=_override_command_effective_at(comments, handoff.command_id) or created_at,
+        )
+    acknowledged_ids = {int(match["id"]) for match, _ in acknowledgements}
+    acknowledged_ids.update(command_id for command_id, _, _ in clearances)
+    cutoff = max(
+        (
+            (parsed, int(match[1]), match[2])
+            for body, _, _ in bodies
+            for match in _TOP_LEVEL_FEEDBACK_CUTOFF_MARKER_RE.finditer(body)
+            if int(match[1]) in acknowledged_ids
+            and (parsed := parse_ts(match[2])) is not None
+        ),
+        key=lambda item: (item[0], item[1]),
+        default=(oldest, 0, ""),
+    )[2]
+    return handoff, cutoff
 
 
 def _override_command_effective_at(
@@ -436,50 +429,24 @@ def released_handoff_markers(handoff: RoutingHandoff, cutoff: str) -> list[str]:
     if cutoff:
         markers.append(top_level_feedback_cutoff_marker(handoff.command_id, cutoff))
     if not to_author:
-        markers.append(reviewer_handoff_cleared_marker(handoff.command_id, handoff.head_sha))
+        markers.append(
+            f"{REVIEWER_HANDOFF_CLEARED_MARKER_PREFIX}{handoff.command_id}:{handoff.head_sha} -->"
+        )
     return markers
 
 
 def preserve_released_handoff_markers(body: str, comments: Sequence[IssueComment]) -> str:
-    # A clearance can outlive the command acknowledgement. Restore both before
-    # replacing the managed comment.
-    acknowledged = acknowledged_handoff(comments)
-    command_id, head = status_reviewer_handoff_clearance(comments)
-    handoff = acknowledged
-    if command_id and (
-        command_id > handoff.command_id
-        or (command_id == handoff.command_id and handoff.target is HandoffTarget.REVIEWERS)
-    ):
-        handoff = RoutingHandoff(
-            command_id, head,
-            handoff.since if (command_id, head) == (handoff.command_id, handoff.head_sha) else "",
-            released=True,
-        )
-    if not handoff.released:
+    handoff, cutoff = _read_handoff_markers(comments, rendered_status_body=body)
+    markers = released_handoff_markers(handoff, cutoff)
+    if all(marker in body for marker in markers):
         return body
-    rendered = replace(comments[0], body=body)
-    current = acknowledged_handoff((rendered,))
-    preferred = handoff
-    if current.command_id > handoff.command_id or (
-        current.command_id == handoff.command_id and current.released
-    ):
-        preferred = current
-    cutoff = _latest_valid_timestamp(
-        acknowledged_top_level_feedback_cutoff((*comments, rendered)),
-        acknowledged_top_level_feedback_cutoff(comments, handoff.command_id),
+    prefixes = (
+        OVERRIDE_ACK_MARKER_PREFIX,
+        TOP_LEVEL_FEEDBACK_CUTOFF_MARKER_PREFIX,
+        REVIEWER_HANDOFF_CLEARED_MARKER_PREFIX,
     )
-    missing = [
-        marker for marker in released_handoff_markers(preferred, cutoff)
-        if marker not in body and not (
-            marker.startswith(OVERRIDE_ACK_MARKER_PREFIX)
-            and preferred.target is HandoffTarget.REVIEWERS
-            and acknowledges_override(body, preferred.command_id, preferred.head_sha)
-        )
-    ]
-    if not missing:
-        return body
-    lines = body.splitlines()
-    lines[2:2] = missing
+    lines = [line for line in body.splitlines() if not line.startswith(prefixes)]
+    lines[2:2] = markers
     return "\n".join(lines)
 
 

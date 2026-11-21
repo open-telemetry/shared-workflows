@@ -68,7 +68,9 @@ from dashboard_test_support import (
 )
 from classification_execution import (
     ClassificationExecutionRequest,
+    ClassificationOperation,
     ClassificationService,
+    ModelRunRequest,
 )
 from classification_policy import (
     ActionDecision,
@@ -81,12 +83,14 @@ from classification_policy import (
     DiscussionIdentity,
     DiscussionKind,
     FeedbackOutcome,
+    RawModelResponse,
     resolve_review_thread_policy,
 )
 from classification_test_support import (
     FakeClassificationOperation,
     FakeModelRunner,
     MemoryClassificationCacheStore,
+    prompt_items,
     successful_response,
 )
 from pull_request_source import (
@@ -177,7 +181,7 @@ async def evaluate_pr(
     *,
     previous_result: StoredDashboardResult | None = None,
     require_clean_copilot_review_branches: list[str] | None = None,
-    classification_service: FakeClassificationOperation | None = None,
+    classification_service: ClassificationOperation | None = None,
 ) -> EvaluationResult | None:
     return await evaluate_pull_request(
         evaluation_config(
@@ -1495,17 +1499,6 @@ class PullRequestEvaluationTest(unittest.IsolatedAsyncioTestCase):
             ),
         )
         open_thread = replace(resolved, node_id="PRRT_2", is_resolved=False)
-        failure = replace(
-            FAILED_CLASSIFICATION,
-            identity=DiscussionIdentity(resolved.node_id, DiscussionKind.REVIEW_THREAD),
-        )
-        completed = replace(
-            action_classification(
-                open_thread.node_id, DiscussionKind.REVIEW_THREAD,
-                DiscussionAction.REVIEWER, "Author reply",
-            ),
-            since=reply_time,
-        )
         for has_completed_reply in (False, True):
             with self.subTest(has_completed_reply=has_completed_reply):
                 fetch_raw.return_value = pull_request_source(
@@ -1514,11 +1507,22 @@ class PullRequestEvaluationTest(unittest.IsolatedAsyncioTestCase):
                         body="/dashboard route:author",
                         created_at="2026-08-16T08:00:00Z",
                     ),),
-                    review_threads=(resolved, open_thread) if has_completed_reply else (resolved,),
+                    review_threads=(resolved, open_thread),
                 )
-                classifier = FakeClassificationOperation(DiscussionClassifications(
-                    (completed, failure) if has_completed_reply else (failure,), (), (),
-                ))
+
+                def respond(request: ModelRunRequest) -> RawModelResponse:
+                    if any(
+                        item["discussion_id"] == resolved.node_id
+                        for item in prompt_items(request)
+                    ):
+                        raise TimeoutError("resolved thread request timed out")
+                    return successful_response(
+                        request,
+                        author_reply="complete" if has_completed_reply else "deferral",
+                    )
+
+                runner = FakeModelRunner(responder=respond)
+                classifier = ClassificationService(runner, MemoryClassificationCacheStore())
                 result = await evaluate_pr({"number": 7}, classification_service=classifier)
                 assert isinstance(result, EvaluationSuccess)
                 self.assertEqual(has_completed_reply, result.facts.handoff.released)
@@ -1527,7 +1531,18 @@ class PullRequestEvaluationTest(unittest.IsolatedAsyncioTestCase):
                     result.route,
                 )
                 self.assertNotIn(resolved.node_id, result.pending_actions)
-                self.assertEqual((), result.facts.author_action_review_thread_urls)
+                self.assertEqual(
+                    "reviewer" if has_completed_reply else "author",
+                    result.pending_actions[open_thread.node_id]["action"],
+                )
+                self.assertEqual(
+                    [[open_thread.node_id]] if has_completed_reply
+                    else [[open_thread.node_id], [resolved.node_id]],
+                    [
+                        [item["discussion_id"] for item in prompt_items(request)]
+                        for request in runner.requests
+                    ],
+                )
 
     @patch("pull_request_evaluation.fetch_pull_request_source")
     async def test_failed_refresh_leaves_author_handoff_unchanged_until_success(
@@ -1616,17 +1631,15 @@ class PullRequestEvaluationTest(unittest.IsolatedAsyncioTestCase):
                         ),
                     ),
                 )
-                decision = replace(
-                    action_classification(
-                        "PRRT_1", DiscussionKind.REVIEW_THREAD, action, "Author reply"
-                    ),
-                    since=reply_time,
-                )
-                classifier = FakeClassificationOperation(
-                    DiscussionClassifications(
-                        () if resolved and reply_time == cutoff else (decision,), (), ()
+                runner = FakeModelRunner(
+                    responder=lambda request: successful_response(
+                        request,
+                        author_reply=(
+                            "complete" if action is DiscussionAction.REVIEWER else "deferral"
+                        ),
                     )
                 )
+                classifier = ClassificationService(runner, MemoryClassificationCacheStore())
                 result = await evaluate_pr({"number": 7}, classification_service=classifier)
                 assert isinstance(result, EvaluationSuccess)
                 self.assertEqual(released, result.facts.handoff.released)
@@ -1634,18 +1647,25 @@ class PullRequestEvaluationTest(unittest.IsolatedAsyncioTestCase):
                     DashboardRoute.APPROVER if released else DashboardRoute.AUTHOR,
                     result.route,
                 )
-                self.assertEqual(1, len(classifier.requests))
                 self.assertEqual(
-                    [] if resolved and reply_time == cutoff else ["PRRT_1"],
+                    [] if resolved and reply_time == cutoff else [["PRRT_1"]],
                     [
-                        candidate.identity.discussion_id
-                        for candidate in classifier.requests[0].review_threads
+                        [item["discussion_id"] for item in prompt_items(request)]
+                        for request in runner.requests
                     ],
                 )
-                self.assertEqual([], classifier.reviewer_feedback_requests)
                 if resolved:
                     self.assertEqual({}, result.pending_actions)
                     self.assertEqual((), result.facts.author_action_review_thread_urls)
+                if resolved and reply_time > cutoff and not released:
+                    repeated = await evaluate_pr(
+                        {"number": 7},
+                        previous_result=stored_result(result),
+                        classification_service=classifier,
+                    )
+                    assert isinstance(repeated, EvaluationSuccess)
+                    self.assertIs(DashboardRoute.AUTHOR, repeated.route)
+                    self.assertEqual(1, len(runner.requests))
 
     @patch("pull_request_evaluation.fetch_pull_request_source")
     async def test_completed_top_level_reply_restores_normal_routing(
