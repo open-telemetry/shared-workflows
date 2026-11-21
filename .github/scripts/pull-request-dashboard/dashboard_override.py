@@ -4,16 +4,19 @@ from __future__ import annotations
 
 import re
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime
 
 from dashboard_contracts import (
     DashboardCommandReply,
     DashboardFacts,
     DashboardRoute,
+    HandoffTarget,
+    RoutingHandoff,
 )
 from dashboard_status import (
     DASHBOARD_APP_SLUG,
+    reviewer_handoff_cleared_marker,
     status_reviewer_handoff_clearance,
 )
 from pull_request_source import IssueComment
@@ -61,14 +64,8 @@ PRE_REVIEW_ROUTES = ("author",)
 class DashboardOverrideFacts:
     command_id: int
     command_user: str
-    bound_command_id: int
-    head_sha: str
-    since: str
+    handoff: RoutingHandoff
     top_level_feedback_cutoff: str
-    persistent_handoff: bool
-    cleared_by_feedback: bool
-    to_author: bool
-    author_released: bool
     command_replies: tuple[DashboardCommandReply, ...]
 
 
@@ -138,7 +135,7 @@ def latest_authorized_command(
     author_can_act: bool = True,
 ) -> IssueComment | None:
     comments = source.issue_comments
-    acknowledged_id = acknowledged_override(comments)[0]
+    acknowledged_id = acknowledged_handoff(comments).command_id
     replied_ids = _replied_command_ids(comments)
     best = None
     for comment in comments:
@@ -181,6 +178,7 @@ def dashboard_override_facts(
     previous_facts: DashboardFacts | None = None,
     *,
     author_can_act: bool = True,
+    unpublished_handoff: RoutingHandoff | None = None,
 ) -> DashboardOverrideFacts:
     command = latest_authorized_command(
         source,
@@ -188,113 +186,53 @@ def dashboard_override_facts(
         reviewers,
         author_can_act=author_can_act,
     )
-    command_id = command.database_id if command else 0
-    command_user = command.actor.login if command else ""
-    command_created_at = _effective_command_timestamp(command) if command else ""
-    previous = previous_facts or DashboardFacts()
-    previous_command_id = previous.dashboard_override_command_id
-    previous_head_sha = previous.dashboard_override_head_sha
-    previous_binding_command_id = (
-        previous.dashboard_override_bound_command_id or previous_command_id
-    )
+    previous_facts = previous_facts or DashboardFacts()
+    previous = unpublished_handoff or previous_facts.handoff
+    new_reviewer_cutoff = ""
     if command is not None:
-        to_author = parse_dashboard_command(command) == AUTHOR_OVERRIDE_SUBCOMMAND
-        author_released = False
-        bound_command_id = command_id
-        if (
-            command_id == previous_command_id
-            and to_author == previous.dashboard_override_to_author
-            and (previous_head_sha or not to_author)
-        ):
-            bound_head = previous_head_sha
+        target = (
+            HandoffTarget.AUTHOR
+            if parse_dashboard_command(command) == AUTHOR_OVERRIDE_SUBCOMMAND
+            else HandoffTarget.REVIEWERS
+        )
+        same_command = command.database_id == previous.command_id and target is previous.target
+        if same_command and (previous.head_sha or target is HandoffTarget.REVIEWERS):
+            handoff = replace(
+                previous, since=previous.since or _effective_command_timestamp(command)
+            )
         else:
-            bound_head = head_sha
-        acknowledged_since = ""
-        acknowledgement_created_at = ""
+            handoff = RoutingHandoff(
+                command_id=command.database_id,
+                head_sha=head_sha,
+                since=_effective_command_timestamp(command),
+                target=target,
+                persistent=bool(head_sha and target is HandoffTarget.REVIEWERS),
+            )
+        if not same_command and target is HandoffTarget.REVIEWERS:
+            new_reviewer_cutoff = handoff.since
     else:
-        (
-            bound_command_id,
-            bound_head,
-            acknowledged_since,
-            acknowledgement_created_at,
-            author_marker,
-        ) = acknowledged_override(source.issue_comments)
-        to_author = bool(author_marker)
-        author_released = author_marker == "author-released"
-    previous_binding_matches = bool(
-        bound_command_id == previous_binding_command_id
-        and bound_head
-        and bound_head == previous_head_sha
-        and to_author == previous.dashboard_override_to_author
-    )
-    author_released = to_author and (
-        author_released
-        or bool(bound_head and head_sha and bound_head != head_sha)
-        or (
-            previous_binding_matches
-            and previous.dashboard_override_author_released
-        )
-    )
-    override_since = (
-        (previous.dashboard_override_since if previous_binding_matches else "")
-        or command_created_at
-        or acknowledged_since
-        or _override_command_effective_at(source.issue_comments, bound_command_id)
-        or acknowledgement_created_at
-    )
-    existing_command_binding = bool(
-        command_id
-        and command_id == previous_binding_command_id
-        and to_author == previous.dashboard_override_to_author
-    )
-    new_command_binding = bool(command_id and not existing_command_binding)
-    top_level_feedback_cutoff = _latest_valid_timestamp(
-        previous.dashboard_top_level_feedback_cutoff,
-        command_created_at if new_command_binding and not to_author else "",
-        acknowledged_top_level_feedback_cutoff(source.issue_comments),
-    )
-    persistent_handoff = bool(
-        not to_author
-        and bound_head
-        and (
-            new_command_binding
-            or (previous_binding_matches and previous.dashboard_override_persistent)
-            or acknowledges_persistent_handoff(
-                source.issue_comments,
-                bound_command_id,
-                bound_head,
+        handoff = acknowledged_handoff(source.issue_comments)
+        if handoff.matches(previous):
+            handoff = replace(
+                handoff,
+                since=previous.since or handoff.since,
+                released=handoff.released or previous.released,
+                persistent=handoff.persistent or previous.persistent,
             )
-        )
-    )
-    cleared_command_id, cleared_head = status_reviewer_handoff_clearance(
-        source.issue_comments
-    )
-    cleared_by_feedback = bool(
-        not to_author
-        and (
-            (previous_binding_matches and previous.dashboard_override_cleared_by_feedback)
-            or (
-                bound_command_id
-                and bound_command_id == cleared_command_id
-                and bound_head
-                and bound_head == cleared_head
-            )
-        )
-    )
+    if (
+        handoff.target is HandoffTarget.AUTHOR
+        and handoff.head_sha and head_sha and handoff.head_sha != head_sha
+    ):
+        handoff = handoff.release()
     return DashboardOverrideFacts(
-        command_id=command_id,
-        command_user=command_user,
-        bound_command_id=bound_command_id,
-        # A pending command keeps its first observed binding until delivery
-        # records it in the acknowledgement. An acknowledged command keeps the
-        # binding from that acknowledgement.
-        head_sha=bound_head,
-        since=override_since,
-        top_level_feedback_cutoff=top_level_feedback_cutoff,
-        persistent_handoff=persistent_handoff,
-        cleared_by_feedback=cleared_by_feedback,
-        to_author=to_author,
-        author_released=author_released,
+        command_id=command.database_id if command else 0,
+        command_user=command.actor.login if command else "",
+        handoff=handoff,
+        top_level_feedback_cutoff=_latest_valid_timestamp(
+            previous_facts.dashboard_top_level_feedback_cutoff,
+            new_reviewer_cutoff,
+            acknowledged_top_level_feedback_cutoff(source.issue_comments),
+        ),
         command_replies=pending_command_replies(
             source, author, reviewers, author_can_act=author_can_act
         ),
@@ -378,18 +316,11 @@ def acknowledges_persistent_handoff(
     )
 
 
-def acknowledged_override(
+def acknowledged_handoff(
     comments: Sequence[IssueComment],
-) -> tuple[int, str, str, str, str]:
-    """Newest acknowledged override binding, timestamps, and author marker kind.
-
-    A headless acknowledgement retires its command without activating a handoff.
-    """
-    best_id = 0
-    best_head = ""
-    best_since = ""
-    best_created_at = ""
-    best_author_marker = ""
+) -> RoutingHandoff:
+    best = RoutingHandoff()
+    created_at = ""
     best_rank = (0, False, False, False)
     for comment in comments or []:
         if not _is_dashboard_app_comment(comment):
@@ -402,12 +333,31 @@ def acknowledged_override(
             rank = (comment_id, author_marker == "author-released", bool(head), bool(since))
             if rank > best_rank:
                 best_rank = rank
-                best_id = comment_id
-                best_head = head
-                best_since = since
-                best_created_at = comment.created_at
-                best_author_marker = author_marker
-    return best_id, best_head, best_since, best_created_at, best_author_marker
+                best = RoutingHandoff(
+                    command_id=comment_id,
+                    head_sha=head,
+                    since=since,
+                    target=HandoffTarget.AUTHOR if author_marker else HandoffTarget.REVIEWERS,
+                    released=author_marker == "author-released",
+                )
+                created_at = comment.created_at
+    if not best.command_id:
+        return best
+    best = replace(
+        best,
+        since=(
+            best.since
+            or _override_command_effective_at(comments, best.command_id)
+            or created_at
+        ),
+    )
+    if best.target is HandoffTarget.AUTHOR or not best.head_sha:
+        return best
+    return replace(
+        best,
+        persistent=acknowledges_persistent_handoff(comments, best.command_id, best.head_sha),
+        released=status_reviewer_handoff_clearance(comments) == (best.command_id, best.head_sha),
+    )
 
 
 def _override_command_effective_at(
@@ -494,6 +444,66 @@ def persistent_handoff_marker(
     head_sha: str,
 ) -> str:
     return f"{PERSISTENT_HANDOFF_MARKER_PREFIX}{comment_id}:{head_sha} -->"
+
+
+def released_handoff_markers(handoff: RoutingHandoff, cutoff: str) -> list[str]:
+    if not (handoff.released and handoff.command_id and handoff.head_sha):
+        return []
+    to_author = handoff.target is HandoffTarget.AUTHOR
+    markers = [
+        override_ack_marker(
+            handoff.command_id, handoff.head_sha, handoff.since,
+            to_author=to_author, author_released=to_author,
+        ),
+    ]
+    if cutoff:
+        markers.append(top_level_feedback_cutoff_marker(handoff.command_id, cutoff))
+    if not to_author:
+        markers.append(reviewer_handoff_cleared_marker(handoff.command_id, handoff.head_sha))
+    return markers
+
+
+def preserve_released_handoff_markers(body: str, comments: Sequence[IssueComment]) -> str:
+    # A clearance can outlive the command acknowledgement. Restore both before
+    # replacing the managed comment.
+    acknowledged = acknowledged_handoff(comments)
+    command_id, head = status_reviewer_handoff_clearance(comments)
+    handoff = acknowledged
+    if command_id and (
+        command_id > handoff.command_id
+        or (command_id == handoff.command_id and handoff.target is HandoffTarget.REVIEWERS)
+    ):
+        handoff = RoutingHandoff(
+            command_id, head,
+            handoff.since if (command_id, head) == (handoff.command_id, handoff.head_sha) else "",
+            released=True,
+        )
+    if not handoff.released:
+        return body
+    rendered = replace(comments[0], body=body)
+    current = acknowledged_handoff((rendered,))
+    preferred = handoff
+    if current.command_id > handoff.command_id or (
+        current.command_id == handoff.command_id and current.released
+    ):
+        preferred = current
+    cutoff = _latest_valid_timestamp(
+        acknowledged_top_level_feedback_cutoff((*comments, rendered)),
+        acknowledged_top_level_feedback_cutoff(comments, handoff.command_id),
+    )
+    missing = [
+        marker for marker in released_handoff_markers(preferred, cutoff)
+        if marker not in body and not (
+            marker.startswith(OVERRIDE_ACK_MARKER_PREFIX)
+            and preferred.target is HandoffTarget.REVIEWERS
+            and acknowledges_override(body, preferred.command_id, preferred.head_sha)
+        )
+    ]
+    if not missing:
+        return body
+    lines = body.splitlines()
+    lines[2:2] = missing
+    return "\n".join(lines)
 
 
 def render_command_reply(reply: DashboardCommandReply) -> str:
@@ -625,38 +635,26 @@ def append_command_ack_reply(
     The reply records the command binding and any existing feedback cutoff.
     Released handoffs are recorded in the status comment instead.
     """
-    cleared_by_feedback = facts.dashboard_override_cleared_by_feedback
-    command_id = (
-        facts.dashboard_override_command_id
-        or (
-            facts.dashboard_override_bound_command_id
-            if cleared_by_feedback
-            else 0
-        )
-    )
-    if not command_id:
+    handoff = facts.handoff
+    command_id = facts.dashboard_override_command_id
+    if not command_id or handoff.released:
         return facts
-    override_since = (
-        facts.dashboard_override_since
-        or _override_command_effective_at(source.issue_comments, command_id)
-    )
-    if cleared_by_feedback or facts.dashboard_override_author_released:
-        return facts.with_changes(dashboard_override_since=override_since)
-    if facts.dashboard_override_to_author and (
-        route is not DashboardRoute.AUTHOR or not facts.dashboard_override_head_sha
+    to_author = handoff.target is HandoffTarget.AUTHOR
+    if to_author and (
+        route is not DashboardRoute.AUTHOR or not handoff.head_sha
     ):
         return facts
-    if facts.dashboard_override_persistent and route is DashboardRoute.AUTHOR:
-        return facts.with_changes(dashboard_override_since=override_since)
+    if handoff.persistent and route is DashboardRoute.AUTHOR:
+        return facts
     kind = "routed"
     replies = facts.dashboard_command_replies
     reply = DashboardCommandReply(
         comment_id=command_id,
         kind=kind,
         subcommand=(
-            AUTHOR_OVERRIDE_SUBCOMMAND if facts.dashboard_override_to_author else ""
+            AUTHOR_OVERRIDE_SUBCOMMAND if to_author else ""
         ),
-        head_sha=facts.dashboard_override_head_sha,
+        head_sha=handoff.head_sha,
         user=facts.dashboard_override_command_user or facts.author,
         route=route,
         held_gates=(
@@ -664,11 +662,11 @@ def append_command_ack_reply(
             if facts.route_held_for_gates
             else ""
         ),
-        since=override_since,
+        since=handoff.since,
         top_level_feedback_cutoff=(
             facts.dashboard_top_level_feedback_cutoff
         ),
-        persistent_handoff=facts.dashboard_override_persistent,
+        persistent_handoff=handoff.persistent,
     )
     if command_reply_exists(source.issue_comments, reply):
         return facts
@@ -678,6 +676,5 @@ def append_command_ack_reply(
     ):
         return facts
     return facts.with_changes(
-        dashboard_override_since=override_since,
         dashboard_command_replies=(*replies, reply),
     )

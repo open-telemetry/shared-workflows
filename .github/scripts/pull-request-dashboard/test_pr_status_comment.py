@@ -10,6 +10,8 @@ from urllib.parse import parse_qs, urlparse
 import pr_status_comment
 from dashboard_contracts import (
     DashboardRoute,
+    HandoffTarget,
+    RoutingHandoff,
     EvaluationFailure,
     StoredDashboardResult,
 )
@@ -118,10 +120,8 @@ class RenderStatusCommentTest(unittest.TestCase):
             self.pr(),
             status_result(
                 DashboardRoute.AUTHOR,
-                dashboard_override_bound_command_id=12,
-                dashboard_override_head_sha="abcdef123456",
+                handoff=RoutingHandoff(command_id=12, head_sha="abcdef123456", released=True),
                 dashboard_top_level_feedback_cutoff="2026-08-16T08:00:00Z",
-                dashboard_override_cleared_by_feedback=True,
             ),
         )
         comment = {
@@ -172,9 +172,7 @@ class RenderStatusCommentTest(unittest.TestCase):
             status_result(
                 DashboardRoute.AUTHOR,
                 author_nudge_episode_id="abc123",
-                dashboard_override_bound_command_id=12,
-                dashboard_override_head_sha="abcdef123456",
-                dashboard_override_cleared_by_feedback=True,
+                handoff=RoutingHandoff(command_id=12, head_sha="abcdef123456", released=True),
             ),
         )
 
@@ -1001,10 +999,10 @@ class UpsertStatusCommentTest(unittest.TestCase):
         restored = dashboard_override_facts(
             DashboardOverrideInput(comments), "alice", head_sha="bound-head"
         )
-        self.assertEqual(12, restored.bound_command_id)
-        self.assertEqual("bound-head", restored.head_sha)
-        self.assertTrue(restored.to_author)
-        self.assertTrue(restored.author_released)
+        self.assertEqual(12, restored.handoff.command_id)
+        self.assertEqual("bound-head", restored.handoff.head_sha)
+        self.assertIs(HandoffTarget.AUTHOR, restored.handoff.target)
+        self.assertTrue(restored.handoff.released)
         self.assertEqual("2026-08-16T08:00:00Z", restored.top_level_feedback_cutoff)
 
     @patch.object(pr_status_comment, "managed_status_comments", return_value=[])

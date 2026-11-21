@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sys
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -902,13 +903,26 @@ def resolve_discussions(
     if classifications is None:
         raise ValueError("classified lifecycle requires classifications")
 
-    failed_classifications = tuple(
+    release_thread_ids = {
+        discussion["discussion_id"]
+        for discussion in prepared.author_handoff_release_threads
+    }
+    failed_classifications = []
+    for classification in classifications.review_threads:
+        if not isinstance(classification, ClassificationFailure):
+            continue
+        thread_id = classification.identity.discussion_id
+        if thread_id in release_thread_ids:
+            print(
+                f"  warning: could not classify resolved thread {thread_id} for author handoff",
+                file=sys.stderr,
+            )
+        else:
+            failed_classifications.append(classification)
+    failed_classifications.extend(
         classification
-        for classification in (
-            classifications.review_threads
-            + classifications.top_level_items
-            + classifications.top_level_author_comments
-        )
+        for classification in classifications.top_level_items
+        + classifications.top_level_author_comments
         if isinstance(classification, ClassificationFailure)
     )
     if failed_classifications:
@@ -917,7 +931,7 @@ def resolve_discussions(
             classifications,
             {},
             {},
-            failed_classifications,
+            tuple(failed_classifications),
             mode,
         )
 

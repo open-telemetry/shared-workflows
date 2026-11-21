@@ -13,7 +13,7 @@ from copilot_review import (
     copilot_review_unreported,
     set_copilot_review_request_needed,
 )
-from dashboard_contracts import DashboardFacts, DashboardRoute
+from dashboard_contracts import DashboardFacts, DashboardRoute, HandoffTarget
 from utils import (
     format_ts,
     parse_ts,
@@ -56,24 +56,16 @@ _GATE_HOLD_LIMIT = timedelta(hours=4)
 def reviewer_handoff_active(facts: DashboardFacts) -> bool:
     """Return whether the reviewer handoff remains active."""
     return (
-        not facts.dashboard_override_to_author
-        and bool(facts.dashboard_override_head_sha)
-        and bool(facts.head_sha)
-        and (
-            facts.dashboard_override_persistent
-            or facts.dashboard_override_head_sha == facts.head_sha
-        )
-        and not facts.dashboard_override_cleared_by_feedback
+        facts.handoff.target is HandoffTarget.REVIEWERS
+        and facts.handoff.active_on(facts.head_sha)
     )
 
 
 def author_handoff_active(facts: DashboardFacts) -> bool:
     return (
-        facts.dashboard_override_to_author
+        facts.handoff.target is HandoffTarget.AUTHOR
         and facts.author_can_act
-        and not facts.dashboard_override_author_released
-        and bool(facts.head_sha)
-        and facts.head_sha == facts.dashboard_override_head_sha
+        and facts.handoff.active_on(facts.head_sha)
     )
 
 
@@ -257,14 +249,14 @@ def _add_wait_age_facts(
     pending_review_requested_at: Mapping[str, str],
 ) -> DashboardFacts:
     if route is DashboardRoute.AUTHOR and author_handoff_active(facts):
-        handoff_ts = parse_ts(facts.dashboard_override_since)
+        handoff_ts = parse_ts(facts.handoff.since)
         if handoff_ts is not None:
             return facts.with_changes(
                 waiting_since=format_ts(handoff_ts),
                 waiting_age_basis="author_handoff",
             )
     handoff_ts = (
-        parse_ts(facts.dashboard_override_since)
+        parse_ts(facts.handoff.since)
         if route.value in _REVIEWER_ROUTES and reviewer_handoff_active(facts)
         else None
     )
@@ -283,7 +275,7 @@ def _add_wait_age_facts(
             previous_route is not None
             and previous_route.value in _REVIEWER_ROUTES
             and previous_facts.waiting_age_basis == "review_rerequest"
-            and parse_ts(previous_facts.dashboard_override_since) == handoff_ts
+            and parse_ts(previous_facts.handoff.since) == handoff_ts
             and previous_wait_ts is not None
             and previous_wait_ts > wait_ts
         ):

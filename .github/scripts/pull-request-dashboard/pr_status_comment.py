@@ -16,11 +16,8 @@ from github_cli import (
 )
 from dashboard_override import (
     PRE_REVIEW_ROUTES,
-    acknowledged_top_level_feedback_cutoff,
-    acknowledged_override,
-    acknowledges_override,
-    override_ack_marker,
-    top_level_feedback_cutoff_marker,
+    preserve_released_handoff_markers,
+    released_handoff_markers,
 )
 from dashboard_contracts import (
     DashboardFacts,
@@ -35,9 +32,7 @@ from dashboard_status import (
     STATUS_MARKER,
     author_nudge_episode_marker,
     is_dashboard_app_comment,
-    reviewer_handoff_cleared_marker,
     status_author_nudge_episode_id,
-    status_reviewer_handoff_clearance,
 )
 from pull_request_source import normalize_issue_comments
 from route_presentation import (
@@ -414,32 +409,9 @@ def render_status_comment(
         and episode_id
     ):
         optional_markers.append(author_nudge_episode_marker(episode_id))
-    bound_command_id = facts.dashboard_override_bound_command_id
-    bound_head = facts.dashboard_override_head_sha
-    if bound_command_id and bound_head and (
-        facts.dashboard_override_cleared_by_feedback
-        or facts.dashboard_override_author_released
-    ):
-        optional_markers.append(
-            override_ack_marker(
-                bound_command_id,
-                bound_head,
-                facts.dashboard_override_since,
-                to_author=facts.dashboard_override_to_author,
-                author_released=facts.dashboard_override_author_released,
-            ),
-        )
-        if facts.dashboard_top_level_feedback_cutoff:
-            optional_markers.append(
-                top_level_feedback_cutoff_marker(
-                    bound_command_id,
-                    facts.dashboard_top_level_feedback_cutoff,
-                )
-            )
-        if facts.dashboard_override_cleared_by_feedback:
-            optional_markers.append(
-                reviewer_handoff_cleared_marker(bound_command_id, bound_head),
-            )
+    optional_markers.extend(
+        released_handoff_markers(facts.handoff, facts.dashboard_top_level_feedback_cutoff)
+    )
     lines[2:2] = optional_markers
 
     if body:
@@ -526,75 +498,7 @@ def upsert_status_comment(
     if comments:
         comment = comments[0]
         if preserve_clearance:
-            normalized_comments = normalize_issue_comments(comments)
-            command_id, head_sha = status_reviewer_handoff_clearance(comments)
-            clearance_marker = reviewer_handoff_cleared_marker(command_id, head_sha)
-            (
-                acknowledged_id,
-                acknowledged_head,
-                since,
-                _,
-                author_marker,
-            ) = acknowledged_override(normalized_comments)
-            top_level_feedback_cutoff = (
-                acknowledged_top_level_feedback_cutoff(
-                    normalized_comments,
-                    command_id,
-                )
-            )
-            acknowledgement_marker = override_ack_marker(
-                command_id,
-                head_sha,
-                (
-                    since
-                    if (acknowledged_id, acknowledged_head)
-                    == (command_id, head_sha)
-                    else ""
-                ),
-            )
-            preserved_markers = []
-            if command_id and head_sha:
-                if not acknowledges_override(body, command_id, head_sha):
-                    preserved_markers.append(acknowledgement_marker)
-                if clearance_marker not in body:
-                    preserved_markers.append(clearance_marker)
-                if (
-                    top_level_feedback_cutoff
-                    and top_level_feedback_cutoff_marker(
-                        command_id,
-                        top_level_feedback_cutoff,
-                    )
-                    not in body
-                ):
-                    preserved_markers.append(
-                        top_level_feedback_cutoff_marker(
-                            command_id,
-                            top_level_feedback_cutoff,
-                        )
-                    )
-            if author_marker == "author-released" and acknowledged_head:
-                release_marker = override_ack_marker(
-                    acknowledged_id,
-                    acknowledged_head,
-                    since,
-                    to_author=True,
-                    author_released=True,
-                )
-                if release_marker not in body:
-                    preserved_markers.append(release_marker)
-                cutoff = acknowledged_top_level_feedback_cutoff(
-                    normalized_comments, acknowledged_id
-                )
-                if cutoff:
-                    cutoff_marker = top_level_feedback_cutoff_marker(
-                        acknowledged_id, cutoff
-                    )
-                    if cutoff_marker not in body:
-                        preserved_markers.append(cutoff_marker)
-            if preserved_markers:
-                lines = body.splitlines()
-                lines[2:2] = preserved_markers
-                body = "\n".join(lines)
+            body = preserve_released_handoff_markers(body, normalize_issue_comments(comments))
         if locked and (comment.get("body") != body or len(comments) > 1):
             raise StatusCommentDeferred(
                 f"PR #{pr_number} is locked; deferring terminal status comment"

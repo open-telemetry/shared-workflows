@@ -36,10 +36,13 @@ from dashboard_contracts import (
     EvaluationFailure,
     EvaluationResult,
     EvaluationSuccess,
+    HandoffTarget,
+    RoutingHandoff,
     StoredDashboardResult,
 )
 from dashboard_override import (
     DashboardOverrideInput,
+    DashboardOverrideFacts,
     append_command_ack_reply,
     dashboard_override_facts,
 )
@@ -135,6 +138,7 @@ class PullRequestEvaluationConfig:
 class PullRequestEvaluationInput:
     pr_number: int
     previous_result: StoredDashboardResult | None = None
+    unpublished_handoff: RoutingHandoff | None = None
 
     def __post_init__(self) -> None:
         if self.pr_number <= 0:
@@ -150,6 +154,8 @@ def _compute_facts(
     previous_facts: DashboardFacts,
     fallback_available: bool = False,
     fallback: CopilotReviewFallback | None = None,
+    *,
+    override: DashboardOverrideFacts | None = None,
 ) -> DashboardFacts:
     pr = source.pull_request
     snapshot = build_routing_snapshot(source)
@@ -190,7 +196,7 @@ def _compute_facts(
         head_sha,
     )
     author_can_act = _author_can_act(pr.author, author)
-    override = dashboard_override_facts(
+    override = override or dashboard_override_facts(
         DashboardOverrideInput(source.issue_comments),
         author,
         set(approver_logins),
@@ -214,14 +220,8 @@ def _compute_facts(
         copilot_request_fingerprint=snapshot.copilot_request_fingerprint,
         dashboard_override_command_id=override.command_id,
         dashboard_override_command_user=override.command_user,
-        dashboard_override_bound_command_id=override.bound_command_id,
-        dashboard_override_head_sha=override.head_sha,
-        dashboard_override_since=override.since,
+        handoff=override.handoff,
         dashboard_top_level_feedback_cutoff=override.top_level_feedback_cutoff,
-        dashboard_override_persistent=override.persistent_handoff,
-        dashboard_override_cleared_by_feedback=override.cleared_by_feedback,
-        dashboard_override_to_author=override.to_author,
-        dashboard_override_author_released=override.author_released,
         dashboard_command_replies=override.command_replies,
         copilot_review_requested=any(
             is_copilot_reviewer(request)
@@ -344,11 +344,13 @@ def _failure_result(
     number: int,
     route: DashboardRoute,
     error: Exception,
+    observed_author_handoff: RoutingHandoff | None,
 ) -> EvaluationFailure:
     return EvaluationFailure(
         pr_number=number,
         route=route,
         error=repr(error),
+        observed_author_handoff=observed_author_handoff,
     )
 
 
@@ -435,6 +437,7 @@ async def evaluate_pull_request(
         if previous_result is not None
         else {}
     )
+    observed_author_handoff = None
     try:
         pr_source = fetch_pull_request_source(
             config.repo,
@@ -453,6 +456,20 @@ async def evaluate_pull_request(
                 pr_url=pr.url,
             )
         author = effective_author(pr_source.pull_request, pr_source.commits)
+        override = dashboard_override_facts(
+            DashboardOverrideInput(pr_source.issue_comments),
+            author,
+            set(config.approver_logins),
+            pr.head_sha,
+            previous_facts,
+            author_can_act=_author_can_act(pr.author, author),
+            unpublished_handoff=source.unpublished_handoff,
+        )
+        if (
+            override.handoff.target is HandoffTarget.AUTHOR
+            and override.handoff.head_sha
+        ):
+            observed_author_handoff = override.handoff
         activity = build_activity_timeline(
             ActivityInput(pr_source, author, config.approver_logins)
         )
@@ -473,6 +490,7 @@ async def evaluate_pull_request(
             previous_facts,
             config.copilot_review_fallback_available,
             config.copilot_review_fallback,
+            override=override,
         )
         manual_reviewer_handoff = reviewer_handoff_active(facts)
         discussion_input = DiscussionInput(
@@ -486,7 +504,7 @@ async def evaluate_pull_request(
             discussion_input,
             top_level_feedback_cutoff=facts.dashboard_top_level_feedback_cutoff,
             author_handoff_since=(
-                facts.dashboard_override_since if author_handoff_active(facts) else ""
+                facts.handoff.since if author_handoff_active(facts) else ""
             ),
         )
         if manual_reviewer_handoff:
@@ -495,7 +513,7 @@ async def evaluate_pull_request(
             # handed the pull request back to its author.
             handoff_feedback = prepare_reviewer_handoff_feedback(
                 discussion_input,
-                facts.dashboard_override_since,
+                facts.handoff.since,
                 author,
             )
             has_handoff_feedback = bool(
@@ -523,9 +541,7 @@ async def evaluate_pull_request(
                 feedback_classifications
             )
             if feedback_routes_to_author:
-                facts = facts.with_changes(
-                    dashboard_override_cleared_by_feedback=True
-                )
+                facts = facts.with_changes(handoff=facts.handoff.release())
                 manual_reviewer_handoff = False
                 lifecycle = await _classify_discussions(
                     number,
@@ -557,6 +573,7 @@ async def evaluate_pull_request(
                 pr_url=pr.url,
                 facts=facts,
                 diagnostics=diagnostics,
+                observed_author_handoff=observed_author_handoff,
                 route=DashboardRoute.UNKNOWN,
                 error=(
                     f"{len(lifecycle.failed_classifications)} "
@@ -564,9 +581,9 @@ async def evaluate_pull_request(
                 ),
             )
         if author_handoff_active(facts) and has_completed_author_reply_after(
-            lifecycle, facts.dashboard_override_since
+            lifecycle, facts.handoff.since
         ):
-            facts = facts.with_changes(dashboard_override_author_released=True)
+            facts = facts.with_changes(handoff=facts.handoff.release())
         pending_actions = lifecycle.pending_actions
         review_threads = list(prepared_discussions.review_threads)
         top_level_items = list(prepared_discussions.top_level_items)
@@ -643,6 +660,7 @@ async def evaluate_pull_request(
             number,
             DashboardRoute.TRANSIENT_FAILURE,
             error,
+            observed_author_handoff,
         )
     except Exception as error:
         print(
@@ -650,4 +668,4 @@ async def evaluate_pull_request(
             file=sys.stderr,
         )
         traceback.print_exc()
-        return _failure_result(number, DashboardRoute.UNKNOWN, error)
+        return _failure_result(number, DashboardRoute.UNKNOWN, error, observed_author_handoff)

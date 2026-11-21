@@ -90,6 +90,34 @@ class CopilotReviewFallback:
     exhausted: bool = False
 
 
+class HandoffTarget(str, Enum):
+    AUTHOR = "author"
+    REVIEWERS = "reviewers"
+
+
+@dataclass(frozen=True)
+class RoutingHandoff:
+    command_id: int = 0
+    head_sha: str = ""
+    since: str = ""
+    target: HandoffTarget = HandoffTarget.REVIEWERS
+    released: bool = False
+    persistent: bool = False
+
+    def matches(self, other: RoutingHandoff) -> bool:
+        return bool(self.head_sha) and (
+            self.command_id, self.head_sha, self.target
+        ) == (other.command_id, other.head_sha, other.target)
+
+    def release(self) -> RoutingHandoff:
+        return replace(self, released=True)
+
+    def active_on(self, head_sha: str) -> bool:
+        return bool(self.head_sha and head_sha) and not self.released and (
+            self.persistent or self.head_sha == head_sha
+        )
+
+
 @dataclass(frozen=True)
 class DashboardFacts:
     author: str = ""
@@ -99,14 +127,8 @@ class DashboardFacts:
     copilot_request_fingerprint: str = ""
     dashboard_override_command_id: int = 0
     dashboard_override_command_user: str = ""
-    dashboard_override_bound_command_id: int = 0
-    dashboard_override_head_sha: str = ""
-    dashboard_override_since: str = ""
+    handoff: RoutingHandoff = field(default_factory=RoutingHandoff)
     dashboard_top_level_feedback_cutoff: str = ""
-    dashboard_override_persistent: bool = False
-    dashboard_override_cleared_by_feedback: bool = False
-    dashboard_override_to_author: bool = False
-    dashboard_override_author_released: bool = False
     dashboard_command_replies: tuple[DashboardCommandReply, ...] = ()
     copilot_review_requested: bool = False
     copilot_review_quota_exhausted: bool = False
@@ -271,6 +293,7 @@ class EvaluationFailure:
     pr_url: str = ""
     facts: DashboardFacts | None = None
     diagnostics: EvaluationDiagnostics = field(default_factory=EvaluationDiagnostics)
+    observed_author_handoff: RoutingHandoff | None = None
 
     def __post_init__(self) -> None:
         if self.pr_number <= 0:
@@ -335,6 +358,8 @@ class DashboardState:
     initial_backfill_complete: bool = False
     results: tuple[StoredDashboardResult, ...] = ()
     draft_pr_numbers: frozenset[int] = frozenset()
+    # Observations from failed refreshes must not change the published route.
+    unpublished_handoffs: Mapping[int, RoutingHandoff] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         results = tuple(sorted(self.results, key=lambda result: result.pr_number))
@@ -353,6 +378,10 @@ class DashboardState:
             raise ValueError("dashboard state cannot route a draft pull request")
         object.__setattr__(self, "results", results)
         object.__setattr__(self, "draft_pr_numbers", draft_pr_numbers)
+        object.__setattr__(
+            self, "unpublished_handoffs",
+            MappingProxyType(dict(self.unpublished_handoffs)),
+        )
 
     @property
     def pr_numbers(self) -> frozenset[int]:
@@ -393,22 +422,30 @@ class DashboardState:
             for existing in self.results
             if existing.pr_number != pr_number
         )
+        observations = dict(self.unpublished_handoffs)
+        observations.pop(pr_number, None)
         return replace(
             self,
             results=retained + ((result,) if result is not None else ()),
             draft_pr_numbers=self.draft_pr_numbers - {pr_number},
+            unpublished_handoffs=observations,
+        )
+
+    def with_unpublished_handoff(
+        self, pr_number: int, handoff: RoutingHandoff
+    ) -> DashboardState:
+        return replace(
+            self,
+            unpublished_handoffs={
+                **self.unpublished_handoffs, pr_number: handoff,
+            },
         )
 
     def with_draft(self, pr_number: int) -> DashboardState:
         if pr_number <= 0:
             raise ValueError("draft pull request number must be positive")
         return replace(
-            self,
-            results=tuple(
-                result
-                for result in self.results
-                if result.pr_number != pr_number
-            ),
+            self.with_result(pr_number, None),
             draft_pr_numbers=self.draft_pr_numbers | {pr_number},
         )
 

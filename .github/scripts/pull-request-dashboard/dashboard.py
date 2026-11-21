@@ -126,23 +126,12 @@ Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
                                                   fetched, and excludes required
                                                   contexts whose app has already
                                                   finished reporting.
-    dashboard_override_bound_command_id
-                                      int         ID of the command bound to the
-                                                  reviewer handoff.
-    dashboard_override_head_sha     str           Head an override is bound to;
-                                                  identifies the durable command
-                                                  binding.
-    dashboard_override_since        str (iso)     Effective content timestamp of
-                                                  the command bound to the handoff.
+    handoff                         RoutingHandoff
+                                                  Bound command, target, head,
+                                                  timestamp, and release state.
     dashboard_top_level_feedback_cutoff
                                        str (iso)  Top-level feedback at or before
                                                   this command timestamp is retired.
-    dashboard_override_persistent   bool          Handoff remains active across
-                                                  pushes until newer feedback
-                                                  clears it.
-    dashboard_override_cleared_by_feedback
-                                      bool        Actionable human reviewer
-                                                  feedback ended the handoff.
     conflicts                       str           "yes" | "no" | "unknown".
     copilot_review_requested        bool          Copilot is a pending requested
                                                   reviewer, so a review is in
@@ -387,6 +376,7 @@ async def build_dashboard_update_for_pr(
         PullRequestEvaluationInput(
             pr_number=pr_number,
             previous_result=prepared_update.starting_result,
+            unpublished_handoff=dashboard_state.unpublished_handoffs.get(pr_number),
         ),
         classification_service,
     )
@@ -489,6 +479,7 @@ def select_backfill_prs(
     tracked_numbers = (
         dashboard_state_pr_numbers(dashboard_state)
         | set(dashboard_state.draft_pr_numbers)
+        | set(dashboard_state.unpublished_handoffs)
     )
     cached_pr_numbers_to_remove = tracked_numbers - open_number_set
     rotated_eligible_numbers = round_robin_numbers(
@@ -763,7 +754,7 @@ def apply_targeted_dashboard_update(
     args: argparse.Namespace,
     update: DashboardStateUpdate,
     observed_at: datetime | None = None,
-) -> int:
+) -> DashboardUpdateAcceptance:
     if args.pr_number is None:
         raise RuntimeError("apply_targeted_dashboard_update requires --pr-number")
     acceptance = accept_dashboard_update(
@@ -772,18 +763,21 @@ def apply_targeted_dashboard_update(
     )
     if acceptance.failed_result_rejected:
         reject_failed_dashboard_result(update.evaluated_result)
-        return 1
-    apply_dashboard_update_effects(
-        args.pr_number,
-        acceptance,
-        observed_at or utc_now(),
-        prepare_author_nudges=getattr(args, "prepare_author_nudges", False),
-    )
-    return save_dashboard_update_state(
-        args,
-        acceptance.dashboard_state,
-        not acceptance.effects.persist_dashboard_state,
-    )
+        if acceptance.effects.persist_dashboard_state:
+            save_dashboard_state_cache(acceptance.dashboard_state)
+    else:
+        apply_dashboard_update_effects(
+            args.pr_number,
+            acceptance,
+            observed_at or utc_now(),
+            prepare_author_nudges=getattr(args, "prepare_author_nudges", False),
+        )
+        save_dashboard_update_state(
+            args,
+            acceptance.dashboard_state,
+            not acceptance.effects.persist_dashboard_state,
+        )
+    return acceptance
 
 
 async def update_dashboard_for_pr_number(
@@ -805,12 +799,23 @@ async def update_dashboard_for_pr_number(
         return 0
 
     observed_at = utc_now()
-    return state_branch.push_state_changes(
+    failed = False
+
+    def update_selected_pr() -> int:
+        nonlocal failed
+        acceptance = apply_targeted_dashboard_update(args, update, observed_at)
+        failed = acceptance.failed_result_rejected
+        # Commit a verified command observation before returning a retryable
+        # evaluation failure to the queue.
+        return int(failed and not acceptance.effects.persist_dashboard_state)
+
+    status = state_branch.push_state_changes(
         state_dir,
         "Update dashboard state",
-        lambda: apply_targeted_dashboard_update(args, update, observed_at),
+        update_selected_pr,
         state_branch=args.state_branch,
     )
+    return status or int(failed)
 
 
 async def update_dashboard_for_backfill(
@@ -918,7 +923,8 @@ async def update_dashboard_for_backfill(
                 return save_dashboard_update_state(
                     args,
                     completed_state,
-                    completed_state == acceptance.dashboard_state,
+                    not acceptance.effects.persist_dashboard_state
+                    and completed_state == acceptance.dashboard_state,
                 )
             apply_dashboard_update_effects(
                 pr_number,
