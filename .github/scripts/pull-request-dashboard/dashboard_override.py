@@ -131,7 +131,7 @@ def _inspect_commands(
     comments: Sequence[IssueComment],
     author: str,
     reviewers: set[str] | None,
-    acknowledged_id: int,
+    min_command_id: int,
     *,
     author_can_act: bool,
 ) -> tuple[
@@ -157,7 +157,7 @@ def _inspect_commands(
         elif subcommand == AUTHOR_OVERRIDE_SUBCOMMAND and not author_can_act:
             kind = "author_unavailable"
         else:
-            if comment_id > acknowledged_id and (
+            if comment_id >= min_command_id and (
                 winner is None or comment_id > winner[0].database_id
             ):
                 target = (
@@ -196,16 +196,16 @@ def dashboard_override_facts(
     *,
     author_can_act: bool = True,
 ) -> DashboardOverrideFacts:
+    previous_facts = previous_facts or DashboardFacts()
+    previous = previous_facts.handoff
     acknowledged = acknowledged_handoff(source.issue_comments)
     winner, replies = _inspect_commands(
         source.issue_comments,
         author,
         reviewers,
-        acknowledged.command_id,
+        max(acknowledged.command_id + 1, previous.command_id),
         author_can_act=author_can_act,
     )
-    previous_facts = previous_facts or DashboardFacts()
-    previous = previous_facts.handoff
     new_reviewer_cutoff = ""
     command_id = 0
     command_user = ""
@@ -228,6 +228,9 @@ def dashboard_override_facts(
             )
         if not same_command and target is HandoffTarget.REVIEWERS:
             new_reviewer_cutoff = handoff.since
+    elif previous.command_id > acknowledged.command_id:
+        # The newer command no longer applies. Keep its ID to retire older handoffs.
+        handoff = previous.release()
     else:
         handoff = acknowledged
         if handoff.matches(previous):

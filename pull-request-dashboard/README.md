@@ -475,7 +475,8 @@ post either command in a top-level pull request comment:
   author. Praise, informational comments, and bot feedback don't end it.
 
 The dashboard records the head it sees when it first reads the command. When
-both commands are present, the newer authorized command takes precedence.
+both commands are present, the newer authorized command takes precedence. When
+that handoff ends, normal routing resumes without restoring an older command.
 Ending a handoff restores normal routing without reactivating an older one.
 
 ## Author reminder

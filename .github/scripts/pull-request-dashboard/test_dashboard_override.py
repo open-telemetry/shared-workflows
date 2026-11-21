@@ -932,6 +932,60 @@ class DashboardOverrideTest(unittest.TestCase):
 
         self.assertEqual("2026-08-16T08:00:00Z", facts.handoff.since)
 
+    def test_disappearing_command_does_not_restore_older_reviewer_handoff(self) -> None:
+        for target in ("author", "reviewers"):
+            for acknowledged in (False, True):
+                with self.subTest(target=target, acknowledged=acknowledged):
+                    older_command = issue_comment(
+                        database_id=12, body="/dashboard route:reviewers",
+                    )
+                    older_comments = (older_command,)
+                    if acknowledged:
+                        older_comments += (issue_comment(
+                            database_id=13,
+                            actor=actor("opentelemetry-pr-dashboard[bot]"),
+                            body="\n".join((
+                                dashboard_override.override_ack_marker(12, "head"),
+                                dashboard_override.persistent_handoff_marker(12, "head"),
+                            )),
+                        ),)
+                    accepted = dashboard_override.dashboard_override_facts(
+                        override_input(*older_comments, issue_comment(
+                            database_id=14, body=f"/dashboard route:{target}",
+                        )),
+                        "author",
+                        head_sha="head",
+                    )
+                    self.assertEqual(14, accepted.command_id)
+                    self.assertTrue(accepted.handoff.active_on("head"))
+
+                    previous = accepted
+                    for _ in range(2):
+                        previous = dashboard_override.dashboard_override_facts(
+                            override_input(*older_comments),
+                            "author",
+                            head_sha="head",
+                            previous_facts=result_facts(previous),
+                        )
+                        self.assertEqual(0, previous.command_id)
+                        self.assertEqual(accepted.handoff.release(), previous.handoff)
+                        self.assertEqual(
+                            accepted.top_level_feedback_cutoff, previous.top_level_feedback_cutoff,
+                        )
+
+                    published = issue_comment(
+                        database_id=15,
+                        actor=actor("opentelemetry-pr-dashboard[bot]"),
+                        body="\n".join(dashboard_override.released_handoff_markers(
+                            previous.handoff, previous.top_level_feedback_cutoff,
+                        )),
+                    )
+                    recovered = dashboard_override.dashboard_override_facts(
+                        override_input(*older_comments, published), "author", head_sha="head",
+                    )
+                    self.assertEqual(14, recovered.handoff.command_id)
+                    self.assertTrue(recovered.handoff.released)
+
     def test_legacy_acknowledgement_does_not_recover_permanent_cutoff(self) -> None:
         source = override_input(
             issue_comment(
