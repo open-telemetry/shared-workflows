@@ -13,6 +13,7 @@ from dashboard_contracts import (
     EvaluationFailure,
     StoredDashboardResult,
 )
+from dashboard_override import DashboardOverrideInput, dashboard_override_facts
 from dashboard_test_support import (
     dashboard_facts,
     dashboard_state,
@@ -20,6 +21,7 @@ from dashboard_test_support import (
     stored_dashboard_result,
 )
 from dashboard_status import status_reviewer_handoff_clearance
+from pull_request_source import normalize_issue_comments
 
 
 def status_result(
@@ -947,6 +949,63 @@ class UpsertStatusCommentTest(unittest.TestCase):
             "12:2026-08-16T08:00:00Z -->",
             self.commands[0][-1],
         )
+
+    def test_copies_author_release_to_surviving_status_comment(self) -> None:
+        status = pr_status_comment.STATUS_MARKER
+        app = {"slug": pr_status_comment.DASHBOARD_APP_SLUG}
+        release = (
+            "<!-- pull-request-dashboard-override-ack:"
+            "author-released:12:bound-head:2026-08-16T09:00:00Z -->"
+        )
+        cutoff = (
+            "<!-- pull-request-dashboard-top-level-feedback-cutoff:"
+            "12:2026-08-16T08:00:00Z -->"
+        )
+        primary = {"id": 7, "performed_via_github_app": app, "body": f"{status}\nOld status"}
+        duplicate = {
+            "id": 8,
+            "performed_via_github_app": app,
+            "body": f"{status}\n{release}\n{cutoff}",
+        }
+        replacement = pr_status_comment.render_status_comment(
+            {"state": "open"}, status_result()
+        )
+        with patch.object(
+            pr_status_comment, "managed_status_comments", return_value=[primary, duplicate]
+        ):
+            pr_status_comment.upsert_status_comment(
+                "open-telemetry/example", 1, replacement, preserve_clearance=True
+            )
+
+        self.assertEqual(
+            [
+                ["PATCH", "repos/open-telemetry/example/issues/comments/7"],
+                ["DELETE", "repos/open-telemetry/example/issues/comments/8"],
+            ],
+            [command[3:5] for command in self.commands],
+        )
+        patched_body = self.commands[0][-1].removeprefix("body=")
+        self.assertIn(release, patched_body)
+        self.assertIn(cutoff, patched_body)
+        comments = normalize_issue_comments([
+            {
+                "id": 6,
+                "performed_via_github_app": app,
+                "body": (
+                    "<!-- pull-request-dashboard-override-ack:"
+                    "author:12:bound-head:2026-08-16T09:00:00Z -->"
+                ),
+            },
+            {**primary, "body": patched_body},
+        ])
+        restored = dashboard_override_facts(
+            DashboardOverrideInput(comments), "alice", head_sha="bound-head"
+        )
+        self.assertEqual(12, restored.bound_command_id)
+        self.assertEqual("bound-head", restored.head_sha)
+        self.assertTrue(restored.to_author)
+        self.assertTrue(restored.author_released)
+        self.assertEqual("2026-08-16T08:00:00Z", restored.top_level_feedback_cutoff)
 
     @patch.object(pr_status_comment, "managed_status_comments", return_value=[])
     def test_does_not_create_comment_when_creation_is_disabled(

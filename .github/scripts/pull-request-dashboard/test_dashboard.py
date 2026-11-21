@@ -1411,6 +1411,72 @@ class PullRequestEvaluationTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual((), reverted.facts.dashboard_command_replies)
 
     @patch("pull_request_evaluation.fetch_pull_request_source")
+    async def test_author_handoff_preserves_existing_feedback_through_push(
+        self, fetch_raw: Mock
+    ) -> None:
+        feedback = issue_comment(
+            database_id=1,
+            actor=actor("reviewer"),
+            body="Please document the limit.",
+        )
+        thread = review_thread()
+        command = issue_comment(
+            database_id=2,
+            body="/dashboard route:author",
+            created_at="2026-08-16T08:00:00Z",
+        )
+        source = pull_request_source(
+            issue_comments=(feedback, command),
+            review_threads=(thread,),
+        )
+        feedback_id = "pr-issue-comment-1"
+        classifier = FakeClassificationOperation(
+            DiscussionClassifications(
+                (action_classification(
+                    thread.node_id, DiscussionKind.REVIEW_THREAD,
+                    DiscussionAction.AUTHOR, "Update the code.",
+                ),),
+                (action_classification(
+                    feedback_id, DiscussionKind.TOP_LEVEL_FEEDBACK,
+                    DiscussionAction.AUTHOR, "Document the limit.",
+                ),),
+                (),
+            )
+        )
+        fetch_raw.return_value = source
+        active = await evaluate_pr({"number": 7}, classification_service=classifier)
+        assert isinstance(active, EvaluationSuccess)
+        self.assertEqual("author_handoff", active.facts.waiting_age_basis)
+        (reply,) = active.facts.dashboard_command_replies
+        acknowledgement = issue_comment(
+            database_id=3,
+            actor=actor("opentelemetry-pr-dashboard[bot]"),
+            body=render_command_reply(reply),
+        )
+
+        fetch_raw.return_value = replace(
+            source,
+            pull_request=replace(source.pull_request, head_sha="new-head"),
+            issue_comments=(*source.issue_comments, acknowledgement),
+        )
+        released = await evaluate_pr({"number": 7}, classification_service=classifier)
+        assert isinstance(released, EvaluationSuccess)
+        self.assertTrue(released.facts.dashboard_override_author_released)
+        for result in (active, released):
+            with self.subTest(released=result.facts.dashboard_override_author_released):
+                self.assertEqual(DashboardRoute.AUTHOR, result.route)
+                self.assertEqual(
+                    {feedback_id: "author", thread.node_id: "author"},
+                    {key: item["action"] for key, item in result.pending_actions.items()},
+                )
+                self.assertEqual(
+                    (feedback.url,), result.facts.author_action_top_level_feedback_urls
+                )
+                self.assertEqual(
+                    (thread.comments[0].url,), result.facts.author_action_review_thread_urls
+                )
+
+    @patch("pull_request_evaluation.fetch_pull_request_source")
     async def test_author_handoff_uses_inline_reply_classification(
         self, fetch_raw: Mock
     ) -> None:
