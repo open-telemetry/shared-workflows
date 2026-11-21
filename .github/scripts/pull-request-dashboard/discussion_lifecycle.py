@@ -50,6 +50,11 @@ class PreparedDiscussions:
     review_threads: tuple[dict[str, Any], ...]
     top_level_items: tuple[dict[str, Any], ...]
     top_level_author_comment_items: tuple[dict[str, Any], ...]
+    author_handoff_release_threads: tuple[dict[str, Any], ...] = ()
+
+    @property
+    def review_thread_candidates(self) -> tuple[dict[str, Any], ...]:
+        return self.review_threads + self.author_handoff_release_threads
 
 
 @dataclass(frozen=True)
@@ -63,7 +68,7 @@ class DiscussionLifecycleOutcome:
 
     def dashboard_fields(self) -> dict[str, Any]:
         fields = {
-            "review_threads": list(self.prepared.review_threads),
+            "review_threads": list(self.prepared.review_thread_candidates),
             "top_level_items": list(self.prepared.top_level_items),
             "top_level_author_comment_items": list(
                 self.prepared.top_level_author_comment_items
@@ -175,11 +180,17 @@ def _positive_reaction_logins(
     return logins
 
 
-def _group_review_threads(source: DiscussionInput) -> list[dict[str, Any]]:
+def _group_review_threads(
+    source: DiscussionInput,
+    *,
+    author_handoff_cutoff: datetime | None = None,
+) -> list[dict[str, Any]]:
     discussions: list[dict[str, Any]] = []
     reviewers = set(source.reviewers)
     for discussion in source.review_threads:
-        if discussion.is_resolved or discussion.is_outdated:
+        if discussion.is_outdated or (
+            discussion.is_resolved and author_handoff_cutoff is None
+        ):
             continue
         raw_comments = discussion.comments
         ordered = sorted(raw_comments, key=lambda comment: comment.created_at)
@@ -201,6 +212,15 @@ def _group_review_threads(source: DiscussionInput) -> list[dict[str, Any]]:
             comment["actor_role"] == "author" for comment in comments
         ):
             continue
+        if discussion.is_resolved and author_handoff_cutoff is not None and not any(
+            comment["actor_role"] == "author"
+            and (
+                parse_ts(comment.get("activity_timestamp") or comment["timestamp"])
+                or _MIN_TIMESTAMP
+            ) > author_handoff_cutoff
+            for comment in comments
+        ):
+            continue
         latest_activity_comment = _latest_activity_comment(comments)
         discussions.append(
             _add_discussion_facts(
@@ -212,7 +232,7 @@ def _group_review_threads(source: DiscussionInput) -> list[dict[str, Any]]:
                     "discussion_kind": "review-comment-thread",
                     "path": discussion.path or None,
                     "line": discussion.line,
-                    "resolved": False,
+                    "resolved": discussion.is_resolved,
                     "discussion_url": (
                         root_comment.url if root_comment is not None else ""
                     ),
@@ -396,8 +416,11 @@ def prepare_discussions(
     source: DiscussionInput,
     *,
     top_level_feedback_cutoff: str = "",
+    author_handoff_since: str = "",
 ) -> PreparedDiscussions:
-    review_threads = _group_review_threads(source)
+    review_threads = _group_review_threads(
+        source, author_handoff_cutoff=parse_ts(author_handoff_since)
+    )
     top_level_items = _top_level_items_after_cutoff(
         _derive_top_level_items(source),
         top_level_feedback_cutoff,
@@ -407,9 +430,10 @@ def prepare_discussions(
         top_level_items,
     )
     return PreparedDiscussions(
-        tuple(review_threads),
+        tuple(thread for thread in review_threads if not thread["resolved"]),
         tuple(top_level_items),
         tuple(top_level_author_comment_items),
+        tuple(thread for thread in review_threads if thread["resolved"]),
     )
 
 
@@ -760,6 +784,10 @@ def _review_thread_pending_actions(
     by_id = _discussions_by_id(review_threads)
     pending_actions: dict[str, dict[str, Any]] = {}
     for classification in classifications:
+        discussion_id = classification.identity.discussion_id
+        discussion = by_id.get(discussion_id)
+        if discussion is None:
+            continue
         decision = classification.decision
         if not isinstance(decision, ActionDecision):
             raise TypeError(
@@ -768,10 +796,8 @@ def _review_thread_pending_actions(
                 f"({classification.identity.kind.value}) requires "
                 f"ActionDecision, got {type(decision).__name__}"
             )
-        discussion_id = classification.identity.discussion_id
-        discussion = by_id.get(discussion_id)
         action = decision.action
-        comments = (discussion or {}).get("comments") or []
+        comments = discussion.get("comments") or []
         if action is not DiscussionAction.NONE and comments:
             entry = {
                 "action": _pending_action_for(action.value),

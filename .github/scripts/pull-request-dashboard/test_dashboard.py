@@ -1481,12 +1481,16 @@ class PullRequestEvaluationTest(unittest.IsolatedAsyncioTestCase):
         self, fetch_raw: Mock
     ) -> None:
         cutoff = "2026-08-16T08:00:00Z"
-        for reply_time, action, released in (
-            ("2026-08-16T09:00:00Z", DiscussionAction.REVIEWER, True),
-            ("2026-08-16T09:00:00Z", DiscussionAction.AUTHOR, False),
-            (cutoff, DiscussionAction.REVIEWER, False),
+        after_cutoff = "2026-08-16T09:00:00Z"
+        for resolved, reply_time, action, released in (
+            (False, after_cutoff, DiscussionAction.REVIEWER, True),
+            (False, after_cutoff, DiscussionAction.AUTHOR, False),
+            (False, cutoff, DiscussionAction.REVIEWER, False),
+            (True, after_cutoff, DiscussionAction.REVIEWER, True),
+            (True, after_cutoff, DiscussionAction.AUTHOR, False),
+            (True, cutoff, DiscussionAction.REVIEWER, False),
         ):
-            with self.subTest(reply_time=reply_time, action=action):
+            with self.subTest(resolved=resolved, reply_time=reply_time, action=action):
                 fetch_raw.return_value = pull_request_source(
                     issue_comments=(
                         issue_comment(
@@ -1496,20 +1500,23 @@ class PullRequestEvaluationTest(unittest.IsolatedAsyncioTestCase):
                         ),
                     ),
                     review_threads=(
-                        review_thread(comments=(
-                            review_thread_comment(),
-                            review_thread_comment(
-                                node_id="PRRC_2",
-                                actor=actor("author"),
-                                created_at=reply_time,
-                                updated_at=reply_time,
-                                body=(
-                                    "Can you check the new wording?"
-                                    if action is DiscussionAction.REVIEWER
-                                    else "I'll update the wording tomorrow."
+                        review_thread(
+                            is_resolved=resolved,
+                            comments=(
+                                review_thread_comment(),
+                                review_thread_comment(
+                                    node_id="PRRC_2",
+                                    actor=actor("author"),
+                                    created_at=reply_time,
+                                    updated_at=reply_time,
+                                    body=(
+                                        "Can you explain what you meant by this?"
+                                        if action is DiscussionAction.REVIEWER
+                                        else "I'll update the wording tomorrow."
+                                    ),
                                 ),
                             ),
-                        )),
+                        ),
                     ),
                 )
                 decision = replace(
@@ -1519,7 +1526,9 @@ class PullRequestEvaluationTest(unittest.IsolatedAsyncioTestCase):
                     since=reply_time,
                 )
                 classifier = FakeClassificationOperation(
-                    DiscussionClassifications((decision,), (), ())
+                    DiscussionClassifications(
+                        () if resolved and reply_time == cutoff else (decision,), (), ()
+                    )
                 )
                 result = await evaluate_pr({"number": 7}, classification_service=classifier)
                 assert isinstance(result, EvaluationSuccess)
@@ -1529,7 +1538,17 @@ class PullRequestEvaluationTest(unittest.IsolatedAsyncioTestCase):
                     result.route,
                 )
                 self.assertEqual(1, len(classifier.requests))
+                self.assertEqual(
+                    [] if resolved and reply_time == cutoff else ["PRRT_1"],
+                    [
+                        candidate.identity.discussion_id
+                        for candidate in classifier.requests[0].review_threads
+                    ],
+                )
                 self.assertEqual([], classifier.reviewer_feedback_requests)
+                if resolved:
+                    self.assertEqual({}, result.pending_actions)
+                    self.assertEqual((), result.facts.author_action_review_thread_urls)
 
     @patch("pull_request_evaluation.fetch_pull_request_source")
     async def test_completed_top_level_reply_restores_normal_routing(

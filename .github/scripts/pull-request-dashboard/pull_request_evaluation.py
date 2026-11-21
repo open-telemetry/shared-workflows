@@ -356,7 +356,7 @@ def _evaluation_diagnostics(
     lifecycle: DiscussionLifecycleOutcome,
 ) -> EvaluationDiagnostics:
     return EvaluationDiagnostics(
-        review_threads=lifecycle.prepared.review_threads,
+        review_threads=lifecycle.prepared.review_thread_candidates,
         top_level_items=lifecycle.prepared.top_level_items,
         top_level_author_comment_items=(
             lifecycle.prepared.top_level_author_comment_items
@@ -384,7 +384,7 @@ async def _classify_discussions(
             model=classifier_model,
             review_threads=tuple(
                 ClassificationDiscussion.from_record(discussion)
-                for discussion in prepared.review_threads
+                for discussion in prepared.review_thread_candidates
             ),
             top_level_items=tuple(
                 ClassificationDiscussion.from_record(discussion)
@@ -485,6 +485,9 @@ async def evaluate_pull_request(
         prepared_discussions = prepare_discussions(
             discussion_input,
             top_level_feedback_cutoff=facts.dashboard_top_level_feedback_cutoff,
+            author_handoff_since=(
+                facts.dashboard_override_since if author_handoff_active(facts) else ""
+            ),
         )
         if manual_reviewer_handoff:
             # Old discussions cannot block a break-glass handoff. Only newer
