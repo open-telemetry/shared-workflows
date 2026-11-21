@@ -33,7 +33,6 @@ from dashboard_state_update import (
     prepare_dashboard_update,
 )
 from dashboard_contracts import (
-    CopilotReviewFallback,
     DashboardCommandReply,
     DashboardFacts,
     DashboardRoute,
@@ -47,6 +46,7 @@ from dashboard_contracts import (
 from dashboard_test_support import (
     actor,
     check_source,
+    copilot_review_fallback,
     dashboard_facts,
     dashboard_state,
     evaluation_success,
@@ -488,7 +488,9 @@ class DashboardFallbackSnapshotTest(unittest.IsolatedAsyncioTestCase):
                     "otelbot/pull-request-dashboard-delivery/repo", required=False,
                 )
                 self.assertEqual({
-                    "7": CopilotReviewFallback((10,), "2026-08-16T11:59:00Z", True),
+                    "7": copilot_review_fallback(
+                        (10,), "2026-08-16T11:59:00Z", True, attempt_id=ANY,
+                    ),
                 }, args.copilot_review_fallbacks)
                 if pr_number is None:
                     backfill.assert_awaited_once()
@@ -796,7 +798,7 @@ class PullRequestEvaluationTest(unittest.IsolatedAsyncioTestCase):
                 "who requested the review has reached their quota limit."
             ),
         )
-        fallback = CopilotReviewFallback((10,), "2026-08-16T11:59:00Z")
+        fallback = copilot_review_fallback((10,), "2026-08-16T11:59:00Z")
         for record, reviews, terminal, expected in (
             (None, (quota,), False, False),
             (fallback, (quota,), False, False),
@@ -881,7 +883,7 @@ class PullRequestEvaluationTest(unittest.IsolatedAsyncioTestCase):
                     replace(
                         evaluation_config(require_clean_copilot_review_branches=["main"]),
                         copilot_review_fallback_available=True,
-                        copilot_review_fallback=CopilotReviewFallback(
+                        copilot_review_fallback=copilot_review_fallback(
                             (10,), "2026-08-16T11:59:00Z", exhausted,
                         ),
                     ),

@@ -341,12 +341,19 @@ secret with a token allowed to request Copilot reviews. The owned drain
 passes it to the selected processor for both channels and both lanes.
 After the first quota notice, the dashboard switches review requests to this
 fallback requester and keeps the Copilot gate active under its normal rules.
-Each fallback request records the requested head and existing review IDs. New
-quota notices for that head exhaust the attempt unless a completed Copilot review
-preceded them. A completed attempt does not claim later quota notices, and each
-subsequent request starts a fresh baseline. Cached exhaustion decisions are
-reevaluated against review history so notices after a completed attempt do not
-permanently disable requests.
+Each fallback request records the head returned by GitHub and existing review
+IDs. New quota notices for that head exhaust the attempt unless a completed
+Copilot response preceded them. Unresolved attempts survive later requests,
+pushes, and delivery retries; a completed attempt does not claim later quota
+notices.
+
+Definite request rejections restore the previous attempt state. Transport errors
+retain a tentative attempt with an unknown head because GitHub may already have
+accepted it. Older attempts without a completed-review baseline accept completion
+only after their original, unrounded request timestamp.
+
+Cached exhaustion decisions are reevaluated against review history so notices
+after a completed attempt do not permanently disable requests.
 
 Genuine fallback quota exhaustion stops automatic requests and immediately
 releases the Copilot gate for that PR, including after later pushes. Required

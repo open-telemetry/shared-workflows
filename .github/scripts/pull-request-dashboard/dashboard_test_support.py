@@ -5,6 +5,8 @@ from __future__ import annotations
 from typing import Any
 
 from dashboard_contracts import (
+    CopilotReviewAttempt,
+    CopilotReviewFallback,
     DashboardFacts,
     DashboardRoute,
     DashboardState,
@@ -35,6 +37,23 @@ from pull_request_source import (
 
 def actor(login: str = "", **changes: Any) -> Actor:
     return Actor(login=login, **changes)
+
+
+def copilot_review_fallback(
+    quota_failure_ids: tuple[int, ...],
+    attempted_at: str,
+    exhausted: bool = False,
+    *,
+    head_sha: str = "",
+    review_ids: tuple[int, ...] | None = None,
+    attempt_id: str = "test-attempt",
+) -> CopilotReviewFallback:
+    return CopilotReviewFallback(
+        (CopilotReviewAttempt(
+            quota_failure_ids, attempted_at, head_sha, review_ids, attempt_id,
+        ),),
+        exhausted,
+    )
 
 
 def pull_request_metadata(**changes: Any) -> PullRequestMetadata:

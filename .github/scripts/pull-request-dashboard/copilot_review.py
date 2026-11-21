@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 
-from dashboard_contracts import CopilotReviewFallback, DashboardFacts
+from dashboard_contracts import CopilotReviewAttempt, CopilotReviewFallback, DashboardFacts
 from github_cli import (
     fetch_pr_reviews,
     fetch_review_requests,
@@ -91,6 +91,56 @@ def copilot_quota_failure_ids(reviews: Sequence[Review]) -> tuple[int, ...]:
     return tuple(sorted({review.database_id for review in failures}))
 
 
+def copilot_review_attempt_outcome(
+    attempt: CopilotReviewAttempt,
+    reviews: Sequence[Review],
+) -> Literal["pending", "completed", "quota_exhausted"]:
+    new_failure_ids = set(copilot_quota_failure_ids(reviews)) - set(attempt.quota_failure_ids)
+    attempted_at = parse_ts(attempt.attempted_at)
+    if attempted_at is None or attempted_at.tzinfo is None:
+        raise RuntimeError("Copilot review fallback has an invalid attempt timestamp")
+    failure_cutoff = attempted_at.replace(microsecond=0)
+    baseline_ids = set(attempt.review_ids or ()) | set(attempt.quota_failure_ids)
+    failure_times: list[datetime] = []
+    completion_times: list[datetime] = []
+    for review in reviews:
+        if (
+            not is_copilot_reviewer(review)
+            or review.database_id in baseline_ids
+            or review.state == "PENDING"
+        ):
+            continue
+        if attempt.head_sha and review.commit_id != attempt.head_sha:
+            continue
+        quota_failure = review.database_id in new_failure_ids
+        if not quota_failure and not (
+            is_completed_copilot_review(review) or is_copilot_error(review)
+        ):
+            continue
+        if review.database_id <= 0:
+            raise RuntimeError("GitHub returned a Copilot review without a review ID")
+        submitted_at = parse_ts(review.submitted_at)
+        if submitted_at is None or submitted_at.tzinfo is None:
+            kind = "quota notice" if quota_failure else "completed review"
+            raise RuntimeError(
+                f"GitHub returned a Copilot {kind} without a valid submission timestamp"
+            )
+        if quota_failure:
+            if submitted_at >= failure_cutoff:
+                failure_times.append(submitted_at)
+        # Without an ID baseline, a same-second review may predate the request.
+        elif (
+            (attempt.review_ids is None and submitted_at > attempted_at)
+            or (attempt.review_ids is not None and submitted_at >= failure_cutoff)
+        ):
+            completion_times.append(submitted_at)
+    if failure_times and (
+        not completion_times or min(failure_times) <= min(completion_times)
+    ):
+        return "quota_exhausted"
+    return "completed" if completion_times else "pending"
+
+
 def copilot_fallback_exhausted(
     fallback: CopilotReviewFallback | None,
     reviews: Sequence[Review],
@@ -101,34 +151,14 @@ def copilot_fallback_exhausted(
         return previously_exhausted
     if fallback.exhausted:
         return True
-    new_failure_ids = set(copilot_quota_failure_ids(reviews)) - set(fallback.quota_failure_ids)
-    attempted_at = parse_ts(fallback.attempted_at)
-    if attempted_at is None or attempted_at.tzinfo is None:
-        raise RuntimeError("Copilot review fallback has an invalid attempt timestamp")
-    # GitHub reports review submissions with second precision.
-    attempted_at = attempted_at.replace(microsecond=0)
-    baseline_ids = set(fallback.review_ids) | set(fallback.quota_failure_ids)
-    failure_times: list[datetime] = []
-    completion_times: list[datetime] = []
-    for review in reviews:
-        if not is_copilot_reviewer(review) or review.database_id in baseline_ids:
-            continue
-        if fallback.head_sha and review.commit_id != fallback.head_sha:
-            continue
-        quota_failure = review.database_id in new_failure_ids
-        if not quota_failure and not is_completed_copilot_review(review):
-            continue
-        submitted_at = parse_ts(review.submitted_at)
-        if submitted_at is None or submitted_at.tzinfo is None:
-            kind = "quota notice" if quota_failure else "completed review"
-            raise RuntimeError(
-                f"GitHub returned a Copilot {kind} without a valid submission timestamp"
-            )
-        if submitted_at >= attempted_at:
-            (failure_times if quota_failure else completion_times).append(submitted_at)
-    if not failure_times:
-        return previously_exhausted and not completion_times
-    return not completion_times or min(failure_times) <= min(completion_times)
+    outcomes = tuple(
+        copilot_review_attempt_outcome(attempt, reviews)
+        for attempt in fallback.attempts
+    )
+    return (
+        "quota_exhausted" in outcomes
+        or (previously_exhausted and (not outcomes or "pending" in outcomes))
+    )
 
 
 def copilot_reviews_disabled(facts: DashboardFacts) -> bool:

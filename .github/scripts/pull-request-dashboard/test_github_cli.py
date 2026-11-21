@@ -6,6 +6,7 @@ import unittest
 from unittest.mock import ANY, call, patch
 
 from github_cli import (
+    CopilotReviewRequestRejected,
     GH_RETRY_ATTEMPTS,
     GhNotFoundError,
     TransientGhError,
@@ -419,7 +420,13 @@ class GithubCliTest(unittest.TestCase):
         self,
         graphql,
     ) -> None:
-        request_copilot_review("PR_node_id")
+        graphql.return_value = {
+            "data": {"requestReviews": {"pullRequest": {
+                "id": "PR_node_id", "headRefOid": "actual-head",
+            }}},
+        }
+
+        self.assertEqual("actual-head", request_copilot_review("PR_node_id"))
 
         graphql.assert_called_once_with(
             ANY,
@@ -428,17 +435,66 @@ class GithubCliTest(unittest.TestCase):
                 "botId": "BOT_kgDOCnlnWA",
             },
             token=None,
+            retry=False,
         )
         mutation = graphql.call_args.args[0]
         self.assertIn("requestReviews", mutation)
         self.assertIn("botIds: [$botId]", mutation)
         self.assertIn("union: true", mutation)
+        self.assertIn("headRefOid", mutation)
 
     @patch("github_cli.gh_graphql")
     def test_request_copilot_review_uses_explicit_token(self, graphql) -> None:
+        graphql.return_value = {
+            "data": {"requestReviews": {"pullRequest": {
+                "id": "PR_node_id", "headRefOid": "actual-head",
+            }}},
+        }
         request_copilot_review("PR_node_id", token="request-token")
 
         self.assertEqual("request-token", graphql.call_args.kwargs["token"])
+
+    @patch("github_cli.sleep_for_retry")
+    @patch("github_cli.subprocess.run")
+    def test_request_rejections_are_distinct_from_ambiguous_failures(self, run, sleep) -> None:
+        cases = (
+            ("forbidden", "", "gh: Forbidden (HTTP 403)", CopilotReviewRequestRejected),
+            (
+                "graphql_permission",
+                '{"data":{"requestReviews":null},"errors":[{"type":"FORBIDDEN"}]}',
+                "gh: Resource not accessible by integration",
+                CopilotReviewRequestRejected,
+            ),
+            ("timeout", "", "request timeout", TransientGhError),
+            (
+                "server_error",
+                '{"data":{"requestReviews":null},"errors":[{"type":"INTERNAL"}]}',
+                "gh: HTTP 502",
+                TransientGhError,
+            ),
+        )
+        for name, stdout, stderr, error_type in cases:
+            with self.subTest(name=name):
+                run.reset_mock()
+                sleep.reset_mock()
+                run.return_value = subprocess.CompletedProcess(["gh"], 1, stdout, stderr)
+
+                with self.assertRaises(error_type):
+                    request_copilot_review("PR_node_id")
+
+                run.assert_called_once()
+                sleep.assert_not_called()
+
+    @patch("github_cli.subprocess.run")
+    def test_missing_mutation_head_is_ambiguous_not_a_definite_rejection(self, run) -> None:
+        run.return_value = subprocess.CompletedProcess(
+            ["gh"], 0, '{"data":{"requestReviews":{"pullRequest":{"id":"PR_node_id"}}}}', "",
+        )
+
+        with self.assertRaisesRegex(TransientGhError, "requested pull request head"):
+            request_copilot_review("PR_node_id")
+
+        run.assert_called_once()
 
     @patch("github_cli.gh_graphql")
     def test_fetch_pr_issue_comments_paginates(self, graphql) -> None:

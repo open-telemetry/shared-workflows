@@ -7,11 +7,13 @@ from datetime import datetime
 import os
 from pathlib import Path
 import sys
+import uuid
 
 from copilot_review import (
     COPILOT_REVIEW_ERROR_LIMIT,
     copilot_fallback_exhausted,
     copilot_quota_failure_ids,
+    copilot_review_attempt_outcome,
     copilot_review_error_count,
     copilot_review_request_landed,
     copilot_review_status,
@@ -19,8 +21,8 @@ from copilot_review import (
     is_copilot_reviewer,
     stale_request_reason,
 )
-from dashboard_contracts import CopilotReviewFallback, StoredDashboardResult
-from github_cli import fetch_pr_reviews, request_copilot_review
+from dashboard_contracts import CopilotReviewAttempt, CopilotReviewFallback, StoredDashboardResult
+from github_cli import CopilotReviewRequestRejected, fetch_pr_reviews, request_copilot_review
 from pull_request_source import normalize_reviews
 from routing_snapshot import fetch_routing_snapshot
 from state import (
@@ -173,21 +175,41 @@ def deliver_copilot_review_requests(
                 }))
                 if any(review_id <= 0 for review_id in review_ids):
                     raise RuntimeError("GitHub returned a Copilot review without a review ID")
-                fallbacks[key] = CopilotReviewFallback(
+                attempt = CopilotReviewAttempt(
                     quota_failure_ids,
                     format_ts(now),
-                    head_sha=snapshot.head_sha,
                     review_ids=review_ids,
+                    attempt_id=str(uuid.uuid4()),
+                )
+                pending_attempts = tuple(
+                    prior for prior in (fallback.attempts if fallback is not None else ())
+                    if copilot_review_attempt_outcome(prior, reviews) == "pending"
+                )
+                fallbacks[key] = CopilotReviewFallback(
+                    (*pending_attempts, attempt),
                 )
                 save_copilot_review_fallbacks(fallbacks)
-                request_copilot_review(pull_request_id, token=token)
+                try:
+                    requested_head = request_copilot_review(pull_request_id, token=token)
+                except CopilotReviewRequestRejected:
+                    if fallback is None:
+                        fallbacks.pop(key, None)
+                    else:
+                        fallbacks[key] = fallback
+                    save_copilot_review_fallbacks(fallbacks)
+                    raise
+                fallbacks[key] = CopilotReviewFallback((
+                    *pending_attempts,
+                    replace(attempt, head_sha=requested_head),
+                ))
+                save_copilot_review_fallbacks(fallbacks)
             else:
-                request_copilot_review(pull_request_id)
+                requested_head = request_copilot_review(pull_request_id)
             landed = copilot_review_request_landed(
                 owner,
                 repo_name,
                 pr_number,
-                snapshot.head_sha,
+                requested_head,
             )
         except Exception as error:
             errors.append(f"PR #{pr_number}: {error}")
@@ -203,7 +225,7 @@ def deliver_copilot_review_requests(
         # pull request held, and the hold is what reports the stall.
         print(
             f"GitHub did not record the Copilot review request for "
-            f"PR #{pr_number} on head {snapshot.head_sha}",
+            f"PR #{pr_number} on head {requested_head}",
             file=sys.stderr,
         )
     save_copilot_review_requests(requests)

@@ -6,9 +6,10 @@ from datetime import datetime, timezone
 import io
 import os
 from pathlib import Path
+import subprocess
 import tempfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import ANY, patch
 
 from copilot_review import (
     REQUEST_CONFIRMATION_ATTEMPTS,
@@ -29,11 +30,12 @@ from copilot_review_delivery import (
 )
 from dashboard_test_support import (
     actor,
+    copilot_review_fallback,
     dashboard_facts,
     review_source,
     stored_dashboard_result,
 )
-from dashboard_contracts import CopilotReviewFallback
+from github_cli import TransientGhError, request_copilot_review
 from state import (
     copilot_review_fallback_state_path,
     copilot_review_request_state_path,
@@ -433,7 +435,9 @@ class CopilotFallbackDeliveryTest(unittest.TestCase):
             copilot_request_fingerprint="accepted-fingerprint"
         )
         self.reviews = []
-        self.request = self.enterContext(patch("copilot_review_delivery.request_copilot_review"))
+        self.request = self.enterContext(patch(
+            "copilot_review_delivery.request_copilot_review", return_value="current-head",
+        ))
         self.enterContext(patch(
             "copilot_review_delivery.fetch_routing_snapshot",
             side_effect=lambda *_: self.snapshot,
@@ -488,8 +492,9 @@ class CopilotFallbackDeliveryTest(unittest.TestCase):
         ]
         self.assertEqual([], self.deliver())
         self.assertEqual(
-            CopilotReviewFallback(
-                (10, 11), format_ts(NOW), head_sha="current-head", review_ids=(10, 11),
+            copilot_review_fallback(
+                (10, 11), format_ts(NOW), head_sha="current-head",
+                review_ids=(10, 11), attempt_id=ANY,
             ),
             load_copilot_review_fallbacks()["7"],
         )
@@ -501,8 +506,9 @@ class CopilotFallbackDeliveryTest(unittest.TestCase):
         ]
         self.assertEqual([], self.deliver())
         self.assertEqual(
-            CopilotReviewFallback(
-                (10,), format_ts(NOW), head_sha="current-head", review_ids=(10,),
+            copilot_review_fallback(
+                (10,), format_ts(NOW), head_sha="current-head",
+                review_ids=(10,), attempt_id=ANY,
             ),
             load_copilot_review_fallbacks()["7"],
         )
@@ -518,7 +524,7 @@ class CopilotFallbackDeliveryTest(unittest.TestCase):
         self.request.assert_called_once_with("PR_node", token="request-token")
 
     def test_persisted_fallback_ignores_older_newly_recognized_notices(self) -> None:
-        fallback = CopilotReviewFallback((10,), format_ts(NOW))
+        fallback = copilot_review_fallback((10,), format_ts(NOW))
         save_copilot_review_fallbacks({"7": fallback})
         self.reviews = [
             {
@@ -530,11 +536,14 @@ class CopilotFallbackDeliveryTest(unittest.TestCase):
 
         self.assertEqual([], self.deliver())
 
+        updated = load_copilot_review_fallbacks()["7"]
+        self.assertEqual(fallback.attempts, updated.attempts[:1])
         self.assertEqual(
-            CopilotReviewFallback(
-                (9, 10), format_ts(NOW), head_sha="current-head", review_ids=(9, 10),
-            ),
-            load_copilot_review_fallbacks()["7"],
+            copilot_review_fallback(
+                (9, 10), format_ts(NOW), head_sha="current-head",
+                review_ids=(9, 10), attempt_id=ANY,
+            ).attempts,
+            updated.attempts[1:],
         )
         self.request.assert_called_once_with("PR_node", token="request-token")
 
@@ -547,8 +556,9 @@ class CopilotFallbackDeliveryTest(unittest.TestCase):
         self.reviews = [self.quota_notice(10), self.quota_notice(11)]
         self.assertEqual([], self.deliver())
         self.assertEqual(
-            CopilotReviewFallback(
-                (10, 11), format_ts(NOW), head_sha="current-head", review_ids=(10, 11),
+            copilot_review_fallback(
+                (10, 11), format_ts(NOW), head_sha="current-head",
+                review_ids=(10, 11), attempt_id=ANY,
             ),
             load_copilot_review_fallbacks()["7"],
         )
@@ -597,6 +607,7 @@ class CopilotFallbackDeliveryTest(unittest.TestCase):
         self.assertEqual([], self.deliver())
         save_copilot_review_requests({})
         self.snapshot = replace(self.snapshot, head_sha="next-head")
+        self.request.return_value = "next-head"
         self.reviews = []
         self.enqueue()
         self.assertEqual([], self.deliver())
@@ -605,9 +616,10 @@ class CopilotFallbackDeliveryTest(unittest.TestCase):
 
     def test_successful_fallback_starts_a_fresh_attempt_after_author_quota_failure(self) -> None:
         save_copilot_review_fallbacks({
-            "7": CopilotReviewFallback((10,), format_ts(NOW)),
+            "7": copilot_review_fallback((10,), format_ts(NOW)),
         })
         self.snapshot = replace(self.snapshot, head_sha="next-head")
+        self.request.return_value = "next-head"
         self.reviews = [
             self.quota_notice(10),
             {
@@ -633,10 +645,12 @@ class CopilotFallbackDeliveryTest(unittest.TestCase):
         self.request.assert_called_once_with("PR_node", token="request-token")
         fallback = load_copilot_review_fallbacks()["7"]
         self.assertFalse(fallback.exhausted)
-        self.assertEqual(format_ts(attempted_at), fallback.attempted_at)
-        self.assertEqual((10, 12), fallback.quota_failure_ids)
-        self.assertEqual("next-head", fallback.head_sha)
-        self.assertEqual((10, 11, 12), fallback.review_ids)
+        self.assertEqual(1, len(fallback.attempts))
+        attempt = fallback.attempts[0]
+        self.assertEqual(format_ts(attempted_at), attempt.attempted_at)
+        self.assertEqual((10, 12), attempt.quota_failure_ids)
+        self.assertEqual("next-head", attempt.head_sha)
+        self.assertEqual((10, 11, 12), attempt.review_ids)
 
         self.reviews.append({
             **self.quota_notice(13),
@@ -705,7 +719,7 @@ class CopilotFallbackDeliveryTest(unittest.TestCase):
         self.request.assert_called_once_with("PR_node", token="request-token")
 
     def test_cas_retry_persists_exhaustion_without_queued_requests(self) -> None:
-        fallback = CopilotReviewFallback((10,), format_ts(NOW), exhausted=True)
+        fallback = copilot_review_fallback((10,), format_ts(NOW), exhausted=True)
         save_copilot_review_fallbacks({"7": fallback})
         save_copilot_review_requests({})
         with tempfile.TemporaryDirectory() as directory:
@@ -728,12 +742,113 @@ class CopilotFallbackDeliveryTest(unittest.TestCase):
 
     def test_request_error_is_reported_without_disabling_fallback(self) -> None:
         self.reviews = [self.quota_notice(10)]
-        self.request.side_effect = RuntimeError("HTTP 403")
-        self.assertEqual(["PR #7: HTTP 403"], self.deliver())
-        self.assertFalse(load_copilot_review_fallbacks()["7"].exhausted)
+        self.request.side_effect = TransientGhError("HTTP 502")
+        self.assertEqual(["PR #7: HTTP 502"], self.deliver())
+        fallback = load_copilot_review_fallbacks()["7"]
+        self.assertFalse(fallback.exhausted)
+        self.assertEqual("", fallback.attempts[0].head_sha)
         self.assertEqual("", load_copilot_review_requests()["7"]["requested_at"])
         self.request.side_effect = None
         self.assertEqual([], self.deliver())
+        self.assertEqual(2, len(load_copilot_review_fallbacks()["7"].attempts))
+
+    def test_first_rejected_request_does_not_create_a_fallback_attempt(self) -> None:
+        self.reviews = [self.quota_notice(10)]
+        self.request.side_effect = request_copilot_review
+        with patch("github_cli.subprocess.run", return_value=subprocess.CompletedProcess(
+            ["gh"], 1, "", "gh: Forbidden (HTTP 403)",
+        )):
+            errors = self.deliver()
+
+        self.assertEqual(1, len(errors))
+        self.assertIn("HTTP 403", errors[0])
+        self.assertEqual({}, load_copilot_review_fallbacks())
+        self.assertEqual("", load_copilot_review_requests()["7"]["requested_at"])
+
+    def test_rejected_request_restores_the_previous_completed_attempt(self) -> None:
+        fallback = copilot_review_fallback(
+            (10,), format_ts(NOW), head_sha="current-head", review_ids=(10,),
+        )
+        save_copilot_review_fallbacks({"7": fallback})
+        self.snapshot = replace(self.snapshot, head_sha="next-head")
+        self.reviews = [
+            self.quota_notice(10),
+            {
+                "id": 11,
+                "user": {"login": "copilot"},
+                "commit_id": "current-head",
+                "body": "No issues found.",
+                "submitted_at": format_ts(NOW.replace(minute=1)),
+            },
+        ]
+        self.enqueue()
+        self.request.side_effect = request_copilot_review
+        with patch("github_cli.subprocess.run", return_value=subprocess.CompletedProcess(
+            ["gh"], 1, "", "gh: Forbidden (HTTP 403)",
+        )):
+            errors = deliver_copilot_review_requests(
+                "open-telemetry/example", NOW.replace(hour=3),
+            )
+
+        self.assertEqual(1, len(errors))
+        self.assertIn("HTTP 403", errors[0])
+        self.assertEqual(fallback, load_copilot_review_fallbacks()["7"])
+        self.reviews.append({
+            **self.quota_notice(12),
+            "commit_id": "next-head",
+            "submitted_at": format_ts(NOW.replace(hour=4)),
+        })
+        self.assertFalse(copilot_fallback_exhausted(
+            load_copilot_review_fallbacks()["7"],
+            normalize_pull_request_source({"reviews": self.reviews}).reviews,
+        ))
+
+    def test_requested_head_is_reconciled_with_the_mutation_response(self) -> None:
+        self.reviews = [self.quota_notice(10)]
+        self.request.return_value = "next-head"
+
+        self.assertEqual([], self.deliver())
+
+        self.assertEqual("next-head", load_copilot_review_fallbacks()["7"].attempts[0].head_sha)
+        self.landed.assert_called_once_with(
+            "open-telemetry", "example", 7, "next-head",
+        )
+        self.snapshot = replace(self.snapshot, head_sha="next-head")
+        self.reviews.append({
+            **self.quota_notice(11),
+            "commit_id": "next-head",
+            "submitted_at": format_ts(NOW.replace(minute=1)),
+        })
+        self.enqueue()
+        self.assertEqual([], self.deliver())
+        self.assertTrue(load_copilot_review_fallbacks()["7"].exhausted)
+        self.request.assert_called_once_with("PR_node", token="request-token")
+
+    def test_unconfirmed_attempt_survives_retry_after_a_push(self) -> None:
+        self.reviews = [self.quota_notice(10)]
+        self.request.return_value = "current-head"
+        self.landed.return_value = False
+        self.assertEqual([], self.deliver())
+
+        self.snapshot = replace(self.snapshot, head_sha="next-head")
+        self.request.return_value = "next-head"
+        self.enqueue()
+        self.assertEqual([], deliver_copilot_review_requests(
+            "open-telemetry/example", NOW.replace(hour=3),
+        ))
+
+        self.reviews.append({
+            **self.quota_notice(11),
+            "submitted_at": format_ts(NOW.replace(hour=4)),
+        })
+        self.enqueue()
+        self.assertEqual([], deliver_copilot_review_requests(
+            "open-telemetry/example", NOW.replace(hour=5),
+        ))
+
+        self.assertTrue(load_copilot_review_fallbacks()["7"].exhausted)
+        self.assertEqual({}, load_copilot_review_requests())
+        self.assertEqual(2, self.request.call_count)
 
     def test_missing_secret_disables_requests(self) -> None:
         self.reviews = [self.quota_notice(10)]
@@ -779,7 +894,7 @@ class CopilotFallbackDeliveryTest(unittest.TestCase):
         self.request.assert_not_called()
 
     def test_only_new_copilot_quota_notices_exhaust_fallback(self) -> None:
-        fallback = CopilotReviewFallback((10,), format_ts(NOW))
+        fallback = copilot_review_fallback((10,), format_ts(NOW))
         old = review_source(database_id=10, actor=actor("copilot"), body=QUOTA_FAILURE_BODY)
         human = replace(old, database_id=11, actor=actor("reviewer"))
         self.assertFalse(copilot_fallback_exhausted(fallback, (old, human)))
@@ -800,7 +915,7 @@ class CopilotFallbackDeliveryTest(unittest.TestCase):
         )
         for exhausted in (False, True):
             with self.subTest(exhausted=exhausted):
-                fallback = CopilotReviewFallback((10,), format_ts(NOW), exhausted)
+                fallback = copilot_review_fallback((10,), format_ts(NOW), exhausted)
                 self.assertEqual(
                     exhausted,
                     copilot_fallback_exhausted(
@@ -819,7 +934,7 @@ class CopilotFallbackDeliveryTest(unittest.TestCase):
         ))
 
     def test_fallback_completion_requires_a_new_completed_review_of_the_requested_head(self) -> None:
-        fallback = CopilotReviewFallback(
+        fallback = copilot_review_fallback(
             (10,), format_ts(NOW), head_sha="current-head", review_ids=(10,),
         )
         completed = review_source(
@@ -839,14 +954,16 @@ class CopilotFallbackDeliveryTest(unittest.TestCase):
             ("completed", fallback, completed, False),
             (
                 "baseline_review_in_attempt_second",
-                replace(fallback, review_ids=(10, 11)),
+                replace(fallback, attempts=(
+                    replace(fallback.attempts[0], review_ids=(10, 11)),
+                )),
                 replace(completed, submitted_at=format_ts(NOW)),
                 True,
             ),
             ("different_head", fallback, replace(completed, commit_id="other-head"), True),
             ("pending", fallback, replace(completed, state="PENDING"), True),
             ("human", fallback, replace(completed, actor=actor("reviewer")), True),
-            ("error", fallback, replace(completed, body=ERROR_BODY), True),
+            ("error_closes_attempt", fallback, replace(completed, body=ERROR_BODY), False),
             (
                 "older_review",
                 fallback,
@@ -871,7 +988,7 @@ class CopilotFallbackDeliveryTest(unittest.TestCase):
         ))
 
     def test_quota_notice_in_attempt_second_exhausts_fallback(self) -> None:
-        fallback = CopilotReviewFallback((10,), format_ts(NOW.replace(microsecond=500000)))
+        fallback = copilot_review_fallback((10,), format_ts(NOW.replace(microsecond=500000)))
         notice = review_source(
             database_id=11,
             actor=actor("copilot"),
@@ -881,8 +998,26 @@ class CopilotFallbackDeliveryTest(unittest.TestCase):
 
         self.assertTrue(copilot_fallback_exhausted(fallback, (notice,)))
 
+    def test_legacy_completion_in_the_request_second_does_not_close_an_attempt(self) -> None:
+        completed = review_source(
+            database_id=11,
+            actor=actor("copilot"),
+            body="No issues found.",
+            submitted_at=format_ts(NOW),
+        )
+        failure = replace(
+            completed, database_id=12, body=QUOTA_FAILURE_BODY,
+            submitted_at=format_ts(NOW.replace(minute=1)),
+        )
+        for attempted_at in (NOW, NOW.replace(microsecond=500000)):
+            with self.subTest(attempted_at=attempted_at):
+                self.assertTrue(copilot_fallback_exhausted(
+                    copilot_review_fallback((10,), format_ts(attempted_at)),
+                    (completed, failure),
+                ))
+
     def test_invalid_fallback_comparison_timestamps_fail_explicitly(self) -> None:
-        fallback = CopilotReviewFallback((10,), format_ts(NOW))
+        fallback = copilot_review_fallback((10,), format_ts(NOW))
         notice = review_source(
             database_id=11,
             actor=actor("copilot"),
@@ -893,7 +1028,10 @@ class CopilotFallbackDeliveryTest(unittest.TestCase):
             with self.subTest(timestamp=timestamp):
                 with self.assertRaisesRegex(RuntimeError, "invalid attempt timestamp"):
                     copilot_fallback_exhausted(
-                        replace(fallback, attempted_at=timestamp), (notice,)
+                        replace(fallback, attempts=(
+                            replace(fallback.attempts[0], attempted_at=timestamp),
+                        )),
+                        (notice,),
                     )
                 with self.assertRaisesRegex(RuntimeError, "valid submission timestamp"):
                     copilot_fallback_exhausted(
@@ -1540,6 +1678,7 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
         fetch_pending_requests,
         _sleep,
     ) -> None:
+        _request_review.return_value = "current-head"
         stderr = io.StringIO()
 
         with redirect_stderr(stderr):
@@ -1608,6 +1747,7 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
         _fetch_pending_requests,
         _sleep,
     ) -> None:
+        _request_review.return_value = "current-head"
         errors = deliver_copilot_review_requests("open-telemetry/example", NOW)
 
         self.assertEqual([], errors)

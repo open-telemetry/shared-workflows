@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from dashboard_contracts import (
+    CopilotReviewAttempt,
     CopilotReviewFallback,
     DashboardCommandReply,
     DashboardFacts,
@@ -45,7 +46,7 @@ FULL_PUBLISH_DELIVERED_FILE = "full-publish-delivered.json"
 # caches. Every constant ending in _STATE_VERSION or _REVISION is included.
 # dashboard-state.json: accepted PR routing results and backfill readiness.
 # Routing facts include current-head Copilot error counts for bounded retries.
-DASHBOARD_STATE_VERSION = 22
+DASHBOARD_STATE_VERSION = 23
 DASHBOARD_STATE_COMPATIBLE_VERSIONS: tuple[int, ...] = ()
 # backfill-state.json: round-robin cursor used by full dashboard refreshes.
 BACKFILL_STATE_VERSION = 3
@@ -54,8 +55,8 @@ NOTIFICATION_STATE_VERSION = 3
 # author-nudge-state.json: waiting episodes and delivered author reminders.
 AUTHOR_NUDGE_STATE_VERSION = 4
 # copilot-review-request-state.json: pending and delivered review requests.
-COPILOT_REVIEW_REQUEST_STATE_VERSION = 10
-COPILOT_REVIEW_FALLBACK_STATE_VERSION = 2
+COPILOT_REVIEW_REQUEST_STATE_VERSION = 11
+COPILOT_REVIEW_FALLBACK_STATE_VERSION = 3
 # status-comment-rollout-state.json: target/completed renderer revisions and queue.
 STATUS_COMMENT_ROLLOUT_STATE_VERSION = 3
 # Rendered status-comment behavior. Increment when existing comments need to
@@ -1327,13 +1328,52 @@ def save_copilot_review_requests(requests: dict[str, Any]) -> None:
     )
 
 
+def _decode_copilot_review_attempt(entry: Any, version: int) -> CopilotReviewAttempt:
+    if not isinstance(entry, dict):
+        raise ValueError("invalid Copilot request attempt")
+    ids = entry.get("quota_failure_ids")
+    attempted_at = entry.get("attempted_at")
+    head_sha = "" if version == 1 else entry.get("head_sha")
+    review_ids = None if version == 1 else entry.get("review_ids")
+    timestamp = parse_ts(attempted_at) if isinstance(attempted_at, str) else None
+    if (
+        not isinstance(ids, list)
+        or any(type(value) is not int or value <= 0 for value in ids)
+        or timestamp is None or timestamp.tzinfo is None
+        or not isinstance(head_sha, str)
+        or (version == 2 and review_ids is None)
+        or (
+            review_ids is not None
+            and (
+                not isinstance(review_ids, list)
+                or any(type(value) is not int or value <= 0 for value in review_ids)
+            )
+        )
+    ):
+        raise ValueError("invalid Copilot request attempt")
+    if version < 3:
+        identity = json.dumps(
+            [ids, timestamp.isoformat(), head_sha, review_ids], separators=(",", ":"),
+        )
+        attempt_id = f"legacy-{hashlib.sha256(identity.encode('utf-8')).hexdigest()}"
+    else:
+        attempt_id = entry.get("attempt_id")
+    if not isinstance(attempt_id, str) or not attempt_id:
+        raise ValueError("invalid Copilot request attempt ID")
+    return CopilotReviewAttempt(
+        tuple(ids), attempted_at, head_sha,
+        tuple(review_ids) if review_ids is not None else None, attempt_id,
+    )
+
+
 def load_copilot_review_fallbacks_file(path: Path) -> dict[str, CopilotReviewFallback]:
     if not path.exists():
         return {}
     data = json.loads(path.read_text(encoding="utf-8"))
     if (
         not isinstance(data, dict)
-        or data.get("version") not in (1, COPILOT_REVIEW_FALLBACK_STATE_VERSION)
+        or type(data.get("version")) is not int
+        or data["version"] not in (1, 2, COPILOT_REVIEW_FALLBACK_STATE_VERSION)
         or not isinstance(data.get("prs"), dict)
     ):
         raise ValueError(f"incompatible Copilot request state: {path}")
@@ -1341,25 +1381,17 @@ def load_copilot_review_fallbacks_file(path: Path) -> dict[str, CopilotReviewFal
     for key, entry in data["prs"].items():
         if not isinstance(entry, dict):
             raise ValueError(f"invalid Copilot request record for PR {key}")
-        ids = entry.get("quota_failure_ids")
-        attempted_at = entry.get("attempted_at")
         exhausted = entry.get("exhausted", False)
-        head_sha = entry.get("head_sha", "") if data["version"] == 1 else entry.get("head_sha")
-        review_ids = entry.get("review_ids", []) if data["version"] == 1 else entry.get("review_ids")
-        if (
-            not isinstance(ids, list)
-            or any(type(value) is not int or value <= 0 for value in ids)
-            or not isinstance(attempted_at, str)
-            or not attempted_at
-            or not isinstance(exhausted, bool)
-            or not isinstance(head_sha, str)
-            or not isinstance(review_ids, list)
-            or any(type(value) is not int or value <= 0 for value in review_ids)
-        ):
+        attempts = [entry] if data["version"] < 3 else entry.get("attempts")
+        if not isinstance(exhausted, bool) or not isinstance(attempts, list):
             raise ValueError(f"invalid Copilot request record for PR {key}")
-        fallbacks[key] = CopilotReviewFallback(
-            tuple(ids), attempted_at, exhausted, head_sha, tuple(review_ids),
+        decoded = tuple(
+            _decode_copilot_review_attempt(attempt, data["version"])
+            for attempt in attempts
         )
+        if len({attempt.attempt_id for attempt in decoded}) != len(decoded):
+            raise ValueError(f"duplicate Copilot request attempts for PR {key}")
+        fallbacks[key] = CopilotReviewFallback(decoded, exhausted)
     return fallbacks
 
 
@@ -1373,23 +1405,25 @@ def load_copilot_review_fallbacks(
             if current is None:
                 fallbacks[key] = retry
             else:
-                current_at = parse_ts(current.attempted_at)
-                retry_at = parse_ts(retry.attempted_at)
-                if (
-                    current_at is None or current_at.tzinfo is None
-                    or retry_at is None or retry_at.tzinfo is None
-                ):
-                    raise ValueError("Copilot review fallback has an invalid attempt timestamp")
-                latest = current if current_at >= retry_at else retry
-                same_attempt = (
-                    current_at == retry_at
-                    and current.quota_failure_ids == retry.quota_failure_ids
-                    and current.head_sha == retry.head_sha
-                    and current.review_ids == retry.review_ids
-                )
-                fallbacks[key] = (
-                    replace(latest, exhausted=current.exhausted or retry.exhausted)
-                    if same_attempt else latest
+                attempts = {attempt.attempt_id: attempt for attempt in current.attempts}
+                for attempt in retry.attempts:
+                    prior = attempts.get(attempt.attempt_id)
+                    if prior is not None:
+                        if (
+                            prior.quota_failure_ids != attempt.quota_failure_ids
+                            or parse_ts(prior.attempted_at) != parse_ts(attempt.attempted_at)
+                            or prior.review_ids != attempt.review_ids
+                            or (
+                                prior.head_sha and attempt.head_sha
+                                and prior.head_sha != attempt.head_sha
+                            )
+                        ):
+                            raise ValueError(f"conflicting Copilot request attempt for PR {key}")
+                        attempt = replace(prior, head_sha=prior.head_sha or attempt.head_sha)
+                    attempts[attempt.attempt_id] = attempt
+                fallbacks[key] = CopilotReviewFallback(
+                    tuple(attempts[attempt_id] for attempt_id in sorted(attempts)),
+                    current.exhausted or retry.exhausted,
                 )
     return fallbacks
 
@@ -1399,11 +1433,19 @@ def save_copilot_review_fallbacks(fallbacks: dict[str, CopilotReviewFallback]) -
         copilot_review_fallback_state_path(),
         {"prs": {
             key: {
-                "quota_failure_ids": list(entry.quota_failure_ids),
-                "attempted_at": entry.attempted_at,
                 "exhausted": entry.exhausted,
-                "head_sha": entry.head_sha,
-                "review_ids": list(entry.review_ids),
+                "attempts": [
+                    {
+                        "attempt_id": attempt.attempt_id,
+                        "quota_failure_ids": list(attempt.quota_failure_ids),
+                        "attempted_at": attempt.attempted_at,
+                        "head_sha": attempt.head_sha,
+                        "review_ids": (
+                            list(attempt.review_ids) if attempt.review_ids is not None else None
+                        ),
+                    }
+                    for attempt in entry.attempts
+                ],
             }
             for key, entry in fallbacks.items()
         }},
