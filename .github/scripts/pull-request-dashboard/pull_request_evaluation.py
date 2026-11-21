@@ -228,8 +228,11 @@ def _compute_facts(
         ),
         copilot_review_fallback_available=fallback_available,
         copilot_review_fallback_exhausted=(
-            previous_facts.copilot_review_fallback_exhausted
-            or copilot_fallback_exhausted(fallback, source.reviews)
+            copilot_fallback_exhausted(
+                fallback,
+                source.reviews,
+                previously_exhausted=previous_facts.copilot_review_fallback_exhausted,
+            )
         ),
         copilot_review_error_count=copilot_review_error_count(source.reviews, head_sha),
         copilot_review_exists=copilot_review_exists,

@@ -87,6 +87,8 @@ class CopilotReviewFallback:
     quota_failure_ids: tuple[int, ...]
     attempted_at: str
     exhausted: bool = False
+    head_sha: str = ""
+    review_ids: tuple[int, ...] = ()
 
 
 @dataclass(frozen=True)

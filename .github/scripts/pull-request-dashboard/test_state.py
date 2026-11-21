@@ -87,7 +87,10 @@ class StateTest(unittest.TestCase):
             patch("state._using_delivery_state", False),
         ):
             self.assertEqual({}, load_copilot_review_fallbacks())
-            records = {"7": CopilotReviewFallback((10, 11), "2026-08-16T11:59:00Z")}
+            records = {"7": CopilotReviewFallback(
+                (10, 11), "2026-08-16T11:59:00Z",
+                head_sha="current-head", review_ids=(10, 11, 12),
+            )}
             save_copilot_review_fallbacks(records)
             save_copilot_review_requests({})
             save_copilot_review_requests({"7": {"head_sha": "next-head"}})
@@ -107,15 +110,58 @@ class StateTest(unittest.TestCase):
             retry = Path(directory) / "retry.json"
             retry.write_bytes(copilot_review_fallback_state_path().read_bytes())
             save_copilot_review_fallbacks({
-                "7": CopilotReviewFallback((10,), "2026-08-16T12:00:00Z"),
+                "7": CopilotReviewFallback((10,), "2026-08-16T11:59:00Z"),
                 "8": CopilotReviewFallback((20,), "2026-08-16T12:00:00Z"),
             })
             self.assertEqual({
-                "7": CopilotReviewFallback((10,), "2026-08-16T12:00:00Z", True),
+                "7": CopilotReviewFallback((10,), "2026-08-16T11:59:00Z", True),
                 "8": CopilotReviewFallback((20,), "2026-08-16T12:00:00Z"),
             }, load_copilot_review_fallbacks(retry))
             save_copilot_review_fallbacks({})
             self.assertTrue(load_copilot_review_fallbacks(retry)["7"].exhausted)
+
+    def test_stale_fallback_retry_snapshot_does_not_exhaust_a_new_attempt(self) -> None:
+        with (
+            tempfile.TemporaryDirectory() as directory,
+            patch("state._state_dir", Path(directory)),
+        ):
+            older = {"7": CopilotReviewFallback(
+                (10,), "2026-08-16T12:00:00Z", True,
+                head_sha="old-head", review_ids=(10,),
+            )}
+            newer = {"7": CopilotReviewFallback(
+                (10, 12), "2026-08-16T09:00:00-04:00",
+                head_sha="new-head", review_ids=(10, 11, 12),
+            )}
+            save_copilot_review_fallbacks(older)
+            retry = Path(directory) / "retry.json"
+            retry.write_bytes(copilot_review_fallback_state_path().read_bytes())
+            save_copilot_review_fallbacks(newer)
+            self.assertEqual(newer, load_copilot_review_fallbacks(retry))
+
+            retry.write_bytes(copilot_review_fallback_state_path().read_bytes())
+            save_copilot_review_fallbacks(older)
+            self.assertEqual(newer, load_copilot_review_fallbacks(retry))
+
+    def test_legacy_fallback_state_preserves_its_baseline_and_exhaustion(self) -> None:
+        with (
+            tempfile.TemporaryDirectory() as directory,
+            patch("state._state_dir", Path(directory)),
+        ):
+            copilot_review_fallback_state_path().write_text(json.dumps({
+                "version": 1,
+                "prs": {"7": {
+                    "quota_failure_ids": [10],
+                    "attempted_at": "2026-08-16T11:59:00Z",
+                    "exhausted": True,
+                }},
+            }), encoding="utf-8")
+            records = load_copilot_review_fallbacks()
+            self.assertEqual({
+                "7": CopilotReviewFallback((10,), "2026-08-16T11:59:00Z", True),
+            }, records)
+            save_copilot_review_fallbacks(records)
+            self.assertEqual(records, load_copilot_review_fallbacks())
 
     def test_malformed_fallback_state_fails_explicitly(self) -> None:
         with (
@@ -128,6 +174,13 @@ class StateTest(unittest.TestCase):
                 {"version": 1, "prs": {"7": {}}},
                 {"version": 1, "prs": {"7": {
                     "quota_failure_ids": [True], "attempted_at": "now",
+                }}},
+                {"version": 2, "prs": {"7": {
+                    "quota_failure_ids": [10], "attempted_at": "2026-08-16T11:59:00Z",
+                }}},
+                {"version": 2, "prs": {"7": {
+                    "quota_failure_ids": [10], "attempted_at": "2026-08-16T11:59:00Z",
+                    "head_sha": "current-head", "review_ids": [True],
                 }}},
             ):
                 with self.subTest(value=value):
@@ -906,12 +959,12 @@ class StateTest(unittest.TestCase):
     def test_notification_state_version_is_independent(self) -> None:
         self.assertEqual(BACKFILL_STATE_VERSION, 3)
         self.assertEqual(NOTIFICATION_STATE_VERSION, 3)
-        self.assertEqual(DASHBOARD_STATE_VERSION, 21)
+        self.assertEqual(DASHBOARD_STATE_VERSION, 22)
         self.assertEqual(DASHBOARD_STATE_COMPATIBLE_VERSIONS, ())
         self.assertEqual(STATUS_COMMENT_ROLLOUT_STATE_VERSION, 3)
         self.assertEqual(STATUS_COMMENT_REVISION, 22)
         self.assertEqual(AUTHOR_NUDGE_STATE_VERSION, 4)
-        self.assertEqual(COPILOT_REVIEW_REQUEST_STATE_VERSION, 9)
+        self.assertEqual(COPILOT_REVIEW_REQUEST_STATE_VERSION, 10)
 
     def test_version_fifteen_dashboard_state_is_regenerated(self) -> None:
         with (

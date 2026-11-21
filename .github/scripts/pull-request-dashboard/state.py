@@ -5,6 +5,7 @@ import hashlib
 import json
 import sys
 from collections.abc import Iterable, Mapping
+from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
@@ -22,7 +23,7 @@ from dashboard_contracts import (
 )
 from github_cli import detect_repo, normalize_repo, repo_state_key
 import state_branch
-from utils import is_unattended_author_login
+from utils import is_unattended_author_login, parse_ts
 from telemetry import session as telemetry_session
 
 
@@ -44,7 +45,7 @@ FULL_PUBLISH_DELIVERED_FILE = "full-publish-delivered.json"
 # caches. Every constant ending in _STATE_VERSION or _REVISION is included.
 # dashboard-state.json: accepted PR routing results and backfill readiness.
 # Routing facts include current-head Copilot error counts for bounded retries.
-DASHBOARD_STATE_VERSION = 21
+DASHBOARD_STATE_VERSION = 22
 DASHBOARD_STATE_COMPATIBLE_VERSIONS: tuple[int, ...] = ()
 # backfill-state.json: round-robin cursor used by full dashboard refreshes.
 BACKFILL_STATE_VERSION = 3
@@ -53,8 +54,8 @@ NOTIFICATION_STATE_VERSION = 3
 # author-nudge-state.json: waiting episodes and delivered author reminders.
 AUTHOR_NUDGE_STATE_VERSION = 4
 # copilot-review-request-state.json: pending and delivered review requests.
-COPILOT_REVIEW_REQUEST_STATE_VERSION = 9
-COPILOT_REVIEW_FALLBACK_STATE_VERSION = 1
+COPILOT_REVIEW_REQUEST_STATE_VERSION = 10
+COPILOT_REVIEW_FALLBACK_STATE_VERSION = 2
 # status-comment-rollout-state.json: target/completed renderer revisions and queue.
 STATUS_COMMENT_ROLLOUT_STATE_VERSION = 3
 # Rendered status-comment behavior. Increment when existing comments need to
@@ -1332,7 +1333,7 @@ def load_copilot_review_fallbacks_file(path: Path) -> dict[str, CopilotReviewFal
     data = json.loads(path.read_text(encoding="utf-8"))
     if (
         not isinstance(data, dict)
-        or data.get("version") != COPILOT_REVIEW_FALLBACK_STATE_VERSION
+        or data.get("version") not in (1, COPILOT_REVIEW_FALLBACK_STATE_VERSION)
         or not isinstance(data.get("prs"), dict)
     ):
         raise ValueError(f"incompatible Copilot request state: {path}")
@@ -1343,15 +1344,22 @@ def load_copilot_review_fallbacks_file(path: Path) -> dict[str, CopilotReviewFal
         ids = entry.get("quota_failure_ids")
         attempted_at = entry.get("attempted_at")
         exhausted = entry.get("exhausted", False)
+        head_sha = entry.get("head_sha", "") if data["version"] == 1 else entry.get("head_sha")
+        review_ids = entry.get("review_ids", []) if data["version"] == 1 else entry.get("review_ids")
         if (
             not isinstance(ids, list)
             or any(type(value) is not int or value <= 0 for value in ids)
             or not isinstance(attempted_at, str)
             or not attempted_at
             or not isinstance(exhausted, bool)
+            or not isinstance(head_sha, str)
+            or not isinstance(review_ids, list)
+            or any(type(value) is not int or value <= 0 for value in review_ids)
         ):
             raise ValueError(f"invalid Copilot request record for PR {key}")
-        fallbacks[key] = CopilotReviewFallback(tuple(ids), attempted_at, exhausted)
+        fallbacks[key] = CopilotReviewFallback(
+            tuple(ids), attempted_at, exhausted, head_sha, tuple(review_ids),
+        )
     return fallbacks
 
 
@@ -1365,11 +1373,23 @@ def load_copilot_review_fallbacks(
             if current is None:
                 fallbacks[key] = retry
             else:
-                latest = max((current, retry), key=lambda entry: entry.attempted_at)
-                fallbacks[key] = CopilotReviewFallback(
-                    latest.quota_failure_ids,
-                    latest.attempted_at,
-                    current.exhausted or retry.exhausted,
+                current_at = parse_ts(current.attempted_at)
+                retry_at = parse_ts(retry.attempted_at)
+                if (
+                    current_at is None or current_at.tzinfo is None
+                    or retry_at is None or retry_at.tzinfo is None
+                ):
+                    raise ValueError("Copilot review fallback has an invalid attempt timestamp")
+                latest = current if current_at >= retry_at else retry
+                same_attempt = (
+                    current_at == retry_at
+                    and current.quota_failure_ids == retry.quota_failure_ids
+                    and current.head_sha == retry.head_sha
+                    and current.review_ids == retry.review_ids
+                )
+                fallbacks[key] = (
+                    replace(latest, exhausted=current.exhausted or retry.exhausted)
+                    if same_attempt else latest
                 )
     return fallbacks
 
@@ -1382,6 +1402,8 @@ def save_copilot_review_fallbacks(fallbacks: dict[str, CopilotReviewFallback]) -
                 "quota_failure_ids": list(entry.quota_failure_ids),
                 "attempted_at": entry.attempted_at,
                 "exhausted": entry.exhausted,
+                "head_sha": entry.head_sha,
+                "review_ids": list(entry.review_ids),
             }
             for key, entry in fallbacks.items()
         }},

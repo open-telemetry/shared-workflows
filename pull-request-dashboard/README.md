@@ -341,11 +341,16 @@ secret with a token allowed to request Copilot reviews. The owned drain
 passes it to the selected processor for both channels and both lanes.
 After the first quota notice, the dashboard switches review requests to this
 fallback requester and keeps the Copilot gate active under its normal rules.
-Existing quota notices do
-not exhaust the fallback; a new quota notice after the fallback attempt does.
-Once the fallback is exhausted, automatic requests stop and the Copilot gate is
-immediately released for that PR, including after later pushes. Required checks
-and actionable feedback are not bypassed in either case.
+Each fallback request records the requested head and existing review IDs. New
+quota notices for that head exhaust the attempt unless a completed Copilot review
+preceded them. A completed attempt does not claim later quota notices, and each
+subsequent request starts a fresh baseline. Cached exhaustion decisions are
+reevaluated against review history so notices after a completed attempt do not
+permanently disable requests.
+
+Genuine fallback quota exhaustion stops automatic requests and immediately
+releases the Copilot gate for that PR, including after later pushes. Required
+checks and actionable feedback are not bypassed in either case.
 
 Ask a maintainer or admin to add the repository under [Repository access](https://github.com/organizations/open-telemetry/settings/installations/133550497).
 

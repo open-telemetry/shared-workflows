@@ -848,6 +848,64 @@ class PullRequestEvaluationTest(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(not expected, result.facts.copilot_review_unreported)
                 self.assertEqual(not expected, result.facts.copilot_review_outstanding)
 
+    @patch("pull_request_evaluation.fetch_pull_request_source")
+    async def test_successful_fallback_recovers_cached_but_not_recorded_exhaustion(
+        self, fetch_raw: Mock
+    ) -> None:
+        completed = review_source(
+            database_id=11,
+            actor=actor("copilot"),
+            commit_id="old-head",
+            body="No issues found.",
+            submitted_at="2026-08-16T12:00:00Z",
+        )
+        fetch_raw.return_value = pull_request_source(
+            pull_request=pull_request_metadata(head_sha="new-head", base_branch="main"),
+            reviews=(
+                completed,
+                replace(
+                    completed,
+                    database_id=12,
+                    commit_id="new-head",
+                    body=(
+                        "Copilot was unable to review this pull request because the user "
+                        "who requested the review has insufficient remaining quota."
+                    ),
+                    submitted_at="2026-08-16T12:01:00Z",
+                ),
+            ),
+        )
+        for exhausted in (False, True):
+            with self.subTest(exhausted=exhausted):
+                result = await evaluate_pull_request(
+                    replace(
+                        evaluation_config(require_clean_copilot_review_branches=["main"]),
+                        copilot_review_fallback_available=True,
+                        copilot_review_fallback=CopilotReviewFallback(
+                            (10,), "2026-08-16T11:59:00Z", exhausted,
+                        ),
+                    ),
+                    PullRequestEvaluationInput(
+                        pr_number=7,
+                        previous_result=stored_dashboard_result(
+                            7,
+                            facts=dashboard_facts(
+                                head_sha="old-head",
+                                copilot_review_quota_exhausted=True,
+                                copilot_review_fallback_exhausted=True,
+                            ),
+                        ),
+                    ),
+                    FakeClassificationOperation(),
+                )
+
+                self.assertIsInstance(result, EvaluationSuccess)
+                assert isinstance(result, EvaluationSuccess)
+                self.assertEqual(exhausted, result.facts.copilot_review_fallback_exhausted)
+                self.assertEqual(not exhausted, result.facts.copilot_review_request_needed)
+                self.assertEqual(not exhausted, result.facts.copilot_review_outstanding)
+                self.assertEqual(not exhausted, result.facts.copilot_review_unreported)
+
     def test_compute_facts_uses_prepared_approval_count(self) -> None:
         raw = self.raw_pr()
         events = [{

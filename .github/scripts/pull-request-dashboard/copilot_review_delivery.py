@@ -167,12 +167,19 @@ def deliver_copilot_review_requests(
                     f"GitHub did not return a node ID for PR #{pr_number}"
                 )
             if quota_exhausted:
-                if fallback is None:
-                    fallbacks[key] = CopilotReviewFallback(
-                        copilot_quota_failure_ids(reviews),
-                        format_ts(now),
-                    )
-                    save_copilot_review_fallbacks(fallbacks)
+                quota_failure_ids = copilot_quota_failure_ids(reviews)
+                review_ids = tuple(sorted({
+                    review.database_id for review in reviews if is_copilot_reviewer(review)
+                }))
+                if any(review_id <= 0 for review_id in review_ids):
+                    raise RuntimeError("GitHub returned a Copilot review without a review ID")
+                fallbacks[key] = CopilotReviewFallback(
+                    quota_failure_ids,
+                    format_ts(now),
+                    head_sha=snapshot.head_sha,
+                    review_ids=review_ids,
+                )
+                save_copilot_review_fallbacks(fallbacks)
                 request_copilot_review(pull_request_id, token=token)
             else:
                 request_copilot_review(pull_request_id)
