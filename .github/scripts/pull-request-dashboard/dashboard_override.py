@@ -1,4 +1,4 @@
-"""Recognize explicit reviewer-routing overrides and prepare dashboard command replies."""
+"""Recognize explicit routing overrides and prepare dashboard command replies."""
 
 from __future__ import annotations
 
@@ -24,6 +24,7 @@ from utils import parse_ts
 DASHBOARD_COMMAND_PREFIX = "/dashboard"
 DASHBOARD_OVERRIDE_COMMAND = "/dashboard route:reviewers"
 DASHBOARD_OVERRIDE_SUBCOMMAND = "route:reviewers"
+AUTHOR_OVERRIDE_SUBCOMMAND = "route:author"
 COMMAND_REPLY_MARKER_PREFIX = "<!-- pull-request-dashboard-command-reply:"
 _COMMAND_REPLY_MARKER_RE = re.compile(
     r"<!-- pull-request-dashboard-command-reply:(\d+) -->"
@@ -36,7 +37,8 @@ OVERRIDE_ACK_MARKER_PREFIX = "<!-- pull-request-dashboard-override-ack:"
 # recorded it still have to retire their command.
 _OVERRIDE_ACK_MARKER_RE = re.compile(
     r"<!-- pull-request-dashboard-override-ack:"
-    r"(\d+)(?::([^:\s>]+))?(?::([^\s>]+))? -->"
+    r"(?:(?P<author>author(?:-released)?):)?"
+    r"(?P<id>\d+)(?::(?P<head>[^:\s>]+))?(?::(?P<since>[^\s>]+))? -->"
 )
 TOP_LEVEL_FEEDBACK_CUTOFF_MARKER_PREFIX = (
     "<!-- pull-request-dashboard-top-level-feedback-cutoff:"
@@ -65,6 +67,8 @@ class DashboardOverrideFacts:
     top_level_feedback_cutoff: str
     persistent_handoff: bool
     cleared_by_feedback: bool
+    to_author: bool
+    author_released: bool
     command_replies: tuple[DashboardCommandReply, ...]
 
 
@@ -130,15 +134,18 @@ def latest_authorized_command(
     source: DashboardOverrideInput,
     author: str,
     reviewers: set[str] | None,
-) -> tuple[int, str, str]:
+    *,
+    author_can_act: bool = True,
+) -> IssueComment | None:
     comments = source.issue_comments
-    acknowledged_id = _acknowledged_override_command_id(comments)
+    acknowledged_id = acknowledged_override(comments)[0]
     replied_ids = _replied_command_ids(comments)
-    best_id = 0
-    best_user = ""
-    best_created_at = ""
+    best = None
     for comment in comments:
-        if parse_dashboard_command(comment) != DASHBOARD_OVERRIDE_SUBCOMMAND:
+        subcommand = parse_dashboard_command(comment)
+        if subcommand != DASHBOARD_OVERRIDE_SUBCOMMAND and not (
+            subcommand == AUTHOR_OVERRIDE_SUBCOMMAND and author_can_act
+        ):
             continue
         commenter = comment.actor.login
         if not is_authorized_commander(commenter, author, reviewers):
@@ -146,11 +153,9 @@ def latest_authorized_command(
         comment_id = comment.database_id
         if comment_id <= acknowledged_id or comment_id in replied_ids:
             continue
-        if comment_id > best_id:
-            best_id = comment_id
-            best_user = commenter
-            best_created_at = _effective_command_timestamp(comment)
-    return best_id, best_user, best_created_at
+        if best is None or comment_id > best.database_id:
+            best = comment
+    return best
 
 
 def _effective_command_timestamp(comment: IssueComment) -> str:
@@ -174,50 +179,33 @@ def dashboard_override_facts(
     reviewers: set[str] | None = None,
     head_sha: str = "",
     previous_facts: DashboardFacts | None = None,
+    *,
+    author_can_act: bool = True,
 ) -> DashboardOverrideFacts:
-    command_id, command_user, command_created_at = latest_authorized_command(
+    command = latest_authorized_command(
         source,
         author,
         reviewers,
+        author_can_act=author_can_act,
     )
-    previous_command_id = (
-        previous_facts.dashboard_override_command_id
-        if previous_facts is not None
-        else 0
+    command_id = command.database_id if command else 0
+    command_user = command.actor.login if command else ""
+    command_created_at = _effective_command_timestamp(command) if command else ""
+    previous = previous_facts or DashboardFacts()
+    previous_command_id = previous.dashboard_override_command_id
+    previous_head_sha = previous.dashboard_override_head_sha
+    previous_binding_command_id = (
+        previous.dashboard_override_bound_command_id or previous_command_id
     )
-    previous_head_sha = (
-        previous_facts.dashboard_override_head_sha
-        if previous_facts is not None
-        else ""
-    )
-    previous_bound_command_id = (
-        previous_facts.dashboard_override_bound_command_id
-        if previous_facts is not None
-        else 0
-    )
-    previous_since = (
-        previous_facts.dashboard_override_since
-        if previous_facts is not None
-        else ""
-    )
-    previous_top_level_feedback_cutoff = (
-        previous_facts.dashboard_top_level_feedback_cutoff
-        if previous_facts is not None
-        else ""
-    )
-    previous_persistent_handoff = (
-        previous_facts.dashboard_override_persistent
-        if previous_facts is not None
-        else False
-    )
-    previous_cleared = (
-        previous_facts.dashboard_override_cleared_by_feedback
-        if previous_facts is not None
-        else False
-    )
-    if command_id:
+    if command is not None:
+        to_author = parse_dashboard_command(command) == AUTHOR_OVERRIDE_SUBCOMMAND
+        author_released = False
         bound_command_id = command_id
-        if command_id == previous_command_id:
+        if (
+            command_id == previous_command_id
+            and to_author == previous.dashboard_override_to_author
+            and (previous_head_sha or not to_author)
+        ):
             bound_head = previous_head_sha
         else:
             bound_head = head_sha
@@ -229,17 +217,26 @@ def dashboard_override_facts(
             bound_head,
             acknowledged_since,
             acknowledgement_created_at,
+            author_marker,
         ) = acknowledged_override(source.issue_comments)
-    previous_binding_command_id = (
-        previous_bound_command_id or previous_command_id
-    )
+        to_author = bool(author_marker)
+        author_released = author_marker == "author-released"
     previous_binding_matches = bool(
         bound_command_id == previous_binding_command_id
         and bound_head
         and bound_head == previous_head_sha
+        and to_author == previous.dashboard_override_to_author
+    )
+    author_released = to_author and (
+        author_released
+        or bool(bound_head and head_sha and bound_head != head_sha)
+        or (
+            previous_binding_matches
+            and previous.dashboard_override_author_released
+        )
     )
     override_since = (
-        (previous_since if previous_binding_matches else "")
+        (previous.dashboard_override_since if previous_binding_matches else "")
         or command_created_at
         or acknowledged_since
         or _override_command_effective_at(source.issue_comments, bound_command_id)
@@ -248,25 +245,20 @@ def dashboard_override_facts(
     existing_command_binding = bool(
         command_id
         and command_id == previous_binding_command_id
+        and to_author == previous.dashboard_override_to_author
     )
     new_command_binding = bool(command_id and not existing_command_binding)
     top_level_feedback_cutoff = _latest_valid_timestamp(
-        previous_top_level_feedback_cutoff,
-        command_created_at if command_id and not existing_command_binding else "",
-        (
-            acknowledged_top_level_feedback_cutoff(
-                source.issue_comments,
-                bound_command_id,
-            )
-            if bound_command_id
-            else ""
-        ),
+        previous.dashboard_top_level_feedback_cutoff,
+        command_created_at if new_command_binding and not to_author else "",
+        acknowledged_top_level_feedback_cutoff(source.issue_comments),
     )
     persistent_handoff = bool(
-        bound_head
+        not to_author
+        and bound_head
         and (
             new_command_binding
-            or (previous_binding_matches and previous_persistent_handoff)
+            or (previous_binding_matches and previous.dashboard_override_persistent)
             or acknowledges_persistent_handoff(
                 source.issue_comments,
                 bound_command_id,
@@ -277,14 +269,16 @@ def dashboard_override_facts(
     cleared_command_id, cleared_head = status_reviewer_handoff_clearance(
         source.issue_comments
     )
-    previous_clearance_applies = previous_binding_matches and previous_cleared
     cleared_by_feedback = bool(
-        previous_clearance_applies
-        or (
-            bound_command_id
-            and bound_command_id == cleared_command_id
-            and bound_head
-            and bound_head == cleared_head
+        not to_author
+        and (
+            (previous_binding_matches and previous.dashboard_override_cleared_by_feedback)
+            or (
+                bound_command_id
+                and bound_command_id == cleared_command_id
+                and bound_head
+                and bound_head == cleared_head
+            )
         )
     )
     return DashboardOverrideFacts(
@@ -299,7 +293,11 @@ def dashboard_override_facts(
         top_level_feedback_cutoff=top_level_feedback_cutoff,
         persistent_handoff=persistent_handoff,
         cleared_by_feedback=cleared_by_feedback,
-        command_replies=pending_command_replies(source, author, reviewers),
+        to_author=to_author,
+        author_released=author_released,
+        command_replies=pending_command_replies(
+            source, author, reviewers, author_can_act=author_can_act
+        ),
     )
 
 
@@ -322,23 +320,6 @@ def _replied_command_ids(comments: Sequence[IssueComment]) -> set[int]:
     return replied_ids
 
 
-def _acknowledged_override_command_ids(
-    comments: Sequence[IssueComment],
-) -> set[int]:
-    """Command ids the dashboard app has already acknowledged.
-
-    Ack markers are matched only in comments authored by the dashboard app, so a
-    user cannot forge one to authorize their own command.
-    """
-    acknowledged_ids: set[int] = set()
-    for comment in comments or []:
-        if not _is_dashboard_app_comment(comment):
-            continue
-        for match in _OVERRIDE_ACK_MARKER_RE.finditer(comment.body):
-            acknowledged_ids.add(int(match.group(1)))
-    return acknowledged_ids
-
-
 def acknowledges_override(text: str, command_id: int, head_sha: str) -> bool:
     """Return whether the text already acknowledges this command and bound head.
 
@@ -346,7 +327,7 @@ def acknowledges_override(text: str, command_id: int, head_sha: str) -> bool:
     a different cutoff for the same binding still counts as present.
     """
     return any(
-        int(match.group(1)) == command_id and (match.group(2) or "") == head_sha
+        int(match["id"]) == command_id and (match["head"] or "") == head_sha
         for match in _OVERRIDE_ACK_MARKER_RE.finditer(text)
     )
 
@@ -355,13 +336,20 @@ def acknowledged_top_level_feedback_cutoff(
     comments: Sequence[IssueComment],
     command_id: int = 0,
 ) -> str:
+    # A cutoff must belong to a command the app acknowledged.
+    command_ids = {command_id} if command_id else {
+        int(match["id"])
+        for comment in comments
+        if _is_dashboard_app_comment(comment)
+        for match in _OVERRIDE_ACK_MARKER_RE.finditer(comment.body)
+    }
     candidates: list[tuple[datetime, int, str]] = []
     for comment in comments or []:
         if not _is_dashboard_app_comment(comment):
             continue
         for match in _TOP_LEVEL_FEEDBACK_CUTOFF_MARKER_RE.finditer(comment.body):
             marker_command_id = int(match.group(1))
-            if command_id and marker_command_id != command_id:
+            if marker_command_id not in command_ids:
                 continue
             value = match.group(2)
             parsed = parse_ts(value)
@@ -392,37 +380,34 @@ def acknowledges_persistent_handoff(
 
 def acknowledged_override(
     comments: Sequence[IssueComment],
-) -> tuple[int, str, str, str]:
-    """Newest acknowledged override command id, bound head SHA, and cutoff times.
+) -> tuple[int, str, str, str, str]:
+    """Newest acknowledged override binding, timestamps, and author marker kind.
 
-    The head is empty when the newest acknowledgement predates the dashboard
-    recording it. An unknown head ends the handoff instead of guessing at one, so
-    the author runs the command again.
+    A headless acknowledgement retires its command without activating a handoff.
     """
     best_id = 0
     best_head = ""
     best_since = ""
     best_created_at = ""
+    best_author_marker = ""
+    best_rank = (0, False, False, False)
     for comment in comments or []:
         if not _is_dashboard_app_comment(comment):
             continue
         for match in _OVERRIDE_ACK_MARKER_RE.finditer(comment.body):
-            comment_id = int(match.group(1))
-            head = match.group(2) or ""
-            since = match.group(3) or ""
-            if (
-                comment_id > best_id
-                or (
-                    comment_id == best_id
-                    and (bool(head), bool(since))
-                    > (bool(best_head), bool(best_since))
-                )
-            ):
+            comment_id = int(match["id"])
+            head = match["head"] or ""
+            since = match["since"] or ""
+            author_marker = match["author"] or ""
+            rank = (comment_id, author_marker == "author-released", bool(head), bool(since))
+            if rank > best_rank:
+                best_rank = rank
                 best_id = comment_id
                 best_head = head
                 best_since = since
                 best_created_at = comment.created_at
-    return best_id, best_head, best_since, best_created_at
+                best_author_marker = author_marker
+    return best_id, best_head, best_since, best_created_at, best_author_marker
 
 
 def _override_command_effective_at(
@@ -437,24 +422,17 @@ def _override_command_effective_at(
     return ""
 
 
-def _acknowledged_override_command_id(
-    comments: Sequence[IssueComment],
-) -> int:
-    return max(_acknowledged_override_command_ids(comments), default=0)
-
-
 def pending_command_replies(
     source: DashboardOverrideInput,
     author: str,
     reviewers: set[str] | None = None,
+    *,
+    author_can_act: bool = True,
 ) -> tuple[DashboardCommandReply, ...]:
     """Return replies owed to unsupported or unauthorized `/dashboard` commands.
 
-    `/dashboard route:reviewers` from the author or an approver is handled by the
-    override flow and never gets a reply here. The same command from anyone else
-    gets an unauthorized reply, and any unrecognized `/dashboard` subcommand gets
-    an unknown-command reply. Commands that already have a reply comment are
-    skipped so replies are posted at most once.
+    The override flow handles authorized routing commands with a valid target.
+    Commands that already have a reply comment are skipped.
     """
     comments = source.issue_comments
     replied_ids = _replied_command_ids(comments)
@@ -468,10 +446,13 @@ def pending_command_replies(
         if comment_id in replied_ids:
             continue
         commenter = comment.actor.login
-        if subcommand == DASHBOARD_OVERRIDE_SUBCOMMAND:
-            if is_authorized_commander(commenter, author, reviewers):
+        if subcommand in (DASHBOARD_OVERRIDE_SUBCOMMAND, AUTHOR_OVERRIDE_SUBCOMMAND):
+            if not is_authorized_commander(commenter, author, reviewers):
+                kind = "unauthorized"
+            elif subcommand == AUTHOR_OVERRIDE_SUBCOMMAND and not author_can_act:
+                kind = "author_unavailable"
+            else:
                 continue
-            kind = "unauthorized"
         else:
             kind = "unknown_command"
         replies.append(DashboardCommandReply(
@@ -491,10 +472,14 @@ def override_ack_marker(
     comment_id: int,
     head_sha: str = "",
     override_since: str = "",
+    *,
+    to_author: bool = False,
+    author_released: bool = False,
 ) -> str:
     head = f":{head_sha}" if head_sha else ""
     since = f":{override_since}" if head_sha and override_since else ""
-    return f"{OVERRIDE_ACK_MARKER_PREFIX}{comment_id}{head}{since} -->"
+    target = ("author-released:" if author_released else "author:") if to_author else ""
+    return f"{OVERRIDE_ACK_MARKER_PREFIX}{target}{comment_id}{head}{since} -->"
 
 
 def top_level_feedback_cutoff_marker(
@@ -515,10 +500,19 @@ def render_command_reply(reply: DashboardCommandReply) -> str:
     user = reply.user
     mention = f"@{user}, " if user else ""
     kind = reply.kind
+    to_author = reply.subcommand == AUTHOR_OVERRIDE_SUBCOMMAND
+    has_top_level_feedback_cutoff = parse_ts(reply.top_level_feedback_cutoff) is not None
     if kind == "unauthorized":
         message = (
             "only the pull request author or a member of an approving team can "
-            "use `/dashboard route:reviewers`."
+            f"use `/dashboard {reply.subcommand}`."
+        )
+    elif kind == "author_unavailable":
+        message = "this pull request has no human author the dashboard can route to."
+    elif kind == "routed" and to_author:
+        message = (
+            "this pull request is waiting on the author until the head commit "
+            "changes or someone uses `/dashboard route:reviewers`."
         )
     elif kind == "routed":
         # DashboardCommandReply refuses a routed reply without a route.
@@ -549,9 +543,6 @@ def render_command_reply(reply: DashboardCommandReply) -> str:
                 f"{message} The handoff remains active across pushes until newer "
                 "actionable human feedback arrives."
             )
-        has_top_level_feedback_cutoff = (
-            parse_ts(reply.top_level_feedback_cutoff) is not None
-        )
         has_handoff_timestamp = parse_ts(reply.since) is not None
         if has_top_level_feedback_cutoff and has_handoff_timestamp:
             message = (
@@ -575,10 +566,8 @@ def render_command_reply(reply: DashboardCommandReply) -> str:
         subcommand = reply.subcommand
         attempted = DASHBOARD_COMMAND_PREFIX + (f" {subcommand}" if subcommand else "")
         message = (
-            f"`{attempted}` is not a recognized dashboard command. The only "
-            "supported command is `/dashboard route:reviewers`, which the pull "
-            "request author can use to move a pull request from waiting on the "
-            "author to waiting on reviewers."
+            f"`{attempted}` is not a recognized dashboard command. Use "
+            "`/dashboard route:author` or `/dashboard route:reviewers`."
         )
     else:
         # A reply the dashboard never posts, such as a cleared_by_feedback reply
@@ -592,6 +581,7 @@ def render_command_reply(reply: DashboardCommandReply) -> str:
                 comment_id,
                 reply.head_sha,
                 reply.since,
+                to_author=to_author,
             )
         )
         if has_top_level_feedback_cutoff:
@@ -631,12 +621,8 @@ def append_command_ack_reply(
 ) -> DashboardFacts:
     """Queue the reply that acknowledges an override command.
 
-    The reply carries markers that record the command binding, permanent
-    feedback cutoff, and persistent handoff. A command superseded by reviewer
-    feedback is acknowledged in the status comment instead of producing another
-    top-level comment. A persistent handoff that currently routes to the author
-    stays unacknowledged until a reviewer route returns, so the reply always
-    records the handoff it announces.
+    The reply records the command binding and any existing feedback cutoff.
+    Released handoffs are recorded in the status comment instead.
     """
     cleared_by_feedback = facts.dashboard_override_cleared_by_feedback
     command_id = (
@@ -653,8 +639,12 @@ def append_command_ack_reply(
         facts.dashboard_override_since
         or _override_command_effective_at(source.issue_comments, command_id)
     )
-    if cleared_by_feedback:
+    if cleared_by_feedback or facts.dashboard_override_author_released:
         return facts.with_changes(dashboard_override_since=override_since)
+    if facts.dashboard_override_to_author and (
+        route is not DashboardRoute.AUTHOR or not facts.dashboard_override_head_sha
+    ):
+        return facts
     if facts.dashboard_override_persistent and route is DashboardRoute.AUTHOR:
         return facts.with_changes(dashboard_override_since=override_since)
     kind = "routed"
@@ -662,6 +652,9 @@ def append_command_ack_reply(
     reply = DashboardCommandReply(
         comment_id=command_id,
         kind=kind,
+        subcommand=(
+            AUTHOR_OVERRIDE_SUBCOMMAND if facts.dashboard_override_to_author else ""
+        ),
         head_sha=facts.dashboard_override_head_sha,
         user=facts.dashboard_override_command_user or facts.author,
         route=route,

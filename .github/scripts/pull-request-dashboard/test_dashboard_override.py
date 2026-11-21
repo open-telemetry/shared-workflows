@@ -42,6 +42,8 @@ def result_facts(
         ),
         "dashboard_override_persistent": override.persistent_handoff,
         "dashboard_override_cleared_by_feedback": override.cleared_by_feedback,
+        "dashboard_override_to_author": override.to_author,
+        "dashboard_override_author_released": override.author_released,
         "dashboard_command_replies": override.command_replies,
     }
     values.update(changes)
@@ -114,7 +116,7 @@ class DashboardOverrideTest(unittest.TestCase):
         )
 
         self.assertEqual(
-            (4, "Approver", "2026-08-16T07:00:00Z"),
+            source.issue_comments[3],
             dashboard_override.latest_authorized_command(
                 source, "author", {"approver"}
             ),
@@ -128,10 +130,8 @@ class DashboardOverrideTest(unittest.TestCase):
             content_updated_at="2026-08-16T09:00:00Z",
         ))
 
-        self.assertEqual(
-            (4, "author", "2026-08-16T09:00:00Z"),
-            dashboard_override.latest_authorized_command(source, "author", set()),
-        )
+        facts = dashboard_override.dashboard_override_facts(source, "author")
+        self.assertEqual("2026-08-16T09:00:00Z", facts.top_level_feedback_cutoff)
 
     def test_latest_authorized_command_cutoff_never_predates_creation(self) -> None:
         source = override_input(issue_comment(
@@ -141,10 +141,8 @@ class DashboardOverrideTest(unittest.TestCase):
             content_updated_at="2026-08-16T07:00:00Z",
         ))
 
-        self.assertEqual(
-            (4, "author", "2026-08-16T09:00:00Z"),
-            dashboard_override.latest_authorized_command(source, "author", set()),
-        )
+        facts = dashboard_override.dashboard_override_facts(source, "author")
+        self.assertEqual("2026-08-16T09:00:00Z", facts.top_level_feedback_cutoff)
 
     def test_latest_authorized_command_ignores_app_acknowledged_command(self) -> None:
         source = override_input(
@@ -159,8 +157,7 @@ class DashboardOverrideTest(unittest.TestCase):
             ),
         )
 
-        self.assertEqual(
-            (0, "", ""),
+        self.assertIsNone(
             dashboard_override.latest_authorized_command(source, "author", set()),
         )
 
@@ -178,8 +175,7 @@ class DashboardOverrideTest(unittest.TestCase):
             ),
         )
 
-        self.assertEqual(
-            (0, "", ""),
+        self.assertIsNone(
             dashboard_override.latest_authorized_command(
                 source, "author", {"new-approver"}
             ),
@@ -194,6 +190,33 @@ class DashboardOverrideTest(unittest.TestCase):
         )
         self.assertFalse(
             dashboard_override.is_authorized_commander("outsider", "author", {"approver"})
+        )
+
+    def test_author_command_rejects_outsiders_and_unattended_authors(self) -> None:
+        source = override_input(
+            issue_comment(
+                database_id=1,
+                actor=actor("outsider"),
+                body="/dashboard route:author",
+            ),
+            issue_comment(
+                database_id=2,
+                actor=actor("approver"),
+                body="/dashboard route:author",
+            ),
+        )
+        facts = dashboard_override.dashboard_override_facts(
+            source, "app[bot]", {"approver"}, "head", author_can_act=False
+        )
+        self.assertEqual(0, facts.bound_command_id)
+        outsider, approver = facts.command_replies
+        self.assertIn(
+            "can use `/dashboard route:author`.",
+            dashboard_override.render_command_reply(outsider),
+        )
+        self.assertIn(
+            "has no human author",
+            dashboard_override.render_command_reply(approver),
         )
 
     def test_pending_replies_for_unauthorized_and_unknown_commands(self) -> None:
@@ -1524,8 +1547,7 @@ class DashboardOverrideTest(unittest.TestCase):
             ),
         )
 
-        self.assertEqual(
-            (0, "", ""),
+        self.assertIsNone(
             dashboard_override.latest_authorized_command(source, "author", set()),
         )
 

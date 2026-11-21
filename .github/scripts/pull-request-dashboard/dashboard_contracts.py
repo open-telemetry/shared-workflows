@@ -47,6 +47,7 @@ class DashboardCommandReply:
             "routed",
             "cleared_by_feedback",
             "unauthorized",
+            "author_unavailable",
             "unknown_command",
         ):
             raise ValueError(f"unknown dashboard command reply kind: {self.kind!r}")
@@ -104,6 +105,8 @@ class DashboardFacts:
     dashboard_top_level_feedback_cutoff: str = ""
     dashboard_override_persistent: bool = False
     dashboard_override_cleared_by_feedback: bool = False
+    dashboard_override_to_author: bool = False
+    dashboard_override_author_released: bool = False
     dashboard_command_replies: tuple[DashboardCommandReply, ...] = ()
     copilot_review_requested: bool = False
     copilot_review_quota_exhausted: bool = False

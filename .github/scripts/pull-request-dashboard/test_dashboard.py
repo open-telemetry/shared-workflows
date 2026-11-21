@@ -44,6 +44,12 @@ from dashboard_contracts import (
     ReviewerSummary,
     StoredDashboardResult,
 )
+from dashboard_override import (
+    override_ack_marker,
+    persistent_handoff_marker,
+    render_command_reply,
+    top_level_feedback_cutoff_marker,
+)
 from dashboard_test_support import (
     actor,
     check_source,
@@ -96,9 +102,11 @@ from pull_request_evaluation import (
     evaluate_pull_request,
 )
 from pull_request_activity import PullRequestActivity
+from pr_status_comment import render_status_comment
 from render import render_pr_tables, reviewers_cell_text
 from reviewer_state import ReviewerInput, prepare_reviewers
 from routing_decision import resolve_routing
+from state import decode_dashboard_facts, encode_dashboard_facts, stored_result
 
 
 FAILED_CLASSIFICATION = ClassificationFailure(
@@ -1330,6 +1338,101 @@ class PullRequestEvaluationTest(unittest.IsolatedAsyncioTestCase):
                     (),
                     result.facts.author_action_review_thread_urls,
                 )
+
+    @patch("pull_request_evaluation.fetch_pull_request_source")
+    async def test_author_handoff_replaces_reviewer_handoff_until_push(
+        self, fetch_raw: Mock
+    ) -> None:
+        pr = pull_request_metadata()
+        cutoff = "2026-08-16T08:00:00Z"
+        reviewer_ack = issue_comment(
+            database_id=3,
+            actor=actor("opentelemetry-pr-dashboard[bot]"),
+            body="\n".join((
+                override_ack_marker(2, pr.head_sha, cutoff),
+                persistent_handoff_marker(2, pr.head_sha),
+                top_level_feedback_cutoff_marker(2, cutoff),
+            )),
+        )
+        command = issue_comment(
+            database_id=4,
+            actor=actor("reviewer"),
+            body="/dashboard route:author",
+            created_at="2026-08-16T09:00:00Z",
+        )
+        approved = review_source(state="APPROVED")
+        source = pull_request_source(
+            pull_request=pr,
+            issue_comments=(reviewer_ack, command),
+            reviews=(approved,),
+        )
+        fetch_raw.return_value = source
+        result = await evaluate_pr({"number": 7})
+        assert isinstance(result, EvaluationSuccess)
+        self.assertEqual(DashboardRoute.AUTHOR, result.route)
+        self.assertEqual(1, result.facts.approval_count)
+        self.assertEqual("2026-08-16T09:00:00+00:00", result.facts.waiting_since)
+        self.assertEqual(cutoff, result.facts.dashboard_top_level_feedback_cutoff)
+
+        # The publisher reads the reply from persisted facts.
+        published_facts = decode_dashboard_facts(encode_dashboard_facts(result.facts))
+        (reply,) = published_facts.dashboard_command_replies
+        ack = issue_comment(
+            database_id=5,
+            actor=reviewer_ack.actor,
+            body=render_command_reply(reply),
+        )
+        self.assertIn("waiting on the author until the head commit changes", ack.body)
+        status = render_status_comment({"state": "open"}, stored_result(result))
+        self.assertIn("An explicit `/dashboard route:author` handoff is active.", status)
+
+        comments = (*source.issue_comments, ack)
+        fetch_raw.return_value = replace(source, issue_comments=comments)
+        same_head = await evaluate_pr({"number": 7})
+        assert isinstance(same_head, EvaluationSuccess)
+        self.assertEqual(DashboardRoute.AUTHOR, same_head.route)
+        self.assertEqual((), same_head.facts.dashboard_command_replies)
+
+        fetch_raw.return_value = replace(
+            source, pull_request=replace(pr, head_sha="new-head"), issue_comments=comments
+        )
+        pushed = await evaluate_pr({"number": 7})
+        assert isinstance(pushed, EvaluationSuccess)
+        self.assertEqual(DashboardRoute.MAINTAINER, pushed.route)
+        self.assertEqual(cutoff, pushed.facts.dashboard_top_level_feedback_cutoff)
+        released_status = render_status_comment({"state": "open"}, stored_result(pushed))
+
+        # Returning to the original SHA must not reactivate either handoff.
+        release = issue_comment(database_id=6, actor=reviewer_ack.actor, body=released_status)
+        fetch_raw.return_value = replace(source, issue_comments=(*comments, release))
+        reverted = await evaluate_pr({"number": 7})
+        assert isinstance(reverted, EvaluationSuccess)
+        self.assertEqual(DashboardRoute.MAINTAINER, reverted.route)
+        self.assertEqual((), reverted.facts.dashboard_command_replies)
+
+    @patch("pull_request_evaluation.fetch_pull_request_source")
+    async def test_newer_reviewer_command_ends_author_handoff_without_push(
+        self, fetch_raw: Mock
+    ) -> None:
+        fetch_raw.return_value = pull_request_source(
+            issue_comments=(
+                issue_comment(database_id=2, body="/dashboard route:author"),
+                issue_comment(
+                    database_id=3,
+                    actor=actor("opentelemetry-pr-dashboard[bot]"),
+                    body=override_ack_marker(2, "abcdef123456", to_author=True),
+                ),
+                issue_comment(database_id=4, body="/dashboard route:reviewers"),
+            ),
+            checks=(check_source(bucket="fail"),),
+        )
+        result = await evaluate_pr({"number": 7})
+        assert isinstance(result, EvaluationSuccess)
+        self.assertEqual(DashboardRoute.APPROVER, result.route)
+        self.assertEqual(1, result.facts.ci_failing_count)
+        (reply,) = result.facts.dashboard_command_replies
+        self.assertEqual(4, reply.comment_id)
+        self.assertTrue(reply.persistent_handoff)
 
     @patch("pull_request_evaluation.fetch_pull_request_source")
     async def test_override_binds_to_the_observed_head_before_classification(

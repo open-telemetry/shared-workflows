@@ -56,13 +56,24 @@ _GATE_HOLD_LIMIT = timedelta(hours=4)
 def reviewer_handoff_active(facts: DashboardFacts) -> bool:
     """Return whether the reviewer handoff remains active."""
     return (
-        bool(facts.dashboard_override_head_sha)
+        not facts.dashboard_override_to_author
+        and bool(facts.dashboard_override_head_sha)
         and bool(facts.head_sha)
         and (
             facts.dashboard_override_persistent
             or facts.dashboard_override_head_sha == facts.head_sha
         )
         and not facts.dashboard_override_cleared_by_feedback
+    )
+
+
+def author_handoff_active(facts: DashboardFacts) -> bool:
+    return (
+        facts.dashboard_override_to_author
+        and facts.author_can_act
+        and not facts.dashboard_override_author_released
+        and bool(facts.head_sha)
+        and facts.head_sha == facts.dashboard_override_head_sha
     )
 
 
@@ -245,6 +256,13 @@ def _add_wait_age_facts(
     pending_human_reviewer_logins: frozenset[str],
     pending_review_requested_at: Mapping[str, str],
 ) -> DashboardFacts:
+    if route is DashboardRoute.AUTHOR and author_handoff_active(facts):
+        handoff_ts = parse_ts(facts.dashboard_override_since)
+        if handoff_ts is not None:
+            return facts.with_changes(
+                waiting_since=format_ts(handoff_ts),
+                waiting_age_basis="author_handoff",
+            )
     handoff_ts = (
         parse_ts(facts.dashboard_override_since)
         if route.value in _REVIEWER_ROUTES and reviewer_handoff_active(facts)
@@ -362,11 +380,15 @@ def resolve_routing(routing_input: RoutingInput) -> RoutingOutcome:
     """Resolve the final route and return an enriched copy of the input facts."""
     facts = routing_input.facts
     now = routing_input.now or utc_now()
-    route = _base_route(
-        facts,
-        routing_input.pending_actions,
-        routing_input.required_approvals,
-        manual_reviewer_handoff=routing_input.manual_reviewer_handoff,
+    route = (
+        DashboardRoute.AUTHOR
+        if author_handoff_active(facts)
+        else _base_route(
+            facts,
+            routing_input.pending_actions,
+            routing_input.required_approvals,
+            manual_reviewer_handoff=routing_input.manual_reviewer_handoff,
+        )
     )
     copilot_review_gate_enabled = (
         routing_input.require_clean_copilot_review

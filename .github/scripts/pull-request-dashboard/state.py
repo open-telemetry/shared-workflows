@@ -43,8 +43,8 @@ FULL_PUBLISH_DELIVERED_FILE = "full-publish-delivered.json"
 # current vector, ordinary state loaders may regenerate mismatched disposable
 # caches. Every constant ending in _STATE_VERSION or _REVISION is included.
 # dashboard-state.json: accepted PR routing results and backfill readiness.
-# Routing facts include current-head Copilot error counts for bounded retries.
-DASHBOARD_STATE_VERSION = 21
+# Routing facts include the target and release of manual author handoffs.
+DASHBOARD_STATE_VERSION = 22
 DASHBOARD_STATE_COMPATIBLE_VERSIONS: tuple[int, ...] = ()
 # backfill-state.json: round-robin cursor used by full dashboard refreshes.
 BACKFILL_STATE_VERSION = 3
@@ -59,7 +59,7 @@ COPILOT_REVIEW_FALLBACK_STATE_VERSION = 1
 STATUS_COMMENT_ROLLOUT_STATE_VERSION = 3
 # Rendered status-comment behavior. Increment when existing comments need to
 # adopt a change; hourly runs durably roll it out to all open PRs.
-STATUS_COMMENT_REVISION = 22
+STATUS_COMMENT_REVISION = 23
 FULL_PUBLISH_STATE_VERSION = 1
 INITIAL_BACKFILL_COMPLETE_KEY = "initial_backfill_complete"
 _state_dir: Path | None = None
@@ -623,6 +623,8 @@ def _encode_command_reply(reply: DashboardCommandReply) -> dict[str, Any]:
             # DashboardCommandReply refuses a routed reply without a route.
             stored["route"] = reply.route.value
             stored["held_gates"] = reply.held_gates
+            if reply.subcommand:
+                stored["subcommand"] = reply.subcommand
         return stored
     return {
         "comment_id": reply.comment_id,
@@ -692,6 +694,14 @@ def decode_dashboard_facts(value: Any) -> DashboardFacts:
         dashboard_override_cleared_by_feedback=_boolean(
             value.get("dashboard_override_cleared_by_feedback", _MISSING),
             "facts.dashboard_override_cleared_by_feedback",
+        ),
+        dashboard_override_to_author=_boolean(
+            value.get("dashboard_override_to_author", _MISSING),
+            "facts.dashboard_override_to_author",
+        ),
+        dashboard_override_author_released=_boolean(
+            value.get("dashboard_override_author_released", _MISSING),
+            "facts.dashboard_override_author_released",
         ),
         dashboard_command_replies=tuple(
             _decode_command_reply(reply)
@@ -913,6 +923,10 @@ def encode_dashboard_facts(facts: DashboardFacts) -> dict[str, Any]:
         stored["dashboard_override_persistent"] = True
     if facts.dashboard_override_cleared_by_feedback:
         stored["dashboard_override_cleared_by_feedback"] = True
+    if facts.dashboard_override_to_author:
+        stored["dashboard_override_to_author"] = True
+    if facts.dashboard_override_author_released:
+        stored["dashboard_override_author_released"] = True
     if facts.ci_failing_count is not None:
         stored["ci_failing_count"] = facts.ci_failing_count
     if facts.ci_failing_since is not None:

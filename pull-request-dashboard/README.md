@@ -454,28 +454,25 @@ for the tradeoffs behind this behavior.
 
 Targeted updates received before the first full dashboard run are ignored.
 
-## Reviewer routing override
+## Routing overrides
 
-When the dashboard says a pull request is waiting on its author, the author can
-comment `/dashboard route:reviewers` to request human help. The command is a
-break-glass handoff. It forces *Waiting on reviewers* regardless of review
-feedback, approvals, required checks, Copilot review, or merge conflicts. It is
-useful when the author is stuck or needs a reviewer or maintainer to explain
-what to do next. Members of the repository's `approver_teams` can use the same
-command.
+The pull request author or a member of the repository's `approver_teams` can
+post either command in a top-level pull request comment:
 
-The dashboard binds an authorized command to the head it sees when it first
-reads that command, and records that head in its acknowledgement reply. The
-handoff stays active while the pull request head matches the recorded one, so a
-later push restores normal routing and gates. Actionable human reviewer feedback
-posted after the command timestamp also ends the handoff, so normal routing and
-gates apply again. Praise, informational comments, bot feedback, classification
-failures, and feedback posted at or before the command timestamp do not end it.
-A push between the command and the pass that reads it is part of the same
-handoff, because the dashboard binds to the head it can actually see.
+- `/dashboard route:author` puts the pull request in *Waiting on authors*,
+  even if there are enough approvals to merge. It keeps existing feedback
+  and lasts until the dashboard sees a different head commit or a newer
+  reviewer handoff. It requires a human author who can act on the PR.
+- `/dashboard route:reviewers` hands the pull request to reviewers or
+  maintainers, depending on approvals, without waiting on feedback, checks,
+  Copilot review, or merge conflicts. It retires older top-level feedback
+  without resolving inline threads. It survives pushes and ends when newer
+  actionable human reviewer feedback arrives or someone routes it back to the
+  author. Praise, informational comments, and bot feedback don't end it.
 
-The dashboard replies to an unauthorized command explaining that only the author
-or an approver can use it, and replies to any unrecognized `/dashboard` command.
+The dashboard records the head it sees when it first reads the command. When
+both commands are present, the newer authorized command takes precedence.
+Ending a handoff restores normal routing without reactivating an older one.
 
 ## Author reminder
 

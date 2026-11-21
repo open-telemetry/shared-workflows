@@ -187,12 +187,14 @@ def _compute_facts(
         source.reviews,
         head_sha,
     )
+    author_can_act = _author_can_act(pr.author, author)
     override = dashboard_override_facts(
         DashboardOverrideInput(source.issue_comments),
         author,
         set(approver_logins),
         head_sha,
         previous_facts,
+        author_can_act=author_can_act,
     )
     non_blocking_check_failures = tuple(sorted(
         {
@@ -216,6 +218,8 @@ def _compute_facts(
         dashboard_top_level_feedback_cutoff=override.top_level_feedback_cutoff,
         dashboard_override_persistent=override.persistent_handoff,
         dashboard_override_cleared_by_feedback=override.cleared_by_feedback,
+        dashboard_override_to_author=override.to_author,
+        dashboard_override_author_released=override.author_released,
         dashboard_command_replies=override.command_replies,
         copilot_review_requested=any(
             is_copilot_reviewer(request)
@@ -236,7 +240,7 @@ def _compute_facts(
         copilot_review_stale=copilot_review_stale,
         copilot_review_needed=copilot_review_stale,
         is_maintenance_bot=_is_maintenance_bot_author(api_author),
-        author_can_act=_author_can_act(pr.author, author),
+        author_can_act=author_can_act,
         is_draft=pr.is_draft,
         approval_count=prepared_reviewers.approval_count,
         conflicts=pr.conflicts,
