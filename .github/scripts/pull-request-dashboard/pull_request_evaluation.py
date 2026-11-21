@@ -52,6 +52,7 @@ from discussion_lifecycle import (
     DiscussionLifecycleOutcome,
     LifecycleMode,
     PreparedDiscussions,
+    has_completed_author_reply_after,
     prepare_discussions,
     prepare_reviewer_handoff_feedback,
     resolve_discussions,
@@ -78,6 +79,7 @@ from reviewer_state import (
 )
 from routing_decision import (
     RoutingInput,
+    author_handoff_active,
     resolve_routing,
     reviewer_handoff_active,
 )
@@ -558,6 +560,10 @@ async def evaluate_pull_request(
                     "discussion classification(s) failed"
                 ),
             )
+        if author_handoff_active(facts) and has_completed_author_reply_after(
+            lifecycle, facts.dashboard_override_since
+        ):
+            facts = facts.with_changes(dashboard_override_author_released=True)
         pending_actions = lifecycle.pending_actions
         review_threads = list(prepared_discussions.review_threads)
         top_level_items = list(prepared_discussions.top_level_items)

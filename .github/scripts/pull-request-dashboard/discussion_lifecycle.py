@@ -624,12 +624,18 @@ def _completed_author_reply_after(
     feedback_id: str,
     root_timestamp: str,
     outcomes: list[AuthorCommentOutcome],
+    *,
+    after: datetime | None = None,
 ) -> tuple[str, int | None] | None:
     for outcome in outcomes:
         if (
             outcome["timestamp"] > root_timestamp
             and outcome["action"] == "none"
             and outcome["feedback_id"] == feedback_id
+            and (
+                after is None
+                or (parse_ts(outcome["timestamp"]) or _MIN_TIMESTAMP) > after
+            )
             and not _author_reply_is_superseded(
                 outcomes,
                 outcome["source_id"],
@@ -639,6 +645,42 @@ def _completed_author_reply_after(
         ):
             return outcome["timestamp"], outcome["source_id"]
     return None
+
+
+def has_completed_author_reply_after(
+    lifecycle: DiscussionLifecycleOutcome,
+    handoff_since: str,
+) -> bool:
+    cutoff = parse_ts(handoff_since)
+    if cutoff is None:
+        return False
+    # A "complete" inline reply puts the next action with the reviewer.
+    if any(
+        not classification.failed
+        and not classification.deferred
+        and isinstance(classification.decision, ActionDecision)
+        and classification.decision.action is DiscussionAction.REVIEWER
+        and (parse_ts(classification.since) or _MIN_TIMESTAMP) > cutoff
+        for classification in lifecycle.classifications.review_threads
+    ):
+        return True
+    if not lifecycle.top_level_history:
+        return False
+    outcomes = _author_comment_outcomes(
+        lifecycle.prepared.top_level_author_comment_items,
+        lifecycle.classifications.top_level_author_comments,
+    )
+    return any(
+        discussion["discussion_id"] in lifecycle.top_level_history
+        and _completed_author_reply_after(
+            discussion["discussion_id"],
+            _top_level_feedback_timestamp(discussion),
+            outcomes,
+            after=cutoff,
+        )
+        is not None
+        for discussion in lifecycle.prepared.top_level_items
+    )
 
 
 def _latest_author_comment_handoff(

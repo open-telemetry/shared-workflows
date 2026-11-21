@@ -1382,7 +1382,7 @@ class PullRequestEvaluationTest(unittest.IsolatedAsyncioTestCase):
             actor=reviewer_ack.actor,
             body=render_command_reply(reply),
         )
-        self.assertIn("waiting on the author until the head commit changes", ack.body)
+        self.assertIn("when the author addresses review feedback", ack.body)
         status = render_status_comment({"state": "open"}, stored_result(result))
         self.assertIn("An explicit `/dashboard route:author` handoff is active.", status)
 
@@ -1409,6 +1409,103 @@ class PullRequestEvaluationTest(unittest.IsolatedAsyncioTestCase):
         assert isinstance(reverted, EvaluationSuccess)
         self.assertEqual(DashboardRoute.MAINTAINER, reverted.route)
         self.assertEqual((), reverted.facts.dashboard_command_replies)
+
+    @patch("pull_request_evaluation.fetch_pull_request_source")
+    async def test_author_handoff_uses_inline_reply_classification(
+        self, fetch_raw: Mock
+    ) -> None:
+        cutoff = "2026-08-16T08:00:00Z"
+        for reply_time, action, released in (
+            ("2026-08-16T09:00:00Z", DiscussionAction.REVIEWER, True),
+            ("2026-08-16T09:00:00Z", DiscussionAction.AUTHOR, False),
+            (cutoff, DiscussionAction.REVIEWER, False),
+        ):
+            with self.subTest(reply_time=reply_time, action=action):
+                fetch_raw.return_value = pull_request_source(
+                    issue_comments=(
+                        issue_comment(
+                            database_id=2,
+                            body="/dashboard route:author",
+                            created_at=cutoff,
+                        ),
+                    ),
+                    review_threads=(
+                        review_thread(comments=(
+                            review_thread_comment(),
+                            review_thread_comment(
+                                node_id="PRRC_2",
+                                actor=actor("author"),
+                                created_at=reply_time,
+                                updated_at=reply_time,
+                                body=(
+                                    "Can you check the new wording?"
+                                    if action is DiscussionAction.REVIEWER
+                                    else "I'll update the wording tomorrow."
+                                ),
+                            ),
+                        )),
+                    ),
+                )
+                decision = replace(
+                    action_classification(
+                        "PRRT_1", DiscussionKind.REVIEW_THREAD, action, "Author reply"
+                    ),
+                    since=reply_time,
+                )
+                classifier = FakeClassificationOperation(
+                    DiscussionClassifications((decision,), (), ())
+                )
+                result = await evaluate_pr({"number": 7}, classification_service=classifier)
+                assert isinstance(result, EvaluationSuccess)
+                self.assertEqual(released, result.facts.dashboard_override_author_released)
+                self.assertEqual(
+                    DashboardRoute.APPROVER if released else DashboardRoute.AUTHOR,
+                    result.route,
+                )
+                self.assertEqual(1, len(classifier.requests))
+                self.assertEqual([], classifier.reviewer_feedback_requests)
+
+    @patch("pull_request_evaluation.fetch_pull_request_source")
+    async def test_completed_top_level_reply_restores_normal_routing(
+        self, fetch_raw: Mock
+    ) -> None:
+        feedback_id = "pr-issue-comment-1"
+        fetch_raw.return_value = pull_request_source(
+            issue_comments=(
+                issue_comment(database_id=1, actor=actor("reviewer"), body="Explain the limit."),
+                issue_comment(
+                    database_id=2,
+                    body="/dashboard route:author",
+                    created_at="2026-08-16T08:00:00Z",
+                ),
+                issue_comment(
+                    database_id=3,
+                    body="The limit keeps the queue within memory. Does that address it?",
+                    created_at="2026-08-16T09:00:00Z",
+                ),
+            ),
+            checks=(check_source(bucket="fail"),),
+        )
+        feedback = action_classification(
+            feedback_id, DiscussionKind.TOP_LEVEL_FEEDBACK, DiscussionAction.AUTHOR,
+            "The reviewer asks a question.",
+        )
+        for outcomes in ((), (FeedbackOutcome(feedback_id, DiscussionAction.NONE, "Answered"),)):
+            with self.subTest(outcomes=outcomes):
+                reply = ClassificationSuccess(
+                    DiscussionIdentity("pr-author-reply-3", DiscussionKind.TOP_LEVEL_AUTHOR_REPLY),
+                    AuthorCommentDecision(outcomes),
+                )
+                classifier = FakeClassificationOperation(
+                    DiscussionClassifications((), (feedback,), (reply,))
+                )
+                result = await evaluate_pr({"number": 7}, classification_service=classifier)
+                assert isinstance(result, EvaluationSuccess)
+                # The failed required check still belongs to the author under normal routing.
+                self.assertEqual(DashboardRoute.AUTHOR, result.route)
+                self.assertEqual(bool(outcomes), result.facts.dashboard_override_author_released)
+                self.assertEqual(1, len(classifier.requests))
+                self.assertEqual([], classifier.reviewer_feedback_requests)
 
     @patch("pull_request_evaluation.fetch_pull_request_source")
     async def test_newer_reviewer_command_ends_author_handoff_without_push(
