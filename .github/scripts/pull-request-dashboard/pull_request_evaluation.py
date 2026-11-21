@@ -36,13 +36,10 @@ from dashboard_contracts import (
     EvaluationFailure,
     EvaluationResult,
     EvaluationSuccess,
-    HandoffTarget,
-    RoutingHandoff,
     StoredDashboardResult,
 )
 from dashboard_override import (
     DashboardOverrideInput,
-    DashboardOverrideFacts,
     append_command_ack_reply,
     dashboard_override_facts,
 )
@@ -138,7 +135,6 @@ class PullRequestEvaluationConfig:
 class PullRequestEvaluationInput:
     pr_number: int
     previous_result: StoredDashboardResult | None = None
-    unpublished_handoff: RoutingHandoff | None = None
 
     def __post_init__(self) -> None:
         if self.pr_number <= 0:
@@ -154,8 +150,6 @@ def _compute_facts(
     previous_facts: DashboardFacts,
     fallback_available: bool = False,
     fallback: CopilotReviewFallback | None = None,
-    *,
-    override: DashboardOverrideFacts | None = None,
 ) -> DashboardFacts:
     pr = source.pull_request
     snapshot = build_routing_snapshot(source)
@@ -196,7 +190,7 @@ def _compute_facts(
         head_sha,
     )
     author_can_act = _author_can_act(pr.author, author)
-    override = override or dashboard_override_facts(
+    override = dashboard_override_facts(
         DashboardOverrideInput(source.issue_comments),
         author,
         set(approver_logins),
@@ -344,13 +338,11 @@ def _failure_result(
     number: int,
     route: DashboardRoute,
     error: Exception,
-    observed_author_handoff: RoutingHandoff | None,
 ) -> EvaluationFailure:
     return EvaluationFailure(
         pr_number=number,
         route=route,
         error=repr(error),
-        observed_author_handoff=observed_author_handoff,
     )
 
 
@@ -437,7 +429,6 @@ async def evaluate_pull_request(
         if previous_result is not None
         else {}
     )
-    observed_author_handoff = None
     try:
         pr_source = fetch_pull_request_source(
             config.repo,
@@ -456,20 +447,6 @@ async def evaluate_pull_request(
                 pr_url=pr.url,
             )
         author = effective_author(pr_source.pull_request, pr_source.commits)
-        override = dashboard_override_facts(
-            DashboardOverrideInput(pr_source.issue_comments),
-            author,
-            set(config.approver_logins),
-            pr.head_sha,
-            previous_facts,
-            author_can_act=_author_can_act(pr.author, author),
-            unpublished_handoff=source.unpublished_handoff,
-        )
-        if (
-            override.handoff.target is HandoffTarget.AUTHOR
-            and override.handoff.head_sha
-        ):
-            observed_author_handoff = override.handoff
         activity = build_activity_timeline(
             ActivityInput(pr_source, author, config.approver_logins)
         )
@@ -490,7 +467,6 @@ async def evaluate_pull_request(
             previous_facts,
             config.copilot_review_fallback_available,
             config.copilot_review_fallback,
-            override=override,
         )
         manual_reviewer_handoff = reviewer_handoff_active(facts)
         discussion_input = DiscussionInput(
@@ -573,7 +549,6 @@ async def evaluate_pull_request(
                 pr_url=pr.url,
                 facts=facts,
                 diagnostics=diagnostics,
-                observed_author_handoff=observed_author_handoff,
                 route=DashboardRoute.UNKNOWN,
                 error=(
                     f"{len(lifecycle.failed_classifications)} "
@@ -660,7 +635,6 @@ async def evaluate_pull_request(
             number,
             DashboardRoute.TRANSIENT_FAILURE,
             error,
-            observed_author_handoff,
         )
     except Exception as error:
         print(
@@ -668,4 +642,4 @@ async def evaluate_pull_request(
             file=sys.stderr,
         )
         traceback.print_exc()
-        return _failure_result(number, DashboardRoute.UNKNOWN, error, observed_author_handoff)
+        return _failure_result(number, DashboardRoute.UNKNOWN, error)

@@ -178,7 +178,6 @@ def dashboard_override_facts(
     previous_facts: DashboardFacts | None = None,
     *,
     author_can_act: bool = True,
-    unpublished_handoff: RoutingHandoff | None = None,
 ) -> DashboardOverrideFacts:
     command = latest_authorized_command(
         source,
@@ -187,7 +186,7 @@ def dashboard_override_facts(
         author_can_act=author_can_act,
     )
     previous_facts = previous_facts or DashboardFacts()
-    previous = unpublished_handoff or previous_facts.handoff
+    previous = previous_facts.handoff
     new_reviewer_cutoff = ""
     if command is not None:
         target = (

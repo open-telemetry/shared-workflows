@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from dataclasses import FrozenInstanceError, replace
+from dataclasses import FrozenInstanceError
 import unittest
 
-from dashboard_contracts import DashboardRoute, HandoffTarget, RoutingHandoff
+from dashboard_contracts import DashboardRoute
 from dashboard_state_update import (
     DashboardUpdateDisposition,
     accept_dashboard_update,
@@ -330,46 +330,6 @@ class DashboardStateUpdateTest(unittest.TestCase):
         self.assertEqual(concurrent, acceptance.accepted_result)
         self.assertTrue(acceptance.effects.record_observations)
         self.assertFalse(acceptance.effects.clear_backfill_failure)
-
-    def test_failed_refresh_can_only_release_the_same_concurrent_binding(self) -> None:
-        handoff = RoutingHandoff(command_id=12, head_sha="abc", target=HandoffTarget.AUTHOR)
-        starting = stored_dashboard_result(7, facts=dashboard_facts(handoff=handoff))
-        starting_state = dashboard_state(starting)
-        prepared = prepare_dashboard_update(starting_state, {7}, 7)
-        update = prepared.with_evaluated_result(replace(
-            evaluation_failure(7), observed_author_handoff=handoff.release(),
-        ))
-
-        for concurrent_handoff in (handoff, replace(handoff, command_id=13)):
-            with self.subTest(concurrent_handoff=concurrent_handoff):
-                concurrent = replace(
-                    starting,
-                    facts=starting.facts.with_changes(
-                        handoff=concurrent_handoff, last_activity_at="2026-08-16T08:00:00Z",
-                    ),
-                )
-                state = dashboard_state(concurrent)
-                acceptance = accept_dashboard_update(update, state)
-                self.assertEqual(concurrent, acceptance.accepted_result)
-                self.assertFalse(acceptance.effects.enqueue_status_comment)
-                if concurrent_handoff == handoff:
-                    self.assertTrue(acceptance.failed_result_rejected)
-                    self.assertTrue(acceptance.effects.persist_dashboard_state)
-                    self.assertEqual(handoff.release(), acceptance.dashboard_state.unpublished_handoffs[7])
-                    # A success computed before the release must not erase it.
-                    stale = accept_dashboard_update(
-                        prepare_dashboard_update(state, {7}, 7).with_evaluated_result(
-                            evaluated(7, DashboardRoute.AUTHOR),
-                        ),
-                        acceptance.dashboard_state,
-                    )
-                    self.assertIs(DashboardUpdateDisposition.CONCURRENT_UPDATE, stale.disposition)
-                    self.assertFalse(stale.effects.enqueue_status_comment)
-                    self.assertEqual(acceptance.dashboard_state, stale.dashboard_state)
-                else:
-                    self.assertIs(DashboardUpdateDisposition.CONCURRENT_UPDATE, acceptance.disposition)
-                    self.assertFalse(acceptance.effects.persist_dashboard_state)
-                    self.assertEqual(state, acceptance.dashboard_state)
 
 
 if __name__ == "__main__":

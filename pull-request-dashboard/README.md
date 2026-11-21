@@ -462,12 +462,11 @@ post either command in a top-level pull request comment:
 - `/dashboard route:author` puts the pull request in *Waiting on authors*,
   even if there are enough approvals to merge. It keeps existing feedback and
   requires a human author who can act on the PR. Normal routing resumes on a
-  different head commit or when the author addresses existing feedback. Once
-  the dashboard sees a different head, returning to the original commit does
-  not restart the handoff. A reply can count even if the author resolves the
-  thread before the next refresh. A promise to make changes later does not end
-  the handoff. Use `/dashboard route:reviewers` to hand it back explicitly,
-  including when there is no feedback to reply to.
+  successful refresh that sees a different head commit or finds a completed
+  author reply to existing feedback. A reply can count even if the author
+  resolves the thread before the next refresh. A promise to make changes later
+  does not end the handoff. Use `/dashboard route:reviewers` to hand it back
+  explicitly, including when there is no feedback to reply to.
 - `/dashboard route:reviewers` hands the pull request to reviewers or
   maintainers, depending on approvals, without waiting on feedback, checks,
   Copilot review, or merge conflicts. It retires older top-level feedback

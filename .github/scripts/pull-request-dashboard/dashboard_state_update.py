@@ -131,12 +131,9 @@ def accept_dashboard_update(
     )
     latest_result = dashboard_state.result_for(pr_number)
     latest_is_draft = dashboard_state.is_draft(pr_number)
-    latest_handoff = dashboard_state.unpublished_handoffs.get(pr_number)
-    starting_handoff = prepared.starting_dashboard_state.unpublished_handoffs.get(pr_number)
     slot_changed = (
         latest_result != prepared.starting_result
         or latest_is_draft != prepared.starting_is_draft
-        or latest_handoff != starting_handoff
     )
     evaluated_result = update.evaluated_result
 
@@ -147,7 +144,7 @@ def accept_dashboard_update(
                 dashboard_state,
                 pr_number,
             )
-        if latest_result is None and not latest_is_draft and latest_handoff is None:
+        if latest_result is None and not latest_is_draft:
             return _acceptance(
                 DashboardUpdateDisposition.UNCHANGED,
                 dashboard_state,
@@ -194,7 +191,6 @@ def accept_dashboard_update(
         latest_dashboard_state is not None
         and current_result is not None
         and latest_result == current_result
-        and latest_handoff is None
     ):
         return _acceptance(
             DashboardUpdateDisposition.UNCHANGED,
@@ -202,34 +198,18 @@ def accept_dashboard_update(
             pr_number,
             clear_backfill_failure=clear_backfill_failure,
         )
-    if isinstance(evaluated_result, EvaluationFailure):
-        handoff = evaluated_result.observed_author_handoff
-        accepted_handoff = latest_result.facts.handoff if latest_result is not None else None
-        known_handoff = latest_handoff or accepted_handoff
-        # A release is safe to apply across a concurrent refresh of the same
-        # binding, but must never replace a newer command or bind an old one.
-        if latest_dashboard_state is not None and slot_changed and not (
-            handoff is not None and handoff.released
-            and known_handoff is not None and handoff.matches(known_handoff)
-            and not known_handoff.released
-        ):
-            return _acceptance(
-                DashboardUpdateDisposition.CONCURRENT_UPDATE, dashboard_state, pr_number,
-            )
-        persist = handoff is not None and handoff != known_handoff
-        return _acceptance(
-            DashboardUpdateDisposition.FAILED_RESULT_REJECTED,
-            dashboard_state.with_unpublished_handoff(pr_number, handoff)
-            if handoff is not None and persist else dashboard_state,
-            pr_number,
-            persist_dashboard_state=persist,
-        )
     if latest_dashboard_state is not None and slot_changed:
         return _acceptance(
             DashboardUpdateDisposition.CONCURRENT_UPDATE,
             dashboard_state,
             pr_number,
-            clear_backfill_failure=latest_handoff is None,
+            clear_backfill_failure=clear_backfill_failure,
+        )
+    if failed:
+        return _acceptance(
+            DashboardUpdateDisposition.FAILED_RESULT_REJECTED,
+            dashboard_state,
+            pr_number,
         )
     return _acceptance(
         DashboardUpdateDisposition.APPLIED,

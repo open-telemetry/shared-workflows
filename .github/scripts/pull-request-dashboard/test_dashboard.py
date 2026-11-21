@@ -16,7 +16,6 @@ from copilot_review import set_copilot_review_request_needed
 from dashboard import (
     BACKFILL_RECORDED_FAILURE_STATUS,
     apply_targeted_dashboard_update,
-    update_dashboard_for_pr_number,
     backfill_failed_pr_numbers,
     build_dashboard_update_for_pr,
     complete_initial_backfill_if_ready,
@@ -29,7 +28,6 @@ from dashboard import (
     write_initial_backfill_output,
 )
 from dashboard_state_update import (
-    DashboardUpdateDisposition,
     DashboardStateUpdate,
     accept_dashboard_update,
     prepare_dashboard_update,
@@ -43,7 +41,6 @@ from dashboard_contracts import (
     EvaluationFailure,
     EvaluationResult,
     EvaluationSuccess,
-    HandoffTarget,
     ReviewerSummary,
     RoutingHandoff,
     StoredDashboardResult,
@@ -110,13 +107,7 @@ from pr_status_comment import render_status_comment
 from render import render_pr_tables, reviewers_cell_text
 from reviewer_state import ReviewerInput, prepare_reviewers
 from routing_decision import resolve_routing
-from state import (
-    decode_dashboard_facts,
-    decode_dashboard_state,
-    encode_dashboard_facts,
-    encode_dashboard_state,
-    stored_result,
-)
+from state import decode_dashboard_facts, encode_dashboard_facts, stored_result
 
 
 FAILED_CLASSIFICATION = ClassificationFailure(
@@ -185,7 +176,6 @@ async def evaluate_pr(
     pr_summary: dict[str, object],
     *,
     previous_result: StoredDashboardResult | None = None,
-    unpublished_handoff: RoutingHandoff | None = None,
     require_clean_copilot_review_branches: list[str] | None = None,
     classification_service: FakeClassificationOperation | None = None,
 ) -> EvaluationResult | None:
@@ -198,7 +188,6 @@ async def evaluate_pr(
         PullRequestEvaluationInput(
             pr_number=int(pr_summary["number"]),
             previous_result=previous_result,
-            unpublished_handoff=unpublished_handoff,
         ),
         classification_service or FakeClassificationOperation(),
     )
@@ -1541,7 +1530,7 @@ class PullRequestEvaluationTest(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual((), result.facts.author_action_review_thread_urls)
 
     @patch("pull_request_evaluation.fetch_pull_request_source")
-    async def test_failed_targeted_refresh_persists_author_handoff_observations(
+    async def test_failed_refresh_leaves_author_handoff_unchanged_until_success(
         self, fetch_raw: Mock
     ) -> None:
         original = pull_request_source(
@@ -1551,88 +1540,38 @@ class PullRequestEvaluationTest(unittest.IsolatedAsyncioTestCase):
                 created_at="2026-08-16T08:00:00Z",
             ),),
         )
-        changed = replace(
+        fetch_raw.return_value = original
+        active = await evaluate_pr({"number": 7})
+        assert isinstance(active, EvaluationSuccess)
+        previous = stored_result(active)
+        state = dashboard_state(previous)
+        prepared = prepare_dashboard_update(state, {7}, 7)
+        fetch_raw.return_value = replace(
             original, pull_request=replace(original.pull_request, head_sha="different-head"),
         )
-        earlier = stored_dashboard_result(7, route=DashboardRoute.APPROVER)
-        state = dashboard_state(earlier)
-
-        def save(updated: DashboardState) -> None:
-            nonlocal state
-            state = decode_dashboard_state(encode_dashboard_state(updated))
-
-        for source, classifier, released in (
-            (
-                original,
-                FakeClassificationOperation(DiscussionClassifications(
-                    (), (FAILED_CLASSIFICATION,), (),
-                )),
-                False,
+        failure = await evaluate_pr(
+            {"number": 7},
+            previous_result=previous,
+            classification_service=FakeClassificationOperation(
+                DiscussionClassifications((), (FAILED_CLASSIFICATION,), ()),
             ),
-            (changed, FakeClassificationOperation(error=RuntimeError("classifier interrupted")), True),
-        ):
-            fetch_raw.return_value = source
-            prepared = prepare_dashboard_update(state, {7}, 7)
-            result = await evaluate_pr(
-                {"number": 7},
-                previous_result=prepared.starting_result,
-                unpublished_handoff=state.unpublished_handoffs.get(7),
-                classification_service=classifier,
-            )
-            assert isinstance(result, EvaluationFailure)
-            assert result.observed_author_handoff is not None
-            self.assertEqual(released, result.observed_author_handoff.released)
+        )
+        rejected = accept_dashboard_update(prepared.with_evaluated_result(failure), state)
+        self.assertTrue(rejected.failed_result_rejected)
+        self.assertEqual(state, rejected.dashboard_state)
 
-            def push_state_changes(_state_dir, _message, update, **_kwargs):
-                # Nonzero would skip committing the observation.
-                self.assertEqual(0, update())
-                return 0
-
-            with (
-                patch("dashboard.state_branch.configure_git"),
-                patch("dashboard.state_branch.checkout_state"),
-                patch("dashboard.state_branch.remove_existing_state_dir"),
-                patch(
-                    "dashboard.state_branch.push_state_changes",
-                    side_effect=push_state_changes,
-                ),
-                patch(
-                    "dashboard.build_targeted_dashboard_update",
-                    return_value=prepared.with_evaluated_result(result),
-                ),
-                patch("dashboard.load_dashboard_state_cache", return_value=state),
-                patch("dashboard.save_dashboard_state_cache", side_effect=save) as save_state,
-                patch("dashboard.apply_dashboard_update_effects") as effects,
-            ):
-                status = await update_dashboard_for_pr_number(
-                    Namespace(pr_number=7, state_branch="state"), Path("."), classifier,
-                )
-            self.assertEqual(1, status)
-            save_state.assert_called_once()
-            effects.assert_not_called()
-            self.assertEqual(earlier, state.result_for(7))
-            self.assertEqual(original.pull_request.head_sha, state.unpublished_handoffs[7].head_sha)
-            self.assertEqual(released, state.unpublished_handoffs[7].released)
+        released = await evaluate_pr({"number": 7}, previous_result=previous)
+        assert isinstance(released, EvaluationSuccess)
+        self.assertIs(DashboardRoute.APPROVER, released.route)
+        self.assertTrue(released.facts.handoff.released)
 
         fetch_raw.return_value = original
-        result = await evaluate_pr(
-            {"number": 7}, previous_result=earlier, unpublished_handoff=state.unpublished_handoffs[7],
+        returned = await evaluate_pr(
+            {"number": 7}, previous_result=stored_result(released),
         )
-        assert isinstance(result, EvaluationSuccess)
-        self.assertIs(DashboardRoute.APPROVER, result.route)
-        self.assertTrue(result.facts.handoff.released)
-        accepted = accept_dashboard_update(
-            prepare_dashboard_update(state, {7}, 7).with_evaluated_result(result), state,
-        )
-        self.assertEqual({}, accepted.dashboard_state.unpublished_handoffs)
-        self.assertTrue(accepted.effects.enqueue_status_comment)
-        self.assertIn(
-            "pull-request-dashboard-override-ack:author-released:2:",
-            render_status_comment(
-                {"number": 7, "state": "open"},
-                StoredDashboardResult.from_evaluation(result),
-            ),
-        )
+        assert isinstance(returned, EvaluationSuccess)
+        self.assertIs(DashboardRoute.APPROVER, returned.route)
+        self.assertTrue(returned.facts.handoff.released)
 
     @patch("pull_request_evaluation.fetch_pull_request_source")
     async def test_author_handoff_uses_inline_reply_classification(
@@ -3954,12 +3893,12 @@ class StatusCommentQueueTest(unittest.TestCase):
             "dashboard.accept_dashboard_update",
             wraps=accept_dashboard_update,
         ) as accept_update:
-            acceptance = apply_targeted_dashboard_update(
+            status = apply_targeted_dashboard_update(
                 Namespace(pr_number=12, prepare_author_nudges=True),
                 calculation,
             )
 
-        self.assertEqual(DashboardUpdateDisposition.APPLIED, acceptance.disposition)
+        self.assertEqual(0, status)
         accept_update.assert_called_once()
         enqueue_update.assert_called_once_with(12, accepted_result)
         record_nudge.assert_called_once_with(
@@ -4004,9 +3943,9 @@ class StatusCommentQueueTest(unittest.TestCase):
         ))
         load_state.return_value = state
 
-        acceptance = apply_targeted_dashboard_update(Namespace(pr_number=12), calculation)
+        status = apply_targeted_dashboard_update(Namespace(pr_number=12), calculation)
 
-        self.assertEqual(DashboardUpdateDisposition.UNCHANGED, acceptance.disposition)
+        self.assertEqual(0, status)
         enqueue_update.assert_not_called()
         record_nudge.assert_called_once_with(
             12,
@@ -4296,9 +4235,6 @@ class BackfillFailureIsolationTest(unittest.IsolatedAsyncioTestCase):
             non_blocking_check_pattern=[],
         )
         current_state = dashboard_state()
-        handoff = RoutingHandoff(
-            command_id=3, head_sha="original-head", target=HandoffTarget.AUTHOR, released=True,
-        )
         backfill_state = {"cursor": {}}
         refreshed_pr_numbers: list[int] = []
 
@@ -4321,7 +4257,6 @@ class BackfillFailureIsolationTest(unittest.IsolatedAsyncioTestCase):
                     pr_number=pr_number,
                     route=DashboardRoute.UNKNOWN,
                     error="failed",
-                    observed_author_handoff=handoff,
                 )
                 if pr_number == 1
                 else evaluation_success(
@@ -4382,7 +4317,6 @@ class BackfillFailureIsolationTest(unittest.IsolatedAsyncioTestCase):
             current_state.result_for(2).route if current_state.result_for(2) else None,
         )
         self.assertTrue(current_state.initial_backfill_complete)
-        self.assertEqual({1: handoff}, current_state.unpublished_handoffs)
         self.assertEqual(backfill_state["cursor"], {"last_pr_number": 2})
         self.assertEqual(backfill_failed_pr_numbers(backfill_state), {1})
 
@@ -4421,9 +4355,9 @@ class BackfillFailureIsolationTest(unittest.IsolatedAsyncioTestCase):
             ),
             patch("dashboard.save_dashboard_update_state", return_value=0) as save_dashboard,
         ):
-            acceptance = apply_targeted_dashboard_update(args, calculation)
+            status = apply_targeted_dashboard_update(args, calculation)
 
-        self.assertEqual(DashboardUpdateDisposition.APPLIED, acceptance.disposition)
+        self.assertEqual(status, 0)
         self.assertEqual(saved_backfill_state["cursor"], {"last_pr_number": 7})
         self.assertEqual(saved_backfill_state["failed_pr_numbers"], [2])
         saved_dashboard_state = save_dashboard.call_args.args[1]

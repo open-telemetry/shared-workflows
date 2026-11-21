@@ -44,7 +44,7 @@ FULL_PUBLISH_DELIVERED_FILE = "full-publish-delivered.json"
 # changes. A worker lower in any component skips delivery; after claiming the
 # current vector, ordinary state loaders may regenerate mismatched disposable
 # caches. Every constant ending in _STATE_VERSION or _REVISION is included.
-# dashboard-state.json: accepted routes, unpublished handoffs, and backfill readiness.
+# dashboard-state.json: accepted routing results and backfill readiness.
 DASHBOARD_STATE_VERSION = 23
 DASHBOARD_STATE_COMPATIBLE_VERSIONS = (21, 22)
 # backfill-state.json: round-robin cursor used by full dashboard refreshes.
@@ -1059,35 +1059,17 @@ def decode_dashboard_state(value: Mapping[str, Any]) -> DashboardState:
         and number > 0
         and number not in decoded_pr_numbers
     )
-    unpublished_handoffs = {}
-    raw_handoffs = value.get("unpublished_handoffs", {})
-    if isinstance(raw_handoffs, dict):
-        for key, raw_handoff in raw_handoffs.items():
-            try:
-                pr_number = int(key)
-                handoff = _decode_handoff(raw_handoff)
-                if (
-                    pr_number <= 0 or key != str(pr_number)
-                    or pr_number in draft_pr_numbers
-                    or handoff.target is not HandoffTarget.AUTHOR
-                    or handoff.command_id <= 0 or not handoff.head_sha or handoff.persistent
-                ):
-                    raise ValueError("invalid unpublished author handoff")
-                unpublished_handoffs[pr_number] = handoff
-            except (TypeError, ValueError) as error:
-                print(f"warning: ignoring unpublished handoff {key!r}: {error}", file=sys.stderr)
     return DashboardState(
         initial_backfill_complete=(
             value.get(INITIAL_BACKFILL_COMPLETE_KEY) is True
         ),
         results=tuple(results),
         draft_pr_numbers=draft_pr_numbers,
-        unpublished_handoffs=unpublished_handoffs,
     )
 
 
 def encode_dashboard_state(state: DashboardState) -> dict[str, Any]:
-    encoded = {
+    return {
         "version": DASHBOARD_STATE_VERSION,
         INITIAL_BACKFILL_COMPLETE_KEY: state.initial_backfill_complete,
         "draft_pr_numbers": sorted(state.draft_pr_numbers),
@@ -1096,12 +1078,6 @@ def encode_dashboard_state(state: DashboardState) -> dict[str, Any]:
             for result in state.results
         },
     }
-    if state.unpublished_handoffs:
-        encoded["unpublished_handoffs"] = {
-            str(number): _encode_handoff(handoff)
-            for number, handoff in state.unpublished_handoffs.items()
-        }
-    return encoded
 
 
 def load_dashboard_state_cache() -> DashboardState | None:

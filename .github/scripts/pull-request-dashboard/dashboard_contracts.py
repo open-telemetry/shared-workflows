@@ -293,7 +293,6 @@ class EvaluationFailure:
     pr_url: str = ""
     facts: DashboardFacts | None = None
     diagnostics: EvaluationDiagnostics = field(default_factory=EvaluationDiagnostics)
-    observed_author_handoff: RoutingHandoff | None = None
 
     def __post_init__(self) -> None:
         if self.pr_number <= 0:
@@ -358,8 +357,6 @@ class DashboardState:
     initial_backfill_complete: bool = False
     results: tuple[StoredDashboardResult, ...] = ()
     draft_pr_numbers: frozenset[int] = frozenset()
-    # Observations from failed refreshes must not change the published route.
-    unpublished_handoffs: Mapping[int, RoutingHandoff] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         results = tuple(sorted(self.results, key=lambda result: result.pr_number))
@@ -378,10 +375,6 @@ class DashboardState:
             raise ValueError("dashboard state cannot route a draft pull request")
         object.__setattr__(self, "results", results)
         object.__setattr__(self, "draft_pr_numbers", draft_pr_numbers)
-        object.__setattr__(
-            self, "unpublished_handoffs",
-            MappingProxyType(dict(self.unpublished_handoffs)),
-        )
 
     @property
     def pr_numbers(self) -> frozenset[int]:
@@ -422,30 +415,22 @@ class DashboardState:
             for existing in self.results
             if existing.pr_number != pr_number
         )
-        observations = dict(self.unpublished_handoffs)
-        observations.pop(pr_number, None)
         return replace(
             self,
             results=retained + ((result,) if result is not None else ()),
             draft_pr_numbers=self.draft_pr_numbers - {pr_number},
-            unpublished_handoffs=observations,
-        )
-
-    def with_unpublished_handoff(
-        self, pr_number: int, handoff: RoutingHandoff
-    ) -> DashboardState:
-        return replace(
-            self,
-            unpublished_handoffs={
-                **self.unpublished_handoffs, pr_number: handoff,
-            },
         )
 
     def with_draft(self, pr_number: int) -> DashboardState:
         if pr_number <= 0:
             raise ValueError("draft pull request number must be positive")
         return replace(
-            self.with_result(pr_number, None),
+            self,
+            results=tuple(
+                result
+                for result in self.results
+                if result.pr_number != pr_number
+            ),
             draft_pr_numbers=self.draft_pr_numbers | {pr_number},
         )
 
