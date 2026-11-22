@@ -48,8 +48,8 @@ FULL_PUBLISH_DELIVERED_FILE = "full-publish-delivered.json"
 # current vector, ordinary state loaders may regenerate mismatched disposable
 # caches. Every constant ending in _STATE_VERSION or _REVISION is included.
 # dashboard-state.json: accepted PR routing results and backfill readiness.
-# Routing facts include current-head Copilot error counts for bounded retries.
-DASHBOARD_STATE_VERSION = 24
+# Routing facts bind Copilot coverage and quota observations to dispatches.
+DASHBOARD_STATE_VERSION = 25
 DASHBOARD_STATE_COMPATIBLE_VERSIONS: tuple[int, ...] = ()
 # backfill-state.json: round-robin cursor used by full dashboard refreshes.
 BACKFILL_STATE_VERSION = 3
@@ -728,9 +728,9 @@ def decode_dashboard_facts(value: Any) -> DashboardFacts:
         copilot_review_request_limit_reason=_copilot_review_limit(
             value.get("copilot_review_request_limit_reason", _MISSING),
         ),
-        copilot_review_covered_dispatch_id=_string(
-            value.get("copilot_review_covered_dispatch_id", _MISSING),
-            "facts.copilot_review_covered_dispatch_id",
+        copilot_review_observed_dispatch_id=_string(
+            value.get("copilot_review_observed_dispatch_id", _MISSING),
+            "facts.copilot_review_observed_dispatch_id",
         ),
         copilot_review_error_count=_integer(
             value.get("copilot_review_error_count", _MISSING),
@@ -918,8 +918,8 @@ def encode_dashboard_facts(facts: DashboardFacts) -> dict[str, Any]:
         stored["copilot_review_request_in_flight"] = True
     if facts.copilot_review_request_limit_reason:
         stored["copilot_review_request_limit_reason"] = facts.copilot_review_request_limit_reason
-    if facts.copilot_review_covered_dispatch_id:
-        stored["copilot_review_covered_dispatch_id"] = facts.copilot_review_covered_dispatch_id
+    if facts.copilot_review_observed_dispatch_id:
+        stored["copilot_review_observed_dispatch_id"] = facts.copilot_review_observed_dispatch_id
     if facts.copilot_review_error_count:
         stored["copilot_review_error_count"] = facts.copilot_review_error_count
     if facts.dashboard_override_bound_command_id:
@@ -1481,35 +1481,36 @@ def save_copilot_review_cycles(cycles: dict[str, CopilotReviewCycle]) -> None:
     )
 
 
-def record_copilot_review_coverage() -> None:
-    accepted = load_dashboard_state_cache()
-    if accepted is None:
-        return
+def record_copilot_review_cycle_observations() -> None:
     cycles = load_copilot_review_cycles()
-    changed = False
-    for result in accepted.results:
+    accepted = load_dashboard_state_cache()
+    for result in (accepted.results if accepted is not None else ()):
         key = str(result.pr_number)
         facts = result.facts
         cycle = cycles.get(key)
         if (
-            cycle is not None
-            and facts.copilot_review_covered_dispatch_id
-            and cycle.dispatch_id == facts.copilot_review_covered_dispatch_id
-            and facts.head_sha
-            and facts.copilot_review_exists
-            and not facts.copilot_review_stale
+            cycle is None
+            or not facts.copilot_review_observed_dispatch_id
+            or cycle.dispatch_id != facts.copilot_review_observed_dispatch_id
+            or not facts.head_sha
         ):
-            completed = replace(
+            continue
+        if facts.copilot_review_exists and not facts.copilot_review_stale:
+            cycles[key] = replace(
                 cycle if cycle.head_sha == facts.head_sha else CopilotReviewCycle(
                     facts.head_sha, requester=cycle.requester,
                 ),
                 phase="complete", limit_reason="",
             )
-            if completed != cycle:
-                cycles[key] = completed
-                changed = True
-    if changed:
-        save_copilot_review_cycles(cycles)
+        elif (
+            facts.head_sha == cycle.head_sha
+            and facts.copilot_review_request_limit_reason == "quota"
+            and cycle.phase == "accepted"
+            and cycle.requester == "app"
+        ):
+            cycles[key] = replace(cycle, phase="limited", limit_reason="quota")
+    # Persist migrated journals before any receipt can be rewritten.
+    save_copilot_review_cycles(cycles)
 
 
 def union_merge_notifications(

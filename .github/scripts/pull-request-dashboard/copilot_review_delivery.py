@@ -291,7 +291,8 @@ def deliver_copilot_review_requests(
                         f"its outcome could not be recorded: {state_error}"
                     ) from state_error
                 raise
-            if requested_head != entry["head_sha"]:
+            head_changed = requested_head != reservation.head_sha
+            if head_changed:
                 print(
                     f"Copilot request for PR #{pr_number} returned head {requested_head}; "
                     f"not acknowledging the old head {entry['head_sha']}",
@@ -300,10 +301,12 @@ def deliver_copilot_review_requests(
             finish(
                 replace(
                     reservation, phase="accepted", head_sha=requested_head,
+                    request_count=1 if head_changed else reservation.request_count,
+                    started_at=sent_at if head_changed else reservation.started_at,
                     sent_at=sent_at, baseline_review_ids=baseline_ids,
                 ),
                 sent_at,
-                discard=requested_head != entry["head_sha"],
+                discard=head_changed,
             )
         except Exception as error:
             errors.append(f"PR #{pr_number}: {error}")

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from contextlib import nullcontext
+from dataclasses import replace
 from datetime import datetime, timezone
 from pathlib import Path
 import json
@@ -16,6 +17,9 @@ from routing_snapshot import build_routing_snapshot
 
 
 class DeliveryTest(unittest.TestCase):
+    def setUp(self) -> None:
+        self.enterContext(patch.object(delivery, "record_copilot_review_cycle_observations"))
+
     def test_canceled_full_job_is_drained_by_next_targeted_job(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -694,6 +698,29 @@ class CopilotDeliveryTransactionTest(unittest.TestCase):
                 "open-telemetry/example", "otelbot/pull-request-dashboard-state/example", self.root,
             ))
         self.request.assert_not_called()
+
+    def test_stale_receipt_discard_keeps_other_migrated_uncertainty_barriers(self) -> None:
+        requests = state.load_copilot_review_requests()
+        requests["8"] = {"head_sha": "old-head", "requested_at": "2026-08-16T11:59:00Z"}
+        state.copilot_review_request_state_path().write_text(json.dumps({
+            "version": 8, "prs": requests,
+        }), encoding="utf-8")
+        snapshot = replace(self.snapshot, head_sha="next-head")
+        with (
+            patch("copilot_review_delivery.fetch_routing_snapshot", return_value=snapshot),
+            patch.object(
+                delivery.state_branch, "push_state_changes",
+                side_effect=lambda _directory, _message, action, **_kwargs: action(),
+            ),
+        ):
+            self.assertEqual(0, delivery.deliver_with_state(
+                "open-telemetry/example", "otelbot/pull-request-dashboard-state/example", self.root,
+            ))
+        self.request.assert_not_called()
+        self.assertNotIn("7", state.load_copilot_review_requests())
+        cycle = state.load_copilot_review_cycles()["8"]
+        self.assertEqual("unknown", cycle.phase)
+        self.assertEqual("legacy-2026-08-16T11:59:00+00:00", cycle.dispatch_id)
 
     def test_review_requests_still_run_after_other_side_effect_errors(self) -> None:
         self.actions.return_value = ["status comments: failed"]

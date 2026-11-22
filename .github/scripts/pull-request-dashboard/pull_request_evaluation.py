@@ -189,11 +189,7 @@ def _compute_facts(
         source.reviews,
         head_sha,
     )
-    covered_dispatch_id = (
-        cycle.dispatch_id
-        if cycle is not None and head_sha and copilot_review_exists and not copilot_review_stale
-        else ""
-    )
+    observed_dispatch_id = cycle.dispatch_id if cycle is not None else ""
     cycle = refresh_copilot_review_cycle(
         cycle, source.reviews, head_sha, utc_now(),
         fallback_available=fallback_available,
@@ -238,7 +234,7 @@ def _compute_facts(
         copilot_review_request_limit_reason=(
             cycle.limit_reason if cycle is not None and cycle.head_sha == head_sha else ""
         ),
-        copilot_review_covered_dispatch_id=covered_dispatch_id,
+        copilot_review_observed_dispatch_id=observed_dispatch_id,
         copilot_review_error_count=copilot_review_error_count(source.reviews, head_sha),
         copilot_review_exists=copilot_review_exists,
         copilot_review_stale=copilot_review_stale,

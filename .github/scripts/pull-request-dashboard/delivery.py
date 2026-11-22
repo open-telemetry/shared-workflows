@@ -42,7 +42,7 @@ from state import (
     notification_state_path,
     read_full_publish_generation,
     record_full_publish_delivered,
-    record_copilot_review_coverage,
+    record_copilot_review_cycle_observations,
     set_delivery_state_dirs,
     set_state_dir,
     state_dir as current_state_dir,
@@ -254,7 +254,7 @@ def deliver_with_state(
             pending_generation = 0
             print("newer dashboard delivery versions are active; skipping", file=sys.stderr)
             return 0
-        record_copilot_review_coverage()
+        record_copilot_review_cycle_observations()
         needed = read_full_publish_generation(full_publish_needed_path())
         delivered = read_full_publish_generation(full_publish_delivered_path())
         pending_generation = needed if needed > delivered else 0

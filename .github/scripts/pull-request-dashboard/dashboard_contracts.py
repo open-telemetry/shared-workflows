@@ -121,7 +121,7 @@ class DashboardFacts:
     copilot_review_fallback_available: bool = False
     copilot_review_request_in_flight: bool = False
     copilot_review_request_limit_reason: CopilotReviewLimit = ""
-    copilot_review_covered_dispatch_id: str = ""
+    copilot_review_observed_dispatch_id: str = ""
     copilot_review_error_count: int = 0
     copilot_review_exists: bool = False
     copilot_review_stale: bool = False

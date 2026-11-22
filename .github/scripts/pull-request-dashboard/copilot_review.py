@@ -103,6 +103,8 @@ def _new_copilot_notices(
     sent_at = parse_ts(cycle.sent_at)
     if sent_at is None or sent_at.tzinfo is None:
         raise RuntimeError("Copilot review cycle has an invalid send timestamp")
+    # GitHub reports review submissions with second precision.
+    sent_at = sent_at.replace(microsecond=0)
     baseline_ids = set(cycle.baseline_review_ids)
     quota = error = False
     for review in reviews:

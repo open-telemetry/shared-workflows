@@ -365,10 +365,12 @@ The cycle's four-hour window survives ordinary retries. Reaching the window or
 request limit stops automatic requests for that head without bypassing the
 router's normal gate timeout and alert. Configuring a previously missing fallback
 credential can start a new window, but does not reset the request count.
+Coverage and quota limits are saved even when no request is queued.
 
 Existing attempt records and older request receipts migrate to one time-bounded
-uncertain request. Historical and cached exhaustion flags do not disable future
-heads. Required checks and actionable feedback are never bypassed.
+uncertain request, which is saved before receipt formats are updated. Historical
+and cached exhaustion flags do not disable future heads. Required checks and
+actionable feedback are never bypassed.
 
 Ask a maintainer or admin to add the repository under [Repository access](https://github.com/organizations/open-telemetry/settings/installations/133550497).
 
