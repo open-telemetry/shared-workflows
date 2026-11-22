@@ -355,7 +355,8 @@ a fresh budget once the active request has settled or timed out.
 
 The delivery worker commits a dispatch reservation before calling GitHub.
 Git state retries update records only; they never replay the review mutation.
-Definite rejections and failures before the mutation restore the previous budget.
+Definite rejections and pre-dispatch failures, including failed GitHub CLI
+launches, restore the previous budget.
 Coverage and quota observations apply only to the exact cycle snapshot that was
 evaluated. A sending reservation stays with its dispatcher until the outcome is
 recorded, since the mutation can land on a different head.
@@ -368,8 +369,10 @@ Failed reservation rollbacks are reported and retain the saved barrier.
 
 The cycle's four-hour window survives ordinary retries. Reaching the window or
 request limit stops automatic requests for that head without bypassing the
-router's normal gate timeout and alert. Configuring a previously missing fallback
-credential can start a new window, but does not reset the request count.
+router's normal gate timeout and alert. Idle quota-blocked cycles pause while
+fallback credentials are absent, without starting another gate timeout.
+Configuring or restoring fallback credentials can start a new window, but does
+not reset the request count. Credential changes do not cancel in-flight requests.
 Coverage and quota limits are saved even when no request is queued.
 
 Existing attempt records and older request receipts migrate to one time-bounded

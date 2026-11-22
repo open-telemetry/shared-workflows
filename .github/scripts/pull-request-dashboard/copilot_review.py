@@ -156,8 +156,13 @@ def refresh_copilot_review_cycle(
     if cycle.phase == "complete":
         cycle = replace(cycle, phase="ready")
     if (
+        cycle.phase == "ready" and cycle.head_sha == head_sha
+        and not fallback_available and copilot_quota_issue(reviews, head_sha)
+    ):
+        cycle = replace(cycle, phase="limited", limit_reason="quota")
+    if (
         cycle.phase == "limited" and cycle.limit_reason == "quota"
-        and cycle.requester == "app" and fallback_available
+        and fallback_available
     ):
         cycle = replace(
             cycle, requester="fallback", phase="ready", limit_reason="",

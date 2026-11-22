@@ -26,6 +26,7 @@ from copilot_review_delivery import (
     deliver_copilot_review_requests,
     record_copilot_review_observation,
 )
+from dashboard_contracts import DashboardRoute
 from dashboard_test_support import (
     actor,
     copilot_review_cycle,
@@ -34,7 +35,8 @@ from dashboard_test_support import (
     review_source,
     stored_dashboard_result,
 )
-from github_cli import CopilotReviewRequestRejected, TransientGhError
+from github_cli import CopilotReviewRequestRejected, TransientGhError, request_copilot_review
+from routing_decision import RoutingInput, resolve_routing
 from state import (
     copilot_review_fallback_state_path,
     copilot_review_request_state_path,
@@ -576,6 +578,85 @@ class CopilotReviewCycleTest(unittest.TestCase):
         self.assertEqual("2026-08-16T13:00:00+00:00", ready.started_at)
         self.assertEqual(ready, self.refresh(ready, now=later + timedelta(hours=1)))
 
+    def test_missing_fallback_pauses_an_idle_quota_cycle_without_restarting_the_gate(self) -> None:
+        cycle = copilot_review_cycle(
+            "current-head", phase="ready", requester="fallback", request_count=2,
+        )
+        quota = self.notice(body=QUOTA_FAILURE_BODY)
+        previous_route = DashboardRoute.AUTHOR
+        previous_facts = dashboard_facts(
+            head_sha="current-head", route_held_since=format_ts(self.NOW),
+        )
+        for hours, approvals, expected_route in (
+            (1, 0, DashboardRoute.APPROVER),
+            (5, 1, DashboardRoute.MAINTAINER),
+        ):
+            with self.subTest(hours=hours):
+                now = self.NOW + timedelta(hours=hours)
+                cycle = self.refresh(cycle, (quota,), now=now, fallback=False)
+                self.assertEqual("limited", cycle.phase)
+                self.assertEqual("quota", cycle.limit_reason)
+                self.assertEqual(2, cycle.request_count)
+                outcome = resolve_routing(RoutingInput(
+                    facts=dashboard_facts(
+                        head_sha="current-head", author_can_act=True,
+                        approval_count=approvals, ci_pending_count=0,
+                        ci_failing_count=0, ci_maintainer_action_required_count=0,
+                        copilot_review_quota_exhausted=True,
+                        copilot_review_fallback_available=False,
+                        copilot_review_request_in_flight=copilot_review_in_flight(cycle),
+                        copilot_review_request_limit_reason=cycle.limit_reason,
+                    ),
+                    pending_actions={}, previous_route=previous_route,
+                    previous_facts=previous_facts, required_approvals=1,
+                    require_clean_copilot_review=True, manual_reviewer_handoff=False,
+                    pending_human_reviewer_logins=frozenset(), now=now,
+                ))
+                self.assertEqual(expected_route, outcome.route)
+                self.assertFalse(outcome.facts.route_held_for_gates)
+                self.assertIsNone(outcome.facts.route_held_since)
+                self.assertFalse(outcome.facts.copilot_review_request_needed)
+                previous_route, previous_facts = outcome.route, outcome.facts
+
+    def test_restoring_fallback_preserves_the_remaining_request_budget(self) -> None:
+        quota = self.notice(body=QUOTA_FAILURE_BODY)
+        for count in (2, 3):
+            with self.subTest(count=count):
+                cycle = copilot_review_cycle(
+                    "current-head", phase="ready", requester="fallback", request_count=count,
+                )
+                paused = self.refresh(
+                    cycle, (quota,), now=self.NOW + timedelta(hours=5), fallback=False,
+                )
+                self.assertEqual("quota", paused.limit_reason)
+                resumed = self.refresh(
+                    paused, (quota,), now=self.NOW + timedelta(hours=6),
+                )
+                self.assertEqual(count, resumed.request_count)
+                self.assertEqual("ready" if count == 2 else "limited", resumed.phase)
+                self.assertEqual("" if count == 2 else "requests", resumed.limit_reason)
+                self.assertEqual("2026-08-16T14:00:00+00:00", resumed.started_at)
+
+    def test_missing_fallback_does_not_settle_active_requests(self) -> None:
+        quota = self.notice(body=QUOTA_FAILURE_BODY)
+        for phase in ("sending", "accepted", "unknown"):
+            with self.subTest(phase=phase):
+                cycle = copilot_review_cycle(
+                    "current-head", phase=phase, requester="fallback",
+                    sent_at="" if phase == "sending" else "2026-08-16T08:00:00Z",
+                )
+                self.assertEqual(cycle, self.refresh(
+                    cycle, (quota,), now=self.NOW + timedelta(hours=1), fallback=False,
+                ))
+                expired = self.refresh(
+                    cycle, (quota,), now=self.NOW + timedelta(hours=4), fallback=False,
+                )
+                self.assertEqual("timeout", expired.limit_reason)
+                self.assertTrue(copilot_review_unreported(dashboard_facts(
+                    copilot_review_quota_exhausted=True,
+                    copilot_review_request_limit_reason=expired.limit_reason,
+                ), enabled=True))
+
     def test_unknown_timeout_preserves_normal_gate_expiry_reporting(self) -> None:
         facts = dashboard_facts(
             copilot_review_quota_exhausted=True,
@@ -777,6 +858,37 @@ class CopilotReviewDeliveryTest(unittest.TestCase):
         self.assertEqual([], self.deliver())
         self.request.assert_called_once()
         self.assertEqual("current-head", load_copilot_review_cycles()["7"].head_sha)
+
+    def test_failed_process_start_releases_the_slot_and_allows_recovery(self) -> None:
+        self.request.side_effect = request_copilot_review
+        with patch("github_cli.subprocess.Popen", side_effect=FileNotFoundError("gh unavailable")):
+            self.assertIn("gh unavailable", self.deliver()[0])
+        self.restore()
+        self.assertEqual({}, load_copilot_review_cycles())
+        self.assertEqual("", load_copilot_review_requests()["7"]["requested_at"])
+        self.request.side_effect = self.request_review
+        self.now += timedelta(minutes=1)
+        self.assertEqual([], self.deliver())
+        self.assertEqual(2, self.request.call_count)
+        self.assertEqual(1, load_copilot_review_cycles()["7"].request_count)
+
+    def test_failure_after_process_start_retains_uncertainty(self) -> None:
+        self.request.side_effect = request_copilot_review
+        with patch("github_cli.subprocess.Popen") as start:
+            process = start.return_value
+            process.__enter__.return_value = process
+            process.communicate.side_effect = OSError("reply stream failed")
+            self.assertIn("reply stream failed", self.deliver()[0])
+            process.kill.assert_called_once()
+        self.restore()
+        cycle = load_copilot_review_cycles()["7"]
+        self.assertEqual("unknown", cycle.phase)
+        self.assertEqual(1, cycle.request_count)
+        self.request.side_effect = self.request_review
+        self.now += timedelta(minutes=1)
+        self.enqueue()
+        self.assertEqual([], self.deliver())
+        self.request.assert_called_once()
 
     def test_failed_reservation_prevents_rpc(self) -> None:
         def fail(action):
@@ -1130,6 +1242,34 @@ class CopilotReviewDeliveryTest(unittest.TestCase):
             self.enqueue()
             self.assertEqual([], self.deliver())
         self.request.assert_called_once_with("PR_node")
+
+    def test_rejected_fallback_recovers_after_its_secret_is_removed_and_restored(self) -> None:
+        self.assertEqual([], self.deliver())
+        self.now += timedelta(minutes=1)
+        self.reviews = [self.notice()]
+        self.enqueue(quota_exhausted=True)
+        self.request_error = CopilotReviewRequestRejected("invalid fallback credential")
+        self.assertIn("invalid fallback credential", self.deliver()[0])
+        self.assertEqual(1, load_copilot_review_cycles()["7"].request_count)
+        with patch.dict(os.environ, {"COPILOT_REVIEW_FALLBACK_TOKEN": ""}):
+            self.now += timedelta(minutes=1)
+            self.assertEqual([], self.deliver())
+            self.restore()
+            self.assertEqual("quota", load_copilot_review_cycles()["7"].limit_reason)
+            self.now += timedelta(hours=5)
+            self.enqueue(quota_exhausted=True)
+            self.assertEqual([], self.deliver())
+            self.assertEqual("quota", load_copilot_review_cycles()["7"].limit_reason)
+            self.assertEqual(2, self.request.call_count)
+        self.request_error = None
+        self.enqueue(quota_exhausted=True)
+        self.assertEqual([], self.deliver())
+        self.request.assert_called_with("PR_node", token="request-token")
+        self.assertEqual(3, self.request.call_count)
+        accepted = load_copilot_review_cycles()["7"]
+        self.assertEqual("accepted", accepted.phase)
+        self.assertEqual(2, accepted.request_count)
+        self.assertEqual(format_ts(self.now), accepted.started_at)
 
     def test_new_quota_notice_during_final_preflight_cancels_primary_dispatch(self) -> None:
         self.fetch_reviews.side_effect = [[], [self.notice()]]

@@ -77,7 +77,7 @@ def deliver_copilot_review_requests(
         pr_number = int(key)
         reservation: CopilotReviewCycle | None = None
         rollback_cycle: CopilotReviewCycle | None = None
-        request_started = False
+        request_invoked = False
 
         def update_receipt(requested_at: str | None = None, *, discard: bool = False) -> None:
             current = dict(load_copilot_review_requests())
@@ -271,7 +271,7 @@ def deliver_copilot_review_requests(
                 continue
             sent_at = format_ts(sending_at)
             try:
-                request_started = True
+                request_invoked = True
                 requested_head = (
                     request_copilot_review(pull_request_id, token=token)
                     if reservation.requester == "fallback"
@@ -311,7 +311,7 @@ def deliver_copilot_review_requests(
                 discard=head_changed,
             )
         except Exception as error:
-            if reservation is not None and not request_started:
+            if reservation is not None and not request_invoked:
                 try:
                     finish(rollback_cycle)
                 except Exception as state_error:

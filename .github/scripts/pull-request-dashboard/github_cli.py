@@ -50,6 +50,10 @@ class GhNotFoundError(RuntimeError):
     pass
 
 
+class GhProcessStartError(RuntimeError):
+    pass
+
+
 class GhCommandError(RuntimeError):
     def __init__(self, message: str, *, stderr: str, stdout: str) -> None:
         super().__init__(message)
@@ -87,6 +91,34 @@ def sleep_for_retry(attempt: int) -> None:
 _T = TypeVar("_T")
 
 
+def _run_gh_process(
+    cmd: list[str],
+    env: dict[str, str] | None,
+    input_text: str | None,
+) -> subprocess.CompletedProcess[str]:
+    try:
+        process = subprocess.Popen(
+            cmd,
+            stdin=subprocess.PIPE if input_text is not None else None,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            env=env,
+            creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0,
+        )
+    except (OSError, ValueError) as error:
+        raise GhProcessStartError(f"Could not start gh: {error}") from error
+    with process:
+        try:
+            stdout, stderr = process.communicate(input=input_text)
+        except BaseException:
+            process.kill()
+            raise
+        return subprocess.CompletedProcess(cmd, process.wait(), stdout, stderr)
+
+
 def _run_gh(
     cmd: list[str],
     token: str | None,
@@ -100,17 +132,7 @@ def _run_gh(
     last_stderr = ""
     attempts = GH_RETRY_ATTEMPTS if retry else 1
     for attempt in range(attempts):
-        proc = subprocess.run(
-            cmd,
-            input=input_text,
-            capture_output=True,
-            text=True,
-            check=False,
-            encoding="utf-8",
-            errors="replace",
-            env=env,
-            creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0,
-        )
+        proc = _run_gh_process(cmd, env, input_text)
         if proc.returncode in allowed_exit_codes:
             try:
                 return parse_stdout(proc.stdout)
@@ -212,7 +234,7 @@ def request_copilot_review(pull_request_id: str, token: str | None = None) -> st
             token=token,
             retry=False,
         )
-    except GhNotFoundError as error:
+    except (GhNotFoundError, GhProcessStartError) as error:
         raise CopilotReviewRequestRejected(str(error)) from error
     except GhCommandError as error:
         try:

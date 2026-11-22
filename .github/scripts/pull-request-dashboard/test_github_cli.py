@@ -77,20 +77,25 @@ def _rollup_page(nodes):
 
 
 class RunGhJsonTest(unittest.TestCase):
-    @patch("github_cli.subprocess.run")
-    def test_explicit_token_is_scoped_to_a_hidden_subprocess(self, run) -> None:
-        run.return_value = subprocess.CompletedProcess(["gh"], 0, "{}", "")
+    @patch("github_cli.subprocess.Popen")
+    def test_explicit_token_is_scoped_to_a_hidden_subprocess(self, start) -> None:
+        process = start.return_value
+        process.__enter__.return_value = process
+        process.communicate.return_value = ("{}", "")
+        process.wait.return_value = 0
         with (
             patch("github_cli.os.name", "nt"),
             patch("github_cli.subprocess.CREATE_NO_WINDOW", 0x08000000, create=True),
         ):
-            run_gh_json(["gh", "api", "/test"], token="request-token")
-        self.assertEqual("request-token", run.call_args.kwargs["env"]["GH_TOKEN"])
-        self.assertEqual(0x08000000, run.call_args.kwargs["creationflags"])
-        self.assertNotIn("request-token", run.call_args.args[0])
+            run_gh_json(["gh", "api", "/test"], token="request-token", input_text='{"value": 1}')
+        self.assertEqual("request-token", start.call_args.kwargs["env"]["GH_TOKEN"])
+        self.assertEqual(0x08000000, start.call_args.kwargs["creationflags"])
+        self.assertEqual(subprocess.PIPE, start.call_args.kwargs["stdin"])
+        self.assertNotIn("request-token", start.call_args.args[0])
+        process.communicate.assert_called_once_with(input='{"value": 1}')
 
     @patch("github_cli.sleep_for_retry")
-    @patch("github_cli.subprocess.run")
+    @patch("github_cli._run_gh_process")
     def test_recovers_from_http_499(self, run, sleep) -> None:
         run.side_effect = [
             subprocess.CompletedProcess(["gh"], 1, "", "gh: HTTP 499"),
@@ -102,7 +107,7 @@ class RunGhJsonTest(unittest.TestCase):
         sleep.assert_called_once_with(0)
 
     @patch("github_cli.sleep_for_retry")
-    @patch("github_cli.subprocess.run")
+    @patch("github_cli._run_gh_process")
     def test_http_499_exhaustion_is_transient(self, run, sleep) -> None:
         run.return_value = subprocess.CompletedProcess(
             ["gh"], 1, "", "gh: HTTP 499"
@@ -115,7 +120,7 @@ class RunGhJsonTest(unittest.TestCase):
         self.assertEqual(GH_RETRY_ATTEMPTS - 1, sleep.call_count)
 
     @patch("github_cli.sleep_for_retry")
-    @patch("github_cli.subprocess.run")
+    @patch("github_cli._run_gh_process")
     def test_recovers_from_api_connection_error(self, run, sleep) -> None:
         run.side_effect = [
             subprocess.CompletedProcess(
@@ -131,7 +136,7 @@ class RunGhJsonTest(unittest.TestCase):
         sleep.assert_called_once_with(0)
 
     @patch("github_cli.sleep_for_retry")
-    @patch("github_cli.subprocess.run")
+    @patch("github_cli._run_gh_process")
     def test_api_connection_error_exhaustion_is_transient(self, run, sleep) -> None:
         run.return_value = subprocess.CompletedProcess(
             ["gh"], 1, "",
@@ -149,7 +154,7 @@ class RunGhJsonTest(unittest.TestCase):
         )
 
     @patch("github_cli.sleep_for_retry")
-    @patch("github_cli.subprocess.run")
+    @patch("github_cli._run_gh_process")
     def test_exact_not_found_raises_typed_error_without_retry(
         self, run, sleep
     ) -> None:
@@ -164,7 +169,7 @@ class RunGhJsonTest(unittest.TestCase):
         sleep.assert_not_called()
 
     @patch("github_cli.sleep_for_retry")
-    @patch("github_cli.subprocess.run")
+    @patch("github_cli._run_gh_process")
     def test_recovers_from_malformed_json(self, run, sleep) -> None:
         run.side_effect = [
             subprocess.CompletedProcess(["gh"], 0, "{broken", ""),
@@ -176,7 +181,7 @@ class RunGhJsonTest(unittest.TestCase):
         sleep.assert_called_once_with(0)
 
     @patch("github_cli.sleep_for_retry")
-    @patch("github_cli.subprocess.run")
+    @patch("github_cli._run_gh_process")
     def test_malformed_json_exhaustion_preserves_decode_error(
         self, run, sleep
     ) -> None:
@@ -193,7 +198,7 @@ class RunGhJsonTest(unittest.TestCase):
         self.assertEqual(GH_RETRY_ATTEMPTS - 1, sleep.call_count)
 
     @patch("github_cli.sleep_for_retry")
-    @patch("github_cli.subprocess.run")
+    @patch("github_cli._run_gh_process")
     def test_process_and_decode_failures_share_attempt_budget(
         self, run, sleep
     ) -> None:
@@ -455,7 +460,7 @@ class GithubCliTest(unittest.TestCase):
         self.assertEqual("request-token", graphql.call_args.kwargs["token"])
 
     @patch("github_cli.sleep_for_retry")
-    @patch("github_cli.subprocess.run")
+    @patch("github_cli._run_gh_process")
     def test_request_rejections_are_distinct_from_ambiguous_failures(self, run, sleep) -> None:
         cases = (
             ("forbidden", "", "gh: Forbidden (HTTP 403)", CopilotReviewRequestRejected),
@@ -485,7 +490,7 @@ class GithubCliTest(unittest.TestCase):
                 run.assert_called_once()
                 sleep.assert_not_called()
 
-    @patch("github_cli.subprocess.run")
+    @patch("github_cli._run_gh_process")
     def test_missing_mutation_head_is_ambiguous_not_a_definite_rejection(self, run) -> None:
         run.return_value = subprocess.CompletedProcess(
             ["gh"], 0, '{"data":{"requestReviews":{"pullRequest":{"id":"PR_node_id"}}}}', "",
@@ -495,6 +500,23 @@ class GithubCliTest(unittest.TestCase):
             request_copilot_review("PR_node_id")
 
         run.assert_called_once()
+
+    @patch("github_cli.sleep_for_retry")
+    def test_failed_process_starts_are_definitely_unsent(self, sleep) -> None:
+        for error in (
+            FileNotFoundError("gh is unavailable"),
+            OSError("process resources unavailable"),
+            ValueError("invalid process environment"),
+        ):
+            with self.subTest(error=error), patch(
+                "github_cli.subprocess.Popen", side_effect=error,
+            ) as start:
+                with self.assertRaises(CopilotReviewRequestRejected) as raised:
+                    request_copilot_review("PR_node_id")
+
+                self.assertIn(str(error), str(raised.exception))
+                start.assert_called_once()
+                sleep.assert_not_called()
 
     @patch("github_cli.gh_graphql")
     def test_fetch_pr_issue_comments_paginates(self, graphql) -> None:
