@@ -59,7 +59,7 @@ NOTIFICATION_STATE_VERSION = 3
 AUTHOR_NUDGE_STATE_VERSION = 4
 # copilot-review-request-state.json: pending and delivered review requests.
 COPILOT_REVIEW_REQUEST_STATE_VERSION = 12
-COPILOT_REVIEW_FALLBACK_STATE_VERSION = 5
+COPILOT_REVIEW_FALLBACK_STATE_VERSION = 6
 # status-comment-rollout-state.json: target/completed renderer revisions and queue.
 STATUS_COMMENT_ROLLOUT_STATE_VERSION = 3
 # Rendered status-comment behavior. Increment when existing comments need to
@@ -1425,7 +1425,7 @@ def load_copilot_review_cycles_file(path: Path) -> dict[str, CopilotReviewCycle]
     if exists and (
         not isinstance(data, dict)
         or type(data.get("version")) is not int
-        or data["version"] not in (1, 2, 3, 4, COPILOT_REVIEW_FALLBACK_STATE_VERSION)
+        or data["version"] not in (1, 2, 3, 4, 5, COPILOT_REVIEW_FALLBACK_STATE_VERSION)
         or not isinstance(data.get("prs"), dict)
     ):
         raise ValueError(f"incompatible Copilot review cycle state: {path}")
@@ -1513,10 +1513,8 @@ def record_copilot_review_cycle_observations() -> None:
         elif (
             facts.head_sha == cycle.head_sha
             and facts.copilot_review_request_limit_reason == "quota"
-            and (
-                cycle.phase == "ready"
-                or (cycle.phase == "accepted" and cycle.requester == "app")
-            )
+            and not facts.copilot_review_request_in_flight
+            and cycle.phase in ("ready", "accepted")
         ):
             cycles[key] = replace(cycle, phase="limited", limit_reason="quota")
     # Persist migrated journals before any receipt can be rewritten.

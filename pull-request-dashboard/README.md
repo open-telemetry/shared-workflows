@@ -371,6 +371,7 @@ The cycle's four-hour window survives ordinary retries. Reaching the window or
 request limit stops automatic requests for that head without bypassing the
 router's normal gate timeout and alert. Idle quota-blocked cycles pause while
 fallback credentials are absent, without starting another gate timeout.
+A fresh generic error settles an accepted request before this pause is applied.
 Configuring or restoring fallback credentials can start a new window, but does
 not reset the request count. Credential changes do not cancel in-flight requests.
 Coverage and quota limits are saved even when no request is queued.

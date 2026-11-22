@@ -155,10 +155,11 @@ def refresh_copilot_review_cycle(
         )
     if cycle.phase == "complete":
         cycle = replace(cycle, phase="ready")
-    if (
-        cycle.phase == "ready" and cycle.head_sha == head_sha
+    quota_pause_needed = (
+        cycle.head_sha == head_sha
         and not fallback_available and copilot_quota_issue(reviews, head_sha)
-    ):
+    )
+    if cycle.phase == "ready" and quota_pause_needed:
         cycle = replace(cycle, phase="limited", limit_reason="quota")
     if (
         cycle.phase == "limited" and cycle.limit_reason == "quota"
@@ -189,7 +190,10 @@ def refresh_copilot_review_cycle(
                         else replace(cycle, phase="limited", limit_reason="quota")
                     )
                 elif error:
-                    cycle = replace(cycle, phase="ready")
+                    cycle = replace(
+                        cycle, phase="limited" if quota_pause_needed else "ready",
+                        limit_reason="quota" if quota_pause_needed else "",
+                    )
                 # A quota notice cannot identify whose quota failed. Once the
                 # fallback is selected, it is not a reason for another request.
     if not copilot_review_in_flight(cycle) and cycle.head_sha != head_sha:

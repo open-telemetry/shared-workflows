@@ -618,6 +618,44 @@ class CopilotReviewCycleTest(unittest.TestCase):
                 self.assertFalse(outcome.facts.copilot_review_request_needed)
                 previous_route, previous_facts = outcome.route, outcome.facts
 
+    def test_generic_error_pauses_a_fallback_cycle_until_credentials_return(self) -> None:
+        cycle = copilot_review_cycle(
+            "current-head", requester="fallback", request_count=2, baseline_review_ids=(10,),
+        )
+        reviews = (self.notice(10, body=QUOTA_FAILURE_BODY), self.notice())
+        paused = self.refresh(
+            cycle, reviews, now=self.NOW + timedelta(hours=1), fallback=False,
+        )
+        self.assertEqual(replace(cycle, phase="limited", limit_reason="quota"), paused)
+        still_paused = self.refresh(
+            paused, reviews, now=self.NOW + timedelta(hours=5), fallback=False,
+        )
+        self.assertEqual(paused, still_paused)
+        resumed = self.refresh(
+            still_paused, reviews, now=self.NOW + timedelta(hours=6),
+        )
+        self.assertEqual("ready", resumed.phase)
+        self.assertEqual("", resumed.limit_reason)
+        self.assertEqual(2, resumed.request_count)
+        self.assertEqual("2026-08-16T14:00:00+00:00", resumed.started_at)
+
+    def test_generic_error_does_not_pause_without_current_head_quota(self) -> None:
+        cycle = copilot_review_cycle(
+            "current-head", requester="fallback", request_count=2, baseline_review_ids=(10,),
+        )
+        for reviews in (
+            (self.notice(),),
+            (
+                replace(self.notice(10, body=QUOTA_FAILURE_BODY), commit_id="other-head"),
+                self.notice(),
+            ),
+        ):
+            with self.subTest(reviews=reviews):
+                ready = self.refresh(
+                    cycle, reviews, now=self.NOW + timedelta(hours=1), fallback=False,
+                )
+                self.assertEqual(replace(cycle, phase="ready"), ready)
+
     def test_restoring_fallback_preserves_the_remaining_request_budget(self) -> None:
         quota = self.notice(body=QUOTA_FAILURE_BODY)
         for count in (2, 3):

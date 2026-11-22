@@ -94,7 +94,7 @@ class StateTest(unittest.TestCase):
             save_copilot_review_cycles(cycles)
             path = copilot_review_fallback_state_path()
             data = json.loads(path.read_text(encoding="utf-8"))
-            for version in (4, COPILOT_REVIEW_FALLBACK_STATE_VERSION):
+            for version in (4, 5, COPILOT_REVIEW_FALLBACK_STATE_VERSION):
                 with self.subTest(version=version):
                     path.write_text(json.dumps({**data, "version": version}), encoding="utf-8")
                     save_copilot_review_requests({"7": {"head_sha": "next-head"}})
@@ -382,6 +382,65 @@ class StateTest(unittest.TestCase):
             self.assertEqual("ready", ready.phase)
             self.assertEqual(2, ready.request_count)
             self.assertEqual("2026-08-16T13:00:00+00:00", ready.started_at)
+
+    def test_settled_fallback_quota_checkpoint_without_an_intent_preserves_recovery(self) -> None:
+        with (
+            tempfile.TemporaryDirectory() as directory,
+            patch("state._state_dir", Path(directory)),
+            patch("state._using_delivery_state", False),
+        ):
+            cycle = copilot_review_cycle(
+                "current-head", requester="fallback", request_count=2, baseline_review_ids=(10,),
+            )
+            save_copilot_review_cycles({"7": cycle})
+            save_dashboard_state_cache(dashboard_state(stored_dashboard_result(
+                7, facts=dashboard_facts(
+                    head_sha="current-head",
+                    copilot_review_quota_exhausted=True,
+                    copilot_review_request_in_flight=False,
+                    copilot_review_request_limit_reason="quota",
+                    copilot_review_observed_cycle=cycle,
+                ),
+            )))
+            save_copilot_review_requests({})
+            record_copilot_review_cycle_observations()
+            paused = load_copilot_review_cycles()["7"]
+            self.assertEqual(replace(cycle, phase="limited", limit_reason="quota"), paused)
+            ready = refresh_copilot_review_cycle(
+                paused, (), "current-head",
+                datetime(2026, 8, 16, 13, tzinfo=timezone.utc),
+                fallback_available=True,
+            )
+            self.assertEqual("ready", ready.phase)
+            self.assertEqual(2, ready.request_count)
+            self.assertEqual("2026-08-16T13:00:00+00:00", ready.started_at)
+
+    def test_quota_checkpoint_keeps_matching_in_flight_cycles(self) -> None:
+        with (
+            tempfile.TemporaryDirectory() as directory,
+            patch("state._state_dir", Path(directory)),
+            patch("state._using_delivery_state", False),
+        ):
+            for phase, in_flight in (
+                ("sending", False), ("unknown", False), ("accepted", True),
+            ):
+                with self.subTest(phase=phase):
+                    cycle = copilot_review_cycle(
+                        "current-head", requester="fallback", phase=phase, request_count=2,
+                        sent_at="" if phase == "sending" else "2026-08-16T08:00:00Z",
+                    )
+                    save_copilot_review_cycles({"7": cycle})
+                    save_dashboard_state_cache(dashboard_state(stored_dashboard_result(
+                        7, facts=dashboard_facts(
+                            head_sha="current-head",
+                            copilot_review_quota_exhausted=True,
+                            copilot_review_request_in_flight=in_flight,
+                            copilot_review_request_limit_reason="quota",
+                            copilot_review_observed_cycle=cycle,
+                        ),
+                    )))
+                    record_copilot_review_cycle_observations()
+                    self.assertEqual(cycle, load_copilot_review_cycles()["7"])
 
     def test_quota_checkpoint_does_not_rewind_other_heads_dispatches_or_terminal_progress(self) -> None:
         with (
