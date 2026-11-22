@@ -544,6 +544,69 @@ class AuthorNudgeProcessingTest(unittest.TestCase):
             },
         })
 
+    def test_delivery_rechecks_increased_interval_after_preparation(self) -> None:
+        waiting_since = "2026-07-15T00:00:00+00:00"
+        with (
+            patch.dict(os.environ, {"AUTHOR_REMINDER_AFTER_BUSINESS_DAYS": "2"}),
+            patch.object(
+                author_nudge, "load_author_nudges",
+                return_value={"1": {"waiting_since": waiting_since, "nudged_at": ""}},
+            ) as load_nudges,
+            patch.object(author_nudge, "save_author_nudges") as save_nudges,
+            patch.object(
+                author_nudge, "load_dashboard_state_cache",
+                return_value=build_dashboard_state(author_result()),
+            ),
+            patch.object(
+                author_nudge, "fetch_routing_snapshot", return_value=routing_snapshot(),
+            ),
+            patch.object(author_nudge, "existing_nudge_comment", return_value=None),
+            patch.object(
+                author_nudge, "gh_api", return_value={"state": "open", "draft": False},
+            ),
+            patch.object(author_nudge, "publish_pr_status") as publish_status,
+            patch.object(
+                author_nudge, "managed_status_comments",
+                return_value=[{"html_url": "https://example.test/status"}],
+            ),
+            patch.object(author_nudge, "run_gh") as run_gh,
+        ):
+            author_nudge.record_author_nudge_observation(
+                1, author_result(), NOW, prepare_due=True,
+            )
+            pending = save_nudges.call_args.args[0]
+            self.assertEqual("2026-07-17T00:00:00+00:00", pending["1"]["pending_at"])
+            load_nudges.return_value = pending
+
+            os.environ["AUTHOR_REMINDER_AFTER_BUSINESS_DAYS"] = "5"
+            author_nudge.record_author_nudge_observation(
+                1, author_result(), NOW, prepare_due=True,
+            )
+            self.assertEqual(pending, save_nudges.call_args.args[0])
+            errors = author_nudge.deliver_prepared_author_nudges(
+                "open-telemetry/example", NOW,
+            )
+
+            self.assertEqual([], errors)
+            run_gh.assert_not_called()
+            publish_status.assert_not_called()
+            self.assertEqual(pending, save_nudges.call_args.args[0])
+
+            errors = author_nudge.deliver_prepared_author_nudges(
+                "open-telemetry/example",
+                datetime(2026, 7, 22, tzinfo=timezone.utc),
+            )
+
+            self.assertEqual([], errors)
+            run_gh.assert_called_once()
+            self.assertEqual({
+                "1": {
+                    "waiting_since": waiting_since,
+                    "nudged_at": "2026-07-22T00:00:00+00:00",
+                    "episode_id": "episode-1",
+                },
+            }, save_nudges.call_args.args[0])
+
     @patch.object(author_nudge, "ensure_nudge")
     @patch.object(author_nudge, "save_author_nudges")
     @patch.object(

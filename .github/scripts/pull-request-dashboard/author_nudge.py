@@ -569,6 +569,12 @@ def ensure_nudge(
     if existing:
         return existing.get("created_at") or format_ts(now)
 
+    waiting_at = parse_ts(waiting_since)
+    if waiting_at is None:
+        raise RuntimeError(f"author nudge waiting timestamp not found for PR #{pr_number}")
+    if business_wait_elapsed(waiting_at, now) < author_reminder_after():
+        return None
+
     pr = gh_api(f"/repos/{repo}/pulls/{pr_number}") or {}
     if pr.get("state") != "open" or pr.get("draft"):
         return None
