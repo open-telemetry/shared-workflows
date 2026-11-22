@@ -45,7 +45,7 @@ from routing_snapshot import fetch_routing_snapshot
 from utils import format_ts, parse_ts
 
 
-NUDGE_AFTER = timedelta(weeks=1)
+AUTHOR_REMINDER_AFTER_BUSINESS_DAYS_ENV = "AUTHOR_REMINDER_AFTER_BUSINESS_DAYS"
 LEGACY_NUDGE_RECOVERY_WINDOW = timedelta(days=1)
 NUDGE_MARKER_PREFIX = "<!-- pull-request-dashboard-author-nudge:"
 COMPLETED_NUDGE_MARKER_PREFIX = (
@@ -137,6 +137,32 @@ def waiting_on_author(
     )
 
 
+def author_reminder_after() -> timedelta:
+    days = int(os.environ.get(AUTHOR_REMINDER_AFTER_BUSINESS_DAYS_ENV, "5"))
+    if days <= 0:
+        raise ValueError(f"{AUTHOR_REMINDER_AFTER_BUSINESS_DAYS_ENV} must be positive")
+    return timedelta(days=days)
+
+
+def business_wait_elapsed(waiting_since: datetime, now: datetime) -> timedelta:
+    waiting_since = waiting_since.astimezone(timezone.utc)
+    now = now.astimezone(timezone.utc)
+    elapsed = now - waiting_since
+    if elapsed <= timedelta(0):
+        return elapsed
+    # Each full week contributes five weekdays, regardless of its start time.
+    weeks = elapsed.days // 7
+    business_elapsed = timedelta(days=weeks * 5)
+    cursor = waiting_since + timedelta(weeks=weeks)
+    while cursor < now:
+        midnight = cursor.replace(hour=0, minute=0, second=0, microsecond=0)
+        end = min(midnight + timedelta(days=1), now)
+        if cursor.weekday() < 5:
+            business_elapsed += end - cursor
+        cursor = end
+    return business_elapsed
+
+
 def plan_nudge(
     result: StoredDashboardResult | EvaluationFailure | None,
     previous: dict[str, Any] | None,
@@ -216,7 +242,7 @@ def plan_nudge(
         if completions:
             entry["completions"] = completions
         return False, entry
-    return now - waiting_since >= NUDGE_AFTER, entry
+    return business_wait_elapsed(waiting_since, now) >= author_reminder_after(), entry
 
 
 def existing_nudge_comment(

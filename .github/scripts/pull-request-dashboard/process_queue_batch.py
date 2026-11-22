@@ -426,6 +426,9 @@ class DashboardBatchProcessor:
             "REQUIRE_CLEAN_COPILOT_REVIEW_BRANCHES_JSON": json.dumps(
                 config.get("require_clean_copilot_review_branches", [])
             ),
+            "AUTHOR_REMINDER_AFTER_BUSINESS_DAYS": str(
+                config.get("author_reminder_after_business_days", 5)
+            ),
             "CLOSE_STALE_AFTER_DAYS": str(config.get("close_stale_after_days", 0)),
             "CLOSE_STALE_EXEMPT_LABELS_JSON": json.dumps(
                 config.get("close_stale_exempt_labels", [])

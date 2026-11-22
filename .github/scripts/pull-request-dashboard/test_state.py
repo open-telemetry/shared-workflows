@@ -910,7 +910,7 @@ class StateTest(unittest.TestCase):
         self.assertEqual(DASHBOARD_STATE_COMPATIBLE_VERSIONS, ())
         self.assertEqual(STATUS_COMMENT_ROLLOUT_STATE_VERSION, 3)
         self.assertEqual(STATUS_COMMENT_REVISION, 22)
-        self.assertEqual(AUTHOR_NUDGE_STATE_VERSION, 4)
+        self.assertEqual(AUTHOR_NUDGE_STATE_VERSION, 5)
         self.assertEqual(COPILOT_REVIEW_REQUEST_STATE_VERSION, 9)
 
     def test_version_fifteen_dashboard_state_is_regenerated(self) -> None:
@@ -949,32 +949,34 @@ class StateTest(unittest.TestCase):
             )
             self.assertTrue(author_nudge_state_path().exists())
 
-    def test_author_nudge_state_loads_version_two_for_migration(self) -> None:
-        with tempfile.TemporaryDirectory() as temp_dir, patch("state._state_dir", Path(temp_dir)):
-            author_nudge_state_path().write_text(
-                json.dumps({
-                    "version": 2,
-                    "prs": {
-                        "123": {
-                            "waiting_since": "2026-07-10T00:00:00Z",
-                            "nudged_at": "2026-07-17T00:00:00Z",
-                            "episode_id": "episode-1",
-                        },
+    def test_author_nudge_state_preserves_waits_and_reminders_for_migration(self) -> None:
+        for version in (2, 3, 4):
+            with (
+                self.subTest(version=version),
+                tempfile.TemporaryDirectory() as temp_dir,
+                patch("state._state_dir", Path(temp_dir)),
+            ):
+                nudges = {
+                    "122": {
+                        "waiting_since": "2026-07-14T00:00:00Z",
+                        "nudged_at": "",
+                        "episode_id": "episode-2",
                     },
-                }),
-                encoding="utf-8",
-            )
-
-            self.assertEqual(
-                {
                     "123": {
                         "waiting_since": "2026-07-10T00:00:00Z",
                         "nudged_at": "2026-07-17T00:00:00Z",
                         "episode_id": "episode-1",
                     },
-                },
-                load_author_nudges(),
-            )
+                }
+                author_nudge_state_path().write_text(
+                    json.dumps({
+                        "version": version,
+                        "prs": nudges,
+                    }),
+                    encoding="utf-8",
+                )
+
+                self.assertEqual(nudges, load_author_nudges())
 
     def test_copilot_review_request_state_round_trip(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir, patch("state._state_dir", Path(temp_dir)):
