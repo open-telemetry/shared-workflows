@@ -137,6 +137,7 @@ class RoutingSnapshotTest(unittest.TestCase):
 
         self.assertEqual("OPEN", snapshot.state)
         self.assertFalse(snapshot.is_draft)
+        self.assertTrue(snapshot.has_conflicts)
         self.assertEqual("PR_node", snapshot.node_id)
         self.assertEqual("0123456789abcdef", snapshot.head_sha)
         self.assertIsNone(snapshot.checks)
@@ -144,6 +145,14 @@ class RoutingSnapshotTest(unittest.TestCase):
         self.assertFalse(snapshot.review_threads[0].is_resolved)
         with self.assertRaises(FrozenInstanceError):
             snapshot.state = "CLOSED"  # type: ignore[misc]
+
+    def test_dirty_merge_status_blocks_requests_even_when_mergeable(self) -> None:
+        raw = representative_raw()
+        raw["pr"]["mergeable"] = "MERGEABLE"
+
+        self.assertTrue(
+            build_routing_snapshot(normalize_pull_request_source(raw)).has_conflicts,
+        )
 
     def test_dashboard_fingerprint_ignores_dashboard_comments(self) -> None:
         raw = representative_raw()

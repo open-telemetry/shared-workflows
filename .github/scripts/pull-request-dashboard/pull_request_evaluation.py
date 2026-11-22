@@ -21,14 +21,15 @@ from classification_policy import (
     normalize_discussion_action,
 )
 from copilot_review import (
-    copilot_fallback_exhausted,
+    copilot_quota_issue,
     copilot_review_error_count,
+    copilot_review_in_flight,
     copilot_review_status,
-    is_copilot_quota_failure,
     is_copilot_reviewer,
+    refresh_copilot_review_cycle,
 )
 from dashboard_contracts import (
-    CopilotReviewFallback,
+    CopilotReviewCycle,
     DashboardFacts,
     DashboardRoute,
     EvaluationDiagnostics,
@@ -87,6 +88,7 @@ from utils import (
     is_unattended_author_login,
     normalize_author_identity,
     parse_ts,
+    utc_now,
 )
 
 
@@ -126,7 +128,7 @@ class PullRequestEvaluationConfig:
     non_blocking_check_patterns: tuple[str, ...] = ()
     require_clean_copilot_review_branches: frozenset[str] = frozenset()
     copilot_review_fallback_available: bool = False
-    copilot_review_fallback: CopilotReviewFallback | None = None
+    copilot_review_cycle: CopilotReviewCycle | None = None
 
 
 @dataclass(frozen=True)
@@ -147,7 +149,7 @@ def _compute_facts(
     approver_logins: frozenset[str],
     previous_facts: DashboardFacts,
     fallback_available: bool = False,
-    fallback: CopilotReviewFallback | None = None,
+    cycle: CopilotReviewCycle | None = None,
 ) -> DashboardFacts:
     pr = source.pull_request
     snapshot = build_routing_snapshot(source)
@@ -187,6 +189,15 @@ def _compute_facts(
         source.reviews,
         head_sha,
     )
+    covered_dispatch_id = (
+        cycle.dispatch_id
+        if cycle is not None and head_sha and copilot_review_exists and not copilot_review_stale
+        else ""
+    )
+    cycle = refresh_copilot_review_cycle(
+        cycle, source.reviews, head_sha, utc_now(),
+        fallback_available=fallback_available,
+    )
     override = dashboard_override_facts(
         DashboardOverrideInput(source.issue_comments),
         author,
@@ -221,19 +232,13 @@ def _compute_facts(
             is_copilot_reviewer(request)
             for request in snapshot.review_requests
         ),
-        copilot_review_quota_exhausted=(
-            previous_facts.copilot_review_quota_exhausted
-            or fallback is not None
-            or any(is_copilot_quota_failure(review) for review in source.reviews)
-        ),
+        copilot_review_quota_exhausted=copilot_quota_issue(source.reviews, head_sha),
         copilot_review_fallback_available=fallback_available,
-        copilot_review_fallback_exhausted=(
-            copilot_fallback_exhausted(
-                fallback,
-                source.reviews,
-                previously_exhausted=previous_facts.copilot_review_fallback_exhausted,
-            )
+        copilot_review_request_in_flight=copilot_review_in_flight(cycle),
+        copilot_review_request_limit_reason=(
+            cycle.limit_reason if cycle is not None and cycle.head_sha == head_sha else ""
         ),
+        copilot_review_covered_dispatch_id=covered_dispatch_id,
         copilot_review_error_count=copilot_review_error_count(source.reviews, head_sha),
         copilot_review_exists=copilot_review_exists,
         copilot_review_stale=copilot_review_stale,
@@ -469,7 +474,7 @@ async def evaluate_pull_request(
             config.approver_logins,
             previous_facts,
             config.copilot_review_fallback_available,
-            config.copilot_review_fallback,
+            config.copilot_review_cycle,
         )
         manual_reviewer_handoff = reviewer_handoff_active(facts)
         discussion_input = DiscussionInput(

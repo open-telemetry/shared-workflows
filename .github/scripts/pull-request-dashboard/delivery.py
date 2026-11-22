@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Deliver dashboard side effects from accepted state in one CAS transaction."""
+"""Deliver dashboard side effects and durably reserve Copilot requests."""
 
 from __future__ import annotations
 
@@ -37,13 +37,12 @@ from state import (
     STATUS_COMMENT_ROLLOUT_STATE_FILE,
     author_nudge_state_path,
     claim_delivery_versions,
-    copilot_review_request_state_path,
-    copilot_review_fallback_state_path,
     full_publish_delivered_path,
     full_publish_needed_path,
     notification_state_path,
     read_full_publish_generation,
     record_full_publish_delivered,
+    record_copilot_review_coverage,
     set_delivery_state_dirs,
     set_state_dir,
     state_dir as current_state_dir,
@@ -121,7 +120,6 @@ def initialize_delivery_state(accepted_repo_dir: Path) -> None:
 def deliver_from_state(
     repo: str,
     author_retry_snapshot_path: Path,
-    copilot_retry_snapshot_path: Path,
     notification_retry_snapshot_path: Path,
     pr_number: int | None = None,
     *,
@@ -205,11 +203,6 @@ def deliver_from_state(
             ),
             errors,
         )
-    run_delivery_action(
-        "Copilot reviews",
-        lambda: deliver_copilot_review_requests(repo, now, copilot_retry_snapshot_path),
-        errors,
-    )
     if open_prs is not None:
         run_delivery_action(
             "Slack notifications",
@@ -246,7 +239,6 @@ def deliver_with_state(
 ) -> int:
     repo_key = repo_state_key(repo)
     author_retry = runner_temp_path("prior-author-nudge-state.json")
-    copilot_retry = runner_temp_path("prior-copilot-review-request-state.json")
     notification_retry = runner_temp_path("prior-notification-state.json")
     errors: list[str] = []
     active_versions = False
@@ -262,6 +254,7 @@ def deliver_with_state(
             pending_generation = 0
             print("newer dashboard delivery versions are active; skipping", file=sys.stderr)
             return 0
+        record_copilot_review_coverage()
         needed = read_full_publish_generation(full_publish_needed_path())
         delivered = read_full_publish_generation(full_publish_delivered_path())
         pending_generation = needed if needed > delivered else 0
@@ -273,31 +266,53 @@ def deliver_with_state(
         errors[:] = deliver_from_state(
             repo,
             author_retry,
-            copilot_retry,
             notification_retry,
             None if pending_generation else pr_number,
             priority_pr_number=pr_number if pending_generation else None,
         )
         return 0
 
+    delivery_branch = (
+        delivery_state_branch_name
+        or state_branch.delivery_state_branch(state_branch_name)
+    )
     status = state_branch.push_state_changes(
         state_dir,
         "Deliver pull request dashboard updates",
         deliver,
-        state_branch=(
-            delivery_state_branch_name
-            or state_branch.delivery_state_branch(state_branch_name)
-        ),
+        state_branch=delivery_branch,
         add_paths=[repo_key],
         retry_snapshots=[
             (author_nudge_state_path(), author_retry),
-            (copilot_review_request_state_path(), copilot_retry),
-            (copilot_review_fallback_state_path(), copilot_retry.with_suffix(".fallback.json")),
             (notification_state_path(), notification_retry),
         ],
     )
     if status != 0:
         return status
+    if active_versions:
+        def commit_copilot_state(update: Callable[[], int]) -> None:
+            def guarded_update() -> int:
+                nonlocal active_versions
+                if not claim_delivery_versions():
+                    active_versions = False
+                    raise RuntimeError("newer dashboard delivery versions are active; Copilot dispatch stopped")
+                return update()
+
+            status = state_branch.push_state_changes(
+                state_dir,
+                "Record Copilot review dispatch",
+                guarded_update,
+                state_branch=delivery_branch,
+                add_paths=[repo_key],
+            )
+            if status != 0:
+                raise RuntimeError(f"Copilot dispatch state could not be durably saved: status {status}")
+
+        run_delivery_action(
+            "Copilot reviews",
+            lambda: deliver_copilot_review_requests(repo, commit_copilot_state),
+            errors,
+        )
     if github_output is not None:
         with github_output.open("a", encoding="utf-8") as output:
             output.write(f"active={'true' if active_versions else 'false'}\n")

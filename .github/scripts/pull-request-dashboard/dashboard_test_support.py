@@ -5,8 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from dashboard_contracts import (
-    CopilotReviewAttempt,
-    CopilotReviewFallback,
+    CopilotReviewCycle,
     DashboardFacts,
     DashboardRoute,
     DashboardState,
@@ -39,21 +38,21 @@ def actor(login: str = "", **changes: Any) -> Actor:
     return Actor(login=login, **changes)
 
 
-def copilot_review_fallback(
-    quota_failure_ids: tuple[int, ...],
-    attempted_at: str,
-    exhausted: bool = False,
-    *,
-    head_sha: str = "",
-    review_ids: tuple[int, ...] | None = None,
-    attempt_id: str = "test-attempt",
-) -> CopilotReviewFallback:
-    return CopilotReviewFallback(
-        (CopilotReviewAttempt(
-            quota_failure_ids, attempted_at, head_sha, review_ids, attempt_id,
-        ),),
-        exhausted,
-    )
+def copilot_review_cycle(
+    head_sha: str = "abcdef123456",
+    **changes: Any,
+) -> CopilotReviewCycle:
+    values = {
+        "head_sha": head_sha,
+        "requester": "app",
+        "phase": "accepted",
+        "request_count": 1,
+        "dispatch_id": "test-dispatch",
+        "started_at": "2026-08-16T08:00:00Z",
+        "sent_at": "2026-08-16T08:00:00Z",
+    }
+    values.update(changes)
+    return CopilotReviewCycle(**values)
 
 
 def pull_request_metadata(**changes: Any) -> PullRequestMetadata:

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from contextlib import nullcontext
+from datetime import datetime, timezone
 from pathlib import Path
 import json
 import tempfile
@@ -9,6 +10,9 @@ from unittest.mock import ANY, Mock, call, patch
 
 import delivery
 import state
+from copilot_review_delivery import record_copilot_review_observation
+from dashboard_test_support import dashboard_facts, pull_request_source, stored_dashboard_result
+from routing_snapshot import build_routing_snapshot
 
 
 class DeliveryTest(unittest.TestCase):
@@ -81,7 +85,6 @@ class DeliveryTest(unittest.TestCase):
                 delivery.deliver_from_state(
                     "open-telemetry/example",
                     Path("author"),
-                    Path("copilot"),
                     Path("slack"),
                     priority_pr_number=55,
                 ),
@@ -241,7 +244,6 @@ class DeliveryTest(unittest.TestCase):
         errors = delivery.deliver_from_state(
             "open-telemetry/example",
             Path("author"),
-            Path("copilot"),
             Path("slack"),
         )
 
@@ -252,11 +254,11 @@ class DeliveryTest(unittest.TestCase):
                 call("replies"),
                 call("author"),
                 call("status"),
-                call("copilot"),
                 call("slack"),
             ],
             order.call_args_list,
         )
+        copilot_reviews.assert_not_called()
         status_comments.assert_called_once_with(
             "open-telemetry/example",
             {7, 8},
@@ -323,7 +325,6 @@ class DeliveryTest(unittest.TestCase):
             errors = delivery.deliver_from_state(
                 "open-telemetry/example",
                 Path("author"),
-                Path("copilot"),
                 Path("slack"),
             )
 
@@ -367,14 +368,13 @@ class DeliveryTest(unittest.TestCase):
         errors = delivery.deliver_from_state(
             "open-telemetry/example",
             Path("author"),
-            Path("copilot"),
             Path("slack"),
         )
 
         self.assertIn("status comments: boom", errors)
         dashboard_command_replies.assert_called_once()
         author_nudges.assert_called_once()
-        copilot_reviews.assert_called_once()
+        copilot_reviews.assert_not_called()
         slack.assert_called_once()
 
     def test_open_pr_list_failure_skips_dependent_stages(self) -> None:
@@ -393,14 +393,13 @@ class DeliveryTest(unittest.TestCase):
             errors = delivery.deliver_from_state(
                 "open-telemetry/example",
                 Path("author"),
-                Path("copilot"),
                 Path("slack"),
             )
 
         self.assertEqual(["open pull requests: unavailable"], errors)
         replies.assert_called_once()
         nudges.assert_called_once()
-        copilot.assert_called_once()
+        copilot.assert_not_called()
         status.assert_not_called()
         slack.assert_not_called()
 
@@ -436,7 +435,6 @@ class DeliveryTest(unittest.TestCase):
             errors = delivery.deliver_from_state(
                 "open-telemetry/example",
                 Path("author"),
-                Path("copilot"),
                 Path("slack"),
             )
 
@@ -449,7 +447,7 @@ class DeliveryTest(unittest.TestCase):
         )
         nudges.assert_not_called()
         status.assert_not_called()
-        copilot.assert_called_once()
+        copilot.assert_not_called()
         slack.assert_not_called()
 
     def test_targeted_delivery_only_processes_triggering_pr(self) -> None:
@@ -478,7 +476,6 @@ class DeliveryTest(unittest.TestCase):
             errors = delivery.deliver_from_state(
                 "open-telemetry/example",
                 Path("author"),
-                Path("copilot"),
                 Path("slack"),
                 7,
             )
@@ -541,7 +538,6 @@ class DeliveryTest(unittest.TestCase):
             errors = delivery.deliver_from_state(
                 "open-telemetry/example",
                 Path("author"),
-                Path("copilot"),
                 Path("slack"),
                 7,
             )
@@ -575,7 +571,6 @@ class DeliveryTest(unittest.TestCase):
             tempfile.TemporaryDirectory() as temp_dir,
             patch.object(state, "_state_dir", Path(temp_dir)),
             patch.object(delivery, "author_nudge_state_path", return_value=Path("author")),
-            patch.object(delivery, "copilot_review_request_state_path", return_value=Path("copilot")),
             patch.object(delivery, "notification_state_path", return_value=Path("slack")),
         ):
             github_output = Path(temp_dir) / "github-output"
@@ -620,7 +615,6 @@ class DeliveryTest(unittest.TestCase):
         with (
             tempfile.TemporaryDirectory() as temp_dir,
             patch.object(delivery, "author_nudge_state_path", return_value=Path("author")),
-            patch.object(delivery, "copilot_review_request_state_path", return_value=Path("copilot")),
             patch.object(delivery, "notification_state_path", return_value=Path("slack")),
         ):
             github_output = Path(temp_dir) / "github-output"
@@ -640,6 +634,91 @@ class DeliveryTest(unittest.TestCase):
             "otelbot/pull-request-dashboard-delivery/example",
             push_state_changes.call_args.kwargs["state_branch"],
         )
+
+
+class CopilotDeliveryTransactionTest(unittest.TestCase):
+    def setUp(self) -> None:
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        self.root = Path(directory.name)
+        self.enterContext(patch.object(state, "_state_dir", self.root))
+        self.enterContext(patch.object(state, "_using_delivery_state", False))
+        self.enterContext(patch.dict(delivery.os.environ, {"COPILOT_REVIEW_FALLBACK_TOKEN": ""}))
+        self.enterContext(patch.object(delivery, "claim_delivery_versions", return_value=True))
+        self.actions = self.enterContext(patch.object(delivery, "deliver_from_state", return_value=[]))
+        self.snapshot = build_routing_snapshot(pull_request_source())
+        self.enterContext(patch(
+            "copilot_review_delivery.fetch_routing_snapshot", return_value=self.snapshot,
+        ))
+        self.enterContext(patch("copilot_review_delivery.fetch_pr_reviews", return_value=[]))
+        self.request = self.enterContext(patch(
+            "copilot_review_delivery.request_copilot_review", return_value=self.snapshot.head_sha,
+        ))
+        record_copilot_review_observation(
+            7, stored_dashboard_result(7, facts=dashboard_facts(
+                head_sha=self.snapshot.head_sha, copilot_review_request_needed=True,
+                copilot_request_fingerprint=self.snapshot.copilot_request_fingerprint,
+            )),
+            datetime(2026, 8, 16, 8, tzinfo=timezone.utc),
+        )
+
+    def test_rpc_is_outside_every_cas_callback_even_when_callbacks_are_replayed(self) -> None:
+        in_callback = False
+
+        def push(_directory, _message, action, **_kwargs):
+            nonlocal in_callback
+            in_callback = True
+            try:
+                action()
+                action()
+            finally:
+                in_callback = False
+            return 0
+
+        def request(_node_id):
+            self.assertFalse(in_callback)
+            self.assertEqual("sending", state.load_copilot_review_cycles()["7"].phase)
+            return self.snapshot.head_sha
+
+        self.request.side_effect = request
+        with patch.object(delivery.state_branch, "push_state_changes", side_effect=push):
+            self.assertEqual(0, delivery.deliver_with_state(
+                "open-telemetry/example", "otelbot/pull-request-dashboard-state/example", self.root,
+            ))
+        self.request.assert_called_once()
+        self.assertEqual(1, state.load_copilot_review_cycles()["7"].request_count)
+
+    def test_failed_initial_state_push_prevents_copilot_delivery(self) -> None:
+        with patch.object(delivery.state_branch, "push_state_changes", return_value=1):
+            self.assertEqual(1, delivery.deliver_with_state(
+                "open-telemetry/example", "otelbot/pull-request-dashboard-state/example", self.root,
+            ))
+        self.request.assert_not_called()
+
+    def test_review_requests_still_run_after_other_side_effect_errors(self) -> None:
+        self.actions.return_value = ["status comments: failed"]
+        with patch.object(
+            delivery.state_branch, "push_state_changes",
+            side_effect=lambda _directory, _message, action, **_kwargs: action(),
+        ):
+            self.assertEqual(1, delivery.deliver_with_state(
+                "open-telemetry/example", "otelbot/pull-request-dashboard-state/example", self.root,
+            ))
+        self.request.assert_called_once()
+
+    def test_newer_versions_stop_the_reservation_before_rpc(self) -> None:
+        with (
+            patch.object(delivery, "claim_delivery_versions", side_effect=[True, False]),
+            patch.object(
+                delivery.state_branch, "push_state_changes",
+                side_effect=lambda _directory, _message, action, **_kwargs: action(),
+            ),
+        ):
+            self.assertEqual(1, delivery.deliver_with_state(
+                "open-telemetry/example", "otelbot/pull-request-dashboard-state/example", self.root,
+            ))
+        self.request.assert_not_called()
+        self.assertEqual({}, state.load_copilot_review_cycles())
 
 
 if __name__ == "__main__":

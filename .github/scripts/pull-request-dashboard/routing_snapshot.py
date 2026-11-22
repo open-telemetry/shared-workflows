@@ -28,6 +28,7 @@ class RoutingSnapshot:
     routing_input_fingerprint: str
     copilot_request_fingerprint: str
     copilot_request_component_digests: dict[str, str]
+    has_conflicts: bool = False
 
 
 def _digest(value: Any) -> str:
@@ -65,6 +66,7 @@ def build_routing_snapshot(source: PullRequestSource) -> RoutingSnapshot:
         routing_input_fingerprint=_digest(routing_inputs),
         copilot_request_fingerprint=_digest(copilot_inputs),
         copilot_request_component_digests=_component_digests(copilot_inputs),
+        has_conflicts=pr.conflicts == "yes",
     )
 
 

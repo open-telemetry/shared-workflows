@@ -6,12 +6,15 @@ import json
 import sys
 from collections.abc import Iterable, Mapping
 from dataclasses import replace
+from datetime import timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from dashboard_contracts import (
-    CopilotReviewAttempt,
-    CopilotReviewFallback,
+    CopilotReviewCycle,
+    CopilotReviewLimit,
+    CopilotReviewPhase,
+    CopilotReviewRequester,
     DashboardCommandReply,
     DashboardFacts,
     DashboardRoute,
@@ -46,7 +49,7 @@ FULL_PUBLISH_DELIVERED_FILE = "full-publish-delivered.json"
 # caches. Every constant ending in _STATE_VERSION or _REVISION is included.
 # dashboard-state.json: accepted PR routing results and backfill readiness.
 # Routing facts include current-head Copilot error counts for bounded retries.
-DASHBOARD_STATE_VERSION = 23
+DASHBOARD_STATE_VERSION = 24
 DASHBOARD_STATE_COMPATIBLE_VERSIONS: tuple[int, ...] = ()
 # backfill-state.json: round-robin cursor used by full dashboard refreshes.
 BACKFILL_STATE_VERSION = 3
@@ -55,8 +58,8 @@ NOTIFICATION_STATE_VERSION = 3
 # author-nudge-state.json: waiting episodes and delivered author reminders.
 AUTHOR_NUDGE_STATE_VERSION = 4
 # copilot-review-request-state.json: pending and delivered review requests.
-COPILOT_REVIEW_REQUEST_STATE_VERSION = 11
-COPILOT_REVIEW_FALLBACK_STATE_VERSION = 3
+COPILOT_REVIEW_REQUEST_STATE_VERSION = 12
+COPILOT_REVIEW_FALLBACK_STATE_VERSION = 4
 # status-comment-rollout-state.json: target/completed renderer revisions and queue.
 STATUS_COMMENT_ROLLOUT_STATE_VERSION = 3
 # Rendered status-comment behavior. Increment when existing comments need to
@@ -634,6 +637,13 @@ def _encode_command_reply(reply: DashboardCommandReply) -> dict[str, Any]:
     }
 
 
+def _copilot_review_limit(value: Any) -> CopilotReviewLimit:
+    reason = _string(value, "facts.copilot_review_request_limit_reason")
+    if reason not in ("", "quota", "errors", "requests", "timeout"):
+        raise ValueError("invalid Copilot review request limit")
+    return cast(CopilotReviewLimit, reason)
+
+
 def decode_dashboard_facts(value: Any) -> DashboardFacts:
     if not isinstance(value, dict):
         raise ValueError("dashboard result facts must be an object")
@@ -711,9 +721,16 @@ def decode_dashboard_facts(value: Any) -> DashboardFacts:
             value.get("copilot_review_fallback_available", _MISSING),
             "facts.copilot_review_fallback_available",
         ),
-        copilot_review_fallback_exhausted=_boolean(
-            value.get("copilot_review_fallback_exhausted", _MISSING),
-            "facts.copilot_review_fallback_exhausted",
+        copilot_review_request_in_flight=_boolean(
+            value.get("copilot_review_request_in_flight", _MISSING),
+            "facts.copilot_review_request_in_flight",
+        ),
+        copilot_review_request_limit_reason=_copilot_review_limit(
+            value.get("copilot_review_request_limit_reason", _MISSING),
+        ),
+        copilot_review_covered_dispatch_id=_string(
+            value.get("copilot_review_covered_dispatch_id", _MISSING),
+            "facts.copilot_review_covered_dispatch_id",
         ),
         copilot_review_error_count=_integer(
             value.get("copilot_review_error_count", _MISSING),
@@ -897,8 +914,12 @@ def encode_dashboard_facts(facts: DashboardFacts) -> dict[str, Any]:
         stored["copilot_review_quota_exhausted"] = True
     if facts.copilot_review_fallback_available:
         stored["copilot_review_fallback_available"] = True
-    if facts.copilot_review_fallback_exhausted:
-        stored["copilot_review_fallback_exhausted"] = True
+    if facts.copilot_review_request_in_flight:
+        stored["copilot_review_request_in_flight"] = True
+    if facts.copilot_review_request_limit_reason:
+        stored["copilot_review_request_limit_reason"] = facts.copilot_review_request_limit_reason
+    if facts.copilot_review_covered_dispatch_id:
+        stored["copilot_review_covered_dispatch_id"] = facts.copilot_review_covered_dispatch_id
     if facts.copilot_review_error_count:
         stored["copilot_review_error_count"] = facts.copilot_review_error_count
     if facts.dashboard_override_bound_command_id:
@@ -1257,28 +1278,11 @@ def load_copilot_review_request_state_file(path: Path) -> dict[str, Any]:
     state = load_state_file(
         path,
         COPILOT_REVIEW_REQUEST_STATE_VERSION,
-        compatible_versions=(6,),
+        compatible_versions=(6, 7, 8, 9, 10, 11),
     )
     if state is None or not isinstance(state.get("prs"), dict):
         return {}
     return state["prs"]
-
-
-def union_merge_copilot_review_requests(
-    baseline_requests: dict[str, Any],
-    retry_snapshot_requests: dict[str, Any],
-) -> dict[str, Any]:
-    merged = dict(baseline_requests)
-    for key, retry_entry in retry_snapshot_requests.items():
-        baseline_entry = merged.get(key) or {}
-        if (
-            (retry_entry or {}).get("requested_at")
-            and retry_entry.get("head_sha") == baseline_entry.get("head_sha")
-            and retry_entry.get("observed_at")
-            and retry_entry.get("observed_at") == baseline_entry.get("observed_at")
-        ):
-            merged[key] = retry_entry
-    return merged
 
 
 def reconcile_copilot_review_requests(
@@ -1303,13 +1307,8 @@ def reconcile_copilot_review_requests(
     return reconciled
 
 
-def load_copilot_review_requests(retry_snapshot_path: Path | None = None) -> dict[str, Any]:
+def load_copilot_review_requests() -> dict[str, Any]:
     requests = load_copilot_review_request_state_file(copilot_review_request_state_path())
-    if retry_snapshot_path and retry_snapshot_path.exists():
-        requests = union_merge_copilot_review_requests(
-            requests,
-            load_copilot_review_request_state_file(retry_snapshot_path),
-        )
     if using_delivery_state():
         requests = reconcile_copilot_review_requests(
             load_copilot_review_request_state_file(
@@ -1328,129 +1327,189 @@ def save_copilot_review_requests(requests: dict[str, Any]) -> None:
     )
 
 
-def _decode_copilot_review_attempt(entry: Any, version: int) -> CopilotReviewAttempt:
+def _decode_copilot_review_cycle(entry: Any) -> CopilotReviewCycle:
     if not isinstance(entry, dict):
-        raise ValueError("invalid Copilot request attempt")
-    ids = entry.get("quota_failure_ids")
-    attempted_at = entry.get("attempted_at")
-    head_sha = "" if version == 1 else entry.get("head_sha")
-    review_ids = None if version == 1 else entry.get("review_ids")
-    timestamp = parse_ts(attempted_at) if isinstance(attempted_at, str) else None
+        raise ValueError("invalid Copilot review cycle")
+    head = entry.get("head_sha")
+    requester = entry.get("requester")
+    phase = entry.get("phase")
+    count = entry.get("request_count")
+    dispatch_id = entry.get("dispatch_id")
+    started_at = entry.get("started_at")
+    sent_at = entry.get("sent_at")
+    ids = entry.get("baseline_review_ids")
+    reason = entry.get("limit_reason")
     if (
-        not isinstance(ids, list)
+        not isinstance(head, str)
+        or requester not in ("app", "fallback")
+        or phase not in ("ready", "sending", "accepted", "unknown", "complete", "limited")
+        or type(count) is not int or count < 0
+        or not isinstance(dispatch_id, str)
+        or not isinstance(started_at, str) or not isinstance(sent_at, str)
+        or not isinstance(ids, list)
         or any(type(value) is not int or value <= 0 for value in ids)
-        or timestamp is None or timestamp.tzinfo is None
-        or not isinstance(head_sha, str)
-        or (version == 2 and review_ids is None)
-        or (
-            review_ids is not None
-            and (
-                not isinstance(review_ids, list)
-                or any(type(value) is not int or value <= 0 for value in review_ids)
-            )
-        )
+        or reason not in ("", "quota", "errors", "requests", "timeout")
+        or (phase == "limited") != bool(reason)
+        or (count > 0 and not started_at)
+        or (phase in ("sending", "accepted", "unknown") and (not dispatch_id or count < 1))
+        or (phase == "accepted" and (not head or not sent_at))
+        or (phase == "sending" and bool(sent_at))
     ):
-        raise ValueError("invalid Copilot request attempt")
-    if version < 3:
-        identity = json.dumps(
-            [ids, timestamp.isoformat(), head_sha, review_ids], separators=(",", ":"),
-        )
-        attempt_id = f"legacy-{hashlib.sha256(identity.encode('utf-8')).hexdigest()}"
-    else:
-        attempt_id = entry.get("attempt_id")
-    if not isinstance(attempt_id, str) or not attempt_id:
-        raise ValueError("invalid Copilot request attempt ID")
-    return CopilotReviewAttempt(
-        tuple(ids), attempted_at, head_sha,
-        tuple(review_ids) if review_ids is not None else None, attempt_id,
+        raise ValueError("invalid Copilot review cycle")
+    for value in (started_at, sent_at):
+        if value:
+            timestamp = parse_ts(value)
+            if timestamp is None or timestamp.tzinfo is None:
+                raise ValueError("invalid Copilot review cycle timestamp")
+    return CopilotReviewCycle(
+        head_sha=head,
+        requester=cast(CopilotReviewRequester, requester),
+        phase=cast(CopilotReviewPhase, phase),
+        request_count=count,
+        dispatch_id=dispatch_id,
+        started_at=started_at,
+        sent_at=sent_at,
+        baseline_review_ids=tuple(ids),
+        limit_reason=cast(CopilotReviewLimit, reason),
     )
 
 
-def load_copilot_review_fallbacks_file(path: Path) -> dict[str, CopilotReviewFallback]:
-    if not path.exists():
-        return {}
-    data = json.loads(path.read_text(encoding="utf-8"))
-    if (
+def _legacy_copilot_review_cycle(entry: Any, version: int) -> CopilotReviewCycle:
+    if not isinstance(entry, dict) or not isinstance(entry.get("exhausted", False), bool):
+        raise ValueError("invalid legacy Copilot review record")
+    attempts = [entry] if version < 3 else entry.get("attempts")
+    if not isinstance(attempts, list):
+        raise ValueError("invalid legacy Copilot review attempts")
+    timestamps = []
+    for attempt in attempts:
+        if not isinstance(attempt, dict):
+            raise ValueError("invalid legacy Copilot review attempt")
+        ids = attempt.get("quota_failure_ids")
+        value = attempt.get("attempted_at")
+        timestamp = parse_ts(value) if isinstance(value, str) else None
+        if (
+            not isinstance(ids, list)
+            or any(type(review_id) is not int or review_id <= 0 for review_id in ids)
+            or timestamp is None or timestamp.tzinfo is None
+        ):
+            raise ValueError("invalid legacy Copilot review attempt")
+        timestamps.append(timestamp)
+    if not timestamps:
+        return CopilotReviewCycle("", requester="fallback")
+    return CopilotReviewCycle(
+        "", requester="fallback", phase="unknown", request_count=1,
+        dispatch_id=f"legacy-{max(timestamps).astimezone(timezone.utc).isoformat()}",
+        started_at=max(timestamps).isoformat(),
+    )
+
+
+def load_copilot_review_cycles_file(path: Path) -> dict[str, CopilotReviewCycle]:
+    exists = path.exists()
+    data = json.loads(path.read_text(encoding="utf-8")) if exists else None
+    if exists and (
         not isinstance(data, dict)
         or type(data.get("version")) is not int
-        or data["version"] not in (1, 2, COPILOT_REVIEW_FALLBACK_STATE_VERSION)
+        or data["version"] not in (1, 2, 3, COPILOT_REVIEW_FALLBACK_STATE_VERSION)
         or not isinstance(data.get("prs"), dict)
     ):
-        raise ValueError(f"incompatible Copilot request state: {path}")
-    fallbacks: dict[str, CopilotReviewFallback] = {}
-    for key, entry in data["prs"].items():
-        if not isinstance(entry, dict):
-            raise ValueError(f"invalid Copilot request record for PR {key}")
-        exhausted = entry.get("exhausted", False)
-        attempts = [entry] if data["version"] < 3 else entry.get("attempts")
-        if not isinstance(exhausted, bool) or not isinstance(attempts, list):
-            raise ValueError(f"invalid Copilot request record for PR {key}")
-        decoded = tuple(
-            _decode_copilot_review_attempt(attempt, data["version"])
-            for attempt in attempts
+        raise ValueError(f"incompatible Copilot review cycle state: {path}")
+    cycles = {
+        key: (
+            _decode_copilot_review_cycle(entry)
+            if data["version"] == COPILOT_REVIEW_FALLBACK_STATE_VERSION
+            else _legacy_copilot_review_cycle(entry, data["version"])
         )
-        if len({attempt.attempt_id for attempt in decoded}) != len(decoded):
-            raise ValueError(f"duplicate Copilot request attempts for PR {key}")
-        fallbacks[key] = CopilotReviewFallback(decoded, exhausted)
-    return fallbacks
-
-
-def load_copilot_review_fallbacks(
-    retry_snapshot_path: Path | None = None,
-) -> dict[str, CopilotReviewFallback]:
-    fallbacks = load_copilot_review_fallbacks_file(copilot_review_fallback_state_path())
-    if retry_snapshot_path is not None:
-        for key, retry in load_copilot_review_fallbacks_file(retry_snapshot_path).items():
-            current = fallbacks.get(key)
-            if current is None:
-                fallbacks[key] = retry
-            else:
-                attempts = {attempt.attempt_id: attempt for attempt in current.attempts}
-                for attempt in retry.attempts:
-                    prior = attempts.get(attempt.attempt_id)
-                    if prior is not None:
-                        if (
-                            prior.quota_failure_ids != attempt.quota_failure_ids
-                            or parse_ts(prior.attempted_at) != parse_ts(attempt.attempted_at)
-                            or prior.review_ids != attempt.review_ids
-                            or (
-                                prior.head_sha and attempt.head_sha
-                                and prior.head_sha != attempt.head_sha
-                            )
-                        ):
-                            raise ValueError(f"conflicting Copilot request attempt for PR {key}")
-                        attempt = replace(prior, head_sha=prior.head_sha or attempt.head_sha)
-                    attempts[attempt.attempt_id] = attempt
-                fallbacks[key] = CopilotReviewFallback(
-                    tuple(attempts[attempt_id] for attempt_id in sorted(attempts)),
-                    current.exhausted or retry.exhausted,
+        for key, entry in (data["prs"] if data is not None else {}).items()
+    }
+    if data is not None and data["version"] == COPILOT_REVIEW_FALLBACK_STATE_VERSION:
+        return cycles
+    receipt_path = path.with_name(COPILOT_REVIEW_REQUEST_STATE_FILE)
+    if not receipt_path.exists():
+        return cycles
+    receipts = json.loads(receipt_path.read_text(encoding="utf-8"))
+    if (
+        not isinstance(receipts, dict)
+        or type(receipts.get("version")) is not int
+        or receipts["version"] not in (6, 7, 8, 9, 10, 11, COPILOT_REVIEW_REQUEST_STATE_VERSION)
+        or not isinstance(receipts.get("prs"), dict)
+    ):
+        raise ValueError(f"incompatible legacy Copilot review receipts: {receipt_path}")
+    if receipts["version"] != COPILOT_REVIEW_REQUEST_STATE_VERSION:
+        for key, entry in receipts["prs"].items():
+            if not isinstance(entry, dict):
+                raise ValueError("invalid legacy Copilot review receipt")
+            value = entry.get("requested_at")
+            if value is None or value == "":
+                continue
+            timestamp = parse_ts(value) if isinstance(value, str) else None
+            if timestamp is None or timestamp.tzinfo is None:
+                raise ValueError("invalid legacy Copilot review receipt timestamp")
+            prior = cycles.get(key)
+            prior_time = parse_ts(prior.started_at) if prior else None
+            if prior_time is None or timestamp > prior_time:
+                cycles[key] = CopilotReviewCycle(
+                    "", requester=prior.requester if prior else "app",
+                    phase="unknown", request_count=1,
+                    dispatch_id=f"legacy-{timestamp.astimezone(timezone.utc).isoformat()}",
+                    started_at=timestamp.isoformat(),
                 )
-    return fallbacks
+    return cycles
 
 
-def save_copilot_review_fallbacks(fallbacks: dict[str, CopilotReviewFallback]) -> None:
+def load_copilot_review_cycles() -> dict[str, CopilotReviewCycle]:
+    return load_copilot_review_cycles_file(copilot_review_fallback_state_path())
+
+
+def save_copilot_review_cycles(cycles: dict[str, CopilotReviewCycle]) -> None:
     save_state_file(
         copilot_review_fallback_state_path(),
         {"prs": {
             key: {
-                "exhausted": entry.exhausted,
-                "attempts": [
-                    {
-                        "attempt_id": attempt.attempt_id,
-                        "quota_failure_ids": list(attempt.quota_failure_ids),
-                        "attempted_at": attempt.attempted_at,
-                        "head_sha": attempt.head_sha,
-                        "review_ids": (
-                            list(attempt.review_ids) if attempt.review_ids is not None else None
-                        ),
-                    }
-                    for attempt in entry.attempts
-                ],
+                "head_sha": cycle.head_sha,
+                "requester": cycle.requester,
+                "phase": cycle.phase,
+                "request_count": cycle.request_count,
+                "dispatch_id": cycle.dispatch_id,
+                "started_at": cycle.started_at,
+                "sent_at": cycle.sent_at,
+                "baseline_review_ids": list(cycle.baseline_review_ids),
+                "limit_reason": cycle.limit_reason,
             }
-            for key, entry in fallbacks.items()
+            for key, cycle in cycles.items()
         }},
         COPILOT_REVIEW_FALLBACK_STATE_VERSION,
     )
+
+
+def record_copilot_review_coverage() -> None:
+    accepted = load_dashboard_state_cache()
+    if accepted is None:
+        return
+    cycles = load_copilot_review_cycles()
+    changed = False
+    for result in accepted.results:
+        key = str(result.pr_number)
+        facts = result.facts
+        cycle = cycles.get(key)
+        if (
+            cycle is not None
+            and facts.copilot_review_covered_dispatch_id
+            and cycle.dispatch_id == facts.copilot_review_covered_dispatch_id
+            and facts.head_sha
+            and facts.copilot_review_exists
+            and not facts.copilot_review_stale
+        ):
+            completed = replace(
+                cycle if cycle.head_sha == facts.head_sha else CopilotReviewCycle(
+                    facts.head_sha, requester=cycle.requester,
+                ),
+                phase="complete", limit_reason="",
+            )
+            if completed != cycle:
+                cycles[key] = completed
+                changed = True
+    if changed:
+        save_copilot_review_cycles(cycles)
 
 
 def union_merge_notifications(

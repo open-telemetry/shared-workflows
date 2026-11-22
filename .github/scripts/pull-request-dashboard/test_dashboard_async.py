@@ -242,9 +242,16 @@ class DashboardClientScopeTest(unittest.IsolatedAsyncioTestCase):
                 with (
                     patch.object(dashboard, "CopilotSdkModelRunner", return_value=context),
                     patch.object(dashboard, operation, return_value=0) as update,
+                    patch.object(dashboard.state_branch, "configure_git"),
+                    patch.object(dashboard.state_branch, "accepted_state_dir") as checkout,
                 ):
+                    checkout.return_value.__enter__.return_value = None
                     status = await dashboard.update_dashboard_via_state_branch(
-                        Namespace(pr_number=pr_number), Path("state")
+                        Namespace(
+                            pr_number=pr_number,
+                            state_branch="otelbot/pull-request-dashboard-state/example",
+                        ),
+                        Path("state"),
                     )
                 self.assertEqual(0, status)
                 self.assertIs(runner, update.call_args.args[2].runner)

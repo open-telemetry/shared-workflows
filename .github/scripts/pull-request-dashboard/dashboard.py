@@ -306,7 +306,7 @@ from copilot_review_delivery import (
     record_copilot_review_observation,
 )
 from dashboard_contracts import (
-    CopilotReviewFallback,
+    CopilotReviewCycle,
     DashboardState,
     EvaluationFailure,
     EvaluationResult,
@@ -329,7 +329,7 @@ from state import (
     initial_backfill_complete,
     load_dashboard_state_cache,
     load_backfill_state,
-    load_copilot_review_fallbacks_file,
+    load_copilot_review_cycles_file,
     mark_full_publish_needed,
     save_dashboard_state_cache,
     save_backfill_state,
@@ -359,7 +359,7 @@ async def build_dashboard_update_for_pr(
     require_clean_copilot_review_branches: list[str] | None = None,
     *,
     classification_service: ClassificationOperation,
-    copilot_review_fallback: CopilotReviewFallback | None = None,
+    copilot_review_cycle: CopilotReviewCycle | None = None,
 ) -> DashboardStateUpdate:
     print(f"refreshing dashboard state for PR #{pr_number}", file=sys.stderr)
     prepared_update = prepare_dashboard_update(
@@ -382,7 +382,7 @@ async def build_dashboard_update_for_pr(
             copilot_review_fallback_available=(
                 os.environ.get("COPILOT_REVIEW_FALLBACK_AVAILABLE") == "true"
             ),
-            copilot_review_fallback=copilot_review_fallback,
+            copilot_review_cycle=copilot_review_cycle,
         ),
         PullRequestEvaluationInput(
             pr_number=pr_number,
@@ -753,7 +753,7 @@ async def build_targeted_dashboard_update(
         loaded_dashboard_state,
         getattr(args, "require_clean_copilot_review_branches", []),
         classification_service=classification_service,
-        copilot_review_fallback=getattr(args, "copilot_review_fallbacks", {}).get(
+        copilot_review_cycle=getattr(args, "copilot_review_cycles", {}).get(
             str(args.pr_number)
         ),
     )
@@ -895,7 +895,7 @@ async def update_dashboard_for_backfill(
                 dashboard_state,
                 getattr(args, "require_clean_copilot_review_branches", []),
                 classification_service=classification_service,
-                copilot_review_fallback=getattr(args, "copilot_review_fallbacks", {}).get(
+                copilot_review_cycle=getattr(args, "copilot_review_cycles", {}).get(
                     str(pr_number)
                 ),
             )
@@ -976,18 +976,17 @@ async def update_dashboard_for_backfill(
 
 
 async def update_dashboard_via_state_branch(args: argparse.Namespace, state_dir: Path) -> int:
-    args.copilot_review_fallbacks = {}
-    if os.environ.get("COPILOT_REVIEW_FALLBACK_AVAILABLE") == "true":
-        state_branch.configure_git()
-        with state_branch.accepted_state_dir(
-            state_branch.delivery_state_branch(args.state_branch),
-            required=False,
-        ) as checkout:
-            if checkout is not None:
-                repo_key = repo_state_key(args.repo) if args.repo else repo_state_key(detect_repo())
-                args.copilot_review_fallbacks = load_copilot_review_fallbacks_file(
-                    checkout / repo_key / COPILOT_REVIEW_FALLBACK_STATE_FILE
-                )
+    args.copilot_review_cycles = {}
+    state_branch.configure_git()
+    with state_branch.accepted_state_dir(
+        state_branch.delivery_state_branch(args.state_branch),
+        required=False,
+    ) as checkout:
+        if checkout is not None:
+            repo_key = repo_state_key(args.repo) if args.repo else repo_state_key(detect_repo())
+            args.copilot_review_cycles = load_copilot_review_cycles_file(
+                checkout / repo_key / COPILOT_REVIEW_FALLBACK_STATE_FILE
+            )
     async with CopilotSdkModelRunner() as runner:
         service = ClassificationService(runner, DEFAULT_CLASSIFICATION_CACHE_STORE)
         if args.pr_number is None:

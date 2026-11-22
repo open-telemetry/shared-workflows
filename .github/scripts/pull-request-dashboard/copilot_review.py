@@ -3,25 +3,19 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from dataclasses import replace
 from datetime import datetime
-from typing import Any, Literal
+from typing import Any
 
-from dashboard_contracts import CopilotReviewAttempt, CopilotReviewFallback, DashboardFacts
-from github_cli import (
-    fetch_pr_reviews,
-    fetch_review_requests,
-    sleep_for_retry,
-)
+from dashboard_contracts import CopilotReviewCycle, DashboardFacts
 from routing_snapshot import RoutingSnapshot
 from pull_request_source import (
     Actor,
     Check,
     Review,
     ReviewRequest,
-    normalize_review_requests,
-    normalize_reviews,
 )
-from utils import parse_ts
+from utils import GATE_HOLD_LIMIT, format_ts, parse_ts
 
 
 COPILOT_QUOTA_FAILURE_PREFIXES = (
@@ -35,12 +29,7 @@ COPILOT_ERROR_BODY = (
     "You can try again by re-requesting a review."
 )
 COPILOT_REVIEW_ERROR_LIMIT = 2
-
-
-# How many times the pull request is read back before a request counts as
-# missing. GitHub takes a moment to record a reviewer it did accept, so a
-# single empty read proves nothing.
-REQUEST_CONFIRMATION_ATTEMPTS = 3
+COPILOT_REVIEW_REQUEST_LIMIT = COPILOT_REVIEW_ERROR_LIMIT + 1
 
 
 def is_copilot_reviewer(
@@ -84,91 +73,142 @@ def copilot_review_error_count(reviews: Sequence[Review], head_sha: str) -> int:
     )
 
 
-def copilot_quota_failure_ids(reviews: Sequence[Review]) -> tuple[int, ...]:
-    failures = [review for review in reviews if is_copilot_quota_failure(review)]
-    if any(review.database_id <= 0 for review in failures):
-        raise RuntimeError("GitHub returned a Copilot quota notice without a review ID")
-    return tuple(sorted({review.database_id for review in failures}))
+def copilot_review_ids(reviews: Sequence[Review]) -> tuple[int, ...]:
+    ids = {
+        review.database_id for review in reviews
+        if is_copilot_reviewer(review) and review.state != "PENDING"
+    }
+    if any(review_id <= 0 for review_id in ids):
+        raise RuntimeError("GitHub returned a Copilot review without a review ID")
+    return tuple(sorted(ids))
 
 
-def copilot_review_attempt_outcome(
-    attempt: CopilotReviewAttempt,
+def copilot_quota_issue(reviews: Sequence[Review], head_sha: str) -> bool:
+    return bool(head_sha) and any(
+        review.commit_id == head_sha
+        and review.state != "PENDING"
+        and is_copilot_quota_failure(review)
+        for review in reviews
+    )
+
+
+def copilot_review_in_flight(cycle: CopilotReviewCycle | None) -> bool:
+    return cycle is not None and cycle.phase in ("sending", "accepted", "unknown")
+
+
+def _new_copilot_notices(
+    cycle: CopilotReviewCycle,
     reviews: Sequence[Review],
-) -> Literal["pending", "completed", "quota_exhausted"]:
-    new_failure_ids = set(copilot_quota_failure_ids(reviews)) - set(attempt.quota_failure_ids)
-    attempted_at = parse_ts(attempt.attempted_at)
-    if attempted_at is None or attempted_at.tzinfo is None:
-        raise RuntimeError("Copilot review fallback has an invalid attempt timestamp")
-    failure_cutoff = attempted_at.replace(microsecond=0)
-    baseline_ids = set(attempt.review_ids or ()) | set(attempt.quota_failure_ids)
-    failure_times: list[datetime] = []
-    completion_times: list[datetime] = []
+) -> tuple[bool, bool]:
+    sent_at = parse_ts(cycle.sent_at)
+    if sent_at is None or sent_at.tzinfo is None:
+        raise RuntimeError("Copilot review cycle has an invalid send timestamp")
+    baseline_ids = set(cycle.baseline_review_ids)
+    quota = error = False
     for review in reviews:
         if (
             not is_copilot_reviewer(review)
             or review.database_id in baseline_ids
             or review.state == "PENDING"
+            or review.commit_id != cycle.head_sha
         ):
             continue
-        if attempt.head_sha and review.commit_id != attempt.head_sha:
-            continue
-        quota_failure = review.database_id in new_failure_ids
-        if not quota_failure and not (
-            is_completed_copilot_review(review) or is_copilot_error(review)
-        ):
+        quota_notice = is_copilot_quota_failure(review)
+        error_notice = is_copilot_error(review)
+        if not quota_notice and not error_notice:
             continue
         if review.database_id <= 0:
             raise RuntimeError("GitHub returned a Copilot review without a review ID")
         submitted_at = parse_ts(review.submitted_at)
         if submitted_at is None or submitted_at.tzinfo is None:
-            kind = "quota notice" if quota_failure else "completed review"
-            raise RuntimeError(
-                f"GitHub returned a Copilot {kind} without a valid submission timestamp"
-            )
-        if quota_failure:
-            if submitted_at >= failure_cutoff:
-                failure_times.append(submitted_at)
-        # Without an ID baseline, a same-second review may predate the request.
-        elif (
-            (attempt.review_ids is None and submitted_at > attempted_at)
-            or (attempt.review_ids is not None and submitted_at >= failure_cutoff)
-        ):
-            completion_times.append(submitted_at)
-    if failure_times and (
-        not completion_times or min(failure_times) <= min(completion_times)
-    ):
-        return "quota_exhausted"
-    return "completed" if completion_times else "pending"
+            raise RuntimeError("GitHub returned a Copilot notice without a valid timestamp")
+        if submitted_at >= sent_at:
+            quota = quota or quota_notice
+            error = error or error_notice
+    return quota, error
 
 
-def copilot_fallback_exhausted(
-    fallback: CopilotReviewFallback | None,
+def refresh_copilot_review_cycle(
+    cycle: CopilotReviewCycle | None,
     reviews: Sequence[Review],
+    head_sha: str,
+    now: datetime,
     *,
-    previously_exhausted: bool = False,
-) -> bool:
-    if fallback is None:
-        return previously_exhausted
-    if fallback.exhausted:
-        return True
-    outcomes = tuple(
-        copilot_review_attempt_outcome(attempt, reviews)
-        for attempt in fallback.attempts
-    )
-    return (
-        "quota_exhausted" in outcomes
-        or (previously_exhausted and (not outcomes or "pending" in outcomes))
-    )
-
-
-def copilot_reviews_disabled(facts: DashboardFacts) -> bool:
-    return (
-        facts.copilot_review_error_count >= COPILOT_REVIEW_ERROR_LIMIT
-        or facts.copilot_review_fallback_exhausted
-        or (
-            facts.copilot_review_quota_exhausted
-            and not facts.copilot_review_fallback_available
+    fallback_available: bool,
+) -> CopilotReviewCycle | None:
+    if now.tzinfo is None:
+        raise ValueError("Copilot review cycle requires a timezone-aware clock")
+    if cycle is None:
+        return None
+    if not head_sha:
+        raise ValueError("Copilot review cycle requires a current head")
+    exists, stale = copilot_review_status(reviews, head_sha)
+    if exists and not stale:
+        return replace(
+            cycle if cycle.head_sha == head_sha else CopilotReviewCycle(
+                head_sha, requester=cycle.requester,
+            ),
+            phase="complete",
+            limit_reason="",
         )
+    if cycle.phase == "complete":
+        cycle = replace(cycle, phase="ready")
+    if (
+        cycle.phase == "limited" and cycle.limit_reason == "quota"
+        and cycle.requester == "app" and fallback_available
+    ):
+        cycle = replace(
+            cycle, requester="fallback", phase="ready", limit_reason="",
+            started_at=format_ts(now),
+        )
+    if cycle.request_count and cycle.phase in ("sending", "accepted", "unknown", "ready"):
+        started_at = parse_ts(cycle.started_at)
+        if started_at is None or started_at.tzinfo is None:
+            raise RuntimeError("Copilot review cycle has an invalid start timestamp")
+        if now - started_at >= GATE_HOLD_LIMIT:
+            cycle = replace(cycle, phase="limited", limit_reason="timeout")
+        elif cycle.phase == "accepted":
+            exists, stale = copilot_review_status(reviews, cycle.head_sha)
+            if exists and not stale:
+                cycle = replace(cycle, phase="complete", limit_reason="")
+            elif copilot_review_error_count(reviews, cycle.head_sha) >= COPILOT_REVIEW_ERROR_LIMIT:
+                cycle = replace(cycle, phase="limited", limit_reason="errors")
+            else:
+                quota, error = _new_copilot_notices(cycle, reviews)
+                if quota and cycle.requester == "app":
+                    cycle = (
+                        replace(cycle, requester="fallback", phase="ready")
+                        if fallback_available
+                        else replace(cycle, phase="limited", limit_reason="quota")
+                    )
+                elif error:
+                    cycle = replace(cycle, phase="ready")
+                # A quota notice cannot identify whose quota failed. Once the
+                # fallback is selected, it is not a reason for another request.
+    if not copilot_review_in_flight(cycle) and cycle.head_sha != head_sha:
+        cycle = CopilotReviewCycle(head_sha, requester=cycle.requester)
+    if cycle.phase == "ready" and cycle.request_count >= COPILOT_REVIEW_REQUEST_LIMIT:
+        cycle = replace(cycle, phase="limited", limit_reason="requests")
+    return cycle
+
+
+def copilot_review_gate_disabled(facts: DashboardFacts) -> bool:
+    if facts.copilot_review_exists and not facts.copilot_review_stale:
+        return False
+    if (
+        facts.copilot_review_error_count >= COPILOT_REVIEW_ERROR_LIMIT
+        or facts.copilot_review_request_limit_reason == "errors"
+    ):
+        return True
+    if facts.copilot_review_request_limit_reason == "timeout":
+        return False
+    return (
+        (
+            facts.copilot_review_quota_exhausted
+            or facts.copilot_review_request_limit_reason == "quota"
+        )
+        and not facts.copilot_review_fallback_available
+        and not facts.copilot_review_request_in_flight
     )
 
 
@@ -196,7 +236,7 @@ def copilot_review_status(
 
 
 def copilot_review_outstanding(facts: DashboardFacts, *, enabled: bool) -> bool:
-    if not enabled or copilot_reviews_disabled(facts):
+    if not enabled or copilot_review_gate_disabled(facts):
         return False
     return not facts.copilot_review_exists or facts.copilot_review_needed
 
@@ -206,7 +246,7 @@ def copilot_review_unreported(facts: DashboardFacts, *, enabled: bool) -> bool:
     # current head. Findings are an answer, not a silence: actionable threads
     # belong to discussion routing. Only a review that is missing or that
     # covers older code is a report that has not arrived.
-    if not enabled or copilot_reviews_disabled(facts):
+    if not enabled or copilot_review_gate_disabled(facts):
         return False
     return not facts.copilot_review_exists or facts.copilot_review_stale
 
@@ -231,7 +271,9 @@ def set_copilot_review_request_needed(
             or facts.copilot_review_stale
         )
         and not facts.copilot_review_requested
-        and not copilot_reviews_disabled(facts)
+        and not facts.copilot_review_request_in_flight
+        and not facts.copilot_review_request_limit_reason
+        and not copilot_review_gate_disabled(facts)
     ))
 
 
@@ -250,6 +292,8 @@ def stale_request_reason(
         return f"pull request state is {snapshot.state!r}"
     if snapshot.is_draft:
         return "pull request is a draft"
+    if snapshot.has_conflicts:
+        return "pull request has merge conflicts"
     if snapshot.head_sha != entry.get("head_sha"):
         return (
             f"head is {snapshot.head_sha or '(missing)'} "
@@ -279,30 +323,3 @@ def stale_request_reason(
             f"components {snapshot.copilot_request_component_digests}"
         )
     return ""
-
-
-def copilot_review_request_landed(
-    owner: str,
-    repo_name: str,
-    pr_number: int,
-    head_sha: str,
-) -> bool:
-    """Report whether GitHub recorded the Copilot review request just sent."""
-    for attempt in range(REQUEST_CONFIRMATION_ATTEMPTS):
-        if attempt:
-            sleep_for_retry(attempt - 1)
-        if any(
-            is_copilot_reviewer(request)
-            for request in normalize_review_requests(
-                fetch_review_requests(owner, repo_name, pr_number)
-            )
-        ):
-            return True
-    # Copilot can finish a short review before the last read, which takes it
-    # back out of the pending requests. A review of the current head proves the
-    # request landed just as well as a pending one does.
-    review_exists, review_stale = copilot_review_status(
-        normalize_reviews(fetch_pr_reviews(owner, repo_name, pr_number)),
-        head_sha,
-    )
-    return review_exists and not review_stale
