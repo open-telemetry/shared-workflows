@@ -355,11 +355,16 @@ a fresh budget once the active request has settled or timed out.
 
 The delivery worker commits a dispatch reservation before calling GitHub.
 Git state retries update records only; they never replay the review mutation.
-Definite rejections restore the previous budget. Transport failures or a crash
-before recording the result leave an uncertain request, even if GitHub no
-longer lists Copilot as a requested reviewer. That uncertainty blocks additional
-dashboard requests across pushes until current-head coverage or a four-hour
-timeout.
+Definite rejections and failures before the mutation restore the previous budget.
+Coverage and quota observations apply only to the exact cycle snapshot that was
+evaluated. A sending reservation stays with its dispatcher until the outcome is
+recorded, since the mutation can land on a different head.
+
+Transport failures leave an uncertain request, even if GitHub no longer lists
+Copilot as a requested reviewer. That uncertainty blocks additional dashboard
+requests across pushes until current-head coverage or a four-hour timeout.
+A crash before saving the outcome leaves a sending reservation until its timeout.
+Failed reservation rollbacks are reported and retain the saved barrier.
 
 The cycle's four-hour window survives ordinary retries. Reaching the window or
 request limit stops automatic requests for that head without bypassing the

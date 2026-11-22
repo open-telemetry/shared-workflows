@@ -48,8 +48,8 @@ FULL_PUBLISH_DELIVERED_FILE = "full-publish-delivered.json"
 # current vector, ordinary state loaders may regenerate mismatched disposable
 # caches. Every constant ending in _STATE_VERSION or _REVISION is included.
 # dashboard-state.json: accepted PR routing results and backfill readiness.
-# Routing facts bind Copilot coverage and quota observations to dispatches.
-DASHBOARD_STATE_VERSION = 25
+# Routing facts fence Copilot observations with the evaluated cycle snapshot.
+DASHBOARD_STATE_VERSION = 26
 DASHBOARD_STATE_COMPATIBLE_VERSIONS: tuple[int, ...] = ()
 # backfill-state.json: round-robin cursor used by full dashboard refreshes.
 BACKFILL_STATE_VERSION = 3
@@ -657,6 +657,7 @@ def decode_dashboard_facts(value: Any) -> DashboardFacts:
         raw_reviewers = []
     if not isinstance(raw_reviewers, list):
         raise ValueError("facts.reviewers must be an array")
+    raw_cycle = value.get("copilot_review_observed_cycle")
     author = _string(value.get("author", _MISSING), "facts.author")
     return DashboardFacts(
         author=author,
@@ -728,9 +729,8 @@ def decode_dashboard_facts(value: Any) -> DashboardFacts:
         copilot_review_request_limit_reason=_copilot_review_limit(
             value.get("copilot_review_request_limit_reason", _MISSING),
         ),
-        copilot_review_observed_dispatch_id=_string(
-            value.get("copilot_review_observed_dispatch_id", _MISSING),
-            "facts.copilot_review_observed_dispatch_id",
+        copilot_review_observed_cycle=(
+            _decode_copilot_review_cycle(raw_cycle) if raw_cycle is not None else None
         ),
         copilot_review_error_count=_integer(
             value.get("copilot_review_error_count", _MISSING),
@@ -918,8 +918,10 @@ def encode_dashboard_facts(facts: DashboardFacts) -> dict[str, Any]:
         stored["copilot_review_request_in_flight"] = True
     if facts.copilot_review_request_limit_reason:
         stored["copilot_review_request_limit_reason"] = facts.copilot_review_request_limit_reason
-    if facts.copilot_review_observed_dispatch_id:
-        stored["copilot_review_observed_dispatch_id"] = facts.copilot_review_observed_dispatch_id
+    if facts.copilot_review_observed_cycle is not None:
+        stored["copilot_review_observed_cycle"] = _encode_copilot_review_cycle(
+            facts.copilot_review_observed_cycle,
+        )
     if facts.copilot_review_error_count:
         stored["copilot_review_error_count"] = facts.copilot_review_error_count
     if facts.dashboard_override_bound_command_id:
@@ -1374,6 +1376,20 @@ def _decode_copilot_review_cycle(entry: Any) -> CopilotReviewCycle:
     )
 
 
+def _encode_copilot_review_cycle(cycle: CopilotReviewCycle) -> dict[str, Any]:
+    return {
+        "head_sha": cycle.head_sha,
+        "requester": cycle.requester,
+        "phase": cycle.phase,
+        "request_count": cycle.request_count,
+        "dispatch_id": cycle.dispatch_id,
+        "started_at": cycle.started_at,
+        "sent_at": cycle.sent_at,
+        "baseline_review_ids": list(cycle.baseline_review_ids),
+        "limit_reason": cycle.limit_reason,
+    }
+
+
 def _legacy_copilot_review_cycle(entry: Any, version: int) -> CopilotReviewCycle:
     if not isinstance(entry, dict) or not isinstance(entry.get("exhausted", False), bool):
         raise ValueError("invalid legacy Copilot review record")
@@ -1464,17 +1480,7 @@ def save_copilot_review_cycles(cycles: dict[str, CopilotReviewCycle]) -> None:
     save_state_file(
         copilot_review_fallback_state_path(),
         {"prs": {
-            key: {
-                "head_sha": cycle.head_sha,
-                "requester": cycle.requester,
-                "phase": cycle.phase,
-                "request_count": cycle.request_count,
-                "dispatch_id": cycle.dispatch_id,
-                "started_at": cycle.started_at,
-                "sent_at": cycle.sent_at,
-                "baseline_review_ids": list(cycle.baseline_review_ids),
-                "limit_reason": cycle.limit_reason,
-            }
+            key: _encode_copilot_review_cycle(cycle)
             for key, cycle in cycles.items()
         }},
         COPILOT_REVIEW_FALLBACK_STATE_VERSION,
@@ -1488,10 +1494,12 @@ def record_copilot_review_cycle_observations() -> None:
         key = str(result.pr_number)
         facts = result.facts
         cycle = cycles.get(key)
+        # The dispatcher owns a sending reservation until it records the outcome.
         if (
             cycle is None
-            or not facts.copilot_review_observed_dispatch_id
-            or cycle.dispatch_id != facts.copilot_review_observed_dispatch_id
+            or not cycle.dispatch_id
+            or cycle != facts.copilot_review_observed_cycle
+            or cycle.phase == "sending"
             or not facts.head_sha
         ):
             continue

@@ -862,32 +862,33 @@ class PullRequestEvaluationTest(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(result.facts.copilot_review_request_needed)
 
     @patch("pull_request_evaluation.fetch_pull_request_source")
-    async def test_current_coverage_exports_the_dispatch_binding_without_an_intent(self, fetch_raw) -> None:
+    async def test_current_coverage_exports_the_cycle_snapshot_without_an_intent(self, fetch_raw) -> None:
         fetch_raw.return_value = pull_request_source(
             pull_request=pull_request_metadata(head_sha="new-head", base_branch="main"),
             reviews=(review_source(
                 database_id=11, actor=actor("copilot"), commit_id="new-head", body="No issues found.",
             ),),
         )
+        cycle = copilot_review_cycle(
+            "old-head", phase="unknown", dispatch_id="covered-dispatch", baseline_review_ids=(11,),
+        )
         result = await evaluate_pull_request(
             replace(
                 evaluation_config(require_clean_copilot_review_branches=["main"]),
-                copilot_review_cycle=copilot_review_cycle(
-                    "old-head", phase="unknown", dispatch_id="covered-dispatch", baseline_review_ids=(11,),
-                ),
+                copilot_review_cycle=cycle,
             ),
             PullRequestEvaluationInput(pr_number=7),
             FakeClassificationOperation(),
         )
         self.assertIsInstance(result, EvaluationSuccess)
-        self.assertEqual("covered-dispatch", result.facts.copilot_review_observed_dispatch_id)
+        self.assertEqual(cycle, result.facts.copilot_review_observed_cycle)
         self.assertFalse(result.facts.copilot_review_request_in_flight)
         self.assertFalse(result.facts.copilot_review_request_needed)
 
     @patch("routing_decision.utc_now", return_value=datetime(2026, 8, 16, 12, tzinfo=timezone.utc))
     @patch("pull_request_evaluation.utc_now", return_value=datetime(2026, 8, 16, 12, tzinfo=timezone.utc))
     @patch("pull_request_evaluation.fetch_pull_request_source")
-    async def test_quota_limit_exports_the_dispatch_binding_without_a_request_intent(
+    async def test_quota_limit_exports_the_cycle_snapshot_without_a_request_intent(
         self, fetch_raw, _cycle_clock, _routing_clock,
     ) -> None:
         fetch_raw.return_value = pull_request_source(
@@ -898,20 +899,21 @@ class PullRequestEvaluationTest(unittest.IsolatedAsyncioTestCase):
                 submitted_at="2026-08-16T11:59:00Z",
             ),),
         )
+        cycle = copilot_review_cycle(
+            "current-head", dispatch_id="quota-dispatch",
+            started_at="2026-08-16T11:58:00Z", sent_at="2026-08-16T11:58:00Z",
+        )
         result = await evaluate_pull_request(
             replace(
                 evaluation_config(require_clean_copilot_review_branches=["main"]),
-                copilot_review_cycle=copilot_review_cycle(
-                    "current-head", dispatch_id="quota-dispatch",
-                    started_at="2026-08-16T11:58:00Z", sent_at="2026-08-16T11:58:00Z",
-                ),
+                copilot_review_cycle=cycle,
             ),
             PullRequestEvaluationInput(pr_number=7),
             FakeClassificationOperation(),
         )
         self.assertIsInstance(result, EvaluationSuccess)
         self.assertEqual("quota", result.facts.copilot_review_request_limit_reason)
-        self.assertEqual("quota-dispatch", result.facts.copilot_review_observed_dispatch_id)
+        self.assertEqual(cycle, result.facts.copilot_review_observed_cycle)
         self.assertFalse(result.facts.copilot_review_request_in_flight)
         self.assertFalse(result.facts.copilot_review_request_needed)
 

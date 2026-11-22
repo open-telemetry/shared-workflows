@@ -30,6 +30,7 @@ from dashboard_test_support import (
     actor,
     copilot_review_cycle,
     dashboard_facts,
+    dashboard_state,
     review_source,
     stored_dashboard_result,
 )
@@ -39,7 +40,9 @@ from state import (
     copilot_review_request_state_path,
     load_copilot_review_cycles,
     load_copilot_review_requests,
+    record_copilot_review_cycle_observations,
     save_copilot_review_cycles,
+    save_dashboard_state_cache,
 )
 from routing_snapshot import build_routing_snapshot
 from pull_request_source import normalize_pull_request_source
@@ -785,6 +788,64 @@ class CopilotReviewDeliveryTest(unittest.TestCase):
         self.restore()
         self.assertEqual({}, load_copilot_review_cycles())
 
+    def test_failed_final_routing_read_refunds_the_reservation(self) -> None:
+        self.fetch_snapshot.side_effect = [
+            self.snapshot, TransientGhError("routing read failed"),
+        ]
+        self.assertIn("routing read failed", self.deliver()[0])
+        self.request.assert_not_called()
+        self.restore()
+        self.assertEqual({}, load_copilot_review_cycles())
+        self.assertEqual("", load_copilot_review_requests()["7"]["requested_at"])
+        self.fetch_snapshot.side_effect = lambda *_: self.snapshot
+        self.now += timedelta(minutes=1)
+        self.assertEqual([], self.deliver())
+        self.request.assert_called_once()
+        self.assertEqual(1, load_copilot_review_cycles()["7"].request_count)
+
+    def test_failed_final_review_read_restores_the_retry_budget(self) -> None:
+        prior = copilot_review_cycle(
+            "current-head", phase="ready", requester="fallback",
+            request_count=2, started_at="2026-08-16T07:00:00Z",
+        )
+        save_copilot_review_cycles({"7": prior})
+        self.commit(lambda: 0)
+        self.fetch_reviews.side_effect = [[], TransientGhError("review read failed")]
+        self.assertIn("review read failed", self.deliver()[0])
+        self.request.assert_not_called()
+        self.restore()
+        self.assertEqual(prior, load_copilot_review_cycles()["7"])
+        self.fetch_reviews.side_effect = lambda *_: self.reviews
+        self.assertEqual([], self.deliver())
+        self.request.assert_called_once()
+        accepted = load_copilot_review_cycles()["7"]
+        self.assertEqual(3, accepted.request_count)
+        self.assertEqual(prior.started_at, accepted.started_at)
+
+    def test_failed_unsent_rollback_reports_both_errors_and_preserves_the_barrier(self) -> None:
+        self.fetch_snapshot.side_effect = [
+            self.snapshot, TransientGhError("routing read failed"),
+        ]
+        calls = 0
+
+        def persist(action):
+            nonlocal calls
+            calls += 1
+            if calls == 2:
+                action()
+                raise RuntimeError("rollback push failed")
+            self.commit(action)
+
+        error = self.deliver(persist)[0]
+        self.assertIn("routing read failed", error)
+        self.assertIn("unsent reservation could not be released: rollback push failed", error)
+        self.request.assert_not_called()
+        self.restore()
+        self.assertEqual("sending", load_copilot_review_cycles()["7"].phase)
+        self.fetch_snapshot.side_effect = lambda *_: self.snapshot
+        self.assertEqual([], self.deliver())
+        self.request.assert_not_called()
+
     def test_failed_receipt_leaves_sending_and_does_not_resend(self) -> None:
         calls = 0
 
@@ -897,6 +958,35 @@ class CopilotReviewDeliveryTest(unittest.TestCase):
         self.assertIn("reservation changed", self.deliver(persist)[0])
         self.request.assert_not_called()
         self.assertEqual("newer", load_copilot_review_cycles()["7"].dispatch_id)
+
+    def test_coverage_during_a_returned_head_race_cannot_release_the_dispatch(self) -> None:
+        self.requested_head = "next-head"
+
+        def request_and_observe(pull_request_id, **kwargs):
+            requested_head = self.request_review(pull_request_id, **kwargs)
+            reservation = load_copilot_review_cycles()["7"]
+            save_dashboard_state_cache(dashboard_state(stored_dashboard_result(
+                7, facts=dashboard_facts(
+                    head_sha=self.snapshot.head_sha, copilot_review_exists=True,
+                    copilot_review_observed_cycle=reservation,
+                ),
+            )))
+            self.commit(record_copilot_review_cycle_observations)
+            self.assertEqual(reservation, load_copilot_review_cycles()["7"])
+            return requested_head
+
+        self.request.side_effect = request_and_observe
+        self.assertEqual([], self.deliver())
+        accepted = load_copilot_review_cycles()["7"]
+        self.assertEqual("next-head", accepted.head_sha)
+        self.assertEqual("accepted", accepted.phase)
+        self.commit(record_copilot_review_cycle_observations)
+        self.assertEqual(accepted, load_copilot_review_cycles()["7"])
+        self.snapshot = replace(self.snapshot, head_sha="next-head")
+        self.enqueue()
+        self.assertEqual([], self.deliver())
+        self.request.assert_called_once()
+        self.assertEqual(accepted, load_copilot_review_cycles()["7"])
 
     def test_definite_rejection_removes_first_reservation(self) -> None:
         self.request_error = CopilotReviewRequestRejected("permission denied")

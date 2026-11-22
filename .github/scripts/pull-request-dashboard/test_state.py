@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from contextlib import nullcontext, redirect_stderr, redirect_stdout
-from dataclasses import asdict
+from dataclasses import asdict, replace
 from datetime import datetime, timezone
 from io import StringIO
 import json
@@ -240,13 +240,18 @@ class StateTest(unittest.TestCase):
                     copilot_review_fallback_available=True,
                     copilot_review_request_in_flight=not reason,
                     copilot_review_request_limit_reason=reason,
-                    copilot_review_observed_dispatch_id="observed-cycle",
+                    copilot_review_observed_cycle=copilot_review_cycle(
+                        "current-head", dispatch_id="observed-cycle", baseline_review_ids=(11,),
+                    ),
                 )
                 self.assertEqual(facts, decode_dashboard_facts(encode_dashboard_facts(facts)))
         self.assertFalse(decode_dashboard_facts({}).copilot_review_request_in_flight)
         self.assertEqual("", decode_dashboard_facts({}).copilot_review_request_limit_reason)
+        self.assertIsNone(decode_dashboard_facts({}).copilot_review_observed_cycle)
         with self.assertRaisesRegex(ValueError, "invalid Copilot"):
             decode_dashboard_facts({"copilot_review_request_limit_reason": "exhausted"})
+        with self.assertRaisesRegex(ValueError, "invalid Copilot review cycle"):
+            decode_dashboard_facts({"copilot_review_observed_cycle": {"dispatch_id": "incomplete"}})
 
     def test_coverage_checkpoint_completes_a_cycle_without_a_request_intent(self) -> None:
         with (
@@ -259,7 +264,7 @@ class StateTest(unittest.TestCase):
             save_dashboard_state_cache(dashboard_state(stored_dashboard_result(
                 7, facts=dashboard_facts(
                     head_sha="covered-head", copilot_review_exists=True,
-                    copilot_review_observed_dispatch_id="active",
+                    copilot_review_observed_cycle=cycle,
                 ),
             )))
             save_copilot_review_requests({})
@@ -280,11 +285,37 @@ class StateTest(unittest.TestCase):
             save_dashboard_state_cache(dashboard_state(stored_dashboard_result(
                 7, facts=dashboard_facts(
                     head_sha="current-head", copilot_review_exists=True,
-                    copilot_review_observed_dispatch_id="older",
+                    copilot_review_observed_cycle=replace(cycle, dispatch_id="older"),
                 ),
             )))
             record_copilot_review_cycle_observations()
             self.assertEqual(cycle, load_copilot_review_cycles()["7"])
+
+    def test_coverage_checkpoint_does_not_complete_a_changed_cycle_with_the_same_dispatch_id(self) -> None:
+        with (
+            tempfile.TemporaryDirectory() as directory,
+            patch("state._state_dir", Path(directory)),
+            patch("state._using_delivery_state", False),
+        ):
+            observed = copilot_review_cycle("old-head", phase="sending", sent_at="", dispatch_id="active")
+            save_dashboard_state_cache(dashboard_state(stored_dashboard_result(
+                7, facts=dashboard_facts(
+                    head_sha="old-head", copilot_review_exists=True,
+                    copilot_review_observed_cycle=observed,
+                ),
+            )))
+            for cycle in (
+                replace(observed, phase="accepted", sent_at="2026-08-16T08:00:01Z"),
+                replace(
+                    observed, head_sha="new-head", phase="accepted",
+                    started_at="2026-08-16T08:00:01Z", sent_at="2026-08-16T08:00:01Z",
+                ),
+                replace(observed, phase="unknown", sent_at="2026-08-16T08:00:01Z"),
+            ):
+                with self.subTest(cycle=cycle):
+                    save_copilot_review_cycles({"7": cycle})
+                    record_copilot_review_cycle_observations()
+                    self.assertEqual(cycle, load_copilot_review_cycles()["7"])
 
     def test_quota_checkpoint_without_an_intent_allows_late_fallback_enablement(self) -> None:
         with (
@@ -299,7 +330,7 @@ class StateTest(unittest.TestCase):
                     head_sha="current-head",
                     copilot_review_quota_exhausted=True,
                     copilot_review_request_limit_reason="quota",
-                    copilot_review_observed_dispatch_id="active",
+                    copilot_review_observed_cycle=cycle,
                 ),
             )))
             save_copilot_review_requests({})
@@ -328,7 +359,9 @@ class StateTest(unittest.TestCase):
                     head_sha="current-head",
                     copilot_review_quota_exhausted=True,
                     copilot_review_request_limit_reason="quota",
-                    copilot_review_observed_dispatch_id="observed",
+                    copilot_review_observed_cycle=copilot_review_cycle(
+                        "current-head", dispatch_id="observed",
+                    ),
                 ),
             )))
             for cycle in (
@@ -1120,7 +1153,7 @@ class StateTest(unittest.TestCase):
     def test_notification_state_version_is_independent(self) -> None:
         self.assertEqual(BACKFILL_STATE_VERSION, 3)
         self.assertEqual(NOTIFICATION_STATE_VERSION, 3)
-        self.assertEqual(DASHBOARD_STATE_VERSION, 25)
+        self.assertEqual(DASHBOARD_STATE_VERSION, 26)
         self.assertEqual(DASHBOARD_STATE_COMPATIBLE_VERSIONS, ())
         self.assertEqual(STATUS_COMMENT_ROLLOUT_STATE_VERSION, 3)
         self.assertEqual(STATUS_COMMENT_REVISION, 22)
