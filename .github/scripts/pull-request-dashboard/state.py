@@ -51,7 +51,7 @@ BACKFILL_STATE_VERSION = 3
 # notification-state.json: pending and delivered Slack notification records.
 NOTIFICATION_STATE_VERSION = 3
 # author-nudge-state.json: waiting episodes and delivered author reminders.
-AUTHOR_NUDGE_STATE_VERSION = 4
+AUTHOR_NUDGE_STATE_VERSION = 5
 # copilot-review-request-state.json: pending and delivered review requests.
 COPILOT_REVIEW_REQUEST_STATE_VERSION = 9
 COPILOT_REVIEW_FALLBACK_STATE_VERSION = 1
@@ -1108,7 +1108,7 @@ def load_author_nudge_state_file(path: Path) -> dict[str, Any]:
     state = load_state_file(
         path,
         AUTHOR_NUDGE_STATE_VERSION,
-        compatible_versions=(2, 3),
+        compatible_versions=(2, 3, 4),
     )
     if state is None or not isinstance(state.get("prs"), dict):
         return {}
