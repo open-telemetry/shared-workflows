@@ -355,6 +355,7 @@ class ClassificationExecutionRequest:
     review_threads: tuple[ClassificationDiscussion, ...] = ()
     top_level_items: tuple[ClassificationDiscussion, ...] = ()
     top_level_author_comments: tuple[ClassificationDiscussion, ...] = ()
+    preserve_cache: bool = False
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "review_threads", tuple(self.review_threads))
@@ -433,7 +434,10 @@ class ClassificationService:
             deferrable=True,
             warning_label="top_level_author_comment",
         )
-        self.cache_store.write(request.pr_number, cache_out)
+        if request.preserve_cache:
+            cache_out = {**cache_in, **cache_out}
+        if not request.preserve_cache or cache_out != cache_in:
+            self.cache_store.write(request.pr_number, cache_out)
         return DiscussionClassifications(
             tuple(
                 review_threads[discussion.identity.discussion_id]

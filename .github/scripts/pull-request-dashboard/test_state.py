@@ -9,6 +9,7 @@ import unittest
 from unittest.mock import patch
 
 from dashboard_contracts import (
+    RoutingHandoff,
     CopilotReviewFallback,
     DashboardCommandReply,
     DashboardRoute,
@@ -223,14 +224,14 @@ class StateTest(unittest.TestCase):
         self.assertEqual("true\n", output.getvalue())
         load_state.assert_called_once_with("open-telemetry/example", "state-branch")
 
-    def test_loads_accepted_dashboard_state_from_state_branch(self) -> None:
+    def test_loads_accepted_v21_dashboard_state_from_state_branch(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             checkout_dir = Path(temp_dir)
             state_path = checkout_dir / "example" / "dashboard-state.json"
             state_path.parent.mkdir()
             state_path.write_text(
                 json.dumps({
-                    "version": DASHBOARD_STATE_VERSION,
+                    "version": 21,
                     "initial_backfill_complete": True,
                     "prs": {"123": {"route": "author"}},
                 }),
@@ -318,7 +319,7 @@ class StateTest(unittest.TestCase):
             )
 
     def test_dashboard_state_rejects_incompatible_versions(self) -> None:
-        for version in range(11, DASHBOARD_STATE_VERSION):
+        for version in (*range(11, 21), 22):
             with self.subTest(version=version), tempfile.TemporaryDirectory() as temp_dir:
                 with (
                     patch("state._state_dir", Path(temp_dir)),
@@ -337,7 +338,6 @@ class StateTest(unittest.TestCase):
 
     def test_version_thirteen_codec_does_not_invent_durable_cutoff(self) -> None:
         legacy_facts = dashboard_facts(
-            dashboard_override_since="2026-08-16T08:00:00Z",
             dashboard_command_replies=(
                 DashboardCommandReply(
                     91,
@@ -353,13 +353,14 @@ class StateTest(unittest.TestCase):
             stored_dashboard_result(facts=legacy_facts)
         ))
         stored["version"] = 13
+        stored["prs"]["1"]["facts"]["dashboard_override_since"] = "2026-08-16T08:00:00Z"
 
         loaded = decode_dashboard_state(stored)
         facts = loaded.results[0].facts
 
-        self.assertEqual("2026-08-16T08:00:00Z", facts.dashboard_override_since)
+        self.assertEqual("2026-08-16T08:00:00Z", facts.handoff.since)
         self.assertEqual("", facts.dashboard_top_level_feedback_cutoff)
-        self.assertFalse(facts.dashboard_override_persistent)
+        self.assertFalse(facts.handoff.persistent)
         self.assertEqual(
             "",
             facts.dashboard_command_replies[0].top_level_feedback_cutoff,
@@ -372,7 +373,6 @@ class StateTest(unittest.TestCase):
         self,
     ) -> None:
         legacy_facts = dashboard_facts(
-            dashboard_override_head_sha="bound-head",
             dashboard_top_level_feedback_cutoff="2026-08-16T08:00:00Z",
             dashboard_command_replies=(
                 DashboardCommandReply(
@@ -389,6 +389,7 @@ class StateTest(unittest.TestCase):
             stored_dashboard_result(facts=legacy_facts)
         ))
         stored["version"] = 16
+        stored["prs"]["1"]["facts"]["dashboard_override_head_sha"] = "bound-head"
 
         loaded = decode_dashboard_state(stored)
         facts = loaded.results[0].facts
@@ -397,7 +398,7 @@ class StateTest(unittest.TestCase):
             "2026-08-16T08:00:00Z",
             facts.dashboard_top_level_feedback_cutoff,
         )
-        self.assertFalse(facts.dashboard_override_persistent)
+        self.assertFalse(facts.handoff.persistent)
         self.assertFalse(
             facts.dashboard_command_replies[0].persistent_handoff
         )
@@ -411,12 +412,14 @@ class StateTest(unittest.TestCase):
             copilot_request_fingerprint="copilot-fingerprint",
             dashboard_override_command_id=91,
             dashboard_override_command_user="alice",
-            dashboard_override_bound_command_id=91,
-            dashboard_override_head_sha="current-head",
-            dashboard_override_since="2026-08-16T08:00:00Z",
+            handoff=RoutingHandoff(
+                command_id=91,
+                head_sha='current-head',
+                since='2026-08-16T08:00:00Z',
+                persistent=True,
+                released=True,
+            ),
             dashboard_top_level_feedback_cutoff="2026-08-16T08:00:00Z",
-            dashboard_override_persistent=True,
-            dashboard_override_cleared_by_feedback=True,
             dashboard_command_replies=(
                 DashboardCommandReply(
                     91,
@@ -901,15 +904,24 @@ class StateTest(unittest.TestCase):
         }
         expected["prs"]["123"]["facts"]["author_can_act"] = True
         del expected["prs"]["123"]["facts"]["copilot_first_review_missing_since"]
+        facts = expected["prs"]["123"]["facts"]
+        facts["handoff"] = {
+            "command_id": facts.pop("dashboard_override_bound_command_id"),
+            "head_sha": facts.pop("dashboard_override_head_sha"),
+            "since": facts.pop("dashboard_override_since"),
+            "target": "reviewers",
+            "released": facts.pop("dashboard_override_cleared_by_feedback"),
+            "persistent": False,
+        }
         self.assertEqual(expected, encode_dashboard_state(decoded))
 
     def test_notification_state_version_is_independent(self) -> None:
         self.assertEqual(BACKFILL_STATE_VERSION, 3)
         self.assertEqual(NOTIFICATION_STATE_VERSION, 3)
-        self.assertEqual(DASHBOARD_STATE_VERSION, 21)
-        self.assertEqual(DASHBOARD_STATE_COMPATIBLE_VERSIONS, ())
+        self.assertEqual(DASHBOARD_STATE_VERSION, 23)
+        self.assertEqual(DASHBOARD_STATE_COMPATIBLE_VERSIONS, (21,))
         self.assertEqual(STATUS_COMMENT_ROLLOUT_STATE_VERSION, 3)
-        self.assertEqual(STATUS_COMMENT_REVISION, 22)
+        self.assertEqual(STATUS_COMMENT_REVISION, 24)
         self.assertEqual(AUTHOR_NUDGE_STATE_VERSION, 5)
         self.assertEqual(COPILOT_REVIEW_REQUEST_STATE_VERSION, 9)
 

@@ -16,11 +16,8 @@ from github_cli import (
 )
 from dashboard_override import (
     PRE_REVIEW_ROUTES,
-    acknowledged_top_level_feedback_cutoff,
-    acknowledged_override,
-    acknowledges_override,
-    override_ack_marker,
-    top_level_feedback_cutoff_marker,
+    preserve_released_handoff_markers,
+    released_handoff_markers,
 )
 from dashboard_contracts import (
     DashboardFacts,
@@ -35,9 +32,7 @@ from dashboard_status import (
     STATUS_MARKER,
     author_nudge_episode_marker,
     is_dashboard_app_comment,
-    reviewer_handoff_cleared_marker,
     status_author_nudge_episode_id,
-    status_reviewer_handoff_clearance,
 )
 from pull_request_source import normalize_issue_comments
 from route_presentation import (
@@ -46,6 +41,7 @@ from route_presentation import (
     status_headline,
     unreported_gate_phrase,
 )
+from routing_decision import author_handoff_active
 from state import (
     STATUS_COMMENT_REVISION,
     load_dashboard_state_cache,
@@ -146,10 +142,15 @@ def status_footer(
             "- **Just replied or pushed?** Anything around or after the refresh "
             "time above may not be picked up yet \u2014 give it a few minutes."
         )
-    if override_route:
+    if override_route in PRE_REVIEW_ROUTES:
         lines.append(
             "- **Should this be with reviewers?** Comment "
             "`/dashboard route:reviewers` to route it to them."
+        )
+    elif override_route:
+        lines.append(
+            "- **Should this be with the author?** Comment "
+            "`/dashboard route:author` to route it back."
         )
     report_lead = (
         "Anything wrong \u2014 including the routing?"
@@ -292,16 +293,20 @@ def render_status_comment(
     else:
         route = result.route
         conflicted = facts.conflicts == "yes"
-        if route.value in PRE_REVIEW_ROUTES:
+        if route.value in PRE_REVIEW_ROUTES or (
+            facts.author_can_act
+            and route in (DashboardRoute.APPROVER, DashboardRoute.MAINTAINER)
+        ):
             override_route = route.value
         headline = status_headline(route)
         if route is DashboardRoute.AUTHOR:
+            manual_author_handoff = author_handoff_active(facts)
             body = ["Resolve merge conflicts."] if conflicted else []
             if (
-                not conflicted
-                or feedback_count
+                feedback_count
                 or failing_count
                 or facts.route_held_for_gates
+                or (not conflicted and not manual_author_handoff)
             ):
                 author_actions = author_body(
                     feedback_count=feedback_count,
@@ -320,6 +325,14 @@ def render_status_comment(
                 if body:
                     body.append("")
                 body.extend(author_actions)
+            if manual_author_handoff:
+                if body:
+                    body.append("")
+                body.append(
+                    "An explicit `/dashboard route:author` handoff is active. "
+                    "Address review feedback or push an update to resume normal "
+                    "routing. Use `/dashboard route:reviewers` to hand it back explicitly."
+                )
         else:
             _, next_step = route_status_summary(route)
             body = (
@@ -396,30 +409,9 @@ def render_status_comment(
         and episode_id
     ):
         optional_markers.append(author_nudge_episode_marker(episode_id))
-    bound_command_id = facts.dashboard_override_bound_command_id
-    bound_head = facts.dashboard_override_head_sha
-    if (
-        facts.dashboard_override_cleared_by_feedback
-        and bound_command_id
-        and bound_head
-    ):
-        optional_markers.append(
-            override_ack_marker(
-                bound_command_id,
-                bound_head,
-                facts.dashboard_override_since,
-            ),
-        )
-        if facts.dashboard_top_level_feedback_cutoff:
-            optional_markers.append(
-                top_level_feedback_cutoff_marker(
-                    bound_command_id,
-                    facts.dashboard_top_level_feedback_cutoff,
-                )
-            )
-        optional_markers.append(
-            reviewer_handoff_cleared_marker(bound_command_id, bound_head),
-        )
+    optional_markers.extend(
+        released_handoff_markers(facts.handoff, facts.dashboard_top_level_feedback_cutoff)
+    )
     lines[2:2] = optional_markers
 
     if body:
@@ -506,52 +498,7 @@ def upsert_status_comment(
     if comments:
         comment = comments[0]
         if preserve_clearance:
-            normalized_comments = normalize_issue_comments(comments)
-            command_id, head_sha = status_reviewer_handoff_clearance(comments)
-            clearance_marker = reviewer_handoff_cleared_marker(command_id, head_sha)
-            acknowledged_id, acknowledged_head, since, _ = acknowledged_override(
-                normalized_comments
-            )
-            top_level_feedback_cutoff = (
-                acknowledged_top_level_feedback_cutoff(
-                    normalized_comments,
-                    command_id,
-                )
-            )
-            acknowledgement_marker = override_ack_marker(
-                command_id,
-                head_sha,
-                (
-                    since
-                    if (acknowledged_id, acknowledged_head)
-                    == (command_id, head_sha)
-                    else ""
-                ),
-            )
-            preserved_markers = []
-            if command_id and head_sha:
-                if not acknowledges_override(body, command_id, head_sha):
-                    preserved_markers.append(acknowledgement_marker)
-                if clearance_marker not in body:
-                    preserved_markers.append(clearance_marker)
-                if (
-                    top_level_feedback_cutoff
-                    and top_level_feedback_cutoff_marker(
-                        command_id,
-                        top_level_feedback_cutoff,
-                    )
-                    not in body
-                ):
-                    preserved_markers.append(
-                        top_level_feedback_cutoff_marker(
-                            command_id,
-                            top_level_feedback_cutoff,
-                        )
-                    )
-            if preserved_markers:
-                lines = body.splitlines()
-                lines[2:2] = preserved_markers
-                body = "\n".join(lines)
+            body = preserve_released_handoff_markers(body, normalize_issue_comments(comments))
         if locked and (comment.get("body") != body or len(comments) > 1):
             raise StatusCommentDeferred(
                 f"PR #{pr_number} is locked; deferring terminal status comment"

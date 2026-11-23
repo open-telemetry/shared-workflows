@@ -1,21 +1,20 @@
-"""Recognize explicit reviewer-routing overrides and prepare dashboard command replies."""
+"""Recognize explicit routing overrides and prepare dashboard command replies."""
 
 from __future__ import annotations
 
 import re
 from collections.abc import Sequence
-from dataclasses import dataclass
-from datetime import datetime
+from dataclasses import dataclass, replace
+from datetime import datetime, timezone
 
 from dashboard_contracts import (
     DashboardCommandReply,
     DashboardFacts,
     DashboardRoute,
+    HandoffTarget,
+    RoutingHandoff,
 )
-from dashboard_status import (
-    DASHBOARD_APP_SLUG,
-    status_reviewer_handoff_clearance,
-)
+from dashboard_status import DASHBOARD_APP_SLUG
 from pull_request_source import IssueComment
 from route_presentation import held_gate_phrase
 from utils import parse_ts
@@ -24,6 +23,7 @@ from utils import parse_ts
 DASHBOARD_COMMAND_PREFIX = "/dashboard"
 DASHBOARD_OVERRIDE_COMMAND = "/dashboard route:reviewers"
 DASHBOARD_OVERRIDE_SUBCOMMAND = "route:reviewers"
+AUTHOR_OVERRIDE_SUBCOMMAND = "route:author"
 COMMAND_REPLY_MARKER_PREFIX = "<!-- pull-request-dashboard-command-reply:"
 _COMMAND_REPLY_MARKER_RE = re.compile(
     r"<!-- pull-request-dashboard-command-reply:(\d+) -->"
@@ -36,7 +36,8 @@ OVERRIDE_ACK_MARKER_PREFIX = "<!-- pull-request-dashboard-override-ack:"
 # recorded it still have to retire their command.
 _OVERRIDE_ACK_MARKER_RE = re.compile(
     r"<!-- pull-request-dashboard-override-ack:"
-    r"(\d+)(?::([^:\s>]+))?(?::([^\s>]+))? -->"
+    r"(?:(?P<author>author(?:-released)?):)?"
+    r"(?P<id>\d+)(?::(?P<head>[^:\s>]+))?(?::(?P<since>[^\s>]+))? -->"
 )
 TOP_LEVEL_FEEDBACK_CUTOFF_MARKER_PREFIX = (
     "<!-- pull-request-dashboard-top-level-feedback-cutoff:"
@@ -48,9 +49,11 @@ _TOP_LEVEL_FEEDBACK_CUTOFF_MARKER_RE = re.compile(
 PERSISTENT_HANDOFF_MARKER_PREFIX = (
     "<!-- pull-request-dashboard-persistent-reviewer-handoff:"
 )
-_PERSISTENT_HANDOFF_MARKER_RE = re.compile(
-    r"<!-- pull-request-dashboard-persistent-reviewer-handoff:"
-    r"(\d+):([^:\s>]+) -->"
+REVIEWER_HANDOFF_CLEARED_MARKER_PREFIX = (
+    "<!-- pull-request-dashboard-reviewer-handoff-cleared:"
+)
+_REVIEWER_HANDOFF_CLEARED_MARKER_RE = re.compile(
+    r"<!-- pull-request-dashboard-reviewer-handoff-cleared:(\d+):([^\s>]+) -->"
 )
 PRE_REVIEW_ROUTES = ("author",)
 
@@ -59,12 +62,8 @@ PRE_REVIEW_ROUTES = ("author",)
 class DashboardOverrideFacts:
     command_id: int
     command_user: str
-    bound_command_id: int
-    head_sha: str
-    since: str
+    handoff: RoutingHandoff
     top_level_feedback_cutoff: str
-    persistent_handoff: bool
-    cleared_by_feedback: bool
     command_replies: tuple[DashboardCommandReply, ...]
 
 
@@ -126,31 +125,49 @@ def is_authorized_commander(login: str, author: str, reviewers: set[str] | None)
     return bool(low) and (low == author.lower() or low in (reviewers or set()))
 
 
-def latest_authorized_command(
-    source: DashboardOverrideInput,
+def _inspect_commands(
+    comments: Sequence[IssueComment],
     author: str,
     reviewers: set[str] | None,
-) -> tuple[int, str, str]:
-    comments = source.issue_comments
-    acknowledged_id = _acknowledged_override_command_id(comments)
+    min_command_id: int,
+    *,
+    author_can_act: bool,
+) -> tuple[
+    tuple[IssueComment, HandoffTarget] | None,
+    tuple[DashboardCommandReply, ...],
+]:
     replied_ids = _replied_command_ids(comments)
-    best_id = 0
-    best_user = ""
-    best_created_at = ""
+    winner: tuple[IssueComment, HandoffTarget] | None = None
+    replies: list[DashboardCommandReply] = []
     for comment in comments:
-        if parse_dashboard_command(comment) != DASHBOARD_OVERRIDE_SUBCOMMAND:
-            continue
-        commenter = comment.actor.login
-        if not is_authorized_commander(commenter, author, reviewers):
-            continue
         comment_id = comment.database_id
-        if comment_id <= acknowledged_id or comment_id in replied_ids:
+        if comment_id in replied_ids:
             continue
-        if comment_id > best_id:
-            best_id = comment_id
-            best_user = commenter
-            best_created_at = _effective_command_timestamp(comment)
-    return best_id, best_user, best_created_at
+        subcommand = parse_dashboard_command(comment)
+        if subcommand is None:
+            continue
+
+        commenter = comment.actor.login
+        if subcommand not in (DASHBOARD_OVERRIDE_SUBCOMMAND, AUTHOR_OVERRIDE_SUBCOMMAND):
+            kind = "unknown_command"
+        elif not is_authorized_commander(commenter, author, reviewers):
+            kind = "unauthorized"
+        elif subcommand == AUTHOR_OVERRIDE_SUBCOMMAND and not author_can_act:
+            kind = "author_unavailable"
+        else:
+            if comment_id >= min_command_id and (
+                winner is None or comment_id > winner[0].database_id
+            ):
+                target = (
+                    HandoffTarget.AUTHOR
+                    if subcommand == AUTHOR_OVERRIDE_SUBCOMMAND
+                    else HandoffTarget.REVIEWERS
+                )
+                winner = (comment, target)
+            continue
+
+        replies.append(DashboardCommandReply(comment_id, kind, commenter, subcommand))
+    return winner, tuple(replies)
 
 
 def _effective_command_timestamp(comment: IssueComment) -> str:
@@ -174,132 +191,68 @@ def dashboard_override_facts(
     reviewers: set[str] | None = None,
     head_sha: str = "",
     previous_facts: DashboardFacts | None = None,
+    *,
+    author_can_act: bool = True,
 ) -> DashboardOverrideFacts:
-    command_id, command_user, command_created_at = latest_authorized_command(
-        source,
+    previous_facts = previous_facts or DashboardFacts()
+    previous = previous_facts.handoff
+    acknowledged, acknowledged_cutoff = _read_handoff_markers(source.issue_comments)
+    winner, replies = _inspect_commands(
+        source.issue_comments,
         author,
         reviewers,
+        max(acknowledged.command_id + 1, previous.command_id),
+        author_can_act=author_can_act,
     )
-    previous_command_id = (
-        previous_facts.dashboard_override_command_id
-        if previous_facts is not None
-        else 0
-    )
-    previous_head_sha = (
-        previous_facts.dashboard_override_head_sha
-        if previous_facts is not None
-        else ""
-    )
-    previous_bound_command_id = (
-        previous_facts.dashboard_override_bound_command_id
-        if previous_facts is not None
-        else 0
-    )
-    previous_since = (
-        previous_facts.dashboard_override_since
-        if previous_facts is not None
-        else ""
-    )
-    previous_top_level_feedback_cutoff = (
-        previous_facts.dashboard_top_level_feedback_cutoff
-        if previous_facts is not None
-        else ""
-    )
-    previous_persistent_handoff = (
-        previous_facts.dashboard_override_persistent
-        if previous_facts is not None
-        else False
-    )
-    previous_cleared = (
-        previous_facts.dashboard_override_cleared_by_feedback
-        if previous_facts is not None
-        else False
-    )
-    if command_id:
-        bound_command_id = command_id
-        if command_id == previous_command_id:
-            bound_head = previous_head_sha
+    new_reviewer_cutoff = ""
+    command_id = 0
+    command_user = ""
+    if winner is not None:
+        command, target = winner
+        command_id = command.database_id
+        command_user = command.actor.login
+        same_command = command_id == previous.command_id and target is previous.target
+        if same_command and (previous.head_sha or target is HandoffTarget.REVIEWERS):
+            handoff = replace(
+                previous, since=previous.since or _effective_command_timestamp(command)
+            )
         else:
-            bound_head = head_sha
-        acknowledged_since = ""
-        acknowledgement_created_at = ""
+            handoff = RoutingHandoff(
+                command_id=command_id,
+                head_sha=head_sha,
+                since=_effective_command_timestamp(command),
+                target=target,
+                persistent=bool(head_sha and target is HandoffTarget.REVIEWERS),
+            )
+        if not same_command and target is HandoffTarget.REVIEWERS:
+            new_reviewer_cutoff = handoff.since
+    elif previous.command_id > acknowledged.command_id:
+        # The newer command no longer applies. Keep its ID to retire older handoffs.
+        handoff = previous.release()
     else:
-        (
-            bound_command_id,
-            bound_head,
-            acknowledged_since,
-            acknowledgement_created_at,
-        ) = acknowledged_override(source.issue_comments)
-    previous_binding_command_id = (
-        previous_bound_command_id or previous_command_id
-    )
-    previous_binding_matches = bool(
-        bound_command_id == previous_binding_command_id
-        and bound_head
-        and bound_head == previous_head_sha
-    )
-    override_since = (
-        (previous_since if previous_binding_matches else "")
-        or command_created_at
-        or acknowledged_since
-        or _override_command_effective_at(source.issue_comments, bound_command_id)
-        or acknowledgement_created_at
-    )
-    existing_command_binding = bool(
-        command_id
-        and command_id == previous_binding_command_id
-    )
-    new_command_binding = bool(command_id and not existing_command_binding)
-    top_level_feedback_cutoff = _latest_valid_timestamp(
-        previous_top_level_feedback_cutoff,
-        command_created_at if command_id and not existing_command_binding else "",
-        (
-            acknowledged_top_level_feedback_cutoff(
-                source.issue_comments,
-                bound_command_id,
+        handoff = acknowledged
+        if handoff.matches(previous):
+            handoff = replace(
+                handoff,
+                since=previous.since or handoff.since,
+                released=handoff.released or previous.released,
+                persistent=handoff.persistent or previous.persistent,
             )
-            if bound_command_id
-            else ""
-        ),
-    )
-    persistent_handoff = bool(
-        bound_head
-        and (
-            new_command_binding
-            or (previous_binding_matches and previous_persistent_handoff)
-            or acknowledges_persistent_handoff(
-                source.issue_comments,
-                bound_command_id,
-                bound_head,
-            )
-        )
-    )
-    cleared_command_id, cleared_head = status_reviewer_handoff_clearance(
-        source.issue_comments
-    )
-    previous_clearance_applies = previous_binding_matches and previous_cleared
-    cleared_by_feedback = bool(
-        previous_clearance_applies
-        or (
-            bound_command_id
-            and bound_command_id == cleared_command_id
-            and bound_head
-            and bound_head == cleared_head
-        )
-    )
+    if (
+        handoff.target is HandoffTarget.AUTHOR
+        and handoff.head_sha and head_sha and handoff.head_sha != head_sha
+    ):
+        handoff = handoff.release()
     return DashboardOverrideFacts(
         command_id=command_id,
         command_user=command_user,
-        bound_command_id=bound_command_id,
-        # A pending command keeps its first observed binding until delivery
-        # records it in the acknowledgement. An acknowledged command keeps the
-        # binding from that acknowledgement.
-        head_sha=bound_head,
-        since=override_since,
-        top_level_feedback_cutoff=top_level_feedback_cutoff,
-        persistent_handoff=persistent_handoff,
-        cleared_by_feedback=cleared_by_feedback,
-        command_replies=pending_command_replies(source, author, reviewers),
+        handoff=handoff,
+        top_level_feedback_cutoff=_latest_valid_timestamp(
+            previous_facts.dashboard_top_level_feedback_cutoff,
+            new_reviewer_cutoff,
+            acknowledged_cutoff,
+        ),
+        command_replies=replies,
     )
 
 
@@ -322,107 +275,101 @@ def _replied_command_ids(comments: Sequence[IssueComment]) -> set[int]:
     return replied_ids
 
 
-def _acknowledged_override_command_ids(
+def _read_handoff_markers(
     comments: Sequence[IssueComment],
-) -> set[int]:
-    """Command ids the dashboard app has already acknowledged.
-
-    Ack markers are matched only in comments authored by the dashboard app, so a
-    user cannot forge one to authorize their own command.
-    """
-    acknowledged_ids: set[int] = set()
-    for comment in comments or []:
-        if not _is_dashboard_app_comment(comment):
-            continue
-        for match in _OVERRIDE_ACK_MARKER_RE.finditer(comment.body):
-            acknowledged_ids.add(int(match.group(1)))
-    return acknowledged_ids
-
-
-def acknowledges_override(text: str, command_id: int, head_sha: str) -> bool:
-    """Return whether the text already acknowledges this command and bound head.
-
-    The acknowledgement's cutoff timestamp is ignored, so a marker that records
-    a different cutoff for the same binding still counts as present.
-    """
-    return any(
-        int(match.group(1)) == command_id and (match.group(2) or "") == head_sha
-        for match in _OVERRIDE_ACK_MARKER_RE.finditer(text)
-    )
-
-
-def acknowledged_top_level_feedback_cutoff(
-    comments: Sequence[IssueComment],
-    command_id: int = 0,
-) -> str:
-    candidates: list[tuple[datetime, int, str]] = []
-    for comment in comments or []:
-        if not _is_dashboard_app_comment(comment):
-            continue
-        for match in _TOP_LEVEL_FEEDBACK_CUTOFF_MARKER_RE.finditer(comment.body):
-            marker_command_id = int(match.group(1))
-            if command_id and marker_command_id != command_id:
-                continue
-            value = match.group(2)
-            parsed = parse_ts(value)
-            if parsed is not None:
-                candidates.append((parsed, marker_command_id, value))
-    if not candidates:
-        return ""
-    return max(candidates, key=lambda item: (item[0], item[1]))[2]
-
-
-def acknowledges_persistent_handoff(
-    comments: Sequence[IssueComment],
-    command_id: int,
-    head_sha: str,
-) -> bool:
-    if not command_id or not head_sha:
-        return False
-    return any(
-        _is_dashboard_app_comment(comment)
-        and any(
-            int(match.group(1)) == command_id
-            and match.group(2) == head_sha
-            for match in _PERSISTENT_HANDOFF_MARKER_RE.finditer(comment.body)
+    *,
+    rendered_status_body: str = "",
+) -> tuple[RoutingHandoff, str]:
+    """Read the newest app-owned binding and the independent feedback cutoff."""
+    oldest = datetime.min.replace(tzinfo=timezone.utc)
+    bodies = [
+        (
+            comment.body,
+            comment.created_at,
+            parse_ts(
+                comment.content_updated_at or comment.updated_at or comment.created_at
+            ) or oldest,
         )
-        for comment in comments or []
+        for comment in comments
+        if _is_dashboard_app_comment(comment)
+    ]
+    if rendered_status_body:
+        bodies.insert(
+            0, (rendered_status_body, "", datetime.max.replace(tzinfo=timezone.utc))
+        )
+
+    acknowledgements = [
+        (match, created_at)
+        for body, created_at, _ in bodies
+        for match in _OVERRIDE_ACK_MARKER_RE.finditer(body)
+    ]
+    ack, created_at = max(
+        acknowledgements,
+        key=lambda item: (
+            int(item[0]["id"]), bool(item[0]["head"]), bool(item[0]["since"])
+        ),
+        default=(None, ""),
     )
-
-
-def acknowledged_override(
-    comments: Sequence[IssueComment],
-) -> tuple[int, str, str, str]:
-    """Newest acknowledged override command id, bound head SHA, and cutoff times.
-
-    The head is empty when the newest acknowledgement predates the dashboard
-    recording it. An unknown head ends the handoff instead of guessing at one, so
-    the author runs the command again.
-    """
-    best_id = 0
-    best_head = ""
-    best_since = ""
-    best_created_at = ""
-    for comment in comments or []:
-        if not _is_dashboard_app_comment(comment):
-            continue
-        for match in _OVERRIDE_ACK_MARKER_RE.finditer(comment.body):
-            comment_id = int(match.group(1))
-            head = match.group(2) or ""
-            since = match.group(3) or ""
-            if (
-                comment_id > best_id
-                or (
-                    comment_id == best_id
-                    and (bool(head), bool(since))
-                    > (bool(best_head), bool(best_since))
+    # A legacy clearance can survive without its acknowledgement.
+    clearances = [
+        (int(match[1]), updated_at, match[2])
+        for body, _, updated_at in bodies
+        for match in _REVIEWER_HANDOFF_CLEARED_MARKER_RE.finditer(body)
+    ]
+    cleared_id, _, cleared_head = max(
+        reversed(clearances),
+        key=lambda item: (item[0], item[1]),
+        default=(0, oldest, ""),
+    )
+    handoff = RoutingHandoff()
+    if cleared_id > (int(ack["id"]) if ack else 0):
+        handoff = RoutingHandoff(command_id=cleared_id, head_sha=cleared_head, released=True)
+        created_at = ""
+    elif ack:
+        command_id = int(ack["id"])
+        head_sha = ack["head"] or ""
+        target = HandoffTarget.AUTHOR if ack["author"] else HandoffTarget.REVIEWERS
+        handoff = RoutingHandoff(
+            command_id=command_id,
+            head_sha=head_sha,
+            since=ack["since"] or "",
+            target=target,
+            released=(
+                any(
+                    match["author"] == "author-released"
+                    and int(match["id"]) == command_id
+                    and (match["head"] or "") == head_sha
+                    for match, _ in acknowledgements
                 )
-            ):
-                best_id = comment_id
-                best_head = head
-                best_since = since
-                best_created_at = comment.created_at
-    return best_id, best_head, best_since, best_created_at
+                if target is HandoffTarget.AUTHOR
+                else (cleared_id, cleared_head) == (command_id, head_sha)
+            ),
+            persistent=bool(
+                target is HandoffTarget.REVIEWERS and head_sha and any(
+                    persistent_handoff_marker(command_id, head_sha) in body
+                    for body, _, _ in bodies
+                )
+            ),
+        )
+    if handoff.command_id and not handoff.since:
+        handoff = replace(
+            handoff,
+            since=_override_command_effective_at(comments, handoff.command_id) or created_at,
+        )
+    acknowledged_ids = {int(match["id"]) for match, _ in acknowledgements}
+    acknowledged_ids.update(command_id for command_id, _, _ in clearances)
+    cutoff = max(
+        (
+            (parsed, int(match[1]), match[2])
+            for body, _, _ in bodies
+            for match in _TOP_LEVEL_FEEDBACK_CUTOFF_MARKER_RE.finditer(body)
+            if int(match[1]) in acknowledged_ids
+            and (parsed := parse_ts(match[2])) is not None
+        ),
+        key=lambda item: (item[0], item[1]),
+        default=(oldest, 0, ""),
+    )[2]
+    return handoff, cutoff
 
 
 def _override_command_effective_at(
@@ -437,52 +384,6 @@ def _override_command_effective_at(
     return ""
 
 
-def _acknowledged_override_command_id(
-    comments: Sequence[IssueComment],
-) -> int:
-    return max(_acknowledged_override_command_ids(comments), default=0)
-
-
-def pending_command_replies(
-    source: DashboardOverrideInput,
-    author: str,
-    reviewers: set[str] | None = None,
-) -> tuple[DashboardCommandReply, ...]:
-    """Return replies owed to unsupported or unauthorized `/dashboard` commands.
-
-    `/dashboard route:reviewers` from the author or an approver is handled by the
-    override flow and never gets a reply here. The same command from anyone else
-    gets an unauthorized reply, and any unrecognized `/dashboard` subcommand gets
-    an unknown-command reply. Commands that already have a reply comment are
-    skipped so replies are posted at most once.
-    """
-    comments = source.issue_comments
-    replied_ids = _replied_command_ids(comments)
-
-    replies: list[DashboardCommandReply] = []
-    for comment in comments:
-        subcommand = parse_dashboard_command(comment)
-        if subcommand is None:
-            continue
-        comment_id = comment.database_id
-        if comment_id in replied_ids:
-            continue
-        commenter = comment.actor.login
-        if subcommand == DASHBOARD_OVERRIDE_SUBCOMMAND:
-            if is_authorized_commander(commenter, author, reviewers):
-                continue
-            kind = "unauthorized"
-        else:
-            kind = "unknown_command"
-        replies.append(DashboardCommandReply(
-            comment_id=comment_id,
-            kind=kind,
-            user=commenter,
-            subcommand=subcommand,
-        ))
-    return tuple(replies)
-
-
 def command_reply_marker(comment_id: int) -> str:
     return f"{COMMAND_REPLY_MARKER_PREFIX}{comment_id} -->"
 
@@ -491,10 +392,14 @@ def override_ack_marker(
     comment_id: int,
     head_sha: str = "",
     override_since: str = "",
+    *,
+    to_author: bool = False,
+    author_released: bool = False,
 ) -> str:
     head = f":{head_sha}" if head_sha else ""
     since = f":{override_since}" if head_sha and override_since else ""
-    return f"{OVERRIDE_ACK_MARKER_PREFIX}{comment_id}{head}{since} -->"
+    target = ("author-released:" if author_released else "author:") if to_author else ""
+    return f"{OVERRIDE_ACK_MARKER_PREFIX}{target}{comment_id}{head}{since} -->"
 
 
 def top_level_feedback_cutoff_marker(
@@ -511,14 +416,58 @@ def persistent_handoff_marker(
     return f"{PERSISTENT_HANDOFF_MARKER_PREFIX}{comment_id}:{head_sha} -->"
 
 
+def released_handoff_markers(handoff: RoutingHandoff, cutoff: str) -> list[str]:
+    if not (handoff.released and handoff.command_id and handoff.head_sha):
+        return []
+    to_author = handoff.target is HandoffTarget.AUTHOR
+    markers = [
+        override_ack_marker(
+            handoff.command_id, handoff.head_sha, handoff.since,
+            to_author=to_author, author_released=to_author,
+        ),
+    ]
+    if cutoff:
+        markers.append(top_level_feedback_cutoff_marker(handoff.command_id, cutoff))
+    if not to_author:
+        markers.append(
+            f"{REVIEWER_HANDOFF_CLEARED_MARKER_PREFIX}{handoff.command_id}:{handoff.head_sha} -->"
+        )
+    return markers
+
+
+def preserve_released_handoff_markers(body: str, comments: Sequence[IssueComment]) -> str:
+    handoff, cutoff = _read_handoff_markers(comments, rendered_status_body=body)
+    markers = released_handoff_markers(handoff, cutoff)
+    if all(marker in body for marker in markers):
+        return body
+    prefixes = (
+        OVERRIDE_ACK_MARKER_PREFIX,
+        TOP_LEVEL_FEEDBACK_CUTOFF_MARKER_PREFIX,
+        REVIEWER_HANDOFF_CLEARED_MARKER_PREFIX,
+    )
+    lines = [line for line in body.splitlines() if not line.startswith(prefixes)]
+    lines[2:2] = markers
+    return "\n".join(lines)
+
+
 def render_command_reply(reply: DashboardCommandReply) -> str:
     user = reply.user
     mention = f"@{user}, " if user else ""
     kind = reply.kind
+    to_author = reply.subcommand == AUTHOR_OVERRIDE_SUBCOMMAND
+    has_top_level_feedback_cutoff = parse_ts(reply.top_level_feedback_cutoff) is not None
     if kind == "unauthorized":
         message = (
             "only the pull request author or a member of an approving team can "
-            "use `/dashboard route:reviewers`."
+            f"use `/dashboard {reply.subcommand}`."
+        )
+    elif kind == "author_unavailable":
+        message = "this pull request has no human author the dashboard can route to."
+    elif kind == "routed" and to_author:
+        message = (
+            "this pull request is waiting on the author. Normal routing resumes "
+            "when the author addresses review feedback or the head commit changes. "
+            "Use `/dashboard route:reviewers` to hand it back explicitly."
         )
     elif kind == "routed":
         # DashboardCommandReply refuses a routed reply without a route.
@@ -549,9 +498,6 @@ def render_command_reply(reply: DashboardCommandReply) -> str:
                 f"{message} The handoff remains active across pushes until newer "
                 "actionable human feedback arrives."
             )
-        has_top_level_feedback_cutoff = (
-            parse_ts(reply.top_level_feedback_cutoff) is not None
-        )
         has_handoff_timestamp = parse_ts(reply.since) is not None
         if has_top_level_feedback_cutoff and has_handoff_timestamp:
             message = (
@@ -575,10 +521,8 @@ def render_command_reply(reply: DashboardCommandReply) -> str:
         subcommand = reply.subcommand
         attempted = DASHBOARD_COMMAND_PREFIX + (f" {subcommand}" if subcommand else "")
         message = (
-            f"`{attempted}` is not a recognized dashboard command. The only "
-            "supported command is `/dashboard route:reviewers`, which the pull "
-            "request author can use to move a pull request from waiting on the "
-            "author to waiting on reviewers."
+            f"`{attempted}` is not a recognized dashboard command. Use "
+            "`/dashboard route:author` or `/dashboard route:reviewers`."
         )
     else:
         # A reply the dashboard never posts, such as a cleared_by_feedback reply
@@ -592,6 +536,7 @@ def render_command_reply(reply: DashboardCommandReply) -> str:
                 comment_id,
                 reply.head_sha,
                 reply.since,
+                to_author=to_author,
             )
         )
         if has_top_level_feedback_cutoff:
@@ -631,38 +576,29 @@ def append_command_ack_reply(
 ) -> DashboardFacts:
     """Queue the reply that acknowledges an override command.
 
-    The reply carries markers that record the command binding, permanent
-    feedback cutoff, and persistent handoff. A command superseded by reviewer
-    feedback is acknowledged in the status comment instead of producing another
-    top-level comment. A persistent handoff that currently routes to the author
-    stays unacknowledged until a reviewer route returns, so the reply always
-    records the handoff it announces.
+    The reply records the command binding and any existing feedback cutoff.
+    Released handoffs are recorded in the status comment instead.
     """
-    cleared_by_feedback = facts.dashboard_override_cleared_by_feedback
-    command_id = (
-        facts.dashboard_override_command_id
-        or (
-            facts.dashboard_override_bound_command_id
-            if cleared_by_feedback
-            else 0
-        )
-    )
-    if not command_id:
+    handoff = facts.handoff
+    command_id = facts.dashboard_override_command_id
+    if not command_id or handoff.released:
         return facts
-    override_since = (
-        facts.dashboard_override_since
-        or _override_command_effective_at(source.issue_comments, command_id)
-    )
-    if cleared_by_feedback:
-        return facts.with_changes(dashboard_override_since=override_since)
-    if facts.dashboard_override_persistent and route is DashboardRoute.AUTHOR:
-        return facts.with_changes(dashboard_override_since=override_since)
+    to_author = handoff.target is HandoffTarget.AUTHOR
+    if to_author and (
+        route is not DashboardRoute.AUTHOR or not handoff.head_sha
+    ):
+        return facts
+    if handoff.persistent and route is DashboardRoute.AUTHOR:
+        return facts
     kind = "routed"
     replies = facts.dashboard_command_replies
     reply = DashboardCommandReply(
         comment_id=command_id,
         kind=kind,
-        head_sha=facts.dashboard_override_head_sha,
+        subcommand=(
+            AUTHOR_OVERRIDE_SUBCOMMAND if to_author else ""
+        ),
+        head_sha=handoff.head_sha,
         user=facts.dashboard_override_command_user or facts.author,
         route=route,
         held_gates=(
@@ -670,11 +606,11 @@ def append_command_ack_reply(
             if facts.route_held_for_gates
             else ""
         ),
-        since=override_since,
+        since=handoff.since,
         top_level_feedback_cutoff=(
             facts.dashboard_top_level_feedback_cutoff
         ),
-        persistent_handoff=facts.dashboard_override_persistent,
+        persistent_handoff=handoff.persistent,
     )
     if command_reply_exists(source.issue_comments, reply):
         return facts
@@ -684,6 +620,5 @@ def append_command_ack_reply(
     ):
         return facts
     return facts.with_changes(
-        dashboard_override_since=override_since,
         dashboard_command_replies=(*replies, reply),
     )

@@ -458,7 +458,6 @@ class TopLevelActionLedgerTest(unittest.TestCase):
                 previous_facts=dashboard_facts(),
                 required_approvals=1,
                 require_clean_copilot_review=False,
-                manual_reviewer_handoff=False,
                 pending_human_reviewer_logins=frozenset(),
             )
         )
