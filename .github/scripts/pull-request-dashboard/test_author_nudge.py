@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import replace
 from datetime import datetime, timezone
+import os
 import unittest
 from unittest.mock import patch
 
@@ -105,7 +106,7 @@ class AuthorNudgePolicyTest(unittest.TestCase):
             entry,
         )
 
-    def test_conflict_nudge_is_due_after_standard_week(self) -> None:
+    def test_conflict_nudge_is_due_after_five_business_days(self) -> None:
         result = author_result(conflicts="yes")
 
         due, _entry = author_nudge.plan_nudge(
@@ -116,7 +117,7 @@ class AuthorNudgePolicyTest(unittest.TestCase):
 
         self.assertTrue(due)
 
-    def test_nudge_is_due_after_one_week(self) -> None:
+    def test_nudge_is_due_after_five_business_days(self) -> None:
         due, _entry = author_nudge.plan_nudge(
             author_result(),
             {"waiting_since": "2026-07-10T00:00:00+00:00", "nudged_at": ""},
@@ -125,7 +126,7 @@ class AuthorNudgePolicyTest(unittest.TestCase):
 
         self.assertTrue(due)
 
-    def test_nudge_is_not_due_before_one_week(self) -> None:
+    def test_nudge_is_not_due_before_five_business_days(self) -> None:
         due, _entry = author_nudge.plan_nudge(
             author_result(),
             {"waiting_since": "2026-07-10T00:00:01+00:00", "nudged_at": ""},
@@ -133,6 +134,87 @@ class AuthorNudgePolicyTest(unittest.TestCase):
         )
 
         self.assertFalse(due)
+
+    def test_default_interval_counts_five_utc_weekdays(self) -> None:
+        for now, expected in (
+            ("2026-07-17T23:59:59+00:00", False),
+            ("2026-07-18T00:00:00+00:00", True),
+        ):
+            with self.subTest(now=now), patch.dict(os.environ):
+                os.environ.pop("AUTHOR_REMINDER_AFTER_BUSINESS_DAYS", None)
+                due, _entry = author_nudge.plan_nudge(
+                    author_result(),
+                    {"waiting_since": "2026-07-13T00:00:00+00:00", "nudged_at": ""},
+                    datetime.fromisoformat(now),
+                )
+
+            self.assertEqual(expected, due)
+
+    def test_nudge_uses_configured_interval_for_existing_wait(self) -> None:
+        for waiting_since, expected in (
+            ("2026-07-15T00:00:01+00:00", False),
+            ("2026-07-15T00:00:00+00:00", True),
+        ):
+            with self.subTest(waiting_since=waiting_since), patch.dict(
+                os.environ, {"AUTHOR_REMINDER_AFTER_BUSINESS_DAYS": "2"},
+            ):
+                due, entry = author_nudge.plan_nudge(
+                    author_result(),
+                    {"waiting_since": waiting_since, "nudged_at": ""},
+                    NOW,
+                )
+
+            self.assertEqual(expected, due)
+            self.assertEqual(waiting_since, entry["waiting_since"])
+
+    def test_two_business_days_pause_over_weekends_in_utc(self) -> None:
+        for waiting_since, now, expected in (
+            ("2026-07-17T12:00:00+00:00", "2026-07-19T12:00:00+00:00", False),
+            ("2026-07-17T12:00:00+00:00", "2026-07-21T11:59:59+00:00", False),
+            ("2026-07-17T12:00:00+00:00", "2026-07-21T12:00:00+00:00", True),
+            ("2026-07-18T12:00:00+00:00", "2026-07-21T23:59:59+00:00", False),
+            ("2026-07-18T12:00:00+00:00", "2026-07-22T00:00:00+00:00", True),
+            ("2026-07-17T08:00:00-04:00", "2026-07-21T12:00:00+00:00", True),
+            ("2026-07-17T23:00:00-04:00", "2026-07-22T00:00:00+00:00", True),
+            ("2026-07-15T00:00:00+00:00", "2026-07-14T00:00:00+00:00", False),
+        ):
+            with self.subTest(waiting_since=waiting_since, now=now), patch.dict(
+                os.environ, {"AUTHOR_REMINDER_AFTER_BUSINESS_DAYS": "2"},
+            ):
+                due, _entry = author_nudge.plan_nudge(
+                    author_result(),
+                    {"waiting_since": waiting_since, "nudged_at": ""},
+                    datetime.fromisoformat(now),
+                )
+
+            self.assertEqual(expected, due)
+
+    def test_business_day_interval_can_span_multiple_weeks(self) -> None:
+        for now, expected in (
+            ("2026-07-28T11:59:59+00:00", False),
+            ("2026-07-28T12:00:00+00:00", True),
+        ):
+            with self.subTest(now=now), patch.dict(
+                os.environ, {"AUTHOR_REMINDER_AFTER_BUSINESS_DAYS": "7"},
+            ):
+                due, _entry = author_nudge.plan_nudge(
+                    author_result(),
+                    {"waiting_since": "2026-07-17T12:00:00+00:00", "nudged_at": ""},
+                    datetime.fromisoformat(now),
+                )
+
+            self.assertEqual(expected, due)
+
+    def test_invalid_reminder_interval_is_rejected(self) -> None:
+        for value in ("0", "-1", "1.5", "invalid"):
+            with self.subTest(value=value), patch.dict(
+                os.environ, {"AUTHOR_REMINDER_AFTER_BUSINESS_DAYS": value},
+            ), self.assertRaises(ValueError):
+                author_nudge.plan_nudge(
+                    author_result(),
+                    {"waiting_since": "2026-07-10T00:00:00+00:00", "nudged_at": ""},
+                    NOW,
+                )
 
     def test_leaving_author_route_resets_unnudged_clock(self) -> None:
         due, entry = author_nudge.plan_nudge(
@@ -461,6 +543,69 @@ class AuthorNudgeProcessingTest(unittest.TestCase):
                 "episode_id": "episode-1",
             },
         })
+
+    def test_delivery_rechecks_increased_interval_after_preparation(self) -> None:
+        waiting_since = "2026-07-15T00:00:00+00:00"
+        with (
+            patch.dict(os.environ, {"AUTHOR_REMINDER_AFTER_BUSINESS_DAYS": "2"}),
+            patch.object(
+                author_nudge, "load_author_nudges",
+                return_value={"1": {"waiting_since": waiting_since, "nudged_at": ""}},
+            ) as load_nudges,
+            patch.object(author_nudge, "save_author_nudges") as save_nudges,
+            patch.object(
+                author_nudge, "load_dashboard_state_cache",
+                return_value=build_dashboard_state(author_result()),
+            ),
+            patch.object(
+                author_nudge, "fetch_routing_snapshot", return_value=routing_snapshot(),
+            ),
+            patch.object(author_nudge, "existing_nudge_comment", return_value=None),
+            patch.object(
+                author_nudge, "gh_api", return_value={"state": "open", "draft": False},
+            ),
+            patch.object(author_nudge, "publish_pr_status") as publish_status,
+            patch.object(
+                author_nudge, "managed_status_comments",
+                return_value=[{"html_url": "https://example.test/status"}],
+            ),
+            patch.object(author_nudge, "run_gh") as run_gh,
+        ):
+            author_nudge.record_author_nudge_observation(
+                1, author_result(), NOW, prepare_due=True,
+            )
+            pending = save_nudges.call_args.args[0]
+            self.assertEqual("2026-07-17T00:00:00+00:00", pending["1"]["pending_at"])
+            load_nudges.return_value = pending
+
+            os.environ["AUTHOR_REMINDER_AFTER_BUSINESS_DAYS"] = "5"
+            author_nudge.record_author_nudge_observation(
+                1, author_result(), NOW, prepare_due=True,
+            )
+            self.assertEqual(pending, save_nudges.call_args.args[0])
+            errors = author_nudge.deliver_prepared_author_nudges(
+                "open-telemetry/example", NOW,
+            )
+
+            self.assertEqual([], errors)
+            run_gh.assert_not_called()
+            publish_status.assert_not_called()
+            self.assertEqual(pending, save_nudges.call_args.args[0])
+
+            errors = author_nudge.deliver_prepared_author_nudges(
+                "open-telemetry/example",
+                datetime(2026, 7, 22, tzinfo=timezone.utc),
+            )
+
+            self.assertEqual([], errors)
+            run_gh.assert_called_once()
+            self.assertEqual({
+                "1": {
+                    "waiting_since": waiting_since,
+                    "nudged_at": "2026-07-22T00:00:00+00:00",
+                    "episode_id": "episode-1",
+                },
+            }, save_nudges.call_args.args[0])
 
     @patch.object(author_nudge, "ensure_nudge")
     @patch.object(author_nudge, "save_author_nudges")
