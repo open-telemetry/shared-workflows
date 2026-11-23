@@ -17,14 +17,16 @@ from common import write_json
 
 class ReviewTest(unittest.TestCase):
     def test_target_url_resolves_to_an_opted_in_repository(self):
-        self.assertEqual(
-            gate.review_target("https://github.com/open-telemetry/shared-workflows/pull/123"),
-            ("shared-workflows", 123),
-        )
-        self.assertEqual(
-            gate.review_target("https://github.com/OPEN-TELEMETRY/SHARED-WORKFLOWS/pull/123/"),
-            ("shared-workflows", 123),
-        )
+        with tempfile.TemporaryDirectory() as directory:
+            opt_ins = Path(directory) / "repositories.json"
+            write_json(opt_ins, [{"name": "Review-Enabled"}])
+            with mock.patch.object(gate, "REPOSITORIES_PATH", opt_ins):
+                self.assertEqual(
+                    gate.review_target("https://github.com/OPEN-TELEMETRY/REVIEW-ENABLED/pull/123/"),
+                    ("Review-Enabled", 123),
+                )
+                with self.assertRaisesRegex(ValueError, "not in the PR review opt-in list"):
+                    gate.review_target("https://github.com/open-telemetry/shared-workflows/pull/123")
 
     def test_target_url_rejects_untrusted_hosts_paths_and_repositories(self):
         for url in (
@@ -228,14 +230,17 @@ class ReviewTest(unittest.TestCase):
 
     def test_only_the_latest_submitted_copilot_review_can_supply_a_hint(self):
         reviews = [[{
-            "id": 1, "user": {"login": runner.COPILOT_REVIEWER}, "submitted_at": "2026-01-01",
+            "id": 1, "user": {"login": "copilot-pull-request-reviewer[bot]"}, "submitted_at": "2026-01-01",
             "body": "Needs a closer look", "html_url": "old",
         }], [{
-            "id": 2, "user": {"login": runner.COPILOT_REVIEWER}, "submitted_at": "2026-01-02",
+            "id": 2, "user": {"login": " Copilot "}, "submitted_at": "2026-01-02",
             "body": "Approval recommended", "html_url": "latest",
         }, {
             "id": 3, "user": {"login": "contributor"}, "submitted_at": "2026-01-03",
             "body": "Needs a closer look", "html_url": "human",
+        }, {
+            "id": 4, "user": {"login": "copilot[bot]"}, "submitted_at": None,
+            "body": "Needs a closer look", "html_url": "pending",
         }]]
         with tempfile.TemporaryDirectory() as directory:
             bundle = Path(directory)
@@ -249,6 +254,12 @@ class ReviewTest(unittest.TestCase):
                     runner.closer_look_context("org/repo", 123, bundle),
                     ", including Needs a closer look inline",
                 )
+
+    def test_all_copilot_reviewer_logins_are_recognized(self):
+        for login in ("Copilot", "copilot[bot]", "copilot-pull-request-reviewer", "copilot-pull-request-reviewer[bot]"):
+            with self.subTest(login=login):
+                review = {"user": {"login": login}, "submitted_at": "2026-01-01"}
+                self.assertEqual(runner.latest_copilot_review([[review]]), review)
 
     def test_suggestion_limit_counts_green_lines_against_the_committed_blob(self):
         with tempfile.TemporaryDirectory() as directory:

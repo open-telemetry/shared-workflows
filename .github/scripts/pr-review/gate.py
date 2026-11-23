@@ -6,6 +6,9 @@ import re
 from pathlib import Path
 
 
+REPOSITORIES_PATH = Path(__file__).with_name("repositories.json")
+
+
 def review_target(pr_url: str) -> tuple[str, int]:
     match = re.fullmatch(
         r"https://github\.com/open-telemetry/([A-Za-z0-9_.-]+)/pull/([1-9][0-9]*)/?",
@@ -14,13 +17,11 @@ def review_target(pr_url: str) -> tuple[str, int]:
     )
     if not match:
         raise ValueError("Expected a GitHub PR URL: https://github.com/open-telemetry/REPO/pull/NUMBER")
-    repositories = json.loads(
-        (Path(__file__).parent.parent / "pull-request-dashboard" / "repositories.json").read_text(encoding="utf-8")
-    )
+    repositories = json.loads(REPOSITORIES_PATH.read_text(encoding="utf-8"))
     names = {item["name"].lower(): item["name"] for item in repositories}
     name = names.get(match[1].lower())
     if name is None:
-        raise ValueError("The target repository is not in the dashboard opt-in list")
+        raise ValueError("The target repository is not in the PR review opt-in list")
     return name, int(match[2])
 
 

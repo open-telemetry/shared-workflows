@@ -20,9 +20,12 @@ from prepare import DiffScope, build_bundle, prepare_review
 from sandbox import AGENT_TIMEOUT_MINUTES, checkout_pr, run_in_sandbox
 
 
-COPILOT_REVIEWER = "copilot-pull-request-reviewer[bot]"
 SOL = "gpt-6.1-sol"
 OPUS = "claude-opus-5.5"
+
+
+def is_copilot_reviewer(login: str) -> bool:
+    return login.strip().lower().removesuffix("[bot]") in ("copilot", "copilot-pull-request-reviewer")
 
 
 def latest_copilot_review(
@@ -31,7 +34,7 @@ def latest_copilot_review(
     return max(
         (
             review for page in reviews for review in page
-            if (review.get("user") or {}).get("login") == COPILOT_REVIEWER and review.get("submitted_at")
+            if review.get("submitted_at") and is_copilot_reviewer((review.get("user") or {}).get("login") or "")
         ),
         key=lambda review: review["submitted_at"],
         default=None,

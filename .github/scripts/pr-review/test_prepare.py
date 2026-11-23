@@ -8,6 +8,18 @@ import prepare
 
 
 class ReviewBundleTest(unittest.TestCase):
+    def test_right_side_paths_handle_git_quoting_and_header_delimiters(self):
+        for header, path in (
+            (r'"b/caf\303\251.txt"', "caf\u00e9.txt"),
+            (r'"b/with\ttab\"quote.txt"' + "\t", 'with\ttab"quote.txt'),
+            ("b/with space.txt\t", "with space.txt"),
+        ):
+            with self.subTest(header=header):
+                scope = prepare.parse_diff(
+                    f"diff --git a/file b/file\n--- /dev/null\n+++ {header}\n@@ -0,0 +1 @@\n+text\n"
+                )
+                self.assertEqual(scope, {path: {"changed_lines": [1], "hunks": [(1, 1)]}})
+
     def test_added_line_starting_with_two_pluses_is_not_a_file_header(self):
         scope = prepare.parse_diff(
             "diff --git a/example.txt b/example.txt\n"

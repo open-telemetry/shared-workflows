@@ -1,13 +1,17 @@
 # PR review
 
-Run the central review workflow manually with one GitHub PR URL:
+To opt in, add your repository to the [PR review opt-in list](../.github/scripts/pr-review/repositories.json). Use the repository name without the `open-telemetry/` prefix. The only field is `name`:
+
+```json
+{"name": "my-repository"}
+```
+
+Dashboard enrollment does not opt a repository into PR review. Once enrolled, run the central review workflow manually with the URL of an open PR:
 
 ```sh
 gh workflow run pr-review.yml --repo open-telemetry/shared-workflows \
   --ref main -f pr_url=https://github.com/open-telemetry/REPOSITORY/pull/NUMBER
 ```
-
-Targets must be open PRs in repositories listed in the [dashboard opt-in list](../.github/scripts/pull-request-dashboard/repositories.json). The workflow is independent of dashboard execution and has no automatic triggers.
 
 GPT-6.1 Sol reviews the diff and looks for worthwhile simplifications in separate passes. Claude Opus 5.5 checks both passes before publication. If validation fails, the workflow sends Opus the error and retries once. Each pass gets an isolated copy of the PR checkout behind the agent firewall. The workflow checks inline suggestions against the original PR head commit. There is no language-specific setup or dependency installation for the target repository.
 

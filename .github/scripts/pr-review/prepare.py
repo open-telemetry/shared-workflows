@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import codecs
 import difflib
 import re
 from pathlib import Path
@@ -21,6 +22,13 @@ class FileScope(TypedDict):
 DiffScope = dict[str, FileScope]
 
 
+def right_side_path(header: str) -> str | None:
+    path = header.split("\t", 1)[0]
+    if path.startswith('"') and path.endswith('"'):
+        path = codecs.escape_decode(path[1:-1].encode("utf-8"))[0].decode("utf-8", errors="surrogateescape")
+    return path[2:] if path.startswith("b/") else None
+
+
 def parse_diff(diff: str) -> DiffScope:
     files: DiffScope = {}
     current: FileScope | None = None
@@ -28,8 +36,9 @@ def parse_diff(diff: str) -> DiffScope:
     for line in diff.splitlines():
         if line.startswith("diff --git "):
             current = None
-        elif current is None and line.startswith("+++ b/"):
-            current = files.setdefault(line[6:], {"changed_lines": [], "hunks": []})
+        elif current is None and line.startswith("+++ "):
+            if (path := right_side_path(line[4:])) is not None:
+                current = files.setdefault(path, {"changed_lines": [], "hunks": []})
         elif current is not None:
             match = HUNK_RE.match(line)
             if match:

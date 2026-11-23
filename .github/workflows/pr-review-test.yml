@@ -5,14 +5,12 @@ on:
     branches: [main]
     paths:
       - .github/scripts/pr-review/**
-      - .github/scripts/pull-request-dashboard/repositories.json
       - .github/workflows/pr-review-test.yml
       - .github/workflows/pr-review.yml
   pull_request:
     branches: [main]
     paths:
       - .github/scripts/pr-review/**
-      - .github/scripts/pull-request-dashboard/repositories.json
       - .github/workflows/pr-review-test.yml
       - .github/workflows/pr-review.yml
 
