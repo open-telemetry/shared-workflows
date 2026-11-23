@@ -9,7 +9,7 @@ from common import check_snapshot, gh_json, progress, write_json
 EXPERIMENT_NOTICE = (
     "> [!NOTE]\n"
     "> This is an experimental automated review from the OpenTelemetry "
-    "[PR review workflow](https://github.com/open-telemetry/shared-workflows/tree/main/pr-review). "
+    "[PR review workflow](https://github.com/open-telemetry/shared-workflows/pull/547). "
     "It can miss problems or flag things that are fine, so treat its findings as suggestions."
 )
 
