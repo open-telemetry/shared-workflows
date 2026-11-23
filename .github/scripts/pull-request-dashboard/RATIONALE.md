@@ -364,8 +364,8 @@ the implementation understandable and operationally cheap.
   top of the waiting-on-authors section as the stalest item on the board.
 - A held PR remains in the author reminder flow. Most holds clear quickly, but a
   hold can also mean that automation never started or that the author is stuck.
-  After the standard seven-day wait, the reminder links to the live status and
-  offers the reviewer-routing command as a break-glass handoff. Reviewer Slack
+  After the configured business-day interval, the reminder links to the live
+  status and offers the reviewer-routing command as a break-glass handoff. Reviewer Slack
   notification still waits until the route actually reaches reviewers.
 - While a PR stays on a route where someone other than the author owes it a
   response, its wait age only moves back, never forward. The fallback for those
