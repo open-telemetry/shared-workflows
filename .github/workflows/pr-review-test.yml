@@ -27,3 +27,13 @@ jobs:
       - name: Run tests
         working-directory: .github/scripts/pr-review
         run: python3 -m unittest discover -p 'test_*.py'
+      - uses: github/gh-aw-firewall@d9272015d8523b4c9cf3b00ce26b507046cbf1a3 # v0.29.11
+        id: firewall
+        with:
+          version: v0.29.11
+      - name: Smoke test the review sandbox
+        timeout-minutes: 5
+        working-directory: .github/scripts/pr-review
+        env:
+          AWF_IMAGE_TAG: ${{ steps.firewall.outputs.image-tag }}
+        run: python3 smoke_sandbox.py

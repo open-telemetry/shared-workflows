@@ -1,18 +1,20 @@
 # PR review
 
-This proof of concept runs only on manual dispatch by someone with write access to `open-telemetry/shared-workflows`. Pass the URL of an open PR in a public OpenTelemetry repository where `otelbot` is installed. No repository enrollment is required.
+Run Copilot on demand to look for problems and ways to simplify a pull request. The target repository doesn't need its own workflow or an opt-in entry.
+
+## Run a review
+
+You need write access to `open-telemetry/shared-workflows` and the URL of an open PR in a public OpenTelemetry repository where `otelbot` is installed.
+
+Open the [PR review workflow](https://github.com/open-telemetry/shared-workflows/actions/workflows/pr-review.yml), select **Run workflow**, and enter the PR URL. Or use the GitHub CLI:
 
 ```sh
 gh workflow run pr-review.yml --repo open-telemetry/shared-workflows \
-  --ref main -f pr_url=https://github.com/open-telemetry/REPOSITORY/pull/NUMBER
+  -f pr_url=https://github.com/open-telemetry/REPOSITORY/pull/NUMBER
 ```
 
-GPT-6.1 Sol reviews the diff and looks for worthwhile simplifications in separate passes. Claude Opus 5.5 checks both passes before publication. If validation fails, the workflow sends Opus the error and retries once. Each pass gets an isolated copy of the PR checkout behind the agent firewall. The workflow checks inline suggestions against the original PR head commit. There is no language-specific setup or dependency installation for the target repository.
+## Check the result
 
-A separate job posts the validated result as `otelbot[bot]`, using the shared repository's `OTELBOT_CLIENT_ID` variable and `OTELBOT_PRIVATE_KEY` secret. App tokens are scoped to the target repository. The review job requests pull request read access. The posting job requests pull request write access. The model sandbox receives no repository or publishing credentials. Publication stops if the PR closes or either its base or head changes. No findings produces a single top-level comment.
+`otelbot[bot]` posts findings on the PR, or a **No findings** comment. If the PR closes or its base or head changes during the run, the workflow skips posting.
 
-Open the workflow run's **Summary** or the **Report Copilot token usage** step log to see input, output, cache read and cache write tokens for each pass, including verification retries. The report also shows estimated AI credits when the firewall records them. Use GitHub's billing reports for actual charges.
-
-When a pass ends, the **Review, simplify, and double-check** step prints its recorded tool calls in order, with timing and outcomes where available. The log includes excerpts of tool inputs, shell output, and tool errors, capped at 2 KiB per excerpt and 512 KiB per pass. Tool events still appear after the excerpt limit. The workflow does not publish full transcripts or firewall debug logs. Canceling a run can interrupt the active pass before it prints its log.
-
-For a branch-only test, replace `main` with the test branch. GitHub must have registered the workflow before it can be dispatched; pushing a manual-only workflow to a non-default branch may not register it. Do not add an automatic live-review trigger to work around that.
+The run's **Summary** shows token usage and estimated AI credits when available. Use GitHub billing reports for actual charges. To investigate a slow run, open the **Review, simplify, and double-check** step log. It shows tool activity and timings after each pass, not live.
