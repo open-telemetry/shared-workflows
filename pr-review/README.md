@@ -13,6 +13,6 @@ A separate job posts the validated result as `otelbot[bot]`, using the shared re
 
 Open the workflow run's **Summary** or the **Report Copilot token usage** step log to see input, output, cache read and cache write tokens for each pass, including verification retries. The report also shows estimated AI credits when the firewall records them. Use GitHub's billing reports for actual charges.
 
-When a pass ends, the **Review, simplify, and double-check** step logs its duration, outcome, last recorded Copilot event, and the slowest tool calls with recorded timings. It also notes tool calls with no recorded finish. The activity summary excludes prompts, command arguments, tool output, and draft findings. Canceling a run can interrupt the active pass before its summary is printed.
+When a pass ends, the **Review, simplify, and double-check** step prints its recorded tool calls in order, with timing and outcomes where available. The log includes excerpts of tool inputs, shell output, and tool errors, capped at 2 KiB per excerpt and 512 KiB per pass. Tool events still appear after the excerpt limit. The workflow does not publish full transcripts or firewall debug logs. Canceling a run can interrupt the active pass before it prints its log.
 
 For a branch-only test, replace `main` with the test branch. GitHub must have registered the workflow before it can be dispatched; pushing a manual-only workflow to a non-default branch may not register it. Do not add an automatic live-review trigger to work around that.

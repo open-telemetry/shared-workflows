@@ -147,10 +147,14 @@ class ReviewTest(unittest.TestCase):
             self.assertIn("shell", launch.call_args.args[2])
             self.assertEqual(launch.call_args.kwargs["phase"], "review")
 
-    def test_model_pass_reports_slowest_tools_without_logging_event_payloads(self):
+    def test_model_pass_logs_tool_activity_in_order_without_publishing_drafts(self):
         events = [
+            {"type": "assistant.message", "data": {"toolRequests": [{
+                "toolCallId": "shell", "name": "shell", "arguments": {"command": "git status"},
+            }, {"toolCallId": "denied", "name": "write", "arguments": {"content": "private-write"}}]}},
+            {"type": "assistant.usage", "data": {"duration": 4500}},
             {"type": "tool.execution_start", "timestamp": "2026-11-23T01:00:00Z", "data": {
-                "toolCallId": "shell", "toolName": "shell", "arguments": {"command": "private-command"},
+                "toolCallId": "shell", "toolName": "shell", "arguments": {"command": "git status"},
             }},
             {"type": "tool.execution_start", "timestamp": "2026-11-23T01:00:01Z", "data": {
                 "toolCallId": "view", "toolName": "view",
@@ -159,7 +163,13 @@ class ReviewTest(unittest.TestCase):
                 "toolCallId": "view", "success": True,
             }},
             {"type": "tool.execution_complete", "timestamp": "2026-11-23T01:00:42Z", "data": {
-                "toolCallId": "shell", "success": False, "result": {"content": "private-output"},
+                "toolCallId": "shell", "success": False, "result": {
+                    "content": "test output\n::warning::untrusted\n##[error]untrusted\nfixture-token",
+                    "contents": [{"type": "shell_exit", "exitCode": 2}],
+                },
+            }},
+            {"type": "tool.execution_complete", "data": {
+                "toolCallId": "denied", "success": False, "error": {"message": "Tool denied by policy"},
             }},
             {"type": "assistant.message", "data": {"content": "private-draft"}},
             {"type": "result"},
@@ -170,6 +180,7 @@ class ReviewTest(unittest.TestCase):
             tempfile.TemporaryDirectory() as directory,
             mock.patch.object(runner, "run_in_sandbox", return_value=response),
             mock.patch.object(runner.time, "monotonic", side_effect=[100, 150]),
+            mock.patch.dict(os.environ, {"GH_TOKEN": "fixture-token"}),
             mock.patch.object(runner, "progress") as log,
         ):
             bundle = Path(directory)
@@ -177,10 +188,50 @@ class ReviewTest(unittest.TestCase):
                 runner.model_pass("model", "max", "prompt", bundle, bundle, phase="review"),
                 "private-draft",
             )
-        self.assertEqual(log.call_args_list[-2:], [
-            mock.call("review: completed after 50.0s. Last recorded event: result."),
-            mock.call("review: slowest completed tools: shell failed 42.0s, view 1.0s."),
+        lines = [call.args[0] for call in log.call_args_list]
+        self.assertIn("review: tool #1 shell requested git status", lines)
+        self.assertIn("review: model call finished in 4.5s", lines)
+        self.assertIn("review: 2026-11-23T01:00:42.000+00:00 tool #1 shell failed in 42.0s (exit 2)", lines)
+        self.assertLess(
+            next(i for i, line in enumerate(lines) if "tool #1 shell started" in line),
+            next(i for i, line in enumerate(lines) if "tool #3 view finished" in line),
+        )
+        self.assertIn("review: tool #2 write failed", lines)
+        self.assertIn("review: error: Tool denied by policy", lines)
+        self.assertEqual(lines[-1], "review: completed after 50.0s. Last recorded event: result.")
+        self.assertIn(r"review: output: test output\n\u003a\u003awarning\u003a\u003auntrusted\n##\u005berror]untrusted\n[redacted]", lines)
+        self.assertFalse(any("private-" in line or "fixture-token" in line for line in lines))
+
+    def test_excerpt_limits_do_not_drop_tool_events(self):
+        events = [
+            event
+            for call in range(3)
+            for event in (
+                {"type": "tool.execution_start", "data": {
+                    "toolCallId": str(call), "toolName": "shell",
+                    "arguments": {"command": "pytest"} if call == 0 else None,
+                }},
+                {"type": "tool.execution_complete", "data": {
+                    "toolCallId": str(call), "success": True, "result": {"content": "abcdefgh"},
+                }},
+            )
+        ]
+        with (
+            mock.patch.object(runner, "TOOL_EXCERPT_BYTES", 4),
+            mock.patch.object(runner, "PASS_EXCERPT_BYTES", 6),
+            mock.patch.object(runner, "progress") as log,
+        ):
+            runner.report_activity("review", 3, "completed", events)
+        lines = [call.args[0] for call in log.call_args_list]
+        self.assertEqual(lines[:5], [
+            "review: tool #1 shell started pyte [truncated]",
+            "review: tool #1 shell finished",
+            "review: output: ab [truncated]",
+            "review: tool #2 shell started",
+            "review: tool #2 shell finished",
         ])
+        self.assertEqual(lines.count("review: output: [omitted: pass limit]"), 2)
+        self.assertIn("review: tool #3 shell finished", lines)
 
     def test_model_pass_reports_the_cli_error_from_json(self):
         response = subprocess.CompletedProcess(
@@ -226,7 +277,7 @@ class ReviewTest(unittest.TestCase):
             runner.model_pass("model", "max", "prompt", bundle / "checkout", bundle, phase="review")
         self.assertEqual(log.call_args_list[-2:], [
             mock.call("review: sandbox timeout after 3600.0s. Last recorded event: tool.execution_complete."),
-            mock.call("review: 2 tool calls without a recorded finish: other tool, shell."),
+            mock.call("review: 2 tool calls without a recorded finish."),
         ])
 
     def test_checkout_rejects_a_moved_pr_head(self):
