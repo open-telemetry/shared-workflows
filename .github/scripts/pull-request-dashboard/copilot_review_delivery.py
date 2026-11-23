@@ -248,7 +248,7 @@ def deliver_copilot_review_requests(
             sent_at = format_ts(sending_at)
             try:
                 request_invoked = True
-                requested_head = (
+                returned_head = (
                     request_copilot_review(pull_request_id, token=token)
                     if reservation.requester == "fallback"
                     else request_copilot_review(pull_request_id)
@@ -269,25 +269,17 @@ def deliver_copilot_review_requests(
                         f"its outcome could not be recorded: {state_error}"
                     ) from state_error
                 raise
-            head_changed = requested_head != reservation.head_sha
-            request_count = reservation.request_count
-            started_at = reservation.started_at
-            if head_changed:
-                if rollback_cycle is not None and rollback_cycle.head_sha == requested_head:
-                    request_count = rollback_cycle.request_count + 1
-                    started_at = rollback_cycle.started_at or sent_at
-                else:
-                    request_count = 1
-                    started_at = sent_at
+            # requestReviews takes a PR ID, so a different head leaves the send uncertain.
+            matching_head = returned_head == reservation.head_sha
+            if not matching_head:
                 print(
-                    f"Copilot request for PR #{pr_number} returned head {requested_head} "
-                    f"instead of the reserved head {reservation.head_sha}",
+                    f"Copilot request for PR #{pr_number} returned head {returned_head} "
+                    f"instead of {reservation.head_sha}; keeping the send in flight",
                     file=sys.stderr,
                 )
             finish(
                 replace(
-                    reservation, phase="accepted", head_sha=requested_head,
-                    request_count=request_count, started_at=started_at,
+                    reservation, phase="accepted" if matching_head else "unknown",
                     sent_at=sent_at, baseline_review_ids=baseline_ids,
                 ),
             )

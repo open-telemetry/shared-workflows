@@ -371,7 +371,7 @@ class CopilotReviewGitIntegrationTest(unittest.TestCase):
     def test_crash_after_mutation_does_not_resend_on_restart(self) -> None:
         self.assert_crash_recovery("crash-after", 1)
 
-    def test_old_head_observation_cannot_release_a_dispatch_returning_a_new_head(self) -> None:
+    def test_old_head_observation_cannot_release_a_send_with_a_mismatched_head(self) -> None:
         worker = self.start_worker("sender", "head-race")
         self.wait_ready(worker, "sender")
         reserved = self.cycle()
@@ -393,12 +393,12 @@ class CopilotReviewGitIntegrationTest(unittest.TestCase):
         self.assertEqual(1, len(self.requests()))
         (self.root / "go").touch()
         self.finish_worker(worker)
-        accepted = self.cycle()
-        self.assertEqual("accepted", accepted["phase"])
-        self.assertEqual("next-head", accepted["head_sha"])
-        self.assertEqual(1, accepted["request_count"])
+        uncertain = self.cycle()
+        self.assertEqual("unknown", uncertain["phase"])
+        self.assertEqual(self.snapshot.head_sha, uncertain["head_sha"])
+        self.assertEqual(1, uncertain["request_count"])
         self.finish_worker(self.start_worker("late-observer"))
-        self.assertEqual(accepted, self.cycle())
+        self.assertEqual(uncertain, self.cycle())
         self.assertEqual(1, len(self.requests()))
 
     def test_newer_delivery_versions_stop_a_worker_before_mutation(self) -> None:

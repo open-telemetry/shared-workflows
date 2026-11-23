@@ -366,14 +366,15 @@ proposed head reset preserves the preceding head's request budget.
 Unreviewed head resets and request-window renewals stay with the dispatcher.
 A sending reservation stays with its dispatcher until the outcome is recorded,
 since the mutation can land on a different head.
-GitHub takes a PR ID, not an expected head. If a request races a push and GitHub
-reports the preceding head, the dispatcher counts the send against that head's
-cycle when it still has it, without restarting the retry window.
+GitHub takes a PR ID, not an expected head. The dispatcher counts the attempt
+against the head that passed preflight. If GitHub returns a different head,
+the response does not tell the dispatcher which commit Copilot will review.
 
 An accepted request blocks another dashboard request across pushes until it
 settles or until four hours after the send, even if the retry window has
-already expired. A transport failure leaves an uncertain request, which blocks
-another request until current-head coverage or four hours after the send.
+already expired. A mismatched head or transport failure leaves an uncertain
+request. That blocks another request until Copilot reviews the current head
+or four hours pass after the send.
 A crash before saving the outcome leaves a sending reservation for four hours
 after reservation. These deadlines do not extend the router's gate hold. Failed
 reservation rollbacks are reported and retain the saved barrier.

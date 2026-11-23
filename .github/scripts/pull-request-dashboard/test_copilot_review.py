@@ -1305,16 +1305,16 @@ class CopilotReviewDeliveryTest(unittest.TestCase):
 
         self.request.side_effect = request_and_observe
         self.assertEqual([], self.deliver())
-        accepted = load_copilot_review_cycles()["7"]
-        self.assertEqual("next-head", accepted.head_sha)
-        self.assertEqual("accepted", accepted.phase)
+        uncertain = load_copilot_review_cycles()["7"]
+        self.assertEqual(self.snapshot.head_sha, uncertain.head_sha)
+        self.assertEqual("unknown", uncertain.phase)
         self.commit(record_copilot_review_cycle_observations)
-        self.assertEqual(accepted, load_copilot_review_cycles()["7"])
+        self.assertEqual(uncertain, load_copilot_review_cycles()["7"])
         self.snapshot = replace(self.snapshot, head_sha="next-head")
         self.enqueue()
         self.assertEqual([], self.deliver())
         self.request.assert_called_once()
-        self.assertEqual(accepted, load_copilot_review_cycles()["7"])
+        self.assertEqual(uncertain, load_copilot_review_cycles()["7"])
 
     def test_definite_rejection_removes_first_reservation(self) -> None:
         self.request_error = CopilotReviewRequestRejected("permission denied")
@@ -1387,60 +1387,39 @@ class CopilotReviewDeliveryTest(unittest.TestCase):
         self.request.assert_not_called()
         self.assertEqual({"7": prior}, load_copilot_review_cycles())
 
-    def test_returned_head_gets_a_fresh_budget_and_window_for_its_first_error_retry(self) -> None:
-        save_copilot_review_cycles({
-            "7": copilot_review_cycle(
-                "current-head", requester="fallback", phase="ready", request_count=2,
-            ),
-        })
+    def test_mismatched_response_keeps_the_retry_on_the_preflight_head(self) -> None:
+        prior = copilot_review_cycle("current-head", phase="ready", request_count=2)
+        save_copilot_review_cycles({"7": prior})
         self.commit(lambda: 0)
         self.now = datetime(2026, 8, 16, 11, 59, 59, tzinfo=timezone.utc)
         self.requested_head = "next-head"
         self.assertEqual([], self.deliver())
-        accepted = load_copilot_review_cycles()["7"]
-        self.assertEqual(1, accepted.request_count)
-        self.assertEqual("2026-08-16T11:59:59+00:00", accepted.started_at)
-        self.assertEqual("fallback", accepted.requester)
+        self.restore()
+        uncertain = load_copilot_review_cycles()["7"]
+        self.assertEqual("unknown", uncertain.phase)
+        self.assertEqual(prior.head_sha, uncertain.head_sha)
+        self.assertEqual(prior.request_count + 1, uncertain.request_count)
+        self.assertEqual(prior.started_at, uncertain.started_at)
+        self.assertEqual(format_ts(self.now), uncertain.sent_at)
 
         self.snapshot = replace(self.snapshot, head_sha="next-head")
         self.now += timedelta(minutes=1)
         self.reviews = [self.notice(body=ERROR_BODY)]
         self.enqueue()
         self.assertEqual([], self.deliver())
-        self.assertEqual(2, self.request.call_count)
-        retry = load_copilot_review_cycles()["7"]
-        self.assertEqual("accepted", retry.phase)
-        self.assertEqual(2, retry.request_count)
-        self.assertEqual(accepted.started_at, retry.started_at)
+        self.request.assert_called_once()
+        self.assertEqual(uncertain, load_copilot_review_cycles()["7"])
 
-    def test_return_to_preceding_head_charges_its_existing_budget(self) -> None:
-        prior = copilot_review_cycle(
-            "previous-head", phase="limited", request_count=3, limit_reason="requests",
-            started_at="2026-08-16T07:30:00Z",
-        )
-        save_copilot_review_cycles({"7": prior})
-        self.commit(lambda: 0)
-        self.requested_head = prior.head_sha
-
-        self.assertEqual([], self.deliver())
-        self.restore()
-        accepted = load_copilot_review_cycles()["7"]
-        self.assertEqual("previous-head", accepted.head_sha)
-        self.assertEqual("accepted", accepted.phase)
-        self.assertEqual(4, accepted.request_count)
-        self.assertEqual(prior.started_at, accepted.started_at)
-
-        self.snapshot = replace(self.snapshot, head_sha=prior.head_sha)
-        self.now += timedelta(minutes=1)
-        self.reviews = [self.notice(body=ERROR_BODY)]
-        self.enqueue()
+        self.reviews.append(self.notice(11, body="No issues found."))
         self.assertEqual([], self.deliver())
         self.request.assert_called_once()
-        self.assertEqual("requests", load_copilot_review_cycles()["7"].limit_reason)
+        complete = load_copilot_review_cycles()["7"]
+        self.assertEqual("complete", complete.phase)
+        self.assertEqual("next-head", complete.head_sha)
 
-    def test_request_landing_on_expired_head_blocks_dispatch_after_another_push(self) -> None:
+    def test_mismatched_response_blocks_a_later_head_until_the_send_times_out(self) -> None:
         prior = copilot_review_cycle(
-            "previous-head", phase="limited", request_count=1, limit_reason="timeout",
+            "previous-head", phase="limited", request_count=3, limit_reason="timeout",
             started_at="2026-08-16T04:00:00Z",
         )
         save_copilot_review_cycles({"7": prior})
@@ -1448,10 +1427,11 @@ class CopilotReviewDeliveryTest(unittest.TestCase):
         self.requested_head = prior.head_sha
 
         self.assertEqual([], self.deliver())
-        accepted = load_copilot_review_cycles()["7"]
-        self.assertEqual(prior.head_sha, accepted.head_sha)
-        self.assertEqual(prior.started_at, accepted.started_at)
-        self.assertEqual(2, accepted.request_count)
+        uncertain = load_copilot_review_cycles()["7"]
+        self.assertEqual("unknown", uncertain.phase)
+        self.assertEqual(self.snapshot.head_sha, uncertain.head_sha)
+        self.assertEqual(1, uncertain.request_count)
+        self.assertEqual(format_ts(self.now), uncertain.started_at)
 
         self.requested_head = None
         self.snapshot = replace(self.snapshot, head_sha="next-head")
@@ -1459,7 +1439,7 @@ class CopilotReviewDeliveryTest(unittest.TestCase):
         self.enqueue()
         self.assertEqual([], self.deliver())
         self.request.assert_called_once()
-        self.assertEqual(accepted, load_copilot_review_cycles()["7"])
+        self.assertEqual(uncertain, load_copilot_review_cycles()["7"])
 
         self.now += timedelta(seconds=1)
         self.assertEqual([], self.deliver())

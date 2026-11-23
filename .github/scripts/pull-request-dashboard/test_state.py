@@ -98,7 +98,7 @@ class StateTest(unittest.TestCase):
             save_copilot_review_cycles(cycles)
             path = copilot_review_fallback_state_path()
             data = json.loads(path.read_text(encoding="utf-8"))
-            for version in (4, 5, 6, COPILOT_REVIEW_FALLBACK_STATE_VERSION):
+            for version in (4, 5, 6, 9, COPILOT_REVIEW_FALLBACK_STATE_VERSION):
                 with self.subTest(version=version):
                     path.write_text(json.dumps({**data, "version": version}), encoding="utf-8")
                     save_copilot_review_intents({"7": {"head_sha": "next-head"}})
