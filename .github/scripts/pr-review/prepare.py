@@ -21,9 +21,8 @@ DiffScope = dict[str, FileScope]
 
 
 def pr_metadata(repo: str, pr: int) -> dict[str, Any]:
-    fields = "number,state,url,baseRefOid,headRefOid"
-    metadata = gh_json(["pr", "view", str(pr), "--repo", repo, "--json", fields])
-    if metadata["url"] != f"https://github.com/{repo}/pull/{pr}" or metadata["number"] != pr:
+    metadata = gh_json(["api", f"repos/{repo}/pulls/{pr}"])
+    if metadata["html_url"] != f"https://github.com/{repo}/pull/{pr}" or metadata["number"] != pr:
         raise RuntimeError("GitHub resolved a different PR target")
     return metadata
 
@@ -53,9 +52,9 @@ def parse_diff(diff: str) -> DiffScope:
 
 def build_bundle(repo: str, pr: int, directory: Path) -> tuple[dict[str, Any], DiffScope]:
     metadata = pr_metadata(repo, pr)
-    if metadata["state"] != "OPEN":
+    if metadata["state"] != "open":
         raise RuntimeError("The PR is not open")
     progress(f"Preparing review bundle in {directory}")
-    diff = gh(["pr", "diff", str(pr), "--repo", repo, "--color", "never"]).stdout
+    diff = gh(["api", "-H", "Accept: application/vnd.github.diff", f"repos/{repo}/pulls/{pr}"]).stdout
     (directory / "pr.diff").write_text(diff, encoding="utf-8")
     return metadata, parse_diff(diff)

@@ -16,7 +16,7 @@ from typing import Any
 
 from common import gh_json, progress, write_json
 from post import load_json, post_review, prepare_review
-from prepare import build_bundle, pr_metadata
+from prepare import DiffScope, build_bundle, pr_metadata
 from sandbox import AGENT_TIMEOUT_MINUTES, checkout_pr, run_in_sandbox
 
 
@@ -127,27 +127,26 @@ def model_pass(model: str, effort: str, prompt: str, checkout: Path, bundle: Pat
 
 def check_snapshot(repo: str, pr: int, base: str, head: str) -> None:
     live = pr_metadata(repo, pr)
-    if live["state"] != "OPEN" or (live["baseRefOid"], live["headRefOid"]) != (base, head):
+    if live["state"] != "open" or (live["base"]["sha"], live["head"]["sha"]) != (base, head):
         raise RuntimeError("The PR changed or closed during review; start a new run")
 
 
-def verify_findings(prompt: str, checkout: Path, bundle: Path) -> dict[str, Any]:
+def verify_findings(
+    prompt: str, checkout: Path, bundle: Path, diff_scope: DiffScope, metadata: dict[str, Any]
+) -> dict[str, Any]:
     for attempt in range(2):
         answer = model_pass(OPUS, "high", prompt, checkout, bundle)
         answer = re.sub(r"\A```(?:json)?\s*\n(.*)\n```\Z", r"\1", answer, flags=re.DOTALL)
         try:
-            findings = json.loads(answer)
-            if not isinstance(findings, dict) or not isinstance(findings.get("comments"), list):
-                raise ValueError("expected an object with a comments array")
-            return findings
+            return prepare_review(json.loads(answer), checkout, diff_scope, metadata)
         except ValueError as error:
             if attempt:
-                raise RuntimeError(f"{OPUS} did not return valid findings JSON after two attempts: {error}") from error
-            progress(f"{OPUS} returned invalid findings JSON; retrying verification once")
+                raise RuntimeError(f"{OPUS} did not return valid findings after two attempts: {error}") from error
+            progress(f"{OPUS} returned invalid findings: {error}; retrying verification once")
             prompt += (
-                "\nThe previous attempt did not return the required JSON. "
-                "After checking the findings, start the final message with { and end it with }. "
-                "Do not include an introduction, Markdown fences, or a closing note.\n"
+                "\nThe previous answer did not pass validation. "
+                "Check the JSON format, review summary, and diff anchors. "
+                "Return only the JSON object, without Markdown fences or other text.\n"
             )
     raise AssertionError("unreachable")
 
@@ -159,11 +158,11 @@ def prepare_result(repo: str, pr: int, result_path: Path) -> None:
         bundle.mkdir()
         shutil.copyfile(Path(__file__).with_name("launch-copilot.sh"), bundle / "launch-copilot.sh")
         metadata, diff_scope = build_bundle(repo, pr, bundle)
-        base, head = metadata["baseRefOid"], metadata["headRefOid"]
+        base, head = metadata["base"]["sha"], metadata["head"]["sha"]
         checkout = root / "source"
         checkout_pr(repo, pr, head, checkout)
         check_snapshot(repo, pr, base, head)
-        url = metadata["url"]
+        url = metadata["html_url"]
         hint = closer_look_context(repo, pr, bundle)
         context = f"""
 Read {bundle / 'pr.diff'} and use the PR checkout for source and tests.
@@ -180,7 +179,7 @@ Only report findings on changed right-side lines.
         (bundle / "review.txt").write_text(findings, encoding="utf-8")
         (bundle / "simplifications.txt").write_text(simplifications, encoding="utf-8")
 
-        final_findings = verify_findings(f"""Double-check {bundle / 'review.txt'} and {bundle / 'simplifications.txt'} against {url}.
+        result = verify_findings(f"""Double-check {bundle / 'review.txt'} and {bundle / 'simplifications.txt'} against {url}.
 Keep only findings worth posting, remove duplicates, and prefix simplifications with [Simplification].
 {context}
 Your final message must be a single JSON object, with no text outside it. Format:
@@ -190,8 +189,7 @@ Use kind "review" or "simplification". Omit start_line for single-line comments 
 Only include a suggestion if it fits one diff hunk and adds fewer than 15 green lines.
 Mention any separate edits, such as an import, in the comment body. Don't put a suggestion fence in the body.
 If there are no findings, return {{"comments":[]}}.
-""", checkout, bundle)
-        result = prepare_review(final_findings, checkout, diff_scope, metadata)
+""", checkout, bundle, diff_scope, metadata)
         result["repository"] = repo
         check_snapshot(repo, pr, base, head)
         write_json(result_path, result)

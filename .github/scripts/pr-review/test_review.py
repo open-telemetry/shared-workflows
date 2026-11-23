@@ -1,3 +1,4 @@
+import json
 import os
 import subprocess
 import tempfile
@@ -43,7 +44,8 @@ class ReviewTest(unittest.TestCase):
 
     def test_prepare_runs_the_three_passes_and_writes_the_checked_result(self):
         metadata = {
-            "number": 123, "url": "https://github.com/org/repo/pull/123", "baseRefOid": "base", "headRefOid": "head",
+            "number": 123, "html_url": "https://github.com/org/repo/pull/123",
+            "base": {"sha": "base"}, "head": {"sha": "head"},
         }
 
         with tempfile.TemporaryDirectory() as directory:
@@ -59,8 +61,8 @@ class ReviewTest(unittest.TestCase):
             first, second, final = [call.args for call in model.call_args_list]
             build.assert_called_once_with("org/repo", 123, first[4])
             self.assertEqual([first[:2], second[:2], final[:2]], [(runner.SOL, "max"), (runner.SOL, "max"), (runner.OPUS, "high")])
-            self.assertTrue(first[2].startswith(f"review {metadata['url']}, including Needs a closer look"))
-            self.assertTrue(second[2].startswith(f"are there any simplifications worth doing in {metadata['url']}?"))
+            self.assertTrue(first[2].startswith(f"review {metadata['html_url']}, including Needs a closer look"))
+            self.assertTrue(second[2].startswith(f"are there any simplifications worth doing in {metadata['html_url']}?"))
             self.assertIn("review.txt", final[2])
             self.assertIn("simplifications.txt", final[2])
             checkout.assert_called_once_with("org/repo", 123, "head", first[3])
@@ -74,24 +76,50 @@ class ReviewTest(unittest.TestCase):
 
     def test_verifier_retries_a_plain_text_answer(self):
         checkout, bundle = Path("source"), Path("input")
+        metadata = {"number": 123, "base": {"sha": "base"}, "head": {"sha": "head"}}
         with mock.patch.object(
             runner, "model_pass", side_effect=["No findings.", '```json\n{"comments":[]}\n```']
         ) as model:
-            self.assertEqual(runner.verify_findings("Check both passes.", checkout, bundle), {"comments": []})
+            result = runner.verify_findings("Check both passes.", checkout, bundle, {}, metadata)
 
+        self.assertEqual(result, {
+            "pr": 123,
+            "base_sha": "base",
+            "review": {"commit_id": "head", "body": "No findings.", "comments": []},
+        })
         first, retry = [call.args for call in model.call_args_list]
         self.assertEqual(first, (runner.OPUS, "high", "Check both passes.", checkout, bundle))
         self.assertEqual(retry[:2], first[:2])
         self.assertTrue(retry[2].startswith(first[2]))
-        self.assertIn("did not return the required JSON", retry[2])
+        self.assertIn("did not pass validation", retry[2])
         self.assertEqual(retry[3:], first[3:])
 
+    def test_verifier_retries_when_json_anchors_a_comment_to_an_unchanged_line(self):
+        comment = {"kind": "review", "path": "example.txt", "line": 1, "body": "A finding"}
+        answers = [
+            json.dumps({"body": "Review summary", "comments": [{**comment, "line": line}]})
+            for line in (1, 2)
+        ]
+        metadata = {"number": 123, "base": {"sha": "base"}, "head": {"sha": "head"}}
+        scope = {"example.txt": {"hunks": [(1, 2)], "changed_lines": [2]}}
+        with mock.patch.object(runner, "model_pass", side_effect=answers) as model:
+            result = runner.verify_findings("Check both passes.", Path("source"), Path("input"), scope, metadata)
+
+        self.assertEqual(model.call_count, 2)
+        self.assertEqual(result["review"]["comments"], [
+            {"path": "example.txt", "line": 2, "side": "RIGHT", "body": "A finding"},
+        ])
+
     def test_verifier_fails_closed_after_two_invalid_answers(self):
+        comment = {"kind": "review", "path": "example.txt", "line": 2, "body": "A finding"}
+        answers = ["No findings.", json.dumps({"comments": [comment]})]
+        metadata = {"number": 123, "base": {"sha": "base"}, "head": {"sha": "head"}}
+        scope = {"example.txt": {"hunks": [(1, 2)], "changed_lines": [2]}}
         with (
-            mock.patch.object(runner, "model_pass", side_effect=["No findings.", '{"body":"No findings."}']) as model,
-            self.assertRaisesRegex(RuntimeError, "did not return valid findings JSON after two attempts"),
+            mock.patch.object(runner, "model_pass", side_effect=answers) as model,
+            self.assertRaisesRegex(RuntimeError, "after two attempts: .*must include a review summary"),
         ):
-            runner.verify_findings("Check both passes.", Path("source"), Path("input"))
+            runner.verify_findings("Check both passes.", Path("source"), Path("input"), scope, metadata)
         self.assertEqual(model.call_count, 2)
 
     def test_model_pass_uses_the_final_answer_not_progress_or_tool_output(self):
@@ -227,7 +255,7 @@ class ReviewTest(unittest.TestCase):
             source.write_text("scratch edit\nbefore\n", encoding="utf-8")
 
             scope = {"example.txt": {"hunks": [(1, 2)], "changed_lines": [2]}}
-            metadata = {"number": 123, "baseRefOid": "base", "headRefOid": head}
+            metadata = {"number": 123, "base": {"sha": "base"}, "head": {"sha": head}}
             for added in (14, 15):
                 with self.subTest(added=added):
                     replacement = "unchanged\n" + "new\n" * added
@@ -255,7 +283,7 @@ class ReviewTest(unittest.TestCase):
                 }]},
                 Path("source"),
                 {"example.txt": {"hunks": [(1, 2)], "changed_lines": [2]}},
-                {"number": 123, "baseRefOid": "base", "headRefOid": "head"},
+                {"number": 123, "base": {"sha": "base"}, "head": {"sha": "head"}},
             )
         git.assert_not_called()
         self.assertEqual(result["review"]["comments"], [
@@ -317,11 +345,11 @@ class ReviewTest(unittest.TestCase):
                 api.assert_not_called()
 
     def test_snapshot_rejects_closed_or_changed_prs_in_the_target_repository(self):
-        for state, base, head in (("CLOSED", "base", "head"), ("OPEN", "new", "head"), ("OPEN", "base", "new")):
+        for state, base, head in (("closed", "base", "head"), ("open", "new", "head"), ("open", "base", "new")):
             with (
                 self.subTest(state=state, base=base, head=head),
                 mock.patch.object(runner, "pr_metadata", return_value={
-                    "state": state, "baseRefOid": base, "headRefOid": head,
+                    "state": state, "base": {"sha": base}, "head": {"sha": head},
                 }) as metadata,
                 self.assertRaisesRegex(RuntimeError, "changed or closed"),
             ):

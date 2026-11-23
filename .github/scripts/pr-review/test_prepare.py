@@ -17,18 +17,18 @@ class ReviewBundleTest(unittest.TestCase):
         self.assertEqual(scope["example.txt"]["changed_lines"], [1, 2])
 
     def test_metadata_uses_explicit_target_and_checks_resolved_url(self):
-        metadata = {"number": 123, "url": "https://github.com/org/repo/pull/123"}
+        metadata = {"number": 123, "html_url": "https://github.com/org/repo/pull/123"}
         with mock.patch.object(prepare, "gh_json", return_value=metadata) as api:
             self.assertEqual(prepare.pr_metadata("org/repo", 123), metadata)
-            self.assertEqual(api.call_args.args[0][:6], ["pr", "view", "123", "--repo", "org/repo", "--json"])
-            api.return_value = {**metadata, "url": "https://github.com/other/repo/pull/123"}
+            api.assert_called_once_with(["api", "repos/org/repo/pulls/123"])
+            api.return_value = {**metadata, "html_url": "https://github.com/other/repo/pull/123"}
             with self.assertRaisesRegex(RuntimeError, "different PR target"):
                 prepare.pr_metadata("org/repo", 123)
 
     def test_bundle_writes_only_the_diff_from_the_target_repository(self):
         metadata = {
-            "state": "OPEN", "url": "https://github.com/org/repo/pull/123",
-            "headRefOid": "head",
+            "state": "open", "html_url": "https://github.com/org/repo/pull/123",
+            "head": {"sha": "head"},
         }
         diff = "diff --git a/example.txt b/example.txt\n+++ b/example.txt\n@@ -0,0 +1 @@\n+text\n"
         with (
@@ -42,7 +42,9 @@ class ReviewBundleTest(unittest.TestCase):
             self.assertEqual(scope, {"example.txt": {"changed_lines": [1], "hunks": [(1, 1)]}})
             self.assertEqual({path.name for path in bundle.iterdir()}, {"pr.diff"})
             self.assertEqual((bundle / "pr.diff").read_text(encoding="utf-8"), diff)
-            gh.assert_called_once_with(["pr", "diff", "123", "--repo", "org/repo", "--color", "never"])
+            gh.assert_called_once_with([
+                "api", "-H", "Accept: application/vnd.github.diff", "repos/org/repo/pulls/123",
+            ])
 
 
 if __name__ == "__main__":

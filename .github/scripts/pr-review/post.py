@@ -31,13 +31,13 @@ def small_suggestion(
 
 
 def prepare_review(
-    findings: dict[str, Any], checkout: Path, diff_scope: DiffScope, metadata: dict[str, Any]
+    findings: object, checkout: Path, diff_scope: DiffScope, metadata: dict[str, Any]
 ) -> dict[str, Any]:
-    raw_comments = findings.get("comments") if isinstance(findings, dict) else None
-    if not isinstance(raw_comments, list):
+    if not isinstance(findings, dict) or not isinstance(findings.get("comments"), list):
         raise ValueError("Final findings must contain a comments array")
+    head = metadata["head"]["sha"]
     comments: list[dict[str, Any]] = []
-    for raw in raw_comments:
+    for raw in findings["comments"]:
         if (
             not isinstance(raw, dict)
             or raw.get("kind") not in ("review", "simplification")
@@ -61,7 +61,7 @@ def prepare_review(
             body = f"[Simplification] {body}"
         if "suggestion" in raw:
             suggestion = raw["suggestion"]
-            if small_suggestion(checkout, metadata["headRefOid"], path, start, line, suggestion):
+            if small_suggestion(checkout, head, path, start, line, suggestion):
                 body += "\n\n```suggestion\n" + suggestion.rstrip("\n") + "\n```"
             else:
                 progress(f"Kept comment without suggestion for {path!r}:{line}")
@@ -74,8 +74,8 @@ def prepare_review(
         raise ValueError("Final findings with comments must include a review summary")
     return {
         "pr": metadata["number"],
-        "base_sha": metadata["baseRefOid"],
-        "review": {"commit_id": metadata["headRefOid"], "body": body if comments else "No findings.", "comments": comments},
+        "base_sha": metadata["base"]["sha"],
+        "review": {"commit_id": head, "body": body if comments else "No findings.", "comments": comments},
     }
 
 
