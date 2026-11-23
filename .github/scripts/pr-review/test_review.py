@@ -54,7 +54,6 @@ class ReviewTest(unittest.TestCase):
             with (
                 mock.patch.object(runner, "build_bundle", return_value=(metadata, {})) as build,
                 mock.patch.object(runner, "checkout_pr") as checkout,
-                mock.patch.object(runner, "check_snapshot") as check,
                 mock.patch.object(runner, "closer_look_context", return_value=", including Needs a closer look https://example.test"),
                 mock.patch.object(runner, "model_pass", side_effect=["review", "simplifications", '{"comments":[]}']) as model,
             ):
@@ -69,7 +68,6 @@ class ReviewTest(unittest.TestCase):
             checkout.assert_called_once_with("org/repo", 123, "head", first[3])
             self.assertEqual(second[3:], first[3:])
             self.assertEqual(final[3:], first[3:])
-            self.assertEqual(check.call_count, 2)
             result = json.loads(path.read_text(encoding="utf-8"))
             self.assertEqual(result["repository"], "org/repo")
             self.assertEqual(result["review"], {

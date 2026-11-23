@@ -14,7 +14,7 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
-from common import check_snapshot, gh_json, progress, write_json
+from common import gh_json, progress, write_json
 from post import publish_result
 from prepare import DiffScope, build_bundle, prepare_review
 from sandbox import AGENT_TIMEOUT_MINUTES, checkout_pr, run_in_sandbox
@@ -23,7 +23,6 @@ from sandbox import AGENT_TIMEOUT_MINUTES, checkout_pr, run_in_sandbox
 COPILOT_REVIEWER = "copilot-pull-request-reviewer[bot]"
 SOL = "gpt-6.1-sol"
 OPUS = "claude-opus-5.5"
-SANDBOX_READY = "[review] Verified sandbox checkout and credential isolation"
 
 
 def latest_copilot_review(
@@ -67,18 +66,15 @@ def model_pass(model: str, effort: str, prompt: str, checkout: Path, bundle: Pat
     progress(f"Running {model} with {effort} reasoning")
     prompt_file = bundle / "prompt.txt"
     prompt_file.write_text(prompt, encoding="utf-8")
-    try:
-        result = run_in_sandbox(
-            checkout, bundle,
-            [
-                "--model", model, "--reasoning-effort", effort, "--output-format", "json", "--no-ask-user",
-                "--no-auto-update", "--no-custom-instructions", "--disable-builtin-mcps", "--allow-all-paths",
-                "--available-tools", "view", "glob", "grep", "bash", "shell",
-                "--allow-tool", "view", "glob", "grep", "shell",
-            ],
-        )
-    except subprocess.TimeoutExpired as error:
-        raise RuntimeError(f"{model} sandbox timed out after {error.timeout:g} seconds") from error
+    result = run_in_sandbox(
+        checkout, bundle,
+        [
+            "--model", model, "--reasoning-effort", effort, "--output-format", "json", "--no-ask-user",
+            "--no-auto-update", "--no-custom-instructions", "--disable-builtin-mcps", "--allow-all-paths",
+            "--available-tools", "view", "glob", "grep", "bash", "shell",
+            "--allow-tool", "view", "glob", "grep", "shell",
+        ],
+    )
     if result.returncode == 124:
         raise RuntimeError(f"{model} exceeded its {AGENT_TIMEOUT_MINUTES}-minute sandbox time limit")
     answer = ""
@@ -104,8 +100,6 @@ def model_pass(model: str, effort: str, prompt: str, checkout: Path, bundle: Pat
             detail = detail.replace(token, "[redacted]")
         detail = " ".join(detail.split())[:1000]
         raise RuntimeError(f"{model} failed (exit {result.returncode}): {detail}")
-    if SANDBOX_READY in (result.stderr or ""):
-        print(SANDBOX_READY, flush=True)
     if not answer:
         raise RuntimeError(f"{model} did not return an answer")
     return answer
@@ -138,10 +132,8 @@ def prepare_result(repo: str, pr: int, result_path: Path) -> None:
         bundle.mkdir()
         shutil.copyfile(Path(__file__).with_name("launch-copilot.sh"), bundle / "launch-copilot.sh")
         metadata, diff_scope = build_bundle(repo, pr, bundle)
-        base, head = metadata["base"]["sha"], metadata["head"]["sha"]
         checkout = root / "source"
-        checkout_pr(repo, pr, head, checkout)
-        check_snapshot(repo, pr, base, head)
+        checkout_pr(repo, pr, metadata["head"]["sha"], checkout)
         url = metadata["html_url"]
         hint = closer_look_context(repo, pr, bundle)
         context = f"""
@@ -171,7 +163,6 @@ Mention any separate edits, such as an import, in the comment body. Don't put a 
 If there are no findings, return {{"comments":[]}}.
 """, checkout, bundle, diff_scope, metadata)
         result["repository"] = repo
-        check_snapshot(repo, pr, base, head)
         write_json(result_path, result)
         progress(f"Prepared {len(result['review']['comments'])} review comments")
 
