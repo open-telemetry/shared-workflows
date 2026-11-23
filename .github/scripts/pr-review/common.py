@@ -29,25 +29,32 @@ def run(
     timeout: int | None = None,
     cwd: Path | None = None,
     env: dict[str, str] | None = None,
+    preserve_newlines: bool = False,
 ) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(
+    result = subprocess.run(
         cmd,
         capture_output=True,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
+        encoding=None if preserve_newlines else "utf-8",
+        errors=None if preserve_newlines else "replace",
         check=check,
         timeout=timeout,
         cwd=cwd,
         env=env,
         creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
     )
+    if preserve_newlines:
+        return subprocess.CompletedProcess(
+            result.args, result.returncode,
+            result.stdout.decode("utf-8", errors="replace"),
+            result.stderr.decode("utf-8", errors="replace"),
+        )
+    return result
 
 
-def gh(args: list[str]) -> subprocess.CompletedProcess[str]:
+def gh(args: list[str], *, preserve_newlines: bool = False) -> subprocess.CompletedProcess[str]:
     cmd = ["gh", *args]
     progress("Running: " + shlex.join(cmd))
-    return run(cmd)
+    return run(cmd, preserve_newlines=preserve_newlines)
 
 
 def gh_json(args: list[str]) -> Any:

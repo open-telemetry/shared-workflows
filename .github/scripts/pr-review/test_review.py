@@ -433,7 +433,7 @@ class ReviewTest(unittest.TestCase):
 
             git("init", "--quiet", "--template=")
             source = checkout / "example.txt"
-            source.write_text("unchanged\nbefore\n", encoding="utf-8")
+            source.write_bytes(b"unchanged\rcontinuation\nbefore\n")
             git("add", "example.txt")
             git("-c", "user.name=Test", "-c", "user.email=test@example.test", "commit", "--quiet", "-m", "Fixture")
             head = git("rev-parse", "HEAD")
@@ -443,7 +443,7 @@ class ReviewTest(unittest.TestCase):
             metadata = {"number": 123, "base": {"sha": "base"}, "head": {"sha": head}}
             for added in (14, 15):
                 with self.subTest(added=added):
-                    replacement = "unchanged\n" + "new\n" * added
+                    replacement = "unchanged\rcontinuation\n" + "new\n" * added
                     result = prepare.prepare_review({
                         "body": "Review summary",
                         "comments": [{

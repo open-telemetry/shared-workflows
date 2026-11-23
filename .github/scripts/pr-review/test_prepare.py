@@ -1,3 +1,4 @@
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -80,21 +81,30 @@ class ReviewBundleTest(unittest.TestCase):
             "state": "open", "html_url": "https://github.com/org/repo/pull/123",
             "base": {"repo": {"private": False}}, "head": {"sha": "head"},
         }
-        diff = "diff --git a/example.txt b/example.txt\n+++ b/example.txt\n@@ -0,0 +1 @@\n+text\n"
+        diff = (
+            b"diff --git a/example.txt b/example.txt\n+++ b/example.txt\n"
+            b"@@ -0,0 +1,2 @@\n+text\r+on the same line\n+next line\r\n"
+        )
+        run = common.run
+
+        def emit_diff(_cmd, **kwargs):
+            return run([sys.executable, "-c", f"import sys; sys.stdout.buffer.write({diff!r})"], **kwargs)
+
         with (
             tempfile.TemporaryDirectory() as directory,
             mock.patch.object(prepare, "pr_metadata", return_value=metadata),
-            mock.patch.object(prepare, "gh", return_value=mock.Mock(stdout=diff)) as gh,
+            mock.patch.object(common, "run", side_effect=emit_diff) as gh_run,
         ):
             bundle = Path(directory)
             result, scope = prepare.build_bundle("org/repo", 123, bundle)
             self.assertEqual(result, metadata)
-            self.assertEqual(scope, {"example.txt": {"changed_lines": [1], "hunks": [(1, 1)]}})
+            self.assertEqual(scope, {"example.txt": {"changed_lines": [1, 2], "hunks": [(1, 2)]}})
             self.assertEqual({path.name for path in bundle.iterdir()}, {"pr.diff"})
-            self.assertEqual((bundle / "pr.diff").read_text(encoding="utf-8"), diff)
-            gh.assert_called_once_with([
-                "api", "-H", "Accept: application/vnd.github.diff", "repos/org/repo/pulls/123",
-            ])
+            self.assertEqual((bundle / "pr.diff").read_bytes(), diff)
+            gh_run.assert_called_once_with(
+                ["gh", "api", "-H", "Accept: application/vnd.github.diff", "repos/org/repo/pulls/123"],
+                preserve_newlines=True,
+            )
 
     def test_bundle_rejects_private_targets_before_fetching_the_diff(self):
         metadata = {"state": "open", "base": {"repo": {"private": True}}}

@@ -29,7 +29,7 @@ def main() -> None:
         stub = root / "stub" / "bin" / "copilot"
         stub.parent.mkdir(parents=True)
         stub.write_text(
-            '#!/bin/bash\nset -eu\ntouch "$GITHUB_WORKSPACE/smoke-write"\necho "Copilot stub ran"\n',
+            '#!/bin/bash\nset -eu\ntest -f .git/HEAD\ntouch smoke-write\necho "Copilot stub ran"\n',
             encoding="utf-8",
             newline="\n",
         )
