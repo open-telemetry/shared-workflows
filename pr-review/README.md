@@ -15,7 +15,7 @@ gh workflow run pr-review.yml --repo open-telemetry/shared-workflows \
 
 ## Check the result
 
-`otelbot[bot]` posts findings on the PR, or a **No findings** comment. If the PR closes or its base or head changes during the run, the workflow skips posting.
+`otelbot[bot]` posts findings on the PR, or a **No findings** comment. Both start with a note that the review is experimental. If the PR closes or its base or head changes during the run, the workflow skips posting.
 
 The **Review, simplify, and double-check** step shows tool activity after each pass, not live. Look there for model and tool timings, safe tool arguments, result sizes when available, and calls that did not finish. The log omits tool output.
 

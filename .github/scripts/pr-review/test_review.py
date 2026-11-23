@@ -543,7 +543,9 @@ class ReviewTest(unittest.TestCase):
 
             def submit(args):
                 self.assertEqual(args[:5], ["api", "repos/org/repo/pulls/123/reviews", "--method", "POST", "--input"])
-                self.assertEqual(json.loads(Path(args[5]).read_text(encoding="utf-8")), {**review, "event": "COMMENT"})
+                self.assertEqual(json.loads(Path(args[5]).read_text(encoding="utf-8")), {
+                    **review, "body": f"{post.EXPERIMENT_NOTICE}\n\nOne finding.", "event": "COMMENT",
+                })
                 return {"html_url": "https://example.test/review"}
 
             with (
@@ -570,7 +572,8 @@ class ReviewTest(unittest.TestCase):
                 post.publish_result("org/repo", 123, path)
             check.assert_called_once_with("org/repo", 123, "base", "head")
             api.assert_called_once_with(
-                ["api", "-X", "POST", "repos/org/repo/issues/123/comments", "-f", "body=No findings."]
+                ["api", "-X", "POST", "repos/org/repo/issues/123/comments", "-f",
+                 f"body={post.EXPERIMENT_NOTICE}\n\nNo findings."]
             )
 
     def test_publisher_rejects_result_for_another_repository_or_pr(self):
