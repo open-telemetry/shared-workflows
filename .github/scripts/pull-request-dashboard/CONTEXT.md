@@ -36,10 +36,9 @@ diagnostics keep typed classification results and freeze only the source
 discussion records.
 
 `state.py` owns the JSON boundary. Its dashboard facts, stored-result, and state
-codecs translate the immutable contracts to the version 18
-`dashboard-state.json` shape. Earlier versions regenerate because they cannot
-reconstruct both unresolved-thread ownership and whether an unresolved inline
-thread needs author action. Malformed pull request entries are discarded
+codecs translate the immutable contracts to `dashboard-routing-state.json`.
+On a branch without that file, the loader can read compatible versions of
+`dashboard-state.json`. Malformed pull request entries are discarded
 individually, so one bad entry does not prevent valid entries from loading.
 
 `dashboard_state_update.py` owns the acceptance transaction for one pull request

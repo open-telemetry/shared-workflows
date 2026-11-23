@@ -587,6 +587,12 @@ a small set of repositories before it reaches everyone.
 Both channels always use the webhook queue. Release selection changes processor
 code, not webhook routing or execution ownership.
 
+Workers read the legacy accepted routing snapshot and Copilot intents until
+they write `dashboard-routing-state.json` and `copilot-review-intent-state.json`
+on the accepted branch. Active workers use those files once present, so a
+drain still running the preceding release cannot overwrite them. The delivery
+branch still rejects workers with older delivery versions.
+
 Repository configuration is never staged. `repositories.json` is always read
 from the commit that triggered the run, so opting a repository in, or changing
 its settings, takes effect on the next run in both channels.

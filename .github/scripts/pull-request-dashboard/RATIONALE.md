@@ -788,7 +788,7 @@ the implementation understandable and operationally cheap.
 - A confirmed 404 from the pull request lookup removes that status-comment
   target from the pending rollout. Other lookup and comment-write failures stay
   pending and fail delivery.
-- The dashboard issue is rendered from `dashboard-state.json` and the target
+- The dashboard issue is rendered from `dashboard-routing-state.json` and the target
   repository's current open PR list after delivery. Worker advancement does not
   invalidate an in-progress publish or trigger a retry loop. The resulting issue
   can briefly show snapshot A after workers accept B. A later targeted

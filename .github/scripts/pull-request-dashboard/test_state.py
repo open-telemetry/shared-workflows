@@ -31,6 +31,7 @@ from state import (
     AUTHOR_NUDGE_STATE_VERSION,
     BACKFILL_STATE_VERSION,
     COPILOT_REVIEW_FALLBACK_STATE_VERSION,
+    COPILOT_REVIEW_INTENTS_FILE,
     COPILOT_REVIEW_REQUEST_STATE_VERSION,
     DASHBOARD_STATE_COMPATIBLE_VERSIONS,
     DASHBOARD_STATE_VERSION,
@@ -757,6 +758,32 @@ class StateTest(unittest.TestCase):
                 },
             )
 
+    def test_predecessor_writes_cannot_replace_migrated_accepted_state(self) -> None:
+        for dashboard_version, request_version in ((20, 8), (21, 9)):
+            with self.subTest(version=dashboard_version), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                legacy_snapshot = root / "dashboard-state.json"
+                legacy_intents = root / "copilot-review-request-state.json"
+                hold_started = "2026-08-16T08:00:00Z"
+                save_state_file(legacy_snapshot, {
+                    "initial_backfill_complete": True,
+                    "prs": {"7": {"route": "author", "facts": {"route_held_since": hold_started}}},
+                }, dashboard_version)
+                save_state_file(legacy_intents, {"prs": {"7": {"head_sha": "old-head"}}}, request_version)
+
+                with patch("state._state_dir", root), patch("state._using_delivery_state", False):
+                    migrated = load_dashboard_state_cache()
+                    self.assertTrue(migrated.initial_backfill_complete)
+                    self.assertEqual(hold_started, migrated.result_for(7).facts.route_held_since)
+                    self.assertEqual({"7": {"head_sha": "old-head"}}, load_copilot_review_requests())
+                    save_dashboard_state_cache(migrated)
+                    save_copilot_review_requests({"8": {"head_sha": "next-head"}})
+
+                    save_state_file(legacy_snapshot, {"prs": {"9": {"route": "author"}}}, dashboard_version)
+                    save_state_file(legacy_intents, {"prs": {}}, request_version)
+                    self.assertEqual(migrated, load_dashboard_state_cache())
+                    self.assertEqual({"8": {"head_sha": "next-head"}}, load_copilot_review_requests())
+
     def test_dashboard_state_rejects_incompatible_versions(self) -> None:
         for version in range(11, DASHBOARD_STATE_VERSION):
             with self.subTest(version=version), tempfile.TemporaryDirectory() as temp_dir:
@@ -1347,7 +1374,7 @@ class StateTest(unittest.TestCase):
         self.assertEqual(BACKFILL_STATE_VERSION, 3)
         self.assertEqual(NOTIFICATION_STATE_VERSION, 3)
         self.assertEqual(DASHBOARD_STATE_VERSION, 27)
-        self.assertEqual(DASHBOARD_STATE_COMPATIBLE_VERSIONS, ())
+        self.assertEqual(DASHBOARD_STATE_COMPATIBLE_VERSIONS, (20, 21))
         self.assertEqual(STATUS_COMMENT_ROLLOUT_STATE_VERSION, 3)
         self.assertEqual(STATUS_COMMENT_REVISION, 22)
         self.assertEqual(AUTHOR_NUDGE_STATE_VERSION, 4)
@@ -1438,7 +1465,7 @@ class StateTest(unittest.TestCase):
                     }
                 },
             )
-            self.assertTrue(copilot_review_request_state_path().exists())
+            self.assertTrue((Path(temp_dir) / COPILOT_REVIEW_INTENTS_FILE).exists())
 
     def test_retry_snapshot_preserves_posted_author_nudge(self) -> None:
         self.assertEqual(

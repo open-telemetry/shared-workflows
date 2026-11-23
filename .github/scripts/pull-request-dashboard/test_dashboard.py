@@ -104,6 +104,7 @@ from reviewer_state import ReviewerInput, prepare_reviewers
 from routing_decision import resolve_routing
 from state import (
     COPILOT_REVIEW_REQUEST_STATE_FILE,
+    COPILOT_REVIEW_INTENTS_FILE,
     COPILOT_REVIEW_REQUEST_STATE_VERSION,
     load_copilot_review_cycles,
 )
@@ -573,7 +574,7 @@ class DashboardReviewCycleSnapshotTest(unittest.IsolatedAsyncioTestCase):
                 record_copilot_review_observation(7, None, datetime(2026, 8, 16, 12, tzinfo=timezone.utc))
             self.assertEqual(
                 {"version": COPILOT_REVIEW_REQUEST_STATE_VERSION, "prs": {}},
-                json.loads(receipt.read_text(encoding="utf-8")),
+                json.loads((accepted_repo / COPILOT_REVIEW_INTENTS_FILE).read_text(encoding="utf-8")),
             )
 
             with patch("state._state_dir", root / "delivery" / "repo"):

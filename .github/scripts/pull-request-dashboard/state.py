@@ -34,6 +34,7 @@ from telemetry import session as telemetry_session
 DASHBOARD_MARKDOWN_FILE = "pull-request-dashboard.md"
 BACKFILL_STATE_FILE = "backfill-state.json"
 AUTHOR_NUDGE_STATE_FILE = "author-nudge-state.json"
+COPILOT_REVIEW_INTENTS_FILE = "copilot-review-intent-state.json"
 COPILOT_REVIEW_REQUEST_STATE_FILE = "copilot-review-request-state.json"
 COPILOT_REVIEW_FALLBACK_STATE_FILE = "copilot-review-fallback-state.json"
 STATUS_COMMENT_ROLLOUT_STATE_FILE = "status-comment-rollout-state.json"
@@ -47,10 +48,10 @@ FULL_PUBLISH_DELIVERED_FILE = "full-publish-delivered.json"
 # changes. A worker lower in any component skips delivery; after claiming the
 # current vector, ordinary state loaders may regenerate mismatched disposable
 # caches. Every constant ending in _STATE_VERSION or _REVISION is included.
-# dashboard-state.json: accepted PR routing results and backfill readiness.
+# dashboard-routing-state.json: accepted PR routing results and backfill readiness.
 # Routing facts carry conditional before/after Copilot cycle updates.
 DASHBOARD_STATE_VERSION = 27
-DASHBOARD_STATE_COMPATIBLE_VERSIONS: tuple[int, ...] = ()
+DASHBOARD_STATE_COMPATIBLE_VERSIONS = (20, 21)
 # backfill-state.json: round-robin cursor used by full dashboard refreshes.
 BACKFILL_STATE_VERSION = 3
 # notification-state.json: pending and delivered Slack notification records.
@@ -105,7 +106,7 @@ def using_delivery_state() -> bool:
 
 
 def dashboard_state_path() -> Path:
-    return accepted_state_dir() / "dashboard-state.json"
+    return accepted_state_dir() / "dashboard-routing-state.json"
 
 
 def notification_state_path() -> Path:
@@ -1077,11 +1078,15 @@ def encode_dashboard_state(state: DashboardState) -> dict[str, Any]:
 
 
 def load_dashboard_state_cache() -> DashboardState | None:
-    state = load_state_file(
-        dashboard_state_path(),
-        DASHBOARD_STATE_VERSION,
-        compatible_versions=DASHBOARD_STATE_COMPATIBLE_VERSIONS,
-    )
+    path = dashboard_state_path()
+    if path.exists():
+        state = load_state_file(path, DASHBOARD_STATE_VERSION)
+    else:
+        state = load_state_file(
+            path.with_name("dashboard-state.json"),
+            DASHBOARD_STATE_VERSION,
+            compatible_versions=DASHBOARD_STATE_COMPATIBLE_VERSIONS,
+        )
     if state is None:
         return None
     return decode_dashboard_state(state)
@@ -1311,26 +1316,27 @@ def reconcile_copilot_review_requests(
 
 
 def load_copilot_review_requests() -> dict[str, Any]:
-    requests = load_copilot_review_request_state_file(copilot_review_request_state_path())
-    if using_delivery_state():
-        requests = reconcile_copilot_review_requests(
-            load_copilot_review_request_state_file(
-                accepted_state_dir() / COPILOT_REVIEW_REQUEST_STATE_FILE
-            ),
-            requests,
-        )
-    return requests
+    intent_path = accepted_state_dir() / COPILOT_REVIEW_INTENTS_FILE
+    intents = load_copilot_review_request_state_file(
+        intent_path if intent_path.exists()
+        else intent_path.with_name(COPILOT_REVIEW_REQUEST_STATE_FILE)
+    )
+    if not using_delivery_state():
+        return intents
+    receipts = load_copilot_review_request_state_file(copilot_review_request_state_path())
+    return reconcile_copilot_review_requests(intents, receipts)
 
 
 def save_copilot_review_requests(requests: dict[str, Any]) -> None:
+    path = copilot_review_request_state_path()
     if not using_delivery_state():
-        # First delivery seeds its journal from accepted state. Preserve legacy sends
-        # there before rewriting the receipts that identify them.
+        path = accepted_state_dir() / COPILOT_REVIEW_INTENTS_FILE
+        # First delivery seeds its journal from accepted state.
         cycles = load_copilot_review_cycles_file(copilot_review_fallback_state_path(), legacy_only=True)
         if cycles:
             save_copilot_review_cycles(cycles)
     save_state_file(
-        copilot_review_request_state_path(),
+        path,
         {"prs": requests},
         COPILOT_REVIEW_REQUEST_STATE_VERSION,
     )

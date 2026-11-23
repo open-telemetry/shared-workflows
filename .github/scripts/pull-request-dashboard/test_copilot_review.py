@@ -38,8 +38,8 @@ from dashboard_test_support import (
 from github_cli import CopilotReviewRequestRejected, TransientGhError, request_copilot_review
 from routing_decision import RoutingInput, resolve_routing
 from state import (
+    COPILOT_REVIEW_INTENTS_FILE,
     copilot_review_fallback_state_path,
-    copilot_review_request_state_path,
     load_copilot_review_cycles,
     load_copilot_review_requests,
     record_copilot_review_cycle_observations,
@@ -741,6 +741,10 @@ class CopilotReviewDeliveryTest(unittest.TestCase):
         ))
         self.in_commit = False
         self.durable = {}
+        self.tracked_paths = (
+            Path(directory.name) / COPILOT_REVIEW_INTENTS_FILE,
+            copilot_review_fallback_state_path(),
+        )
         self.request_error = None
         self.requested_head = None
         self.request = self.enterContext(patch(
@@ -767,14 +771,14 @@ class CopilotReviewDeliveryTest(unittest.TestCase):
             action()
             self.durable = {
                 path: path.read_bytes()
-                for path in (copilot_review_request_state_path(), copilot_review_fallback_state_path())
+                for path in self.tracked_paths
                 if path.exists()
             }
         finally:
             self.in_commit = False
 
     def restore(self) -> None:
-        for path in (copilot_review_request_state_path(), copilot_review_fallback_state_path()):
+        for path in self.tracked_paths:
             if path in self.durable:
                 path.write_bytes(self.durable[path])
             else:

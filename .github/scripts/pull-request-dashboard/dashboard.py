@@ -24,7 +24,7 @@ Architecture overview
 
 Workflow state that survives across runs lives on the state branch:
 
-    REPO/dashboard-state.json     cached per-PR routing results
+    REPO/dashboard-routing-state.json     cached per-PR routing results
     REPO/notification-state.json  per-PR Slack history
 
 The dashboard issue body is rendered fresh each run; no state markers are
