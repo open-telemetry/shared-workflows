@@ -363,7 +363,7 @@ records only. They never replay the review request.
 
 | What happens | What the worker records |
 |---|---|
-| GitHub rejects the request or the CLI cannot start | Restore the previous budget. |
+| GitHub definitively rejects the request or the CLI cannot start | Restore the previous budget. |
 | GitHub returns the preflight head | Record an accepted send, not a completed review. |
 | GitHub returns a different head or the response is lost | Record an uncertain send against the preflight head. |
 | The worker crashes before saving the outcome | Leave the reservation in place. |
@@ -399,9 +399,8 @@ not reset the request count. The renewed window is committed with the next
 dispatch reservation. Credential changes do not cancel in-flight requests.
 Coverage and same-head limits are saved even when no request is queued.
 Delivery records current-head coverage even when an intent's head or routing
-fingerprint no longer matches. Dashboard calculation owns the intents and
-removes them when they are no longer needed. Delivery writes only the dispatch
-journal for Copilot requests.
+fingerprint no longer matches. Delivery reads request intents from the accepted
+routing snapshot and writes only the dispatch journal for Copilot requests.
 
 On first delivery, the worker copies legacy records from the accepted branch
 if the delivery branch does not already have those files. Legacy attempts and
@@ -613,11 +612,11 @@ a small set of repositories before it reaches everyone.
 Both channels always use the webhook queue. Release selection changes processor
 code, not webhook routing or execution ownership.
 
-Workers read the legacy accepted routing snapshot and Copilot intents until
-they write `dashboard-routing-state.json` and `copilot-review-intent-state.json`
-on the accepted branch. Active workers use those files once present, so a
-drain still running the preceding release cannot overwrite them. The delivery
-branch still rejects workers with older delivery versions.
+Workers read the legacy accepted routing snapshot until they write
+`dashboard-routing-state.json` on the accepted branch. The current processor
+reads routing results and Copilot intents from that snapshot once it exists.
+A drain still running the preceding release cannot overwrite it. The delivery
+branch rejects workers with older delivery versions.
 
 Repository configuration is never staged. `repositories.json` is always read
 from the commit that triggered the run, so opting a repository in, or changing

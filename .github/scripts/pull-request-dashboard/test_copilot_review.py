@@ -22,11 +22,8 @@ from copilot_review import (
     set_copilot_review_request_needed,
     stale_request_reason,
 )
-from copilot_review_delivery import (
-    deliver_copilot_review_requests,
-    record_copilot_review_observation,
-)
-from dashboard_contracts import CopilotReviewCycleUpdate, DashboardRoute
+from copilot_review_delivery import deliver_copilot_review_requests
+from dashboard_contracts import CopilotReviewCycleUpdate, DashboardFacts, DashboardRoute
 from dashboard_test_support import (
     actor,
     copilot_review_cycle,
@@ -38,11 +35,10 @@ from dashboard_test_support import (
 from github_cli import CopilotReviewRequestRejected, TransientGhError, request_copilot_review
 from routing_decision import RoutingInput, resolve_routing
 from state import (
-    COPILOT_REVIEW_INTENTS_FILE,
     COPILOT_REVIEW_REQUEST_STATE_FILE,
     copilot_review_dispatch_state_path,
+    dashboard_state_path,
     load_copilot_review_cycles,
-    load_copilot_review_intents,
     record_copilot_review_cycle_observations,
     save_copilot_review_cycles,
     save_dashboard_state_cache,
@@ -85,14 +81,6 @@ def routing_snapshot(raw: dict | None = None, **changes):
     return replace(
         build_routing_snapshot(normalize_pull_request_source(raw)),
         **changes,
-    )
-
-
-def review_result(route: str = "approver", **fact_changes):
-    return stored_dashboard_result(
-        7,
-        route,
-        facts=dashboard_facts(**fact_changes),
     )
 
 
@@ -776,7 +764,7 @@ class CopilotReviewDeliveryTest(unittest.TestCase):
         self.in_commit = False
         self.durable = {}
         self.tracked_paths = (
-            Path(directory.name) / COPILOT_REVIEW_INTENTS_FILE,
+            dashboard_state_path(),
             copilot_review_dispatch_state_path(),
         )
         self.request_error = None
@@ -788,16 +776,14 @@ class CopilotReviewDeliveryTest(unittest.TestCase):
         self.commit(lambda: 0)
 
     def enqueue(self, *, quota_exhausted=False) -> None:
-        record_copilot_review_observation(
-            7,
-            review_result(
+        save_dashboard_state_cache(dashboard_state(stored_dashboard_result(
+            7, facts=dashboard_facts(
                 head_sha=self.snapshot.head_sha,
                 copilot_review_request_needed=True,
                 copilot_review_quota_exhausted=quota_exhausted,
                 copilot_request_fingerprint="accepted-fingerprint",
             ),
-            self.now,
-        )
+        )))
 
     def commit(self, action) -> None:
         self.in_commit = True
@@ -859,24 +845,54 @@ class CopilotReviewDeliveryTest(unittest.TestCase):
         return persist
 
     def test_first_request_is_durable_and_not_repeated_without_confirmation(self) -> None:
-        intent = self.tracked_paths[0].read_bytes()
+        accepted = dashboard_state_path().read_bytes()
         self.assertEqual([], self.deliver())
         self.request.assert_called_once_with("PR_node")
         cycle = load_copilot_review_cycles()["7"]
         self.assertEqual("accepted", cycle.phase)
         self.assertEqual(1, cycle.request_count)
         self.assertEqual(format_ts(self.now), cycle.sent_at)
-        self.assertEqual(intent, self.tracked_paths[0].read_bytes())
+        self.assertEqual(accepted, dashboard_state_path().read_bytes())
         for _ in range(3):
             self.enqueue()
             self.assertEqual([], self.deliver())
         self.request.assert_called_once()
 
+    def test_only_accepted_results_with_a_complete_intent_can_dispatch(self) -> None:
+        legacy = dashboard_state_path().with_name("copilot-review-intent-state.json")
+        legacy.write_text(json.dumps({
+            "version": 13, "prs": {"7": {
+                "head_sha": self.snapshot.head_sha,
+                "copilot_request_fingerprint": self.snapshot.copilot_request_fingerprint,
+            }},
+        }), encoding="utf-8")
+        facts = dashboard_facts(
+            copilot_review_request_needed=True,
+            head_sha=self.snapshot.head_sha,
+            copilot_request_fingerprint=self.snapshot.copilot_request_fingerprint,
+        )
+        for accepted in (
+            dashboard_state(),
+            dashboard_state().with_draft(7),
+            dashboard_state(stored_dashboard_result(7, facts=replace(
+                facts, copilot_review_request_needed=False,
+            ))),
+            dashboard_state(stored_dashboard_result(7, facts=replace(facts, head_sha=""))),
+            dashboard_state(stored_dashboard_result(7, facts=replace(
+                facts, copilot_request_fingerprint="",
+            ))),
+        ):
+            with self.subTest(accepted=accepted):
+                save_dashboard_state_cache(accepted)
+                self.assertEqual([], self.deliver())
+                self.fetch_snapshot.assert_not_called()
+                self.request.assert_not_called()
+
     def test_expired_legacy_receipt_does_not_skip_matching_intent(self) -> None:
         accepted = self.tracked_paths[0].parent
         delivery = accepted / "delivery"
         delivery.mkdir()
-        intent = load_copilot_review_intents()["7"]
+        accepted_snapshot = dashboard_state_path().read_bytes()
         with (
             patch("state._state_dir", delivery),
             patch("state._accepted_state_dir", accepted),
@@ -885,7 +901,11 @@ class CopilotReviewDeliveryTest(unittest.TestCase):
             receipt = delivery / COPILOT_REVIEW_REQUEST_STATE_FILE
             legacy = json.dumps({
                 "version": 9,
-                "prs": {"7": {**intent, "requested_at": format_ts(self.now)}},
+                "prs": {"7": {
+                    "head_sha": self.snapshot.head_sha,
+                    "copilot_request_fingerprint": self.snapshot.copilot_request_fingerprint,
+                    "requested_at": format_ts(self.now),
+                }},
             })
             receipt.write_text(legacy, encoding="utf-8")
             self.tracked_paths = (self.tracked_paths[0], copilot_review_dispatch_state_path())
@@ -893,7 +913,7 @@ class CopilotReviewDeliveryTest(unittest.TestCase):
             self.assertEqual([], self.deliver())
             self.request.assert_not_called()
             self.assertEqual("unknown", load_copilot_review_cycles()["7"].phase)
-            self.assertEqual({"7": intent}, load_copilot_review_intents())
+            self.assertEqual(accepted_snapshot, dashboard_state_path().read_bytes())
 
             self.now += timedelta(hours=4)
             self.assertEqual([], self.deliver())
@@ -1613,114 +1633,16 @@ class CopilotReviewDeliveryTest(unittest.TestCase):
         self.request.assert_not_called()
 
 
-class CopilotReviewIntentTest(unittest.TestCase):
-    @patch("copilot_review_delivery.save_copilot_review_intents")
-    @patch(
-        "copilot_review_delivery.load_copilot_review_intents",
-        return_value={},
-    )
-    def test_records_request_for_current_head(self, _load_requests, save_requests) -> None:
-        record_copilot_review_observation(
-            7,
-            review_result(
-                head_sha="current-head",
-                copilot_review_request_needed=True,
-                copilot_request_fingerprint="accepted-fingerprint",
-            ),
-            NOW,
-        )
-
-        save_requests.assert_called_once_with({
-            "7": {
-                "head_sha": "current-head",
-                "observed_at": "2026-07-20T02:00:00+00:00",
-                "copilot_request_fingerprint": "accepted-fingerprint",
-            },
-        })
-
-    @patch("copilot_review_delivery.save_copilot_review_intents")
-    @patch(
-        "copilot_review_delivery.load_copilot_review_intents",
-        return_value={
-            "7": {
-                "head_sha": "old-head",
-            }
-        },
-    )
-    def test_new_head_replaces_previous_request(self, _load_requests, save_requests) -> None:
-        record_copilot_review_observation(
-            7,
-            review_result(
-                head_sha="current-head",
-                copilot_review_request_needed=True,
-                copilot_request_fingerprint="accepted-fingerprint",
-            ),
-            NOW,
-        )
-
-        save_requests.assert_called_once_with({
-            "7": {
-                "head_sha": "current-head",
-                "observed_at": "2026-07-20T02:00:00+00:00",
-                "copilot_request_fingerprint": "accepted-fingerprint",
-            },
-        })
-
-    @patch("copilot_review_delivery.save_copilot_review_intents")
-    @patch(
-        "copilot_review_delivery.load_copilot_review_intents",
-        return_value={
-            "7": {
-                "head_sha": "current-head",
-            }
-        },
-    )
-    def test_clears_request_when_no_longer_needed(self, _load_requests, save_requests) -> None:
-        record_copilot_review_observation(
-            7,
-            review_result(
-                "maintainer",
-                head_sha="current-head",
-                copilot_review_request_needed=False,
-            ),
-            NOW,
-        )
-
-        save_requests.assert_called_once_with({})
-
-    @patch("copilot_review_delivery.save_copilot_review_intents")
-    @patch(
-        "copilot_review_delivery.load_copilot_review_intents",
-        return_value={},
-    )
-    def test_missing_first_review_without_request_needed_does_not_enqueue(
-        self,
-        _load_requests,
-        save_requests,
-    ) -> None:
-        record_copilot_review_observation(
-            7,
-            review_result(
-                head_sha="current-head",
-                copilot_review_exists=False,
-                copilot_review_request_needed=False,
-            ),
-            NOW,
-        )
-
-        save_requests.assert_called_once_with({})
-
-
 class StaleRequestReasonTest(unittest.TestCase):
-    ENTRY = {
-        "head_sha": "current-head",
-        "copilot_request_fingerprint": "accepted-fingerprint",
-    }
+    FACTS = dashboard_facts(
+        head_sha="current-head",
+        copilot_request_fingerprint="accepted-fingerprint",
+    )
     OPEN_PR = {"state": "OPEN", "isDraft": False}
 
     def reason(
         self,
-        entry: dict | None = None,
+        facts: DashboardFacts | None = None,
         pr: dict | None = None,
         current_head: str = "current-head",
         current_routing_fingerprint: str = "accepted-fingerprint",
@@ -1737,7 +1659,7 @@ class StaleRequestReasonTest(unittest.TestCase):
             copilot_request_fingerprint=current_routing_fingerprint,
         )
         return stale_request_reason(
-            self.ENTRY if entry is None else entry,
+            self.FACTS if facts is None else facts,
             snapshot,
         )
 
@@ -1765,7 +1687,7 @@ class StaleRequestReasonTest(unittest.TestCase):
     def test_reports_missing_observed_fingerprint(self) -> None:
         self.assertEqual(
             "no routing fingerprint was observed",
-            self.reason(entry={"head_sha": "current-head"}),
+            self.reason(facts=replace(self.FACTS, copilot_request_fingerprint="")),
         )
 
     def test_reports_unavailable_check_results(self) -> None:

@@ -13,7 +13,6 @@ import unittest
 from unittest.mock import ANY, AsyncMock, Mock, call, patch
 
 from copilot_review import set_copilot_review_request_needed
-from copilot_review_delivery import record_copilot_review_observation
 from dashboard import (
     BACKFILL_RECORDED_FAILURE_STATUS,
     apply_targeted_dashboard_update,
@@ -118,11 +117,10 @@ from state import (
     COPILOT_REVIEW_DISPATCH_STATE_FILE,
     COPILOT_REVIEW_FALLBACK_STATE_VERSION,
     COPILOT_REVIEW_REQUEST_STATE_FILE,
-    COPILOT_REVIEW_INTENTS_FILE,
-    COPILOT_REVIEW_REQUEST_STATE_VERSION,
     decode_dashboard_facts,
     encode_dashboard_facts,
     load_copilot_review_cycles,
+    save_dashboard_state_cache,
     stored_result,
 )
 
@@ -565,9 +563,10 @@ class DashboardReviewCycleSnapshotTest(unittest.IsolatedAsyncioTestCase):
             accepted_repo = accepted / "repo"
             accepted_repo.mkdir(parents=True)
             receipt = accepted_repo / COPILOT_REVIEW_REQUEST_STATE_FILE
-            receipt.write_text(json.dumps({"version": 11, "prs": {"7": {
+            legacy = json.dumps({"version": 11, "prs": {"7": {
                 "head_sha": "previous-head", "requested_at": "2026-08-16T11:59:00Z",
-            }}}), encoding="utf-8")
+            }}})
+            receipt.write_text(legacy, encoding="utf-8")
             with (
                 patch("dashboard.state_branch.configure_git"),
                 patch(
@@ -588,11 +587,10 @@ class DashboardReviewCycleSnapshotTest(unittest.IsolatedAsyncioTestCase):
             self.assertEqual("2026-08-16T11:59:00+00:00", migrated.started_at)
 
             with patch("state._state_dir", accepted_repo), patch("state._using_delivery_state", False):
-                record_copilot_review_observation(7, None, datetime(2026, 8, 16, 12, tzinfo=timezone.utc))
-            self.assertEqual(
-                {"version": COPILOT_REVIEW_REQUEST_STATE_VERSION, "prs": {}},
-                json.loads((accepted_repo / COPILOT_REVIEW_INTENTS_FILE).read_text(encoding="utf-8")),
-            )
+                save_dashboard_state_cache(dashboard_state(stored_dashboard_result(
+                    7, facts=dashboard_facts(head_sha="next-head"),
+                )))
+            self.assertEqual(legacy, receipt.read_text(encoding="utf-8"))
 
             with patch("state._state_dir", root / "delivery" / "repo"):
                 initialize_delivery_state(accepted_repo)
@@ -3983,7 +3981,6 @@ class InitialBackfillCompletionTest(unittest.TestCase):
                     )
 
 class StatusCommentQueueTest(unittest.TestCase):
-    @patch("dashboard.record_copilot_review_observation")
     @patch("dashboard.record_author_nudge_observation")
     @patch("dashboard.save_dashboard_update_state", return_value=0)
     @patch("dashboard.enqueue_status_comment_update")
@@ -4001,7 +3998,6 @@ class StatusCommentQueueTest(unittest.TestCase):
         enqueue_update: Mock,
         save_state: Mock,
         record_nudge: Mock,
-        _record_copilot: Mock,
     ) -> None:
         args = Namespace(pr_number=None)
 
@@ -4022,7 +4018,6 @@ class StatusCommentQueueTest(unittest.TestCase):
             sorted(record_nudge.call_args_list, key=lambda value: value.args[0]),
         )
 
-    @patch("dashboard.record_copilot_review_observation")
     @patch("dashboard.record_author_nudge_observation")
     @patch("dashboard.clear_backfill_pr_failure")
     @patch("dashboard.save_dashboard_update_state", return_value=0)
@@ -4035,7 +4030,6 @@ class StatusCommentQueueTest(unittest.TestCase):
         _save_state: Mock,
         _clear_backfill_failure: Mock,
         record_nudge: Mock,
-        record_copilot: Mock,
     ) -> None:
         starting_result = stored_dashboard_result(12)
         evaluated_result = evaluation_success(
@@ -4069,13 +4063,7 @@ class StatusCommentQueueTest(unittest.TestCase):
             ANY,
             prepare_due=True,
         )
-        record_copilot.assert_called_once_with(
-            12,
-            accepted_result,
-            record_nudge.call_args.args[2],
-        )
 
-    @patch("dashboard.record_copilot_review_observation")
     @patch("dashboard.record_author_nudge_observation")
     @patch("dashboard.clear_backfill_pr_failure")
     @patch("dashboard.save_dashboard_update_state", return_value=0)
@@ -4088,7 +4076,6 @@ class StatusCommentQueueTest(unittest.TestCase):
         _save_state: Mock,
         _clear_backfill_failure: Mock,
         record_nudge: Mock,
-        _record_copilot: Mock,
     ) -> None:
         accepted_result = stored_dashboard_result(
             12,

@@ -36,8 +36,7 @@ from telemetry import session as telemetry_session
 DASHBOARD_MARKDOWN_FILE = "pull-request-dashboard.md"
 BACKFILL_STATE_FILE = "backfill-state.json"
 AUTHOR_NUDGE_STATE_FILE = "author-nudge-state.json"
-COPILOT_REVIEW_INTENTS_FILE = "copilot-review-intent-state.json"
-# Legacy intents on the accepted branch and receipts on the delivery branch.
+# Legacy request receipts used to seed the dispatch journal.
 COPILOT_REVIEW_REQUEST_STATE_FILE = "copilot-review-request-state.json"
 COPILOT_REVIEW_FALLBACK_STATE_FILE = "copilot-review-fallback-state.json"
 COPILOT_REVIEW_DISPATCH_STATE_FILE = "copilot-review-dispatch-state.json"
@@ -62,8 +61,8 @@ BACKFILL_STATE_VERSION = 3
 NOTIFICATION_STATE_VERSION = 3
 # author-nudge-state.json: waiting episodes and delivered author reminders.
 AUTHOR_NUDGE_STATE_VERSION = 5
-# copilot-review-intent-state.json: accepted routing intents for review requests.
-COPILOT_REVIEW_REQUEST_STATE_VERSION = 13
+# Delivery version for Copilot request intents in the accepted routing snapshot.
+COPILOT_REVIEW_REQUEST_STATE_VERSION = 14
 # copilot-review-dispatch-state.json: dispatch journal, with a shared delivery
 # version key for both the journal and the legacy fallback state.
 COPILOT_REVIEW_FALLBACK_STATE_VERSION = 11
@@ -1304,29 +1303,6 @@ def save_author_nudges(nudges: dict[str, Any]) -> None:
         author_nudge_state_path(),
         {"prs": nudges},
         AUTHOR_NUDGE_STATE_VERSION,
-    )
-
-
-def load_copilot_review_intents() -> dict[str, Any]:
-    path = accepted_state_dir() / COPILOT_REVIEW_INTENTS_FILE
-    state = load_state_file(
-        path if path.exists() else path.with_name(COPILOT_REVIEW_REQUEST_STATE_FILE),
-        COPILOT_REVIEW_REQUEST_STATE_VERSION,
-        compatible_versions=(6, 7, 8, 9, 10, 11, 12),
-    )
-    if state is None or not isinstance(state.get("prs"), dict):
-        return {}
-    intents = {key: dict(entry or {}) for key, entry in state["prs"].items()}
-    for intent in intents.values():
-        intent.pop("requested_at", None)
-    return intents
-
-
-def save_copilot_review_intents(intents: dict[str, Any]) -> None:
-    save_state_file(
-        accepted_state_dir() / COPILOT_REVIEW_INTENTS_FILE,
-        {"prs": intents},
-        COPILOT_REVIEW_REQUEST_STATE_VERSION,
     )
 
 

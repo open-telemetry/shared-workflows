@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from contextlib import nullcontext
 from dataclasses import replace
-from datetime import datetime, timezone
 from pathlib import Path
 import json
 import tempfile
@@ -11,8 +10,12 @@ from unittest.mock import ANY, Mock, call, patch
 
 import delivery
 import state
-from copilot_review_delivery import record_copilot_review_observation
-from dashboard_test_support import dashboard_facts, pull_request_source, stored_dashboard_result
+from dashboard_test_support import (
+    dashboard_facts,
+    dashboard_state,
+    pull_request_source,
+    stored_dashboard_result,
+)
 from routing_snapshot import build_routing_snapshot
 
 
@@ -658,13 +661,12 @@ class CopilotDeliveryTransactionTest(unittest.TestCase):
         self.request = self.enterContext(patch(
             "copilot_review_delivery.request_copilot_review", return_value=self.snapshot.head_sha,
         ))
-        record_copilot_review_observation(
-            7, stored_dashboard_result(7, facts=dashboard_facts(
+        state.save_dashboard_state_cache(dashboard_state(stored_dashboard_result(
+            7, facts=dashboard_facts(
                 head_sha=self.snapshot.head_sha, copilot_review_request_needed=True,
                 copilot_request_fingerprint=self.snapshot.copilot_request_fingerprint,
-            )),
-            datetime(2026, 8, 16, 8, tzinfo=timezone.utc),
-        )
+            ),
+        )))
 
     def test_rpc_is_outside_every_cas_callback_even_when_callbacks_are_replayed(self) -> None:
         in_callback = False

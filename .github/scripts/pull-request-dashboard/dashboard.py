@@ -291,9 +291,6 @@ from classification_policy import (
 from author_nudge import (
     record_author_nudge_observation,
 )
-from copilot_review_delivery import (
-    record_copilot_review_observation,
-)
 from dashboard_contracts import (
     CopilotReviewCycle,
     DashboardState,
@@ -672,11 +669,6 @@ def apply_dashboard_update_effects(
             acceptance.accepted_result,
             observed_at,
             prepare_due=prepare_author_nudges,
-        )
-        record_copilot_review_observation(
-            pr_number,
-            acceptance.accepted_result,
-            observed_at,
         )
 
 

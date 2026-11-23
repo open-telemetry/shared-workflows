@@ -22,7 +22,6 @@ import delivery
 import state
 import state_branch
 from copilot_review import refresh_copilot_review_cycle
-from copilot_review_delivery import record_copilot_review_observation
 from dashboard_contracts import CopilotReviewCycle, CopilotReviewCycleUpdate
 from dashboard_test_support import (
     copilot_review_cycle,
@@ -151,8 +150,7 @@ class CopilotReviewGitIntegrationTest(unittest.TestCase):
         self.accepted = self.root / "accepted" / REPO_KEY
         state.set_delivery_state_dirs(self.seed / REPO_KEY, self.accepted)
         self.snapshot = build_routing_snapshot(pull_request_source())
-        self.save_observation()
-        self.save_intent()
+        self.save_observation(copilot_review_request_needed=True)
         delivery.initialize_delivery_state(self.accepted)
         state.save_delivery_versions(state.current_delivery_versions())
         self.publish_seed()
@@ -170,20 +168,12 @@ class CopilotReviewGitIntegrationTest(unittest.TestCase):
 
     def save_observation(self, **changes: object) -> None:
         state.save_dashboard_state_cache(dashboard_state(stored_dashboard_result(
-            7, facts=dashboard_facts(head_sha=self.snapshot.head_sha, **changes),
+            7, facts=dashboard_facts(
+                head_sha=self.snapshot.head_sha,
+                copilot_request_fingerprint=self.snapshot.copilot_request_fingerprint,
+                **changes,
+            ),
         )))
-
-    def save_intent(self) -> None:
-        with (
-            patch.object(state, "_state_dir", self.accepted),
-            patch.object(state, "_using_delivery_state", False),
-        ):
-            record_copilot_review_observation(
-                7, stored_dashboard_result(7, facts=dashboard_facts(
-                    head_sha=self.snapshot.head_sha, copilot_review_request_needed=True,
-                    copilot_request_fingerprint=self.snapshot.copilot_request_fingerprint,
-                )), NOW,
-            )
 
     def remote_json(self, filename: str) -> dict:
         return json.loads(self.git(
@@ -326,7 +316,6 @@ class CopilotReviewGitIntegrationTest(unittest.TestCase):
 
         self.snapshot = replace(self.snapshot, head_sha="next-head")
         self.save_observation(copilot_review_request_needed=True)
-        self.save_intent()
         self.finish_worker(self.start_worker("later"))
         self.assertEqual(saved, self.cycle())
         self.assertEqual([], self.requests())
@@ -386,10 +375,6 @@ class CopilotReviewGitIntegrationTest(unittest.TestCase):
             copilot_review_cycle_update=CopilotReviewCycleUpdate(
                 observed, replace(observed, phase="complete"),
             ),
-        )
-        state.save_state_file(
-            self.accepted / state.COPILOT_REVIEW_INTENTS_FILE, {"prs": {}},
-            state.COPILOT_REVIEW_REQUEST_STATE_VERSION,
         )
         self.finish_worker(self.start_worker("observer"))
         self.assertEqual(reserved, self.cycle())

@@ -489,16 +489,13 @@ the implementation understandable and operationally cheap.
   four-hour timeout remains a backstop for reviews that never report.
 - GitHub's quota-exhausted notice is a failed attempt even though GitHub records
   it as a review of the current head. It does not count as a completed review
-  or confirm delivery. Without a configured fallback token, it immediately
-  releases the Copilot gate and disables automatic requests for that PR,
-  including after later pushes. Required checks and actionable feedback still
-  apply, including Copilot threads that still need author action.
+  or confirm delivery. GitHub does not identify which requester paid for the
+  review, so a quota notice does not permanently disable requests.
 - The optional `COPILOT_REVIEW_FALLBACK_TOKEN` changes the requester after quota
-  exhaustion and keeps the Copilot gate active under its normal rules. The
-  fallback records existing quota notice IDs before requesting, so only a new
-  notice exhausts it. An exhausted fallback permanently stops automatic
-  requests for that PR and immediately releases only the Copilot gate. A genuine
-  current-head review still counts if the PR also has a quota-failure notice.
+  exhaustion. An idle quota-blocked cycle releases the Copilot gate while
+  fallback credentials are absent. Restoring credentials can start a new retry
+  window without resetting the request count. Required checks and actionable
+  feedback still apply.
 - A first-review request is reachable only where a re-request already is — the
   pull request would otherwise route to reviewers or maintainers, and Copilot is
   not already a pending requested reviewer.

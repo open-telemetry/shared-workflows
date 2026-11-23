@@ -5,7 +5,6 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import replace
 from datetime import datetime
-from typing import Any
 
 from dashboard_contracts import CopilotReviewCycle, DashboardFacts
 from routing_snapshot import RoutingSnapshot
@@ -309,7 +308,7 @@ def named_checks(checks: Sequence[Check]) -> str:
 
 
 def stale_request_reason(
-    entry: dict[str, Any],
+    facts: DashboardFacts,
     snapshot: RoutingSnapshot,
 ) -> str:
     if snapshot.state != "OPEN":
@@ -318,10 +317,10 @@ def stale_request_reason(
         return "pull request is a draft"
     if snapshot.has_conflicts:
         return "pull request has merge conflicts"
-    if snapshot.head_sha != entry.get("head_sha"):
+    if snapshot.head_sha != facts.head_sha:
         return (
             f"head is {snapshot.head_sha or '(missing)'} "
-            f"but {entry.get('head_sha') or '(missing)'} was observed"
+            f"but {facts.head_sha or '(missing)'} was observed"
         )
     # The fingerprint below only detects change, so checks that were failing
     # when the request was recorded and still are would otherwise pass through.
@@ -335,15 +334,12 @@ def stale_request_reason(
     ]
     if failing:
         return f"required checks are failing: {named_checks(failing)}"
-    if not entry.get("copilot_request_fingerprint"):
+    if not facts.copilot_request_fingerprint:
         return "no routing fingerprint was observed"
-    if (
-        snapshot.copilot_request_fingerprint
-        != entry["copilot_request_fingerprint"]
-    ):
+    if snapshot.copilot_request_fingerprint != facts.copilot_request_fingerprint:
         return (
             f"routing fingerprint is {snapshot.copilot_request_fingerprint} "
-            f"but {entry['copilot_request_fingerprint']} was observed; "
+            f"but {facts.copilot_request_fingerprint} was observed; "
             f"components {snapshot.copilot_request_component_digests}"
         )
     return ""
