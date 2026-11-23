@@ -699,12 +699,14 @@ class CopilotDeliveryTransactionTest(unittest.TestCase):
             ))
         self.request.assert_not_called()
 
-    def test_stale_receipt_discard_keeps_other_migrated_uncertainty_barriers(self) -> None:
-        requests = state.load_copilot_review_requests()
-        requests["8"] = {"head_sha": "old-head", "requested_at": "2026-08-16T11:59:00Z"}
-        state.copilot_review_request_state_path().write_text(json.dumps({
-            "version": 8, "prs": requests,
-        }), encoding="utf-8")
+    def test_delivery_migrates_legacy_receipts_even_without_a_current_intent(self) -> None:
+        receipt = self.root / state.COPILOT_REVIEW_REQUEST_STATE_FILE
+        legacy = json.dumps({
+            "version": 8, "prs": {
+                "8": {"head_sha": "old-head", "requested_at": "2026-08-16T11:59:00Z"},
+            },
+        })
+        receipt.write_text(legacy, encoding="utf-8")
         snapshot = replace(self.snapshot, head_sha="next-head")
         with (
             patch("copilot_review_delivery.fetch_routing_snapshot", return_value=snapshot),
@@ -717,7 +719,7 @@ class CopilotDeliveryTransactionTest(unittest.TestCase):
                 "open-telemetry/example", "otelbot/pull-request-dashboard-state/example", self.root,
             ))
         self.request.assert_not_called()
-        self.assertNotIn("7", state.load_copilot_review_requests())
+        self.assertEqual(legacy, receipt.read_text(encoding="utf-8"))
         cycle = state.load_copilot_review_cycles()["8"]
         self.assertEqual("unknown", cycle.phase)
         self.assertEqual("legacy-2026-08-16T11:59:00+00:00", cycle.dispatch_id)

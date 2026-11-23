@@ -131,7 +131,7 @@ the implementation understandable and operationally cheap.
 
 - Dashboard calculations and delivery intent are stored on a worker-owned git
   branch rather than in the live dashboard issue body.
-- Notification receipts, author-nudge and Copilot-request receipts,
+- Notification and author-nudge receipts, the Copilot dispatch journal,
   status-comment rollout progress, and delivery-version claims are stored on a
   publisher-owned delivery branch. Both branches keep files namespaced by
   target repository.
@@ -147,9 +147,9 @@ the implementation understandable and operationally cheap.
   durable compare-and-swap boundary.
 - The first publisher copies compatible receipt state from the accepted branch
   before writing a delivery-state marker. Existing notification history,
-  pending reminders, Copilot requests, status-comment rollout work, and version
-  claims therefore move without a gap. Later publishers reconcile immutable
-  worker intent with receipts instead of copying mutable files back.
+  pending reminders, Copilot attempts, status-comment rollout work, and version
+  claims therefore move without a gap. Later publishers read accepted intent
+  without writing back to the accepted branch.
 - A missing repository state branch is bootstrapped by non-PR backfills. The
   dashboard state records when every open non-draft PR has been populated at
   least once. Targeted PR runs, dashboard publishing, status comments, and
@@ -508,27 +508,14 @@ the implementation understandable and operationally cheap.
   here, so a review is never spent on code CI is about to reject. Waiting for
   pending checks only delayed the request by however long the suite took, on top
   of the hour the missing review had already cost.
-- For the same reason the recorded request is fingerprinted without the checks.
-  The fingerprint exists to discard a request whose routing has since changed,
-  and a request made while CI runs would otherwise be discarded by the next
-  check to finish, one pass at a time, for as long as the suite lasted.
-- Delivery re-validates the review state against live data and discards the
-  request when a review already covers the current head, which is what
-  happens when one lands between the observation and the delivery.
-- A request counts as delivered only once GitHub shows Copilot as a pending
-  reviewer. The mutation answers with success even when GitHub records nothing:
-  on one pull request it accepted the same request every hour for nineteen
-  hours and created no review request at all, and the pull request stayed held
-  on its author until a person requested the review by hand. Stamping the
-  request from the mutation's own answer hides that completely, because success
-  is silent and only discards are logged.
-- The read back is retried a few times, because GitHub takes a moment to record
-  a request it did accept. A Copilot review of the current head is accepted as
-  the same proof, since a short review can finish and take Copilot out of the
-  pending requests again before the read.
-- A request GitHub dropped is left undelivered, so the next pass sends it again
-  and logs the miss. It needs no alarm of its own: the pull request stays held
-  while the review is missing, and the hold expiring is what reports it.
+- The intent fingerprint excludes checks. Otherwise each finished check could
+  invalidate the intent. Delivery still checks for live failures and skips the
+  send if Copilot is pending or already reviewed the current head.
+- The dispatch journal records a reservation before delivery calls GitHub. A
+  returned success is not a review and does not guarantee GitHub will show
+  Copilot as pending. The journal blocks immediate duplicates while the worker
+  waits for GitHub to show what happened. If the review never arrives, the
+  routing hold expires and reports the stall.
 - The reviewers column marks Copilot pending only where the gate applies and a
   review is genuinely in flight — a requested re-review, or the automatic first
   review on a PR the Copilot gate is holding because Copilot has never reviewed

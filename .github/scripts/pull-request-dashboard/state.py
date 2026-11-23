@@ -35,6 +35,7 @@ DASHBOARD_MARKDOWN_FILE = "pull-request-dashboard.md"
 BACKFILL_STATE_FILE = "backfill-state.json"
 AUTHOR_NUDGE_STATE_FILE = "author-nudge-state.json"
 COPILOT_REVIEW_INTENTS_FILE = "copilot-review-intent-state.json"
+# Legacy intents on the accepted branch and receipts on the delivery branch.
 COPILOT_REVIEW_REQUEST_STATE_FILE = "copilot-review-request-state.json"
 COPILOT_REVIEW_FALLBACK_STATE_FILE = "copilot-review-fallback-state.json"
 STATUS_COMMENT_ROLLOUT_STATE_FILE = "status-comment-rollout-state.json"
@@ -58,8 +59,8 @@ BACKFILL_STATE_VERSION = 3
 NOTIFICATION_STATE_VERSION = 3
 # author-nudge-state.json: waiting episodes and delivered author reminders.
 AUTHOR_NUDGE_STATE_VERSION = 4
-# copilot-review-request-state.json: pending and delivered review requests.
-COPILOT_REVIEW_REQUEST_STATE_VERSION = 12
+# copilot-review-intent-state.json: accepted routing intents for review requests.
+COPILOT_REVIEW_REQUEST_STATE_VERSION = 13
 COPILOT_REVIEW_FALLBACK_STATE_VERSION = 9
 # status-comment-rollout-state.json: target/completed renderer revisions and queue.
 STATUS_COMMENT_ROLLOUT_STATE_VERSION = 3
@@ -115,10 +116,6 @@ def notification_state_path() -> Path:
 
 def author_nudge_state_path() -> Path:
     return state_dir() / AUTHOR_NUDGE_STATE_FILE
-
-
-def copilot_review_request_state_path() -> Path:
-    return state_dir() / COPILOT_REVIEW_REQUEST_STATE_FILE
 
 
 def copilot_review_fallback_state_path() -> Path:
@@ -1282,62 +1279,30 @@ def save_author_nudges(nudges: dict[str, Any]) -> None:
     )
 
 
-def load_copilot_review_request_state_file(path: Path) -> dict[str, Any]:
+def load_copilot_review_intents() -> dict[str, Any]:
+    path = accepted_state_dir() / COPILOT_REVIEW_INTENTS_FILE
     state = load_state_file(
-        path,
+        path if path.exists() else path.with_name(COPILOT_REVIEW_REQUEST_STATE_FILE),
         COPILOT_REVIEW_REQUEST_STATE_VERSION,
-        compatible_versions=(6, 7, 8, 9, 10, 11),
+        compatible_versions=(6, 7, 8, 9, 10, 11, 12),
     )
     if state is None or not isinstance(state.get("prs"), dict):
         return {}
-    return state["prs"]
+    intents = {key: dict(entry or {}) for key, entry in state["prs"].items()}
+    for intent in intents.values():
+        intent.pop("requested_at", None)
+    return intents
 
 
-def reconcile_copilot_review_requests(
-    intents: dict[str, Any],
-    receipts: dict[str, Any],
-) -> dict[str, Any]:
-    reconciled = {
-        key: dict(entry or {})
-        for key, entry in intents.items()
-    }
-    for key, receipt in receipts.items():
-        intent = reconciled.get(key)
-        receipt = dict(receipt or {})
-        if (
-            intent is not None
-            and receipt.get("requested_at")
-            and receipt.get("head_sha") == intent.get("head_sha")
-            and receipt.get("copilot_request_fingerprint")
-            == intent.get("copilot_request_fingerprint")
-        ):
-            intent["requested_at"] = receipt["requested_at"]
-    return reconciled
-
-
-def load_copilot_review_requests() -> dict[str, Any]:
-    intent_path = accepted_state_dir() / COPILOT_REVIEW_INTENTS_FILE
-    intents = load_copilot_review_request_state_file(
-        intent_path if intent_path.exists()
-        else intent_path.with_name(COPILOT_REVIEW_REQUEST_STATE_FILE)
-    )
+def save_copilot_review_intents(intents: dict[str, Any]) -> None:
     if not using_delivery_state():
-        return intents
-    receipts = load_copilot_review_request_state_file(copilot_review_request_state_path())
-    return reconcile_copilot_review_requests(intents, receipts)
-
-
-def save_copilot_review_requests(requests: dict[str, Any]) -> None:
-    path = copilot_review_request_state_path()
-    if not using_delivery_state():
-        path = accepted_state_dir() / COPILOT_REVIEW_INTENTS_FILE
         # First delivery seeds its journal from accepted state.
         cycles = load_copilot_review_cycles_file(copilot_review_fallback_state_path(), legacy_only=True)
         if cycles:
             save_copilot_review_cycles(cycles)
     save_state_file(
-        path,
-        {"prs": requests},
+        accepted_state_dir() / COPILOT_REVIEW_INTENTS_FILE,
+        {"prs": intents},
         COPILOT_REVIEW_REQUEST_STATE_VERSION,
     )
 
@@ -1482,29 +1447,31 @@ def load_copilot_review_cycles_file(
     if (
         not isinstance(receipts, dict)
         or type(receipts.get("version")) is not int
-        or receipts["version"] not in (6, 7, 8, 9, 10, 11, COPILOT_REVIEW_REQUEST_STATE_VERSION)
+        or receipts["version"] not in (6, 7, 8, 9, 10, 11, 12)
         or not isinstance(receipts.get("prs"), dict)
     ):
         raise ValueError(f"incompatible legacy Copilot review receipts: {receipt_path}")
-    if receipts["version"] != COPILOT_REVIEW_REQUEST_STATE_VERSION:
-        for key, entry in receipts["prs"].items():
-            if not isinstance(entry, dict):
-                raise ValueError("invalid legacy Copilot review receipt")
-            value = entry.get("requested_at")
-            if value is None or value == "":
-                continue
-            timestamp = parse_ts(value) if isinstance(value, str) else None
-            if timestamp is None or timestamp.tzinfo is None:
-                raise ValueError("invalid legacy Copilot review receipt timestamp")
-            prior = cycles.get(key)
-            prior_time = parse_ts(prior.started_at) if prior else None
-            if prior_time is None or timestamp > prior_time:
-                cycles[key] = CopilotReviewCycle(
-                    "", requester=prior.requester if prior else "app",
-                    phase="unknown", request_count=1,
-                    dispatch_id=f"legacy-{timestamp.astimezone(timezone.utc).isoformat()}",
-                    started_at=timestamp.isoformat(),
-                )
+    if receipts["version"] == 12:
+        # These receipts mirror the dispatch journal, not independent sends.
+        return cycles
+    for key, entry in receipts["prs"].items():
+        if not isinstance(entry, dict):
+            raise ValueError("invalid legacy Copilot review receipt")
+        value = entry.get("requested_at")
+        if value is None or value == "":
+            continue
+        timestamp = parse_ts(value) if isinstance(value, str) else None
+        if timestamp is None or timestamp.tzinfo is None:
+            raise ValueError("invalid legacy Copilot review receipt timestamp")
+        prior = cycles.get(key)
+        prior_time = parse_ts(prior.started_at) if prior else None
+        if prior_time is None or timestamp > prior_time:
+            cycles[key] = CopilotReviewCycle(
+                "", requester=prior.requester if prior else "app",
+                phase="unknown", request_count=1,
+                dispatch_id=f"legacy-{timestamp.astimezone(timezone.utc).isoformat()}",
+                started_at=timestamp.isoformat(),
+            )
     return cycles
 
 
@@ -1561,7 +1528,6 @@ def record_copilot_review_cycle_observations() -> None:
         ):
             continue
         apply_copilot_review_cycle_update(cycles, key, update)
-    # Persist migrated journals before any receipt can be rewritten.
     save_copilot_review_cycles(cycles)
 
 

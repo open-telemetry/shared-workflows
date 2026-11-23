@@ -104,17 +104,12 @@ def run_worker(checkout: Path, control: Path, name: str, mode: str) -> int:
             pause()
         return "next-head" if mode == "head-race" else durable["head_sha"]
 
-    def other_delivery(*_args: object, **_kwargs: object) -> list[str]:
-        if mode == "migrate-conflict":
-            state.save_copilot_review_requests({})
-        return []
-
     with (
         patch("copilot_review_delivery.fetch_routing_snapshot", side_effect=fetch_snapshot),
         patch("copilot_review_delivery.fetch_pr_reviews", return_value=[]),
         patch("copilot_review_delivery.request_copilot_review", side_effect=request),
         patch("copilot_review_delivery.utc_now", return_value=NOW),
-        patch.object(delivery, "deliver_from_state", side_effect=other_delivery),
+        patch.object(delivery, "deliver_from_state", return_value=[]),
         patch.object(state_branch, "push_state", side_effect=push),
     ):
         return delivery.deliver_with_state(
@@ -157,18 +152,10 @@ class CopilotReviewGitIntegrationTest(unittest.TestCase):
         state.set_delivery_state_dirs(self.seed / REPO_KEY, self.accepted)
         self.snapshot = build_routing_snapshot(pull_request_source())
         self.save_observation()
+        self.save_intent()
         delivery.initialize_delivery_state(self.accepted)
         state.save_delivery_versions(state.current_delivery_versions())
         state.save_copilot_review_cycles({})
-        record_copilot_review_observation(
-            7, stored_dashboard_result(7, facts=dashboard_facts(
-                head_sha=self.snapshot.head_sha, copilot_review_request_needed=True,
-                copilot_request_fingerprint=self.snapshot.copilot_request_fingerprint,
-            )), NOW,
-        )
-        (self.accepted / state.COPILOT_REVIEW_REQUEST_STATE_FILE).write_bytes(
-            state.copilot_review_request_state_path().read_bytes(),
-        )
         self.publish_seed()
 
     def git(self, directory: Path, *arguments: str) -> str:
@@ -186,6 +173,18 @@ class CopilotReviewGitIntegrationTest(unittest.TestCase):
         state.save_dashboard_state_cache(dashboard_state(stored_dashboard_result(
             7, facts=dashboard_facts(head_sha=self.snapshot.head_sha, **changes),
         )))
+
+    def save_intent(self) -> None:
+        with (
+            patch.object(state, "_state_dir", self.accepted),
+            patch.object(state, "_using_delivery_state", False),
+        ):
+            record_copilot_review_observation(
+                7, stored_dashboard_result(7, facts=dashboard_facts(
+                    head_sha=self.snapshot.head_sha, copilot_review_request_needed=True,
+                    copilot_request_fingerprint=self.snapshot.copilot_request_fingerprint,
+                )), NOW,
+            )
 
     def remote_json(self, filename: str) -> dict:
         return json.loads(self.git(
@@ -245,7 +244,7 @@ class CopilotReviewGitIntegrationTest(unittest.TestCase):
             self.assertTrue(state_branch.commit_staged_state(writer, "Advance review cycle", expected_sha))
             self.assertTrue(state_branch.push_state(writer, DELIVERY_BRANCH, expected_sha))
 
-    def test_legacy_migration_survives_a_real_cas_retry_and_receipt_rewrite(self) -> None:
+    def test_legacy_migration_reloads_the_latest_receipt_after_a_real_cas_retry(self) -> None:
         (self.seed / REPO_KEY / state.COPILOT_REVIEW_FALLBACK_STATE_FILE).write_text(json.dumps({
             "version": 1, "prs": {"7": {
                 "quota_failure_ids": [10], "attempted_at": (NOW - timedelta(hours=1)).isoformat(),
@@ -261,11 +260,12 @@ class CopilotReviewGitIntegrationTest(unittest.TestCase):
         self.publish_seed()
         worker = self.start_worker("migrator", "migrate-conflict")
         self.wait_ready(worker, "migrator")
-        receipt.write_text(json.dumps({
+        legacy = {
             "version": 8, "prs": {"7": {
                 "head_sha": "old-head", "requested_at": (NOW - timedelta(minutes=5)).isoformat(),
             }},
-        }), encoding="utf-8")
+        }
+        receipt.write_text(json.dumps(legacy), encoding="utf-8")
         (self.seed / REPO_KEY / "other-worker.json").write_text('{"kept":true}', encoding="utf-8")
         self.publish_seed()
         (self.root / "go").touch()
@@ -276,7 +276,7 @@ class CopilotReviewGitIntegrationTest(unittest.TestCase):
         self.assertEqual(1, self.cycle()["request_count"])
         self.assertEqual("2026-08-16T07:55:00+00:00", self.cycle()["started_at"])
         self.assertEqual({"kept": True}, self.remote_json("other-worker.json"))
-        self.assertEqual({}, self.remote_json(state.COPILOT_REVIEW_REQUEST_STATE_FILE)["prs"])
+        self.assertEqual(legacy, self.remote_json(state.COPILOT_REVIEW_REQUEST_STATE_FILE))
         self.assertEqual(
             state.COPILOT_REVIEW_FALLBACK_STATE_VERSION,
             self.remote_json(state.COPILOT_REVIEW_FALLBACK_STATE_FILE)["version"],
@@ -323,16 +323,7 @@ class CopilotReviewGitIntegrationTest(unittest.TestCase):
 
         self.snapshot = replace(self.snapshot, head_sha="next-head")
         self.save_observation(copilot_review_request_needed=True)
-        with (
-            patch.object(state, "_state_dir", self.accepted),
-            patch.object(state, "_using_delivery_state", False),
-        ):
-            record_copilot_review_observation(
-                7, stored_dashboard_result(7, facts=dashboard_facts(
-                    head_sha=self.snapshot.head_sha, copilot_review_request_needed=True,
-                    copilot_request_fingerprint=self.snapshot.copilot_request_fingerprint,
-                )), NOW,
-            )
+        self.save_intent()
         self.finish_worker(self.start_worker("later"))
         self.assertEqual(saved, self.cycle())
         self.assertEqual([], self.requests())
@@ -393,9 +384,10 @@ class CopilotReviewGitIntegrationTest(unittest.TestCase):
                 observed, replace(observed, phase="complete"),
             ),
         )
-        (self.accepted / state.COPILOT_REVIEW_REQUEST_STATE_FILE).write_text(json.dumps({
-            "version": state.COPILOT_REVIEW_REQUEST_STATE_VERSION, "prs": {},
-        }), encoding="utf-8")
+        state.save_state_file(
+            self.accepted / state.COPILOT_REVIEW_INTENTS_FILE, {"prs": {}},
+            state.COPILOT_REVIEW_REQUEST_STATE_VERSION,
+        )
         self.finish_worker(self.start_worker("observer"))
         self.assertEqual(reserved, self.cycle())
         self.assertEqual(1, len(self.requests()))

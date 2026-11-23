@@ -39,10 +39,10 @@ from github_cli import CopilotReviewRequestRejected, TransientGhError, request_c
 from routing_decision import RoutingInput, resolve_routing
 from state import (
     COPILOT_REVIEW_INTENTS_FILE,
+    COPILOT_REVIEW_REQUEST_STATE_FILE,
     copilot_review_fallback_state_path,
-    copilot_review_request_state_path,
     load_copilot_review_cycles,
-    load_copilot_review_requests,
+    load_copilot_review_intents,
     record_copilot_review_cycle_observations,
     save_copilot_review_cycles,
     save_dashboard_state_cache,
@@ -859,12 +859,14 @@ class CopilotReviewDeliveryTest(unittest.TestCase):
         return persist
 
     def test_first_request_is_durable_and_not_repeated_without_confirmation(self) -> None:
+        intent = self.tracked_paths[0].read_bytes()
         self.assertEqual([], self.deliver())
         self.request.assert_called_once_with("PR_node")
         cycle = load_copilot_review_cycles()["7"]
         self.assertEqual("accepted", cycle.phase)
         self.assertEqual(1, cycle.request_count)
-        self.assertEqual("2026-08-16T08:00:00+00:00", load_copilot_review_requests()["7"]["requested_at"])
+        self.assertEqual(format_ts(self.now), cycle.sent_at)
+        self.assertEqual(intent, self.tracked_paths[0].read_bytes())
         for _ in range(3):
             self.enqueue()
             self.assertEqual([], self.deliver())
@@ -874,29 +876,30 @@ class CopilotReviewDeliveryTest(unittest.TestCase):
         accepted = self.tracked_paths[0].parent
         delivery = accepted / "delivery"
         delivery.mkdir()
-        intent = load_copilot_review_requests()["7"]
+        intent = load_copilot_review_intents()["7"]
         with (
             patch("state._state_dir", delivery),
             patch("state._accepted_state_dir", accepted),
             patch("state._using_delivery_state", True),
         ):
-            receipt = copilot_review_request_state_path()
-            receipt.write_text(json.dumps({
+            receipt = delivery / COPILOT_REVIEW_REQUEST_STATE_FILE
+            legacy = json.dumps({
                 "version": 9,
                 "prs": {"7": {**intent, "requested_at": format_ts(self.now)}},
-            }), encoding="utf-8")
-            self.tracked_paths = (receipt, copilot_review_fallback_state_path())
+            })
+            receipt.write_text(legacy, encoding="utf-8")
+            self.tracked_paths = (self.tracked_paths[0], copilot_review_fallback_state_path())
 
             self.assertEqual([], self.deliver())
             self.request.assert_not_called()
             self.assertEqual("unknown", load_copilot_review_cycles()["7"].phase)
-            self.assertTrue(load_copilot_review_requests()["7"]["requested_at"])
+            self.assertEqual({"7": intent}, load_copilot_review_intents())
 
             self.now += timedelta(hours=4)
             self.assertEqual([], self.deliver())
             self.request.assert_called_once_with("PR_node")
             self.assertEqual("accepted", load_copilot_review_cycles()["7"].phase)
-            self.assertEqual(format_ts(self.now), load_copilot_review_requests()["7"]["requested_at"])
+            self.assertEqual(legacy, receipt.read_text(encoding="utf-8"))
 
     def test_app_quota_switches_once_and_fallback_quota_does_not_loop(self) -> None:
         self.assertEqual([], self.deliver())
@@ -992,7 +995,6 @@ class CopilotReviewDeliveryTest(unittest.TestCase):
         self.assertEqual([], self.deliver())
         self.restore()
         self.assertEqual("complete", load_copilot_review_cycles()["7"].phase)
-        self.assertEqual({}, load_copilot_review_requests())
 
         self.snapshot = replace(self.snapshot, head_sha="next-head")
         self.enqueue()
@@ -1013,7 +1015,6 @@ class CopilotReviewDeliveryTest(unittest.TestCase):
         self.assertEqual([], self.deliver())
         self.request.assert_not_called()
         self.assertEqual({"7": replace(prior, phase="complete")}, load_copilot_review_cycles())
-        self.assertEqual({}, load_copilot_review_requests())
 
     def test_coverage_on_new_head_settles_unknown_older_intent(self) -> None:
         prior = copilot_review_cycle("current-head", phase="unknown")
@@ -1031,7 +1032,6 @@ class CopilotReviewDeliveryTest(unittest.TestCase):
         completed = load_copilot_review_cycles()["7"]
         self.assertEqual("reviewed-head", completed.head_sha)
         self.assertEqual("complete", completed.phase)
-        self.assertEqual({}, load_copilot_review_requests())
 
         self.now += timedelta(minutes=1)
         self.snapshot = routing_snapshot(
@@ -1047,7 +1047,6 @@ class CopilotReviewDeliveryTest(unittest.TestCase):
         prior = copilot_review_cycle("current-head", phase="unknown")
         save_copilot_review_cycles({"7": prior})
         self.commit(lambda: 0)
-        receipt = load_copilot_review_requests()
         self.reviews = [self.notice(body="No issues found.")]
         reservation = copilot_review_cycle("current-head", phase="sending", sent_at="")
 
@@ -1055,7 +1054,6 @@ class CopilotReviewDeliveryTest(unittest.TestCase):
         self.assertEqual([], self.deliver())
         self.request.assert_not_called()
         self.assertEqual({"7": reservation}, load_copilot_review_cycles())
-        self.assertEqual(receipt, load_copilot_review_requests())
 
     def test_failed_process_start_releases_the_slot_and_allows_recovery(self) -> None:
         self.request.side_effect = request_copilot_review
@@ -1063,7 +1061,6 @@ class CopilotReviewDeliveryTest(unittest.TestCase):
             self.assertIn("gh unavailable", self.deliver()[0])
         self.restore()
         self.assertEqual({}, load_copilot_review_cycles())
-        self.assertEqual("", load_copilot_review_requests()["7"]["requested_at"])
         self.request.side_effect = self.request_review
         self.now += timedelta(minutes=1)
         self.assertEqual([], self.deliver())
@@ -1106,7 +1103,6 @@ class CopilotReviewDeliveryTest(unittest.TestCase):
         self.request.assert_not_called()
         self.restore()
         self.assertEqual({}, load_copilot_review_cycles())
-        self.assertEqual("", load_copilot_review_requests()["7"]["requested_at"])
         self.fetch_snapshot.side_effect = lambda *_: self.snapshot
         self.now += timedelta(minutes=1)
         self.assertEqual([], self.deliver())
@@ -1156,7 +1152,7 @@ class CopilotReviewDeliveryTest(unittest.TestCase):
         self.assertEqual([], self.deliver())
         self.request.assert_not_called()
 
-    def test_failed_receipt_leaves_sending_and_does_not_resend(self) -> None:
+    def test_failed_outcome_write_leaves_sending_and_does_not_resend(self) -> None:
         calls = 0
 
         def persist(action):
@@ -1164,17 +1160,17 @@ class CopilotReviewDeliveryTest(unittest.TestCase):
             calls += 1
             if calls == 3:
                 action()
-                raise RuntimeError("receipt push failed")
+                raise RuntimeError("outcome push failed")
             self.commit(action)
 
-        self.assertIn("receipt push failed", self.deliver(persist)[0])
+        self.assertIn("outcome push failed", self.deliver(persist)[0])
         self.restore()
         self.assertEqual("sending", load_copilot_review_cycles()["7"].phase)
         self.enqueue()
         self.assertEqual([], self.deliver())
         self.request.assert_called_once()
 
-    def test_rpc_and_receipt_failures_both_report_and_keep_the_durable_barrier(self) -> None:
+    def test_rpc_and_outcome_write_failures_both_report_and_keep_the_durable_barrier(self) -> None:
         calls = 0
         self.request_error = TransientGhError("HTTP 503")
 
@@ -1183,12 +1179,12 @@ class CopilotReviewDeliveryTest(unittest.TestCase):
             calls += 1
             if calls == 3:
                 action()
-                raise RuntimeError("receipt push failed")
+                raise RuntimeError("outcome push failed")
             self.commit(action)
 
         error = self.deliver(persist)[0]
         self.assertIn("HTTP 503", error)
-        self.assertIn("receipt push failed", error)
+        self.assertIn("outcome push failed", error)
         self.restore()
         self.assertEqual("sending", load_copilot_review_cycles()["7"].phase)
         self.request_error = None
@@ -1196,7 +1192,7 @@ class CopilotReviewDeliveryTest(unittest.TestCase):
         self.assertEqual([], self.deliver())
         self.request.assert_called_once()
 
-    def test_receipt_cannot_overwrite_terminal_progress_from_another_worker(self) -> None:
+    def test_outcome_cannot_overwrite_terminal_progress_from_another_worker(self) -> None:
         calls = 0
 
         def persist(action):
@@ -1324,7 +1320,6 @@ class CopilotReviewDeliveryTest(unittest.TestCase):
         self.request_error = CopilotReviewRequestRejected("permission denied")
         self.assertIn("permission denied", self.deliver()[0])
         self.assertEqual({}, load_copilot_review_cycles())
-        self.assertEqual("", load_copilot_review_requests()["7"]["requested_at"])
 
     def test_definite_rejection_restores_a_previous_retry_budget(self) -> None:
         prior = copilot_review_cycle("current-head", phase="ready", requester="fallback")
@@ -1341,7 +1336,6 @@ class CopilotReviewDeliveryTest(unittest.TestCase):
         self.assertEqual([], self.deliver())
         self.request.assert_not_called()
         self.assertEqual({}, load_copilot_review_cycles())
-        self.assertEqual({}, load_copilot_review_requests())
 
     def test_cancelled_head_reset_restores_the_preceding_budget(self) -> None:
         prior = copilot_review_cycle(
@@ -1381,7 +1375,6 @@ class CopilotReviewDeliveryTest(unittest.TestCase):
                 self.request.assert_not_called()
                 self.restore()
                 self.assertEqual({"7": replace(prior, phase="complete")}, load_copilot_review_cycles())
-                self.assertEqual({}, load_copilot_review_requests())
 
     def test_missing_fallback_credentials_do_not_reset_another_heads_budget(self) -> None:
         os.environ["COPILOT_REVIEW_FALLBACK_TOKEN"] = ""
@@ -1393,13 +1386,6 @@ class CopilotReviewDeliveryTest(unittest.TestCase):
         self.assertEqual([], self.deliver())
         self.request.assert_not_called()
         self.assertEqual({"7": prior}, load_copilot_review_cycles())
-        self.assertEqual({}, load_copilot_review_requests())
-
-    def test_mutation_head_race_does_not_acknowledge_the_old_intent(self) -> None:
-        self.requested_head = "next-head"
-        self.assertEqual([], self.deliver())
-        self.assertEqual("next-head", load_copilot_review_cycles()["7"].head_sha)
-        self.assertEqual({}, load_copilot_review_requests())
 
     def test_returned_head_gets_a_fresh_budget_and_window_for_its_first_error_retry(self) -> None:
         save_copilot_review_cycles({
@@ -1443,7 +1429,6 @@ class CopilotReviewDeliveryTest(unittest.TestCase):
         self.assertEqual("accepted", accepted.phase)
         self.assertEqual(4, accepted.request_count)
         self.assertEqual(prior.started_at, accepted.started_at)
-        self.assertEqual({}, load_copilot_review_requests())
 
         self.snapshot = replace(self.snapshot, head_sha=prior.head_sha)
         self.now += timedelta(minutes=1)
@@ -1538,7 +1523,7 @@ class CopilotReviewDeliveryTest(unittest.TestCase):
         self.reviews = [self.notice(body="No issues found.")]
         self.assertEqual([], self.deliver())
         self.request.assert_not_called()
-        self.assertEqual({}, load_copilot_review_requests())
+        self.assertEqual({}, load_copilot_review_cycles())
         self.reviews = []
         self.snapshot = routing_snapshot(
             {"checks": [], "review_requests": [{
@@ -1551,9 +1536,9 @@ class CopilotReviewDeliveryTest(unittest.TestCase):
         self.enqueue()
         self.assertEqual([], self.deliver())
         self.request.assert_not_called()
-        self.assertEqual("2026-08-16T08:00:00+00:00", load_copilot_review_requests()["7"]["requested_at"])
+        self.assertEqual({}, load_copilot_review_cycles())
 
-    def test_stale_failing_and_draft_requests_are_discarded(self) -> None:
+    def test_stale_failing_and_draft_intents_are_not_dispatched(self) -> None:
         snapshots = (
             replace(self.snapshot, copilot_request_fingerprint="new-fingerprint"),
             replace(self.snapshot, is_draft=True),
@@ -1572,7 +1557,7 @@ class CopilotReviewDeliveryTest(unittest.TestCase):
                 self.snapshot = snapshot
                 self.enqueue()
                 self.assertEqual([], self.deliver())
-                self.assertEqual({}, load_copilot_review_requests())
+                self.assertEqual({}, load_copilot_review_cycles())
         self.request.assert_not_called()
 
     def test_pending_checks_and_stale_reviews_allow_dispatch(self) -> None:
@@ -1637,10 +1622,10 @@ class CopilotReviewDeliveryTest(unittest.TestCase):
         self.request.assert_not_called()
 
 
-class CopilotReviewRequestStateTest(unittest.TestCase):
-    @patch("copilot_review_delivery.save_copilot_review_requests")
+class CopilotReviewIntentTest(unittest.TestCase):
+    @patch("copilot_review_delivery.save_copilot_review_intents")
     @patch(
-        "copilot_review_delivery.load_copilot_review_requests",
+        "copilot_review_delivery.load_copilot_review_intents",
         return_value={},
     )
     def test_records_request_for_current_head(self, _load_requests, save_requests) -> None:
@@ -1658,18 +1643,16 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
             "7": {
                 "head_sha": "current-head",
                 "observed_at": "2026-07-20T02:00:00+00:00",
-                "requested_at": "",
                 "copilot_request_fingerprint": "accepted-fingerprint",
             },
         })
 
-    @patch("copilot_review_delivery.save_copilot_review_requests")
+    @patch("copilot_review_delivery.save_copilot_review_intents")
     @patch(
-        "copilot_review_delivery.load_copilot_review_requests",
+        "copilot_review_delivery.load_copilot_review_intents",
         return_value={
             "7": {
                 "head_sha": "old-head",
-                "requested_at": "old-request",
             }
         },
     )
@@ -1688,52 +1671,16 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
             "7": {
                 "head_sha": "current-head",
                 "observed_at": "2026-07-20T02:00:00+00:00",
-                "requested_at": "",
                 "copilot_request_fingerprint": "accepted-fingerprint",
             },
         })
 
-    @patch("copilot_review_delivery.save_copilot_review_requests")
+    @patch("copilot_review_delivery.save_copilot_review_intents")
     @patch(
-        "copilot_review_delivery.load_copilot_review_requests",
+        "copilot_review_delivery.load_copilot_review_intents",
         return_value={
             "7": {
                 "head_sha": "current-head",
-                "requested_at": "2026-07-20T01:00:00Z",
-            }
-        },
-    )
-    def test_same_head_request_needed_resets_acknowledgement(
-        self,
-        _load_requests,
-        save_requests,
-    ) -> None:
-        record_copilot_review_observation(
-            7,
-            review_result(
-                head_sha="current-head",
-                copilot_review_request_needed=True,
-                copilot_request_fingerprint="accepted-fingerprint",
-            ),
-            NOW,
-        )
-
-        save_requests.assert_called_once_with({
-            "7": {
-                "head_sha": "current-head",
-                "observed_at": "2026-07-20T02:00:00+00:00",
-                "requested_at": "",
-                "copilot_request_fingerprint": "accepted-fingerprint",
-            },
-        })
-
-    @patch("copilot_review_delivery.save_copilot_review_requests")
-    @patch(
-        "copilot_review_delivery.load_copilot_review_requests",
-        return_value={
-            "7": {
-                "head_sha": "current-head",
-                "requested_at": "",
             }
         },
     )
@@ -1750,9 +1697,9 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
 
         save_requests.assert_called_once_with({})
 
-    @patch("copilot_review_delivery.save_copilot_review_requests")
+    @patch("copilot_review_delivery.save_copilot_review_intents")
     @patch(
-        "copilot_review_delivery.load_copilot_review_requests",
+        "copilot_review_delivery.load_copilot_review_intents",
         return_value={},
     )
     def test_missing_first_review_without_request_needed_does_not_enqueue(

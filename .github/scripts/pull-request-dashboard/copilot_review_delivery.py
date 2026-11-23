@@ -29,9 +29,9 @@ from routing_snapshot import RoutingSnapshot, fetch_routing_snapshot
 from state import (
     apply_copilot_review_cycle_update,
     load_copilot_review_cycles,
-    load_copilot_review_requests,
+    load_copilot_review_intents,
     save_copilot_review_cycles,
-    save_copilot_review_requests,
+    save_copilot_review_intents,
 )
 from utils import format_ts, utc_now
 
@@ -41,7 +41,7 @@ def record_copilot_review_observation(
     result: StoredDashboardResult | None,
     observed_at: datetime,
 ) -> None:
-    requests = dict(load_copilot_review_requests())
+    intents = load_copilot_review_intents()
     key = str(pr_number)
     facts = result.facts if result is not None else None
     head_sha = facts.head_sha if facts is not None else ""
@@ -53,55 +53,32 @@ def record_copilot_review_observation(
         or not head_sha
         or not request_fingerprint
     ):
-        requests.pop(key, None)
+        intents.pop(key, None)
     else:
-        requests[key] = {
+        intents[key] = {
             "head_sha": head_sha,
             "observed_at": format_ts(observed_at),
-            "requested_at": "",
             "copilot_request_fingerprint": request_fingerprint,
             **({"quota_exhausted": True} if facts.copilot_review_quota_exhausted else {}),
         }
-    save_copilot_review_requests(requests)
+    save_copilot_review_intents(intents)
 
 
 def deliver_copilot_review_requests(
     repo: str,
     commit_state: Callable[[Callable[[], int]], None],
 ) -> list[str]:
-    requests = dict(load_copilot_review_requests())
+    intents = load_copilot_review_intents()
     token = os.environ.get("COPILOT_REVIEW_FALLBACK_TOKEN") or None
     owner, repo_name = repo.split("/", 1)
     errors: list[str] = []
-    for key, entry in sorted(requests.items(), key=lambda item: int(item[0])):
+    for key, entry in sorted(intents.items(), key=lambda item: int(item[0])):
         pr_number = int(key)
         reservation: CopilotReviewCycle | None = None
         rollback_cycle: CopilotReviewCycle | None = None
         request_invoked = False
 
-        def update_receipt(requested_at: str | None = None, *, discard: bool = False) -> None:
-            current = dict(load_copilot_review_requests())
-            intent = current.get(key)
-            if intent is not None and (
-                intent.get("head_sha") == entry.get("head_sha")
-                and intent.get("copilot_request_fingerprint") == entry.get("copilot_request_fingerprint")
-            ):
-                if discard:
-                    current.pop(key, None)
-                elif requested_at is not None:
-                    current[key] = {**intent, "requested_at": requested_at}
-                save_copilot_review_requests(current)
-
-        def discard_receipt() -> int:
-            update_receipt(discard=True)
-            return 0
-
-        def commit_cycle_update(
-            update: CopilotReviewCycleUpdate,
-            requested_at: str | None = None,
-            *,
-            discard: bool = False,
-        ) -> bool:
+        def commit_cycle_update(update: CopilotReviewCycleUpdate) -> bool:
             applied = False
 
             def record() -> int:
@@ -110,9 +87,6 @@ def deliver_copilot_review_requests(
                 applied = apply_copilot_review_cycle_update(cycles, key, update)
                 if applied:
                     save_copilot_review_cycles(cycles)
-                    # Empty timestamps checkpoint pending receipts; None leaves receipts untouched.
-                    if requested_at is not None or discard:
-                        update_receipt(requested_at, discard=discard)
                 return 0
 
             commit_state(record)
@@ -123,17 +97,8 @@ def deliver_copilot_review_requests(
                 )
             return applied
 
-        def finish(
-            cycle: CopilotReviewCycle | None,
-            requested_at: str | None = None,
-            *,
-            discard: bool = False,
-        ) -> None:
-            if not commit_cycle_update(
-                CopilotReviewCycleUpdate(reservation, cycle),
-                requested_at if requested_at is not None else "",
-                discard=discard,
-            ):
+        def finish(cycle: CopilotReviewCycle | None) -> None:
+            if not commit_cycle_update(CopilotReviewCycleUpdate(reservation, cycle)):
                 raise RuntimeError("Copilot dispatch changed; refusing to overwrite its state")
 
         def read_preflight() -> tuple[RoutingSnapshot, str, tuple[Review, ...]]:
@@ -151,39 +116,28 @@ def deliver_copilot_review_requests(
             snapshot, stale_reason, reviews = read_preflight()
             exists, stale = copilot_review_status(reviews, snapshot.head_sha)
             if snapshot.head_sha and exists and not stale:
-                if observed_cycle is None or observed_cycle.phase != "sending":
+                if observed_cycle is not None and observed_cycle.phase != "sending":
                     complete = refresh_copilot_review_cycle(
                         observed_cycle, reviews, snapshot.head_sha, utc_now(),
                         fallback_available=bool(token),
                     )
-                    commit_cycle_update(
-                        CopilotReviewCycleUpdate(observed_cycle, complete), discard=True,
-                    )
+                    commit_cycle_update(CopilotReviewCycleUpdate(observed_cycle, complete))
                 continue
             if stale_reason:
                 print(
-                    f"discarding Copilot review request for PR #{pr_number}: {stale_reason}",
+                    f"skipping Copilot review request for PR #{pr_number}: {stale_reason}",
                     file=sys.stderr,
                 )
-                commit_state(discard_receipt)
                 continue
             error_count = copilot_review_error_count(reviews, snapshot.head_sha)
             if error_count >= COPILOT_REVIEW_ERROR_LIMIT:
                 print(
-                    f"discarding Copilot review request for PR #{pr_number}: "
+                    f"skipping Copilot review request for PR #{pr_number}: "
                     f"Copilot reported {error_count} errors on head {snapshot.head_sha}",
                     file=sys.stderr,
                 )
-                commit_state(discard_receipt)
                 continue
             if any(is_copilot_reviewer(request) for request in snapshot.review_requests):
-                observed_at = format_ts(utc_now())
-
-                def acknowledge_pending() -> int:
-                    update_receipt(observed_at)
-                    return 0
-
-                commit_state(acknowledge_pending)
                 continue
             baseline_ids = copilot_review_ids(reviews)
             prepared_at = utc_now()
@@ -208,7 +162,7 @@ def deliver_copilot_review_requests(
                 copilot_quota_issue(reviews, snapshot.head_sha)
                 or entry.get("quota_exhausted")
             ) and not token:
-                commit_cycle_update(CopilotReviewCycleUpdate(observed_cycle, rollback_cycle), discard=True)
+                commit_cycle_update(CopilotReviewCycleUpdate(observed_cycle, rollback_cycle))
                 continue
             requester = (
                 "fallback"
@@ -242,7 +196,6 @@ def deliver_copilot_review_requests(
                         rollback_cycle, reviews, snapshot.head_sha, utc_now(),
                         fallback_available=bool(token),
                     ),
-                    discard=True,
                 )
                 continue
             if stale_reason:
@@ -250,7 +203,7 @@ def deliver_copilot_review_requests(
                     f"discarding reserved Copilot request for PR #{pr_number}: {stale_reason}",
                     file=sys.stderr,
                 )
-                finish(rollback_cycle, discard=True)
+                finish(rollback_cycle)
                 continue
             if copilot_review_error_count(reviews, snapshot.head_sha) >= COPILOT_REVIEW_ERROR_LIMIT:
                 print(
@@ -258,10 +211,10 @@ def deliver_copilot_review_requests(
                     "Copilot's error limit was reached",
                     file=sys.stderr,
                 )
-                finish(rollback_cycle, discard=True)
+                finish(rollback_cycle)
                 continue
             if any(is_copilot_reviewer(request) for request in snapshot.review_requests):
-                finish(rollback_cycle, format_ts(utc_now()))
+                finish(rollback_cycle)
                 continue
             if reservation.requester == "app" and copilot_quota_issue(reviews, snapshot.head_sha):
                 print(
@@ -269,7 +222,7 @@ def deliver_copilot_review_requests(
                     "a new quota notice requires a fresh routing observation",
                     file=sys.stderr,
                 )
-                finish(rollback_cycle, discard=True)
+                finish(rollback_cycle)
                 continue
             pull_request_id = snapshot.node_id
             if not pull_request_id:
@@ -290,7 +243,7 @@ def deliver_copilot_review_requests(
                     "the review cycle expired before dispatch",
                     file=sys.stderr,
                 )
-                finish(replace(reservation, phase="limited", limit_reason="timeout"), discard=True)
+                finish(replace(reservation, phase="limited", limit_reason="timeout"))
                 continue
             sent_at = format_ts(sending_at)
             try:
@@ -327,8 +280,8 @@ def deliver_copilot_review_requests(
                     request_count = 1
                     started_at = sent_at
                 print(
-                    f"Copilot request for PR #{pr_number} returned head {requested_head}; "
-                    f"not acknowledging the old head {entry['head_sha']}",
+                    f"Copilot request for PR #{pr_number} returned head {requested_head} "
+                    f"instead of the reserved head {reservation.head_sha}",
                     file=sys.stderr,
                 )
             finish(
@@ -337,8 +290,6 @@ def deliver_copilot_review_requests(
                     request_count=request_count, started_at=started_at,
                     sent_at=sent_at, baseline_review_ids=baseline_ids,
                 ),
-                sent_at,
-                discard=head_changed,
             )
         except Exception as error:
             if reservation is not None and not request_invoked:
