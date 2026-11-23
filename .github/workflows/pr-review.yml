@@ -3,6 +3,8 @@ name: PR review
 run-name: Review ${{ inputs.pr_url }}
 
 on:
+  push:
+    branches: [trask-shared-pr-review]
   workflow_dispatch:
     inputs:
       pr_url:
@@ -14,7 +16,7 @@ permissions: {}
 
 jobs:
   gate:
-    if: github.repository == 'open-telemetry/shared-workflows'
+    if: github.repository == 'open-telemetry/shared-workflows' && github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     permissions:
       contents: read
