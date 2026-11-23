@@ -581,6 +581,26 @@ class CopilotReviewCycleTest(unittest.TestCase):
         self.assertEqual("next-head", fresh.head_sha)
         self.assertEqual("ready", fresh.phase)
 
+    def test_notice_after_cycle_deadline_settles_without_allowing_same_head_retry(self) -> None:
+        cycle = copilot_review_cycle(
+            "current-head", sent_at="2026-08-16T11:59:00Z", request_count=2,
+        )
+        for body in (ERROR_BODY, QUOTA_FAILURE_BODY):
+            with self.subTest(body=body):
+                notice = replace(
+                    self.notice(body=body), submitted_at="2026-08-16T12:01:00Z",
+                )
+                now = self.NOW + timedelta(hours=4, minutes=1)
+                self.assertEqual(cycle, self.refresh(cycle, now=now))
+                settled = self.refresh(cycle, (notice,), now=now)
+                self.assertEqual("limited", settled.phase)
+                self.assertEqual("timeout", settled.limit_reason)
+                self.assertEqual(cycle.started_at, settled.started_at)
+                self.assertEqual(2, settled.request_count)
+                self.assertEqual("ready", self.refresh(
+                    cycle, (notice,), head="next-head", now=now,
+                ).phase)
+
     def test_enabling_fallback_renews_a_quota_limited_window_only_once(self) -> None:
         limited = copilot_review_cycle(
             "current-head", phase="limited", limit_reason="quota",
@@ -1432,6 +1452,34 @@ class CopilotReviewDeliveryTest(unittest.TestCase):
         self.assertEqual([], self.deliver())
         self.request.assert_called_once()
         self.assertEqual("requests", load_copilot_review_cycles()["7"].limit_reason)
+
+    def test_request_landing_on_expired_head_blocks_dispatch_after_another_push(self) -> None:
+        prior = copilot_review_cycle(
+            "previous-head", phase="limited", request_count=1, limit_reason="timeout",
+            started_at="2026-08-16T04:00:00Z",
+        )
+        save_copilot_review_cycles({"7": prior})
+        self.commit(lambda: 0)
+        self.requested_head = prior.head_sha
+
+        self.assertEqual([], self.deliver())
+        accepted = load_copilot_review_cycles()["7"]
+        self.assertEqual(prior.head_sha, accepted.head_sha)
+        self.assertEqual(prior.started_at, accepted.started_at)
+        self.assertEqual(2, accepted.request_count)
+
+        self.requested_head = None
+        self.snapshot = replace(self.snapshot, head_sha="next-head")
+        self.now += timedelta(hours=4, seconds=-1)
+        self.enqueue()
+        self.assertEqual([], self.deliver())
+        self.request.assert_called_once()
+        self.assertEqual(accepted, load_copilot_review_cycles()["7"])
+
+        self.now += timedelta(seconds=1)
+        self.assertEqual([], self.deliver())
+        self.assertEqual(2, self.request.call_count)
+        self.assertEqual("next-head", load_copilot_review_cycles()["7"].head_sha)
 
     def test_per_request_send_time_follows_final_baseline_fetch(self) -> None:
         def fetch(*_args):

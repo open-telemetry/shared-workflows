@@ -178,7 +178,7 @@ def refresh_copilot_review_cycle(
         )
     if cycle.request_count and cycle.phase in ("sending", "accepted", "unknown", "ready"):
         window_start = cycle.started_at
-        if cycle.phase in ("sending", "unknown"):
+        if copilot_review_in_flight(cycle):
             window_start = cycle.sent_at or cycle.reserved_at or window_start
         if copilot_review_window_expired(window_start, now):
             cycle = replace(cycle, phase="limited", limit_reason="timeout")
@@ -190,7 +190,13 @@ def refresh_copilot_review_cycle(
                 cycle = replace(cycle, phase="limited", limit_reason="errors")
             else:
                 quota, error = _new_copilot_notices(cycle, reviews)
-                if quota and cycle.requester == "app":
+                switch_to_fallback = quota and cycle.requester == "app"
+                if (
+                    (switch_to_fallback or error)
+                    and copilot_review_window_expired(cycle.started_at, now)
+                ):
+                    cycle = replace(cycle, phase="limited", limit_reason="timeout")
+                elif switch_to_fallback:
                     cycle = (
                         replace(cycle, requester="fallback", phase="ready")
                         if fallback_available

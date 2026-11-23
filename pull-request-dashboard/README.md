@@ -368,13 +368,14 @@ A sending reservation stays with its dispatcher until the outcome is recorded,
 since the mutation can land on a different head.
 GitHub takes a PR ID, not an expected head. If a request races a push and GitHub
 reports the preceding head, the dispatcher counts the send against that head's
-cycle when it still has it, without restarting the deadline.
+cycle when it still has it, without restarting the retry window.
 
-Transport failures leave an uncertain request, even if GitHub no longer lists
-Copilot as a requested reviewer. That uncertainty blocks additional dashboard
-requests across pushes until current-head coverage or four hours after the send.
+An accepted request blocks another dashboard request across pushes until it
+settles or until four hours after the send, even if the retry window has
+already expired. A transport failure leaves an uncertain request, which blocks
+another request until current-head coverage or four hours after the send.
 A crash before saving the outcome leaves a sending reservation for four hours
-after reservation. Neither deadline extends the router's gate hold. Failed
+after reservation. These deadlines do not extend the router's gate hold. Failed
 reservation rollbacks are reported and retain the saved barrier.
 
 The cycle's four-hour window survives ordinary retries. Reaching the window or

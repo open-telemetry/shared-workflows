@@ -60,7 +60,7 @@ NOTIFICATION_STATE_VERSION = 3
 AUTHOR_NUDGE_STATE_VERSION = 4
 # copilot-review-request-state.json: pending and delivered review requests.
 COPILOT_REVIEW_REQUEST_STATE_VERSION = 12
-COPILOT_REVIEW_FALLBACK_STATE_VERSION = 8
+COPILOT_REVIEW_FALLBACK_STATE_VERSION = 9
 # status-comment-rollout-state.json: target/completed renderer revisions and queue.
 STATUS_COMMENT_ROLLOUT_STATE_VERSION = 3
 # Rendered status-comment behavior. Increment when existing comments need to
@@ -1460,7 +1460,7 @@ def load_copilot_review_cycles_file(
     if exists and (
         not isinstance(data, dict)
         or type(data.get("version")) is not int
-        or data["version"] not in (1, 2, 3, 4, 5, 6, 7, COPILOT_REVIEW_FALLBACK_STATE_VERSION)
+        or data["version"] not in (1, 2, 3, 4, 5, 6, 7, 8, COPILOT_REVIEW_FALLBACK_STATE_VERSION)
         or not isinstance(data.get("prs"), dict)
     ):
         raise ValueError(f"incompatible Copilot review cycle state: {path}")
