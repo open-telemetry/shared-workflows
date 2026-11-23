@@ -139,7 +139,9 @@ class StateTest(unittest.TestCase):
         repo = "open-telemetry/example"
         result = {
             "repo": repo, "tree": "a" * 40, "sha": "b" * 40, "base": "main",
-            "rule": {"path": ROOT},
+            "rule": {"path": ROOT, "text": "Document the `timeout` setting.\n\n"
+                                          "Include the compatibility exception.\n"
+                                          + "Keep this guidance. " * 30 + "End of rule."},
             "fix": {"edit": {"path": "README.md", "line": 1, "before": "Five seconds.", "after": "Ten seconds."},
                     "original": "Five seconds.\n",
                     "evidence": "Correct the timeout in `README.md`.\nIt is ten seconds.\n\nThe default stays the same."},
@@ -163,7 +165,9 @@ class StateTest(unittest.TestCase):
         self.assertEqual((body["base"], body["head"], body["draft"]), ("main", "otelbot/instruction-audit-42", True))
         self.assertEqual(body["body"],
                          "Correct the timeout in `README.md`. It is ten seconds.\n\nThe default stays the same.\n\n"
-                         f"[Repository guidance](https://github.com/{repo}/blob/{result['sha']}/{ROOT}) | "
+                         f"[Repository rule](https://github.com/{repo}/blob/{result['sha']}/{ROOT})\n\n"
+                         "> Document the `timeout` setting.\n>\n> Include the compatibility exception.\n> "
+                         + "Keep this guidance. " * 30 + "End of rule.\n\n"
                          f"[Audit run](https://github.com/{repo}/actions/runs/42)")
         output.assert_called_once_with("handled", "true")
 
@@ -176,6 +180,13 @@ class StateTest(unittest.TestCase):
             "&#35;&#8203; Review\n\nFixes &#35;&#8203;42 GH&#45;&#8203;42 &#64;&#8203;team "
             "at www&#46;example.com or https&#58;//example.com. "
             "&#33;&#91;click&#93;&#40;https&#58;//example.com&#41; &#60;img&#62; `setting.name`",
+        )
+
+    def test_rule_quote_keeps_continuations_inside_the_quote(self):
+        self.assertEqual(
+            audit.rule_quote("- Use `timeout`.\r\n    Except @team.\r\n\r\n> Keep the exception."),
+            "> &#45; Use `timeout`.\n> &#32;&#32;&#32;&#32;Except &#64;&#8203;team.\n>\n"
+            "> &#62; Keep the exception.",
         )
 
     @patch.dict(os.environ, {"GITHUB_REPOSITORY": "other/example"})

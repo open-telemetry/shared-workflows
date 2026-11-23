@@ -39,6 +39,6 @@ A clean check or a rule that can't be checked retroactively advances the cursor 
 
 The audit can report findings in any in-scope file. It can replace one prose line or delete one redundant fenced YAML example and its lead-in in an existing non-hidden Markdown file. A separate model pass verifies the proposed edit before publication. The workflow never runs target code or applies a model-supplied patch. Other findings appear in the run summary for manual handling.
 
-Draft descriptions explain the verified fix in Markdown and link to the repository guidance and the audit run.
+Draft descriptions explain the verified fix in Markdown, quote the complete selected rule, and link to the rule's source and the audit run.
 
 The read-only Copilot job cannot use either publication credential. When there is a verified fix and publishing is enabled, the publication job uses the caller's `GITHUB_TOKEN` to create a fix branch from the audited commit. It uses a caller-scoped `otelbot` token with **Pull requests: write** to open the draft, so eligible PR checks can start without the `GITHUB_TOKEN` approval gate. If GitHub denies the `otelbot` token request or an audit PR is already open, no new fix branch is created.

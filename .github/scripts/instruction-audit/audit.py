@@ -395,7 +395,7 @@ def create_branch(result):
     output("created", "true")
 
 
-def evidence_markdown(evidence):
+def inline_markdown(value):
     # Render inline code, but keep model-supplied links, mentions, and other markup inert.
     escapes = {ord(char): f"&#{ord(char)};" for char in r"\`*_{}[]()<>#+!~|@$&:-="}
     # GitHub links issue references and mentions even after decoding HTML entities.
@@ -406,25 +406,46 @@ def evidence_markdown(evidence):
         part = re.sub(r"\bwww\.", lambda m: m[0][:-1] + "&#46;", part, flags=re.IGNORECASE)
         return re.sub(r"\b(GH&#45;)(?=\d)", r"\1&#8203;", part, flags=re.IGNORECASE)
 
+    parts = re.split(r"(`[\w./:$-]+`)", value, flags=re.ASCII)
+    return "".join(part if i % 2 else prose(part) for i, part in enumerate(parts))
+
+
+def evidence_markdown(evidence):
     paragraphs = re.split(r"\n[ \t]*\n", evidence.strip().replace("\r\n", "\n").replace("\r", "\n"))
-    rendered = []
-    for paragraph in paragraphs:
-        parts = re.split(r"(`[\w./:$-]+`)", " ".join(paragraph.split()), flags=re.ASCII)
-        rendered.append("".join(part if i % 2 else prose(part) for i, part in enumerate(parts)))
-    return "\n\n".join(filter(None, rendered))
+    return "\n\n".join(inline_markdown(" ".join(paragraph.split())) for paragraph in paragraphs if paragraph.strip())
+
+
+def rule_quote(rule):
+    quoted = []
+    for line in rule.splitlines():
+        content = line.lstrip(" \t")
+        indent = line[:len(line) - len(content)].translate({ord(" "): "&#32;", ord("\t"): "&#9;"})
+        quoted.append(f"> {indent}{inline_markdown(content)}" if line else ">")
+    return "\n".join(quoted)
+
+
+def pull_request_body(result):
+    repo = result["repo"]
+    run_url = f"https://github.com/{repo}/actions/runs/{int(os.environ['GITHUB_RUN_ID'])}"
+    rule_url = f"https://github.com/{repo}/blob/{result['sha']}/{quote(result['rule']['path'])}"
+    body = (f"{evidence_markdown(result['fix']['evidence'])}\n\n"
+            f"[Repository rule]({rule_url})\n\n"
+            f"{rule_quote(result['rule']['text'])}\n\n"
+            f"[Audit run]({run_url})")
+    if len(body) > 65_536:
+        raise ValueError("The complete rule and explanation exceed GitHub's PR description limit")
+    return body
 
 
 def publish(result):
     repo = result["repo"]
     path = result["fix"]["edit"]["path"]
     branch = fix_branch()
-    run_url = f"https://github.com/{repo}/actions/runs/{int(os.environ['GITHUB_RUN_ID'])}"
-    rule_url = f"https://github.com/{repo}/blob/{result['sha']}/{quote(result['rule']['path'])}"
+    body = pull_request_body(result)
     try:
         pr = api(repo, "/pulls", method="POST", body={
             "title": f"Fix instruction audit finding in {path}",
-            "body": (f"{evidence_markdown(result['fix']['evidence'])}\n\n"
-                     f"[Repository guidance]({rule_url}) | [Audit run]({run_url})"),
+            "body": body,
             "base": result["base"], "head": branch, "draft": True,
             "maintainer_can_modify": False,
         })
@@ -484,7 +505,9 @@ def main(command):
         result = load_result()
         if command in ("validate-publish", "create-branch", "publish") and result["fix"] is None:
             raise ValueError("No verified fix in the audit artifact")
-        if command == "create-branch":
+        if command == "validate-publish":
+            pull_request_body(result)
+        elif command == "create-branch":
             create_branch(result)
         elif command == "publish":
             publish(result)
