@@ -40,6 +40,7 @@ from routing_decision import RoutingInput, resolve_routing
 from state import (
     COPILOT_REVIEW_INTENTS_FILE,
     copilot_review_fallback_state_path,
+    copilot_review_request_state_path,
     load_copilot_review_cycles,
     load_copilot_review_requests,
     record_copilot_review_cycle_observations,
@@ -835,6 +836,34 @@ class CopilotReviewDeliveryTest(unittest.TestCase):
             self.enqueue()
             self.assertEqual([], self.deliver())
         self.request.assert_called_once()
+
+    def test_expired_legacy_receipt_does_not_skip_matching_intent(self) -> None:
+        accepted = self.tracked_paths[0].parent
+        delivery = accepted / "delivery"
+        delivery.mkdir()
+        intent = load_copilot_review_requests()["7"]
+        with (
+            patch("state._state_dir", delivery),
+            patch("state._accepted_state_dir", accepted),
+            patch("state._using_delivery_state", True),
+        ):
+            receipt = copilot_review_request_state_path()
+            receipt.write_text(json.dumps({
+                "version": 9,
+                "prs": {"7": {**intent, "requested_at": format_ts(self.now)}},
+            }), encoding="utf-8")
+            self.tracked_paths = (receipt, copilot_review_fallback_state_path())
+
+            self.assertEqual([], self.deliver())
+            self.request.assert_not_called()
+            self.assertEqual("unknown", load_copilot_review_cycles()["7"].phase)
+            self.assertTrue(load_copilot_review_requests()["7"]["requested_at"])
+
+            self.now += timedelta(hours=4)
+            self.assertEqual([], self.deliver())
+            self.request.assert_called_once_with("PR_node")
+            self.assertEqual("accepted", load_copilot_review_cycles()["7"].phase)
+            self.assertEqual(format_ts(self.now), load_copilot_review_requests()["7"]["requested_at"])
 
     def test_app_quota_switches_once_and_fallback_quota_does_not_loop(self) -> None:
         self.assertEqual([], self.deliver())

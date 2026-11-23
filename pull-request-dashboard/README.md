@@ -389,10 +389,12 @@ Delivery records current-head coverage when it discards a queued request
 whose head or routing fingerprint no longer matches.
 
 Existing attempt records and older request receipts migrate to one time-bounded
-uncertain request, which is saved before receipt formats are updated. On first
-delivery, the delivery journal is seeded from the cycles preserved on the
-accepted-state branch. Historical and cached exhaustion flags do not disable
-future heads. Required checks and actionable feedback are never bypassed.
+uncertain request, which is saved before receipt formats are updated. The cycle
+and GitHub's current state determine whether to send, so an expired receipt
+does not block an otherwise eligible request. On first delivery, the delivery
+journal is seeded from the cycles preserved on the accepted-state branch.
+Historical and cached exhaustion flags do not disable future heads. Required
+checks and actionable feedback are never bypassed.
 
 Ask a maintainer or admin to add the repository under [Repository access](https://github.com/organizations/open-telemetry/settings/installations/133550497).
 

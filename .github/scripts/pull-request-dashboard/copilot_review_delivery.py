@@ -73,8 +73,6 @@ def deliver_copilot_review_requests(
     owner, repo_name = repo.split("/", 1)
     errors: list[str] = []
     for key, entry in sorted(requests.items(), key=lambda item: int(item[0])):
-        if entry.get("requested_at"):
-            continue
         pr_number = int(key)
         reservation: CopilotReviewCycle | None = None
         rollback_cycle: CopilotReviewCycle | None = None
