@@ -3,8 +3,6 @@ name: PR review
 run-name: Review ${{ inputs.pr_url }}
 
 on:
-  push:
-    branches: [trask-shared-pr-review]
   workflow_dispatch:
     inputs:
       pr_url:
