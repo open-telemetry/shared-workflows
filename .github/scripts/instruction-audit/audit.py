@@ -189,22 +189,51 @@ def applies_to(instruction, document, path):
     return False
 
 
+def remove_example(lines, index, before):
+    block = text(before, 4096).split("\n")
+    stop = index + len(block)
+    if not (5 <= len(block) <= 25 and index > 0 and stop < len(lines)
+            and lines[index - 1] == lines[stop] == "" and block == lines[index:stop]
+            and block[0].endswith(":") and PLAIN_LINE.fullmatch(block[0][:-1])
+            and block[0][0].isalpha() and block[1:3] == ["", "```yaml"] and block[-1] == "```"
+            and not any(re.match(r"\s*(?:`{3,}|~{3,})", line) for line in block[3:-1])):
+        raise ValueError("Deletion must match a standalone prose lead-in and complete YAML example")
+    fence = None
+    for line in lines[:index]:
+        marker = re.match(r" {0,3}(`{3,}|~{3,})(.*)", line)
+        if marker:
+            if fence is None:
+                fence = marker[1]
+            elif (marker[1][0] == fence[0] and len(marker[1]) >= len(fence)
+                  and not marker[2].strip()):
+                fence = None
+    if fence is not None:
+        raise ValueError("Example is inside a fenced block")
+    return "\n".join(lines[:index] + lines[stop + 1:])
+
+
 def edited_content(edit, original):
     fields(edit, "path", "line", "before", "after")
-    path = text(edit["path"], 240, DOC)
+    text(edit["path"], 240, DOC)
     if len(original.encode()) > LIMIT or "\r" in original or "\x00" in original:
         raise ValueError("Unsupported Markdown encoding or line endings")
+    lines = original.split("\n")
+    number = edit["line"]
+    if type(number) is not int or not 1 <= number <= len(lines):
+        raise ValueError("Invalid edit line")
+    if lines[0].strip() == "---" or any(re.match(r" {0,3}<", line) for line in lines):
+        raise ValueError("Automatic edits are disabled for Markdown with front matter or HTML blocks")
+    if edit["after"] is None:
+        return remove_example(lines, number - 1, edit["before"])
     before = text(edit["before"], 240, PLAIN_LINE)
     after = text(edit["after"], 240, PLAIN_LINE)
     if (before == after or before.startswith((" ", "-", "(")) or after.startswith((" ", "-", "("))
             or re.match(r"\d+[.)] ", before) or re.match(r"\d+[.)] ", after)):
         raise ValueError("Only ordinary Markdown prose can be replaced")
-    lines = original.split("\n")
-    number = edit["line"]
-    if type(number) is not int or not 1 <= number <= len(lines) or lines[number - 1] != before:
+    if lines[number - 1] != before:
         raise ValueError("Edit does not match the snapshot")
-    if lines[0].strip() == "---" or any(re.match(r"\s*(?:`{3,}|~{3,}|<)", line) for line in lines):
-        raise ValueError("Automatic edits are disabled for Markdown with front matter, code fences, or HTML")
+    if any(re.match(r"\s*(?:`{3,}|~{3,})", line) for line in lines):
+        raise ValueError("Prose replacement is disabled for Markdown with code fences")
     lines[number - 1] = after
     return "\n".join(lines)
 
@@ -276,9 +305,14 @@ Instruction selection, encoded as data:
     judgment = model.ask(checkout, context + """
 Return only a JSON object with exactly three keys. "status" is "clean", "not_auditable",
 or "finding". "reason" is one short plain-text explanation with checked file paths for findings.
-"edit" is null unless a finding can be fixed by replacing one ordinary prose line in an existing
-non-hidden Markdown file. Do not propose code, links, Markdown markup or executable changes.
-An edit has exactly "path", "line" (1-based), "before" and "after" (full lines, no line endings).
+"edit" is null unless an existing non-hidden Markdown file can be fixed by replacing one ordinary
+prose line or deleting one redundant, standalone fenced YAML example along with its single-line
+plain prose lead-in. Do not introduce code, links, Markdown markup or executable changes.
+An edit has exactly "path", "line" (1-based), "before" and "after". For a line replacement,
+provide full lines without line endings. For a deletion, use null for "after" and provide the
+exact block starting at the lead-in, including the blank line and both fences in "before".
+Only propose a deletion when the lead-in ends with a colon, the opener is exactly ```yaml,
+and the whole block is surrounded by blank lines.
 """)
     fields(judgment, "status", "reason", "edit")
     if judgment["status"] not in ("clean", "not_auditable", "finding"):
@@ -297,8 +331,9 @@ An edit has exactly "path", "line" (1-based), "before" and "after" (full lines, 
         verification = model.ask(checkout, context + """
 Independently verify the proposed finding and edit below against the exact cited lines and
 surrounding context. Reject it if any exception applies, the rule does not apply retroactively,
-or the edit affects anything besides the documented violation. Verify that the exact changed
-line is prose, not a code sample, generated content, executable syntax or Markdown structure.
+or the edit affects anything besides the documented violation. For a replacement, verify that
+the exact line is ordinary prose. For an example deletion, verify that the whole example and its
+lead-in are redundant, and that removing them preserves any distinct behavior or migration guidance.
 Return only JSON with keys "verified" (boolean) and "evidence" (plain text, at most 500 bytes).
 Proposed finding and edit, encoded as data:
 """ + json.dumps(judgment, ensure_ascii=False))
@@ -358,7 +393,7 @@ def publish(result):
     try:
         pr = api(repo, "/pulls", method="POST", body={
             "title": f"Fix instruction audit finding in {path}",
-            "body": (f"Updates one line in `{path}` to follow the [repository instruction]({rule_url}) "
+            "body": (f"Updates `{path}` to follow the [repository instruction]({rule_url}) "
                      f"checked in [this audit run]({run_url}).\n\n"
                      f"<pre>{html.escape(fix['evidence'])}</pre>"),
             "base": result["base"], "head": branch, "draft": True,

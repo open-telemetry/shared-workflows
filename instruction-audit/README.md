@@ -21,6 +21,6 @@ A clean check or a rule that can't be checked retroactively advances the cursor 
 
 ## What the workflow can publish
 
-The audit can report findings in any in-scope file. Automatic fixes are limited to one independently verified prose line in an existing non-hidden Markdown file. The workflow never runs target code or applies a model-supplied patch. If the fix needs a code, build, configuration, or markup change, the run summary reports the finding for manual handling.
+The audit can report findings in any in-scope file. It can replace one prose line or delete one redundant fenced YAML example and its lead-in in an existing non-hidden Markdown file. A separate model pass verifies the proposed edit before publication. The workflow never runs target code or applies a model-supplied patch. Other findings appear in the run summary for manual handling.
 
 The read-only Copilot job cannot use the publication token. When publication is enabled and there is a verified fix, a separate job uses the existing `otelbot` installation scoped to that target. It creates a draft from the checked commit and doesn't open another audit draft while one is already open for that repository.

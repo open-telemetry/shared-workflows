@@ -71,6 +71,22 @@ class ValidationTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             audit.edited_content(edit, original + "\n```sh\ncode\n```\n")
 
+    def test_removes_only_a_complete_standalone_yaml_example(self):
+        before = "The equivalent YAML is:\n\n```yaml\nsetting: true\n```"
+        original = "Keep this example.\n\n```yaml\n      <KEY>: value\n```\n\n" + before + "\n\n## Next\n"
+        edit = {"path": "docs/settings.md", "line": 7, "before": before, "after": None}
+        self.assertEqual(audit.edited_content(edit, original),
+                         "Keep this example.\n\n```yaml\n      <KEY>: value\n```\n\n## Next\n")
+        for invalid in (
+            edit | {"before": before.rsplit("\n", 1)[0]},
+            edit | {"before": before + "\n\n## Next"},
+            edit | {"line": 9, "before": "\n".join(before.split("\n")[2:])},
+        ):
+            with self.subTest(invalid=invalid), self.assertRaises(ValueError):
+                audit.edited_content(invalid, original)
+        with self.assertRaisesRegex(ValueError, "inside a fenced block"):
+            audit.edited_content(edit | {"line": 9}, "````markdown\n\n" + original + "````\n")
+
     def test_model_error_does_not_accept_preceding_answer(self):
         message = json.dumps({"type": "assistant.message", "data": {"content": '{"status":"clean"}'}})
         self.assertEqual(model.response(message, 0), {"status": "clean"})
