@@ -48,6 +48,31 @@ class ReviewBundleTest(unittest.TestCase):
                 prepare.small_suggestion(Path("source"), "head", "example.txt", 2, 2, "\n".join(["line"] * 15))
             )
 
+    def test_blank_line_suggestion_is_not_a_deletion(self):
+        blob = mock.Mock(returncode=0, stdout="\n")
+        with mock.patch.object(prepare, "run", return_value=blob):
+            self.assertTrue(prepare.small_suggestion(Path("source"), "head", "example.txt", 1, 1, ""))
+            self.assertFalse(prepare.small_suggestion(Path("source"), "head", "example.txt", 1, 1, "\n"))
+
+    def test_suggestion_renders_deletion_and_blank_replacement_differently(self):
+        blob = mock.Mock(returncode=0, stdout="old\n")
+        metadata = {"number": 123, "base": {"sha": "base"}, "head": {"sha": "head"}}
+        scope = {"example.txt": {"changed_lines": [1], "hunks": [(1, 1)]}}
+        with mock.patch.object(prepare, "run", return_value=blob):
+            for suggestion, expected in (
+                ("", "Remove this text.\n\n```suggestion\n```"),
+                ("\n", "Remove this text.\n\n```suggestion\n\n```"),
+            ):
+                with self.subTest(suggestion=suggestion):
+                    result = prepare.prepare_review({
+                        "body": "Review summary",
+                        "comments": [{
+                            "kind": "review", "path": "example.txt", "line": 1,
+                            "body": "Remove this text.", "suggestion": suggestion,
+                        }],
+                    }, Path("source"), scope, metadata)
+                    self.assertEqual(result["review"]["comments"][0]["body"], expected)
+
     def test_suggestions_preserve_trailing_blank_lines(self):
         blob = mock.Mock(returncode=0, stdout="old\n")
         metadata = {"number": 123, "base": {"sha": "base"}, "head": {"sha": "head"}}
