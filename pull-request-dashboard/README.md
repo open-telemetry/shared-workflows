@@ -356,10 +356,18 @@ requested it. Findings still follow normal discussion routing. Later heads get
 a fresh budget once the active request has settled or timed out. Returning to
 a SHA whose cycle is no longer tracked can start a fresh cycle.
 
-The delivery worker commits a dispatch reservation before calling GitHub.
-Git state retries update records only; they never replay the review mutation.
-Definite rejections and pre-dispatch failures, including failed GitHub CLI
-launches, restore the previous budget.
+The delivery worker checks coverage and eligibility before saving a reservation.
+It checks again after saving the reservation, then verifies that it still owns
+the reservation and that the retry window is open. Git state retries update
+records only. They never replay the review request.
+
+| What happens | What the worker records |
+|---|---|
+| GitHub rejects the request or the CLI cannot start | Restore the previous budget. |
+| GitHub returns the preflight head | Record an accepted send, not a completed review. |
+| GitHub returns a different head or the response is lost | Record an uncertain send against the preflight head. |
+| The worker crashes before saving the outcome | Leave the reservation in place. |
+
 Routing observations and dispatch reservations carry the complete before/after
 cycle decision. A state retry applies that decision only if its before-state
 still matches; it does not re-evaluate newer state using older GitHub reads.

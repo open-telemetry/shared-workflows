@@ -8,6 +8,7 @@ from datetime import datetime
 import os
 import sys
 import uuid
+from typing import Literal
 
 from copilot_review import (
     COPILOT_REVIEW_ERROR_LIMIT,
@@ -34,6 +35,25 @@ from state import (
     save_copilot_review_intents,
 )
 from utils import format_ts, utc_now
+
+
+def _preflight_decision(
+    snapshot: RoutingSnapshot,
+    reviews: tuple[Review, ...],
+    stale_reason: str,
+) -> tuple[Literal["covered", "blocked", "eligible"], str]:
+    # Coverage can settle a cycle even when the intent is stale.
+    exists, stale = copilot_review_status(reviews, snapshot.head_sha)
+    if snapshot.head_sha and exists and not stale:
+        return "covered", ""
+    if stale_reason:
+        return "blocked", stale_reason
+    error_count = copilot_review_error_count(reviews, snapshot.head_sha)
+    if error_count >= COPILOT_REVIEW_ERROR_LIMIT:
+        return "blocked", f"Copilot reported {error_count} errors on head {snapshot.head_sha}"
+    if any(is_copilot_reviewer(request) for request in snapshot.review_requests):
+        return "blocked", "Copilot is already a pending reviewer"
+    return "eligible", ""
 
 
 def record_copilot_review_observation(
@@ -114,8 +134,8 @@ def deliver_copilot_review_requests(
         try:
             observed_cycle = load_copilot_review_cycles().get(key)
             snapshot, stale_reason, reviews = read_preflight()
-            exists, stale = copilot_review_status(reviews, snapshot.head_sha)
-            if snapshot.head_sha and exists and not stale:
+            decision, reason = _preflight_decision(snapshot, reviews, stale_reason)
+            if decision == "covered":
                 if observed_cycle is not None and observed_cycle.phase != "sending":
                     complete = refresh_copilot_review_cycle(
                         observed_cycle, reviews, snapshot.head_sha, utc_now(),
@@ -123,21 +143,11 @@ def deliver_copilot_review_requests(
                     )
                     commit_cycle_update(CopilotReviewCycleUpdate(observed_cycle, complete))
                 continue
-            if stale_reason:
+            if decision == "blocked":
                 print(
-                    f"skipping Copilot review request for PR #{pr_number}: {stale_reason}",
+                    f"skipping Copilot review request for PR #{pr_number}: {reason}",
                     file=sys.stderr,
                 )
-                continue
-            error_count = copilot_review_error_count(reviews, snapshot.head_sha)
-            if error_count >= COPILOT_REVIEW_ERROR_LIMIT:
-                print(
-                    f"skipping Copilot review request for PR #{pr_number}: "
-                    f"Copilot reported {error_count} errors on head {snapshot.head_sha}",
-                    file=sys.stderr,
-                )
-                continue
-            if any(is_copilot_reviewer(request) for request in snapshot.review_requests):
                 continue
             baseline_ids = copilot_review_ids(reviews)
             prepared_at = utc_now()
@@ -189,8 +199,8 @@ def deliver_copilot_review_requests(
                 reservation = None
                 continue
             snapshot, stale_reason, reviews = read_preflight()
-            exists, stale = copilot_review_status(reviews, snapshot.head_sha)
-            if snapshot.head_sha and exists and not stale:
+            decision, reason = _preflight_decision(snapshot, reviews, stale_reason)
+            if decision == "covered":
                 finish(
                     refresh_copilot_review_cycle(
                         rollback_cycle, reviews, snapshot.head_sha, utc_now(),
@@ -198,22 +208,11 @@ def deliver_copilot_review_requests(
                     ),
                 )
                 continue
-            if stale_reason:
+            if decision == "blocked":
                 print(
-                    f"discarding reserved Copilot request for PR #{pr_number}: {stale_reason}",
+                    f"discarding reserved Copilot request for PR #{pr_number}: {reason}",
                     file=sys.stderr,
                 )
-                finish(rollback_cycle)
-                continue
-            if copilot_review_error_count(reviews, snapshot.head_sha) >= COPILOT_REVIEW_ERROR_LIMIT:
-                print(
-                    f"discarding reserved Copilot request for PR #{pr_number}: "
-                    "Copilot's error limit was reached",
-                    file=sys.stderr,
-                )
-                finish(rollback_cycle)
-                continue
-            if any(is_copilot_reviewer(request) for request in snapshot.review_requests):
                 finish(rollback_cycle)
                 continue
             if reservation.requester == "app" and copilot_quota_issue(reviews, snapshot.head_sha):
@@ -226,7 +225,6 @@ def deliver_copilot_review_requests(
                 continue
             pull_request_id = snapshot.node_id
             if not pull_request_id:
-                finish(rollback_cycle)
                 raise RuntimeError(f"GitHub did not return a node ID for PR #{pr_number}")
             baseline_ids = copilot_review_ids(reviews)
 
@@ -245,7 +243,10 @@ def deliver_copilot_review_requests(
                 )
                 finish(replace(reservation, phase="limited", limit_reason="timeout"))
                 continue
-            sent_at = format_ts(sending_at)
+            uncertain_send = replace(
+                reservation, phase="unknown", sent_at=format_ts(sending_at),
+                baseline_review_ids=baseline_ids,
+            )
             try:
                 request_invoked = True
                 returned_head = (
@@ -257,9 +258,7 @@ def deliver_copilot_review_requests(
                 outcome = (
                     rollback_cycle
                     if isinstance(request_error, CopilotReviewRequestRejected)
-                    else replace(
-                        reservation, phase="unknown", sent_at=sent_at, baseline_review_ids=baseline_ids,
-                    )
+                    else uncertain_send
                 )
                 try:
                     finish(outcome)
@@ -270,19 +269,15 @@ def deliver_copilot_review_requests(
                     ) from state_error
                 raise
             # requestReviews takes a PR ID, so a different head leaves the send uncertain.
-            matching_head = returned_head == reservation.head_sha
-            if not matching_head:
+            if returned_head == reservation.head_sha:
+                finish(replace(uncertain_send, phase="accepted"))
+            else:
                 print(
                     f"Copilot request for PR #{pr_number} returned head {returned_head} "
                     f"instead of {reservation.head_sha}; keeping the send in flight",
                     file=sys.stderr,
                 )
-            finish(
-                replace(
-                    reservation, phase="accepted" if matching_head else "unknown",
-                    sent_at=sent_at, baseline_review_ids=baseline_ids,
-                ),
-            )
+                finish(uncertain_send)
         except Exception as error:
             if reservation is not None and not request_invoked:
                 try:

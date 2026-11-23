@@ -7,7 +7,7 @@ import os
 from pathlib import Path
 import tempfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from copilot_review import (
     copilot_quota_issue,
@@ -1336,6 +1336,17 @@ class CopilotReviewDeliveryTest(unittest.TestCase):
         self.assertEqual([], self.deliver())
         self.request.assert_not_called()
         self.assertEqual({}, load_copilot_review_cycles())
+
+    def test_missing_node_id_releases_the_unsent_reservation(self) -> None:
+        self.fetch_snapshot.side_effect = [
+            self.snapshot, replace(self.snapshot, node_id=""),
+        ]
+        commit = Mock(side_effect=self.commit)
+
+        self.assertEqual(["PR #7: GitHub did not return a node ID for PR #7"], self.deliver(commit))
+        self.request.assert_not_called()
+        self.assertEqual({}, load_copilot_review_cycles())
+        self.assertEqual(2, commit.call_count)
 
     def test_cancelled_head_reset_restores_the_preceding_budget(self) -> None:
         prior = copilot_review_cycle(
