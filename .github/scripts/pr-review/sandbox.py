@@ -10,6 +10,7 @@ import tempfile
 from pathlib import Path
 
 from common import run, write_json
+from usage import proxy_logs_dir
 
 
 AGENT_TIMEOUT_MINUTES = 60
@@ -38,7 +39,7 @@ def checkout_pr(repo: str, pr: int, head: str, checkout: Path) -> None:
     git("checkout", "--quiet", "--detach", head)
 
 
-def run_in_sandbox(checkout: Path, inputs: Path, args: list[str]) -> subprocess.CompletedProcess[str]:
+def run_in_sandbox(checkout: Path, inputs: Path, args: list[str], *, phase: str) -> subprocess.CompletedProcess[str]:
     copilot = shutil.which("copilot")
     if copilot is None:
         raise RuntimeError("Copilot CLI is not installed")
@@ -70,6 +71,8 @@ def run_in_sandbox(checkout: Path, inputs: Path, args: list[str]) -> subprocess.
         env["HOME"] = str(home)
         env["GITHUB_WORKSPACE"] = str(workspace)
         capture = awf_work.parent / "output"
+        logs = proxy_logs_dir(phase)
+        logs.mkdir(parents=True)
         result = run(
             [
                 "/usr/bin/sudo", "--non-interactive", f"--preserve-env={','.join(env)}",
@@ -78,6 +81,7 @@ def run_in_sandbox(checkout: Path, inputs: Path, args: list[str]) -> subprocess.
                 "--mount", f"{cli_dir}:{cli_dir}:ro", "--mount", f"{inputs}:{inputs}:ro",
                 "--env", "GITHUB_COPILOT_PROMPT_MODE_EXTENSIONS=false",
                 "--capture-command-output", str(capture),
+                "--proxy-logs-dir", str(logs),
                 "--agent-timeout", str(AGENT_TIMEOUT_MINUTES),
                 "--log-level", "info",
                 "--", "/bin/bash", str(inputs / "launch-copilot.sh"),

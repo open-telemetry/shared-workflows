@@ -65,7 +65,7 @@ def closer_look_context(repo: str, pr: int, bundle: Path) -> str:
     return f", including Needs a closer look {match['html_url']}"
 
 
-def model_pass(model: str, effort: str, prompt: str, checkout: Path, bundle: Path) -> str:
+def model_pass(model: str, effort: str, prompt: str, checkout: Path, bundle: Path, *, phase: str) -> str:
     progress(f"Running {model} with {effort} reasoning")
     prompt_file = bundle / "prompt.txt"
     prompt_file.write_text(prompt, encoding="utf-8")
@@ -77,6 +77,7 @@ def model_pass(model: str, effort: str, prompt: str, checkout: Path, bundle: Pat
             "--available-tools", "view", "glob", "grep", "bash", "shell",
             "--allow-tool", "view", "glob", "grep", "shell",
         ],
+        phase=phase,
     )
     if result.returncode == 124:
         raise RuntimeError(f"{model} exceeded its {AGENT_TIMEOUT_MINUTES}-minute sandbox time limit")
@@ -111,8 +112,8 @@ def model_pass(model: str, effort: str, prompt: str, checkout: Path, bundle: Pat
 def verify_findings(
     prompt: str, checkout: Path, bundle: Path, diff_scope: DiffScope, metadata: dict[str, Any]
 ) -> dict[str, Any]:
-    for attempt in range(2):
-        answer = model_pass(OPUS, "high", prompt, checkout, bundle)
+    for attempt, phase in enumerate(("verification", "verification-retry")):
+        answer = model_pass(OPUS, "high", prompt, checkout, bundle, phase=phase)
         answer = re.sub(r"\A```(?:json)?\s*\n(.*)\n```\Z", r"\1", answer, flags=re.DOTALL)
         try:
             return prepare_review(json.loads(answer), checkout, diff_scope, metadata)
@@ -147,9 +148,10 @@ Only report findings on changed right-side lines.
         regular_prompt = f"review {url}{hint}"
         if hint:
             regular_prompt += f"\nRead {bundle / 'copilot-review.json'} and check its assessment against the current diff."
-        findings = model_pass(SOL, "max", regular_prompt + "\n" + context, checkout, bundle)
+        findings = model_pass(SOL, "max", regular_prompt + "\n" + context, checkout, bundle, phase="review")
         simplifications = model_pass(
             SOL, "max", f"are there any simplifications worth doing in {url}?\n{context}", checkout, bundle,
+            phase="simplification",
         )
         (bundle / "review.txt").write_text(findings, encoding="utf-8")
         (bundle / "simplifications.txt").write_text(simplifications, encoding="utf-8")

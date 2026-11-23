@@ -11,4 +11,6 @@ GPT-6.1 Sol reviews the diff and looks for worthwhile simplifications in separat
 
 A separate job posts the validated result as `otelbot[bot]`, using the shared repository's `OTELBOT_CLIENT_ID` variable and `OTELBOT_PRIVATE_KEY` secret. App tokens are scoped to the target repository. The review job requests pull request read access. The posting job requests pull request write access. The model sandbox receives no repository or publishing credentials. Publication stops if the PR closes or either its base or head changes. No findings produces a single top-level comment.
 
+Open the workflow run's **Summary** or the **Report Copilot token usage** step log to see input, output, cache read and cache write tokens for each pass, including verification retries. The report also shows estimated AI credits when the firewall records them. Use GitHub's billing reports for actual charges.
+
 For a branch-only test, replace `main` with the test branch. GitHub must have registered the workflow before it can be dispatched; pushing a manual-only workflow to a non-default branch may not register it. Do not add an automatic live-review trigger to work around that.

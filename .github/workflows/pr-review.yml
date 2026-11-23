@@ -68,6 +68,10 @@ jobs:
           PR_REPO: open-telemetry/${{ needs.gate.outputs.repo_name }}
           PR_NUMBER: ${{ needs.gate.outputs.pr_number }}
         run: python .github/scripts/pr-review/review.py "$PR_REPO" "$PR_NUMBER" prepare review-result.json
+      - name: Report Copilot token usage
+        if: always()
+        continue-on-error: true
+        run: python .github/scripts/pr-review/usage.py
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: review-result

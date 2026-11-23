@@ -12,6 +12,7 @@ import post
 import prepare
 import review as runner
 import sandbox
+import usage
 from common import write_json
 
 
@@ -55,6 +56,9 @@ class ReviewTest(unittest.TestCase):
             ):
                 runner.prepare_result("org/repo", 123, path)
             first, second, final = [call.args for call in model.call_args_list]
+            self.assertEqual([call.kwargs["phase"] for call in model.call_args_list], [
+                "review", "simplification", "verification",
+            ])
             build.assert_called_once_with("org/repo", 123, first[4])
             self.assertEqual([first[:2], second[:2], final[:2]], [(runner.SOL, "max"), (runner.SOL, "max"), (runner.OPUS, "high")])
             self.assertTrue(first[2].startswith(f"review {metadata['html_url']}, including Needs a closer look"))
@@ -89,6 +93,9 @@ class ReviewTest(unittest.TestCase):
         self.assertTrue(retry[2].startswith(first[2]))
         self.assertIn("did not pass validation", retry[2])
         self.assertEqual(retry[3:], first[3:])
+        self.assertEqual([call.kwargs["phase"] for call in model.call_args_list], [
+            "verification", "verification-retry",
+        ])
 
     def test_verifier_retries_when_json_anchors_a_comment_to_an_unchanged_line(self):
         comment = {"kind": "review", "path": "example.txt", "line": 1, "body": "A finding"}
@@ -132,9 +139,13 @@ class ReviewTest(unittest.TestCase):
             mock.patch.object(runner, "run_in_sandbox", return_value=response) as launch,
         ):
             bundle = Path(directory)
-            self.assertEqual(runner.model_pass("model", "high", "prompt", bundle / "checkout", bundle), '{"comments":[]}')
+            self.assertEqual(
+                runner.model_pass("model", "high", "prompt", bundle / "checkout", bundle, phase="review"),
+                '{"comments":[]}',
+            )
             self.assertEqual((bundle / "prompt.txt").read_text(encoding="utf-8"), "prompt")
             self.assertIn("shell", launch.call_args.args[2])
+            self.assertEqual(launch.call_args.kwargs["phase"], "review")
 
     def test_model_pass_reports_the_cli_error_from_json(self):
         response = subprocess.CompletedProcess(
@@ -146,7 +157,7 @@ class ReviewTest(unittest.TestCase):
             self.assertRaisesRegex(RuntimeError, r"Model not available\."),
         ):
             bundle = Path(directory)
-            runner.model_pass("model", "max", "prompt", bundle / "checkout", bundle)
+            runner.model_pass("model", "max", "prompt", bundle / "checkout", bundle, phase="review")
 
     def test_model_pass_redacts_the_token_in_stderr_diagnostics(self):
         response = subprocess.CompletedProcess([], 1, stdout="", stderr="AWF failed with fixture-token\n")
@@ -157,7 +168,7 @@ class ReviewTest(unittest.TestCase):
             self.assertRaisesRegex(RuntimeError, r"AWF failed with \[redacted\]"),
         ):
             bundle = Path(directory)
-            runner.model_pass("model", "max", "prompt", bundle / "checkout", bundle)
+            runner.model_pass("model", "max", "prompt", bundle / "checkout", bundle, phase="review")
 
     def test_model_pass_rejects_partial_output_on_timeout(self):
         response = subprocess.CompletedProcess(
@@ -169,7 +180,7 @@ class ReviewTest(unittest.TestCase):
             self.assertRaisesRegex(RuntimeError, "exceeded its .* sandbox time limit"),
         ):
             bundle = Path(directory)
-            runner.model_pass("model", "max", "prompt", bundle / "checkout", bundle)
+            runner.model_pass("model", "max", "prompt", bundle / "checkout", bundle, phase="review")
 
     def test_checkout_rejects_a_moved_pr_head(self):
         response = subprocess.CompletedProcess([], 0, stdout="e" * 40 + "\n")
@@ -199,6 +210,10 @@ class ReviewTest(unittest.TestCase):
                 self.assertEqual(preserved, env.keys())
                 self.assertIn("COPILOT_GITHUB_TOKEN", preserved)
                 self.assertIn(f"{inputs}:{inputs}:ro", args)
+                logs = Path(args[args.index("--proxy-logs-dir") + 1])
+                self.assertEqual(logs.parent, root / "pr-review-usage")
+                self.assertTrue(logs.is_dir())
+                self.assertNotIn("--proxy-logs-dir", args[args.index("--") + 1:])
                 self.assertEqual(env["GITHUB_WORKSPACE"], str(cwd))
                 self.assertEqual(Path(env["HOME"]).parent, cwd.parent)
                 self.assertNotIn("PATH", env)
@@ -224,10 +239,58 @@ class ReviewTest(unittest.TestCase):
                 mock.patch.object(sandbox.shutil, "which", side_effect={"copilot": str(cli), "awf": str(awf)}.get),
                 mock.patch.object(sandbox, "run", side_effect=launch) as run,
             ):
-                sandbox.run_in_sandbox(seed, inputs, ["--help"])
-                sandbox.run_in_sandbox(seed, inputs, ["--help"])
+                sandbox.run_in_sandbox(seed, inputs, ["--help"], phase="review")
+                sandbox.run_in_sandbox(seed, inputs, ["--help"], phase="simplification")
                 self.assertNotEqual(run.call_args_list[0].kwargs["cwd"], run.call_args_list[1].kwargs["cwd"])
             self.assertEqual((seed / "code").read_text(encoding="utf-8"), "PR contents")
+
+    def test_usage_summary_counts_distinct_requests_and_includes_the_retry(self):
+        with tempfile.TemporaryDirectory() as directory:
+            summary = Path(directory) / "summary.md"
+            with (
+                mock.patch.dict(os.environ, {"RUNNER_TEMP": directory, "GITHUB_STEP_SUMMARY": str(summary)}),
+                mock.patch("builtins.print") as log,
+            ):
+                entry = {
+                    "event": "token_usage", "request_id": "first-request", "input_tokens": 1250,
+                    "output_tokens": 100, "cache_read_tokens": 40, "cache_write_tokens": 20,
+                    "ai_credits_this_response": 0.25, "ai_credits_total": 0.25, "path": "not for publication",
+                }
+                for phase, records in (
+                    ("review", [entry, entry, {**entry, "request_id": "second-request", "ai_credits_total": 0.5}]),
+                    ("verification-retry", [entry]),
+                ):
+                    logs = usage.proxy_logs_dir(phase) / "api-proxy-logs"
+                    logs.mkdir(parents=True)
+                    (logs / "token-usage.jsonl").write_text(
+                        "".join(json.dumps(record) + "\n" for record in records), encoding="utf-8",
+                    )
+                usage.main()
+            result = summary.read_text(encoding="utf-8")
+            log.assert_called_once_with(result, end="")
+            self.assertIn("| Review | 2,500 | 200 | 80 | 40 | 0.500000 |", result)
+            self.assertIn("| Verification retry | 1,250 | 100 | 40 | 20 | 0.250000 |", result)
+            self.assertIn("| Recorded total | 3,750 | 300 | 120 | 60 | 0.750000 |", result)
+            self.assertNotIn("not for publication", result)
+
+    def test_usage_summary_does_not_report_missing_logs_or_estimates_as_zero(self):
+        with (
+            tempfile.TemporaryDirectory() as directory,
+            mock.patch.object(usage, "progress") as diagnostic,
+        ):
+            with mock.patch.dict(os.environ, {"RUNNER_TEMP": directory}):
+                usage.proxy_logs_dir("review").mkdir(parents=True)
+                logs = usage.proxy_logs_dir("verification") / "api-proxy-logs"
+                logs.mkdir(parents=True)
+                (logs / "token-usage.jsonl").write_text(
+                    '{"event":"token_usage","request_id":"r","input_tokens":8,"output_tokens":2,'
+                    '"cache_read_tokens":0,"cache_write_tokens":0}\n{"incomplete"\n', encoding="utf-8",
+                )
+                result = usage.summarize()
+        self.assertIn("| Review | Unavailable | Unavailable | Unavailable | Unavailable | Unavailable |", result)
+        self.assertIn("| Verification | 8 | 2 | 0 | 0 | Unavailable |", result)
+        self.assertIn("| Recorded total | 8 | 2 | 0 | 0 | Unavailable |", result)
+        self.assertEqual(diagnostic.call_count, 2)
 
     def test_only_the_latest_submitted_copilot_review_can_supply_a_hint(self):
         reviews = [[{
