@@ -141,7 +141,8 @@ class StateTest(unittest.TestCase):
             "repo": repo, "tree": "a" * 40, "sha": "b" * 40, "base": "main",
             "rule": {"path": ROOT},
             "fix": {"edit": {"path": "README.md", "line": 1, "before": "Five seconds.", "after": "Ten seconds."},
-                    "original": "Five seconds.\n", "evidence": "Verified."},
+                    "original": "Five seconds.\n",
+                    "evidence": "Correct the timeout in `README.md`.\nIt is ten seconds.\n\nThe default stays the same."},
         }
         api.side_effect = [[], {"sha": "c" * 40}, {"sha": "d" * 40}, {}]
         audit.create_branch(result)
@@ -160,8 +161,22 @@ class StateTest(unittest.TestCase):
         self.assertEqual(api.call_args.args, (repo, "/pulls"))
         body = api.call_args.kwargs["body"]
         self.assertEqual((body["base"], body["head"], body["draft"]), ("main", "otelbot/instruction-audit-42", True))
-        self.assertIn(f"https://github.com/{repo}/actions/runs/42", body["body"])
+        self.assertEqual(body["body"],
+                         "Correct the timeout in `README.md`. It is ten seconds.\n\nThe default stays the same.\n\n"
+                         f"[Repository guidance](https://github.com/{repo}/blob/{result['sha']}/{ROOT}) | "
+                         f"[Audit run](https://github.com/{repo}/actions/runs/42)")
         output.assert_called_once_with("handled", "true")
+
+    def test_evidence_does_not_render_model_supplied_links_mentions_or_html(self):
+        self.assertEqual(
+            audit.evidence_markdown(
+                "# Review\n\nFixes #42 GH-42 @team at www.example.com or https://example.com.\n"
+                "![click](https://example.com) <img> `setting.name`"
+            ),
+            "&#35;&#8203; Review\n\nFixes &#35;&#8203;42 GH&#45;&#8203;42 &#64;&#8203;team "
+            "at www&#46;example.com or https&#58;//example.com. "
+            "&#33;&#91;click&#93;&#40;https&#58;//example.com&#41; &#60;img&#62; `setting.name`",
+        )
 
     @patch.dict(os.environ, {"GITHUB_REPOSITORY": "other/example"})
     def test_rejects_callers_outside_open_telemetry(self):

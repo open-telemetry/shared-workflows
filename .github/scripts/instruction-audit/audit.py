@@ -334,7 +334,10 @@ surrounding context. Reject it if any exception applies, the rule does not apply
 or the edit affects anything besides the documented violation. For a replacement, verify that
 the exact line is ordinary prose. For an example deletion, verify that the whole example and its
 lead-in are redundant, and that removing them preserves any distinct behavior or migration guidance.
-Return only JSON with keys "verified" (boolean) and "evidence" (plain text, at most 500 bytes).
+Return only JSON with keys "verified" (boolean) and "evidence" (at most 500 bytes). Write
+"evidence" as one or two short paragraphs for the draft PR. Say what changes and why it
+follows the rule. Mention what stays unchanged only if it helps a reader understand the fix.
+Use backticks for file paths or identifiers, but no other Markdown, HTML, links, or mentions.
 Proposed finding and edit, encoded as data:
 """ + json.dumps(judgment, ensure_ascii=False))
         fields(verification, "verified", "evidence")
@@ -392,6 +395,25 @@ def create_branch(result):
     output("created", "true")
 
 
+def evidence_markdown(evidence):
+    # Render inline code, but keep model-supplied links, mentions, and other markup inert.
+    escapes = {ord(char): f"&#{ord(char)};" for char in r"\`*_{}[]()<>#+!~|@$&:-="}
+    # GitHub links issue references and mentions even after decoding HTML entities.
+    escapes.update({ord("#"): "&#35;&#8203;", ord("@"): "&#64;&#8203;"})
+
+    def prose(part):
+        part = part.translate(escapes)
+        part = re.sub(r"\bwww\.", lambda m: m[0][:-1] + "&#46;", part, flags=re.IGNORECASE)
+        return re.sub(r"\b(GH&#45;)(?=\d)", r"\1&#8203;", part, flags=re.IGNORECASE)
+
+    paragraphs = re.split(r"\n[ \t]*\n", evidence.strip().replace("\r\n", "\n").replace("\r", "\n"))
+    rendered = []
+    for paragraph in paragraphs:
+        parts = re.split(r"(`[\w./:$-]+`)", " ".join(paragraph.split()), flags=re.ASCII)
+        rendered.append("".join(part if i % 2 else prose(part) for i, part in enumerate(parts)))
+    return "\n\n".join(filter(None, rendered))
+
+
 def publish(result):
     repo = result["repo"]
     path = result["fix"]["edit"]["path"]
@@ -401,9 +423,8 @@ def publish(result):
     try:
         pr = api(repo, "/pulls", method="POST", body={
             "title": f"Fix instruction audit finding in {path}",
-            "body": (f"Updates `{path}` to follow the [repository instruction]({rule_url}) "
-                     f"checked in [this audit run]({run_url}).\n\n"
-                     f"<pre>{html.escape(result['fix']['evidence'])}</pre>"),
+            "body": (f"{evidence_markdown(result['fix']['evidence'])}\n\n"
+                     f"[Repository guidance]({rule_url}) | [Audit run]({run_url})"),
             "base": result["base"], "head": branch, "draft": True,
             "maintainer_can_modify": False,
         })
