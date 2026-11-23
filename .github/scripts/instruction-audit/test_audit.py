@@ -104,7 +104,7 @@ class ValidationTest(unittest.TestCase):
 
 
 class StateTest(unittest.TestCase):
-    @patch.dict(os.environ, {"TARGET": "example"})
+    @patch.dict(os.environ, {"GITHUB_REPOSITORY": "open-telemetry/example"})
     @patch.object(audit, "summary")
     @patch.object(audit, "api")
     def test_end_of_pass_removes_cursor_and_detects_concurrent_changes(self, api, _summary):
@@ -116,7 +116,7 @@ class StateTest(unittest.TestCase):
         api.return_value = {"object": {"sha": result["head"]}}
         audit.save_state(result)
         api.assert_called_with(
-            audit.HOME_REPO, "/contents/example.json", method="DELETE",
+            "open-telemetry/example", "/contents/example.json", method="DELETE",
             body={"message": "Advance instruction audit for open-telemetry/example",
                   "branch": audit.STATE, "sha": result["cursor"]},
         )
@@ -127,6 +127,43 @@ class StateTest(unittest.TestCase):
     def test_existing_draft_blocks_all_publication_writes(self, api, _summary, output):
         repo = "open-telemetry/example"
         api.return_value = [{"number": 123, "head": {"repo": {"full_name": repo}, "ref": audit.FIX_PREFIX + "12"}}]
-        audit.publish({"repo": repo})
+        audit.create_branch({"repo": repo})
         self.assertEqual(api.call_count, 1)
-        output.assert_called_once_with("handled", "false")
+        output.assert_not_called()
+
+    @patch.dict(os.environ, {"GITHUB_RUN_ID": "42"})
+    @patch.object(audit, "output")
+    @patch.object(audit, "summary")
+    @patch.object(audit, "api")
+    def test_branch_and_draft_requests_are_separate(self, api, _summary, output):
+        repo = "open-telemetry/example"
+        result = {
+            "repo": repo, "tree": "a" * 40, "sha": "b" * 40, "base": "main",
+            "rule": {"path": ROOT},
+            "fix": {"edit": {"path": "README.md", "line": 1, "before": "Five seconds.", "after": "Ten seconds."},
+                    "original": "Five seconds.\n", "evidence": "Verified."},
+        }
+        api.side_effect = [[], {"sha": "c" * 40}, {"sha": "d" * 40}, {}]
+        audit.create_branch(result)
+        self.assertEqual([request.args for request in api.call_args_list], [
+            (repo, "/pulls?state=open&per_page=100&page=1"),
+            (repo, "/git/trees"), (repo, "/git/commits"), (repo, "/git/refs"),
+        ])
+        self.assertEqual(api.call_args_list[2].kwargs["body"]["parents"], [result["sha"]])
+        self.assertEqual(api.call_args.kwargs["body"]["ref"], "refs/heads/otelbot/instruction-audit-42")
+        output.assert_called_once_with("created", "true")
+        api.reset_mock(side_effect=True)
+        api.return_value = {"number": 123, "draft": True}
+        output.reset_mock()
+        audit.publish(result)
+        self.assertEqual(api.call_count, 1)
+        self.assertEqual(api.call_args.args, (repo, "/pulls"))
+        body = api.call_args.kwargs["body"]
+        self.assertEqual((body["base"], body["head"], body["draft"]), ("main", "otelbot/instruction-audit-42", True))
+        self.assertIn(f"https://github.com/{repo}/actions/runs/42", body["body"])
+        output.assert_called_once_with("handled", "true")
+
+    @patch.dict(os.environ, {"GITHUB_REPOSITORY": "other/example"})
+    def test_rejects_callers_outside_open_telemetry(self):
+        with self.assertRaisesRegex(ValueError, "Caller must be an OpenTelemetry repository"):
+            audit.target()

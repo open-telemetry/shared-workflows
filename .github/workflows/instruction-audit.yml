@@ -1,18 +1,18 @@
 name: Instruction audit
 
-run-name: Audit Copilot instructions in ${{ inputs.repository }}
-
 on:
-  workflow_dispatch:
+  workflow_call:
     inputs:
-      repository:
-        description: Public OpenTelemetry repository name, without the owner
-        required: true
-        type: string
       publish:
         description: Allow one draft PR for a verified, publishable finding
         type: boolean
         default: false
+      otelbot_client_id:
+        description: Client ID for the caller's otelbot installation
+        type: string
+    secrets:
+      otelbot_private_key:
+        description: Private key for otelbot, needed only to publish a draft
 
 permissions: {}
 
@@ -21,12 +21,11 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  TARGET: ${{ inputs.repository }}
   PYTHONDONTWRITEBYTECODE: "1"
 
 jobs:
   audit:
-    if: github.repository == 'open-telemetry/shared-workflows' && github.event_name == 'workflow_dispatch' && github.run_attempt == 1
+    if: github.repository_owner == 'open-telemetry' && github.event_name == 'workflow_dispatch' && github.run_attempt == 1
     runs-on: ubuntu-latest
     timeout-minutes: 45
     permissions:
@@ -40,6 +39,8 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ job.workflow_sha }}
           persist-credentials: false
       - name: Install Copilot CLI
         run: |
@@ -69,7 +70,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
-      contents: read
+      contents: write
     outputs:
       handled: ${{ steps.publish.outputs.handled }}
     env:
@@ -77,6 +78,8 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ job.workflow_sha }}
           persist-credentials: false
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
@@ -84,18 +87,23 @@ jobs:
       - name: Validate the Markdown fix
         run: python3 .github/scripts/instruction-audit/audit.py validate-publish
       - uses: actions/create-github-app-token@f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc # v3.4.0
-        id: write-token
+        id: otelbot
         with:
-          client-id: ${{ vars.OTELBOT_CLIENT_ID }}
-          private-key: ${{ secrets.OTELBOT_PRIVATE_KEY }}
-          owner: open-telemetry
+          client-id: ${{ inputs.otelbot_client_id }}
+          private-key: ${{ secrets.otelbot_private_key }}
+          owner: ${{ github.repository_owner }}
           repositories: ${{ needs.audit.outputs.repository }}
-          permission-contents: write
           permission-pull-requests: write
+      - name: Write the draft branch in the caller repository
+        id: branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 .github/scripts/instruction-audit/audit.py create-branch
       - name: Open at most one draft PR
+        if: steps.branch.outputs.created == 'true'
         id: publish
         env:
-          GH_TOKEN: ${{ steps.write-token.outputs.token }}
+          GH_TOKEN: ${{ steps.otelbot.outputs.token }}
         run: python3 .github/scripts/instruction-audit/audit.py publish
 
   cursor:
@@ -113,6 +121,8 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ job.workflow_sha }}
           persist-credentials: false
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:

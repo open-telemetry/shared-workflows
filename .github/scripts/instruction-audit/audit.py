@@ -18,7 +18,6 @@ import model
 from rules import INSTRUCTIONS, select
 
 
-HOME_REPO = "open-telemetry/shared-workflows"
 STATE = "otelbot/instruction-audit-state"
 FIX_PREFIX = "otelbot/instruction-audit-"
 NAME = re.compile(r"[a-z0-9][a-z0-9_.-]{0,99}")
@@ -55,10 +54,11 @@ def api(repo, path="", *, method="GET", body=None, missing=False, public=False):
 
 
 def target():
-    name = os.environ["TARGET"]
-    if not NAME.fullmatch(name) or name == "shared-workflows":
-        raise ValueError("Target must be a public OpenTelemetry repository name other than shared-workflows")
-    return "open-telemetry/" + name
+    repo = os.environ["GITHUB_REPOSITORY"].lower()
+    owner, _, name = repo.partition("/")
+    if owner != "open-telemetry" or not NAME.fullmatch(name):
+        raise ValueError("Caller must be an OpenTelemetry repository")
+    return repo
 
 
 def fields(value, *names):
@@ -92,8 +92,8 @@ def state_path(repo):
     return repo.split("/")[1] + ".json"
 
 
-def state_head():
-    ref = api(HOME_REPO, "/git/ref/heads/" + STATE, missing=True)
+def state_head(repo):
+    ref = api(repo, "/git/ref/heads/" + STATE, missing=True)
     return optional_sha(ref["object"]["sha"]) if ref else None
 
 
@@ -104,10 +104,10 @@ def validate_anchor(anchor):
 
 
 def read_cursor(repo):
-    head = state_head()
+    head = state_head(repo)
     if head is None:
         return head, None, None
-    data = api(HOME_REPO, "/contents/" + state_path(repo) + "?ref=" + head, missing=True)
+    data = api(repo, "/contents/" + state_path(repo) + "?ref=" + head, missing=True)
     if data is None:
         return head, None, None
     if data["type"] != "file" or data["encoding"] != "base64" or data["size"] > LIMIT * 2:
@@ -357,15 +357,18 @@ def load_result():
     return validate_result(json.loads(data))
 
 
-def publish(result):
+def fix_branch():
+    return FIX_PREFIX + str(int(os.environ["GITHUB_RUN_ID"]))
+
+
+def create_branch(result):
     repo = result["repo"]
     query = "/pulls?" + urlencode({"state": "open", "per_page": 100})
     for page in range(1, 21):
-        prs = api(repo, query + f"&page={page}")
+        prs = api(repo, query + f"&page={page}", public=True)
         for pr in prs:
             head = pr["head"]
             if (head.get("repo") or {}).get("full_name", "").lower() == repo and head["ref"].startswith(FIX_PREFIX):
-                output("handled", "false")
                 summary(f"Already has an open audit PR: https://github.com/{repo}/pull/{int(pr['number'])}. Cursor unchanged.")
                 return
         if len(prs) < 100:
@@ -384,18 +387,23 @@ def publish(result):
         "tree": text(tree["sha"], 40, SHA),
         "parents": [result["sha"]],
     })
-    run = int(os.environ["GITHUB_RUN_ID"])
-    branch = FIX_PREFIX + str(run)
-    api(repo, "/git/refs", method="POST", body={"ref": "refs/heads/" + branch,
+    api(repo, "/git/refs", method="POST", body={"ref": "refs/heads/" + fix_branch(),
                                                "sha": text(commit["sha"], 40, SHA)})
-    run_url = f"https://github.com/{HOME_REPO}/actions/runs/{run}"
+    output("created", "true")
+
+
+def publish(result):
+    repo = result["repo"]
+    path = result["fix"]["edit"]["path"]
+    branch = fix_branch()
+    run_url = f"https://github.com/{repo}/actions/runs/{int(os.environ['GITHUB_RUN_ID'])}"
     rule_url = f"https://github.com/{repo}/blob/{result['sha']}/{quote(result['rule']['path'])}"
     try:
         pr = api(repo, "/pulls", method="POST", body={
             "title": f"Fix instruction audit finding in {path}",
             "body": (f"Updates `{path}` to follow the [repository instruction]({rule_url}) "
                      f"checked in [this audit run]({run_url}).\n\n"
-                     f"<pre>{html.escape(fix['evidence'])}</pre>"),
+                     f"<pre>{html.escape(result['fix']['evidence'])}</pre>"),
             "base": result["base"], "head": branch, "draft": True,
             "maintainer_can_modify": False,
         })
@@ -409,30 +417,31 @@ def publish(result):
 
 
 def save_state(result):
-    if state_head() != result["head"]:
+    repo = result["repo"]
+    if state_head(repo) != result["head"]:
         raise ValueError("Cursor branch changed while the audit ran")
-    path = "/contents/" + state_path(result["repo"])
-    message = "Advance instruction audit for " + result["repo"]
+    path = "/contents/" + state_path(repo)
+    message = "Advance instruction audit for " + repo
     if result["status"] == "complete":
         if result["cursor"]:
-            api(HOME_REPO, path, method="DELETE",
+            api(repo, path, method="DELETE",
                 body={"message": message, "branch": STATE, "sha": result["cursor"]})
         summary("Pass complete. Cursor reset.")
         return
     content = json.dumps(result["rule"], ensure_ascii=False) + "\n"
     if result["head"] is None:
-        tree = api(HOME_REPO, "/git/trees", method="POST", body={"tree": [{
-            "path": state_path(result["repo"]), "mode": "100644", "type": "blob", "content": content,
+        tree = api(repo, "/git/trees", method="POST", body={"tree": [{
+            "path": state_path(repo), "mode": "100644", "type": "blob", "content": content,
         }]})
-        commit = api(HOME_REPO, "/git/commits", method="POST",
+        commit = api(repo, "/git/commits", method="POST",
                      body={"message": message, "tree": text(tree["sha"], 40, SHA), "parents": []})
-        api(HOME_REPO, "/git/refs", method="POST",
+        api(repo, "/git/refs", method="POST",
             body={"ref": "refs/heads/" + STATE, "sha": text(commit["sha"], 40, SHA)})
     else:
         body = {"message": message, "branch": STATE, "content": base64.b64encode(content.encode()).decode()}
         if result["cursor"]:
             body["sha"] = result["cursor"]
-        api(HOME_REPO, path, method="PUT", body=body)
+        api(repo, path, method="PUT", body=body)
     summary("Cursor advanced.")
 
 
@@ -452,11 +461,13 @@ def main(command):
                 + f"<pre>{html.escape(result['reason'])}</pre>")
     else:
         result = load_result()
-        if command == "validate-publish" and result["fix"] is None:
+        if command in ("validate-publish", "create-branch", "publish") and result["fix"] is None:
             raise ValueError("No verified fix in the audit artifact")
-        if command == "publish":
+        if command == "create-branch":
+            create_branch(result)
+        elif command == "publish":
             publish(result)
-        if command == "save":
+        elif command == "save":
             save_state(result)
 
 
