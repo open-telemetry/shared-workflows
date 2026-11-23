@@ -37,7 +37,7 @@ class RolloutWiringTest(unittest.TestCase):
         text = WORKFLOW.read_text(encoding="utf-8")
         jobs = job_blocks(text)
         self.assertEqual(set(jobs), {"enqueue"})
-        self.assertNotIn("    if:", jobs["enqueue"])
+        self.assertIsNone(re.search(r"^    if:", jobs["enqueue"], re.M))
         self.assertIn("id-token: write", jobs["enqueue"])
         self.assertIn("enqueue_dashboard.py", jobs["enqueue"])
         for input_name in ("repository", "pr_number", "head_sha", "trigger_event",

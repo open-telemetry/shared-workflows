@@ -124,7 +124,11 @@ class OwnedExecutionTest(unittest.TestCase):
             environment = code.script_dir / ".venv"
             self.assertIn(["uv", "venv", str(environment)], commands)
             self.assertIn(["uv", "sync", "--locked", "--project", str(code.script_dir)], commands)
-            self.assertEqual(code.python, str(environment / "bin" / "python"))
+            expected_python = (
+                environment / "Scripts" / "python.exe" if sys.platform == "win32"
+                else environment / "bin" / "python"
+            )
+            self.assertEqual(code.python, str(expected_python))
             self.assertNotIn("pip", [part for command in commands for part in command])
             self.assertEqual(commands[-1], [code.python, "-m", "copilot", "download-runtime"])
 
