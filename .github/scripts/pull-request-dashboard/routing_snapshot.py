@@ -10,6 +10,7 @@ from typing import Any
 from pull_request_source import (
     Check,
     PullRequestSource,
+    Review,
     ReviewRequest,
     ReviewThread,
     fetch_pull_request_source,
@@ -29,6 +30,7 @@ class RoutingSnapshot:
     copilot_request_fingerprint: str
     copilot_request_component_digests: dict[str, str]
     has_conflicts: bool = False
+    reviews: tuple[Review, ...] = ()
 
 
 def _digest(value: Any) -> str:
@@ -67,6 +69,7 @@ def build_routing_snapshot(source: PullRequestSource) -> RoutingSnapshot:
         copilot_request_fingerprint=_digest(copilot_inputs),
         copilot_request_component_digests=_component_digests(copilot_inputs),
         has_conflicts=pr.conflicts == "yes",
+        reviews=source.reviews,
     )
 
 

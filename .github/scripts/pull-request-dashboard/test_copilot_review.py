@@ -916,6 +916,53 @@ class CopilotReviewDeliveryTest(unittest.TestCase):
         self.request.assert_called_once()
         self.assertEqual("current-head", load_copilot_review_cycles()["7"].head_sha)
 
+    def test_delivery_checkpoints_completion_before_the_next_push(self) -> None:
+        self.request_error = TransientGhError("HTTP 503")
+        self.assertIn("HTTP 503", self.deliver()[0])
+        self.restore()
+        self.request_error = None
+        self.now += timedelta(minutes=1)
+        self.reviews = [self.notice(body="No issues found.")]
+        self.assertEqual([], self.deliver())
+        self.restore()
+        self.assertEqual("complete", load_copilot_review_cycles()["7"].phase)
+        self.assertEqual({}, load_copilot_review_requests())
+
+        self.snapshot = replace(self.snapshot, head_sha="next-head")
+        self.enqueue()
+        self.assertEqual([], self.deliver())
+        self.assertEqual(2, self.request.call_count)
+        self.assertEqual("next-head", load_copilot_review_cycles()["7"].head_sha)
+        self.assertEqual(1, load_copilot_review_cycles()["7"].request_count)
+
+    def test_coverage_that_invalidates_the_intent_still_completes_the_cycle(self) -> None:
+        prior = copilot_review_cycle("current-head", phase="unknown")
+        save_copilot_review_cycles({"7": prior})
+        self.snapshot = routing_snapshot({
+            "checks": [],
+            "pr": {"id": "PR_node", "state": "OPEN", "headRefOid": "current-head"},
+            "reviews": [self.notice(body="No issues found.")],
+        })
+
+        self.assertEqual([], self.deliver())
+        self.request.assert_not_called()
+        self.assertEqual({"7": replace(prior, phase="complete")}, load_copilot_review_cycles())
+        self.assertEqual({}, load_copilot_review_requests())
+
+    def test_completion_does_not_clear_a_competing_reservation(self) -> None:
+        prior = copilot_review_cycle("current-head", phase="unknown")
+        save_copilot_review_cycles({"7": prior})
+        self.commit(lambda: 0)
+        receipt = load_copilot_review_requests()
+        self.reviews = [self.notice(body="No issues found.")]
+        reservation = copilot_review_cycle("current-head", phase="sending", sent_at="")
+
+        self.assertEqual([], self.deliver(self.retry_with_cycle(reservation)))
+        self.assertEqual([], self.deliver())
+        self.request.assert_not_called()
+        self.assertEqual({"7": reservation}, load_copilot_review_cycles())
+        self.assertEqual(receipt, load_copilot_review_requests())
+
     def test_failed_process_start_releases_the_slot_and_allows_recovery(self) -> None:
         self.request.side_effect = request_copilot_review
         with patch("github_cli.subprocess.Popen", side_effect=FileNotFoundError("gh unavailable")):

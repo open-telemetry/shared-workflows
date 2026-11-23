@@ -978,15 +978,18 @@ async def update_dashboard_for_backfill(
 async def update_dashboard_via_state_branch(args: argparse.Namespace, state_dir: Path) -> int:
     args.copilot_review_cycles = {}
     state_branch.configure_git()
-    with state_branch.accepted_state_dir(
-        state_branch.delivery_state_branch(args.state_branch),
-        required=False,
-    ) as checkout:
-        if checkout is not None:
+    for branch in (state_branch.delivery_state_branch(args.state_branch), args.state_branch):
+        with state_branch.accepted_state_dir(branch, required=False) as checkout:
+            if checkout is None:
+                continue
             repo_key = repo_state_key(args.repo) if args.repo else repo_state_key(detect_repo())
+            repo_dir = checkout / repo_key
+            if not repo_dir.is_dir():
+                continue
             args.copilot_review_cycles = load_copilot_review_cycles_file(
-                checkout / repo_key / COPILOT_REVIEW_FALLBACK_STATE_FILE
+                repo_dir / COPILOT_REVIEW_FALLBACK_STATE_FILE
             )
+            break
     async with CopilotSdkModelRunner() as runner:
         service = ClassificationService(runner, DEFAULT_CLASSIFICATION_CACHE_STORE)
         if args.pr_number is None:

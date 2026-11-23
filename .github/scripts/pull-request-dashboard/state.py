@@ -1323,6 +1323,12 @@ def load_copilot_review_requests() -> dict[str, Any]:
 
 
 def save_copilot_review_requests(requests: dict[str, Any]) -> None:
+    if not using_delivery_state():
+        # First delivery seeds its journal from accepted state. Preserve legacy sends
+        # there before rewriting the receipts that identify them.
+        cycles = load_copilot_review_cycles_file(copilot_review_fallback_state_path(), legacy_only=True)
+        if cycles:
+            save_copilot_review_cycles(cycles)
     save_state_file(
         copilot_review_request_state_path(),
         {"prs": requests},
@@ -1436,7 +1442,9 @@ def _legacy_copilot_review_cycle(entry: Any, version: int) -> CopilotReviewCycle
     )
 
 
-def load_copilot_review_cycles_file(path: Path) -> dict[str, CopilotReviewCycle]:
+def load_copilot_review_cycles_file(
+    path: Path, *, legacy_only: bool = False,
+) -> dict[str, CopilotReviewCycle]:
     exists = path.exists()
     data = json.loads(path.read_text(encoding="utf-8")) if exists else None
     if exists and (
@@ -1446,16 +1454,17 @@ def load_copilot_review_cycles_file(path: Path) -> dict[str, CopilotReviewCycle]
         or not isinstance(data.get("prs"), dict)
     ):
         raise ValueError(f"incompatible Copilot review cycle state: {path}")
-    cycles = {
-        key: (
-            _decode_copilot_review_cycle(entry)
-            if data["version"] >= 4
-            else _legacy_copilot_review_cycle(entry, data["version"])
-        )
-        for key, entry in (data["prs"] if data is not None else {}).items()
-    }
-    if data is not None and data["version"] >= 4:
-        return cycles
+    cycles: dict[str, CopilotReviewCycle] = {}
+    if data is not None:
+        version = data["version"]
+        if version >= 4:
+            if legacy_only:
+                return cycles
+            return {key: _decode_copilot_review_cycle(entry) for key, entry in data["prs"].items()}
+        cycles = {
+            key: _legacy_copilot_review_cycle(entry, version)
+            for key, entry in data["prs"].items()
+        }
     receipt_path = path.with_name(COPILOT_REVIEW_REQUEST_STATE_FILE)
     if not receipt_path.exists():
         return cycles

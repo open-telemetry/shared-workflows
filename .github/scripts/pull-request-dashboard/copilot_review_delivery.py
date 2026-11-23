@@ -141,6 +141,25 @@ def deliver_copilot_review_requests(
             observed_cycle = load_copilot_review_cycles().get(key)
             snapshot = fetch_routing_snapshot(repo, pr_number)
             stale_reason = stale_request_reason(entry, snapshot)
+            # A new review can invalidate the routing fingerprint without invalidating coverage.
+            reviews = (
+                snapshot.reviews if stale_reason
+                else normalize_reviews(fetch_pr_reviews(owner, repo_name, pr_number))
+            )
+            exists, stale = copilot_review_status(reviews, snapshot.head_sha)
+            if (
+                exists and not stale
+                and snapshot.head_sha and snapshot.head_sha == entry.get("head_sha")
+            ):
+                if observed_cycle is None or observed_cycle.phase != "sending":
+                    complete = refresh_copilot_review_cycle(
+                        observed_cycle, reviews, snapshot.head_sha, utc_now(),
+                        fallback_available=bool(token),
+                    )
+                    commit_cycle_update(
+                        CopilotReviewCycleUpdate(observed_cycle, complete), discard=True,
+                    )
+                continue
             if stale_reason:
                 print(
                     f"discarding Copilot review request for PR #{pr_number}: {stale_reason}",
@@ -148,7 +167,6 @@ def deliver_copilot_review_requests(
                 )
                 commit_state(discard_receipt)
                 continue
-            reviews = normalize_reviews(fetch_pr_reviews(owner, repo_name, pr_number))
             error_count = copilot_review_error_count(reviews, snapshot.head_sha)
             if error_count >= COPILOT_REVIEW_ERROR_LIMIT:
                 print(
@@ -156,10 +174,6 @@ def deliver_copilot_review_requests(
                     f"Copilot reported {error_count} errors on head {snapshot.head_sha}",
                     file=sys.stderr,
                 )
-                commit_state(discard_receipt)
-                continue
-            exists, stale = copilot_review_status(reviews, snapshot.head_sha)
-            if exists and not stale:
                 commit_state(discard_receipt)
                 continue
             if any(is_copilot_reviewer(request) for request in snapshot.review_requests):

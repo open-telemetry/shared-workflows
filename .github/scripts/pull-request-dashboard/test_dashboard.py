@@ -13,6 +13,7 @@ import unittest
 from unittest.mock import ANY, AsyncMock, Mock, call, patch
 
 from copilot_review import set_copilot_review_request_needed
+from copilot_review_delivery import record_copilot_review_observation
 from dashboard import (
     BACKFILL_RECORDED_FAILURE_STATUS,
     apply_targeted_dashboard_update,
@@ -60,6 +61,7 @@ from dashboard_test_support import (
     review_thread_comment,
     stored_dashboard_result,
 )
+from delivery import initialize_delivery_state
 from classification_execution import (
     ClassificationExecutionRequest,
     ClassificationService,
@@ -100,6 +102,11 @@ from pull_request_activity import PullRequestActivity
 from render import render_pr_tables, reviewers_cell_text
 from reviewer_state import ReviewerInput, prepare_reviewers
 from routing_decision import resolve_routing
+from state import (
+    COPILOT_REVIEW_REQUEST_STATE_FILE,
+    COPILOT_REVIEW_REQUEST_STATE_VERSION,
+    load_copilot_review_cycles,
+)
 
 
 FAILED_CLASSIFICATION = ClassificationFailure(
@@ -528,6 +535,50 @@ class DashboardReviewCycleSnapshotTest(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(0, await update_dashboard_via_state_branch(args, checkout))
             snapshot.assert_called_once()
             self.assertEqual({"7": cycle}, args.copilot_review_cycles)
+
+    async def test_first_delivery_keeps_legacy_accepted_receipts_after_refresh(self) -> None:
+        args = Namespace(
+            repo="owner/repo", pr_number=7,
+            state_branch="otelbot/pull-request-dashboard-state/repo",
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            accepted = root / "accepted"
+            accepted_repo = accepted / "repo"
+            accepted_repo.mkdir(parents=True)
+            receipt = accepted_repo / COPILOT_REVIEW_REQUEST_STATE_FILE
+            receipt.write_text(json.dumps({"version": 11, "prs": {"7": {
+                "head_sha": "previous-head", "requested_at": "2026-08-16T11:59:00Z",
+            }}}), encoding="utf-8")
+            with (
+                patch("dashboard.state_branch.configure_git"),
+                patch(
+                    "dashboard.state_branch.accepted_state_dir",
+                    side_effect=[nullcontext(None), nullcontext(accepted)],
+                ) as snapshot,
+                patch("dashboard.CopilotSdkModelRunner"),
+                patch("dashboard.update_dashboard_for_pr_number", new_callable=AsyncMock) as update,
+            ):
+                update.return_value = 0
+                self.assertEqual(0, await update_dashboard_via_state_branch(args, accepted))
+            snapshot.assert_has_calls([
+                call("otelbot/pull-request-dashboard-delivery/repo", required=False),
+                call(args.state_branch, required=False),
+            ])
+            migrated = args.copilot_review_cycles["7"]
+            self.assertEqual("unknown", migrated.phase)
+            self.assertEqual("2026-08-16T11:59:00+00:00", migrated.started_at)
+
+            with patch("state._state_dir", accepted_repo), patch("state._using_delivery_state", False):
+                record_copilot_review_observation(7, None, datetime(2026, 8, 16, 12, tzinfo=timezone.utc))
+            self.assertEqual(
+                {"version": COPILOT_REVIEW_REQUEST_STATE_VERSION, "prs": {}},
+                json.loads(receipt.read_text(encoding="utf-8")),
+            )
+
+            with patch("state._state_dir", root / "delivery" / "repo"):
+                initialize_delivery_state(accepted_repo)
+                self.assertEqual({"7": migrated}, load_copilot_review_cycles())
 
 
 class PullRequestEvaluationTest(unittest.IsolatedAsyncioTestCase):
