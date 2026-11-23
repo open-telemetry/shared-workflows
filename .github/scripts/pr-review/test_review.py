@@ -147,6 +147,41 @@ class ReviewTest(unittest.TestCase):
             self.assertIn("shell", launch.call_args.args[2])
             self.assertEqual(launch.call_args.kwargs["phase"], "review")
 
+    def test_model_pass_reports_slowest_tools_without_logging_event_payloads(self):
+        events = [
+            {"type": "tool.execution_start", "timestamp": "2026-11-23T01:00:00Z", "data": {
+                "toolCallId": "shell", "toolName": "shell", "arguments": {"command": "private-command"},
+            }},
+            {"type": "tool.execution_start", "timestamp": "2026-11-23T01:00:01Z", "data": {
+                "toolCallId": "view", "toolName": "view",
+            }},
+            {"type": "tool.execution_complete", "timestamp": "2026-11-23T01:00:02Z", "data": {
+                "toolCallId": "view", "success": True,
+            }},
+            {"type": "tool.execution_complete", "timestamp": "2026-11-23T01:00:42Z", "data": {
+                "toolCallId": "shell", "success": False, "result": {"content": "private-output"},
+            }},
+            {"type": "assistant.message", "data": {"content": "private-draft"}},
+            {"type": "result"},
+            {"type": "private-unknown-event"},
+        ]
+        response = subprocess.CompletedProcess([], 0, stdout="\n".join(map(json.dumps, events)))
+        with (
+            tempfile.TemporaryDirectory() as directory,
+            mock.patch.object(runner, "run_in_sandbox", return_value=response),
+            mock.patch.object(runner.time, "monotonic", side_effect=[100, 150]),
+            mock.patch.object(runner, "progress") as log,
+        ):
+            bundle = Path(directory)
+            self.assertEqual(
+                runner.model_pass("model", "max", "prompt", bundle, bundle, phase="review"),
+                "private-draft",
+            )
+        self.assertEqual(log.call_args_list[-2:], [
+            mock.call("review: completed after 50.0s. Last recorded event: result."),
+            mock.call("review: slowest completed tools: shell failed 42.0s, view 1.0s."),
+        ])
+
     def test_model_pass_reports_the_cli_error_from_json(self):
         response = subprocess.CompletedProcess(
             [], 1, stdout='{"type":"session.error","data":{"message":"Model not available."}}\n', stderr=""
@@ -172,15 +207,27 @@ class ReviewTest(unittest.TestCase):
 
     def test_model_pass_rejects_partial_output_on_timeout(self):
         response = subprocess.CompletedProcess(
-            [], 124, stdout='{"type":"assistant.message","data":{"content":"{\\"comments\\":[]}"}}\n',
+            [], 124, stdout=(
+                '{"type":"assistant.message","data":{"content":"{\\"comments\\":[]}"}}\n'
+                '{"type":"tool.execution_start","data":{"toolCallId":"x","toolName":"private-name"}}\n'
+                '{"type":"tool.execution_start","data":{"toolCallId":"y","toolName":"shell"}}\n'
+                '{"type":"tool.execution_start","data":{"toolCallId":"z","toolName":"view"}}\n'
+                '{"type":"tool.execution_complete","data":{"toolCallId":"z"}}\n'
+            ),
         )
         with (
             tempfile.TemporaryDirectory() as directory,
             mock.patch.object(runner, "run_in_sandbox", return_value=response),
+            mock.patch.object(runner.time, "monotonic", side_effect=[0, 3600]),
+            mock.patch.object(runner, "progress") as log,
             self.assertRaisesRegex(RuntimeError, "exceeded its .* sandbox time limit"),
         ):
             bundle = Path(directory)
             runner.model_pass("model", "max", "prompt", bundle / "checkout", bundle, phase="review")
+        self.assertEqual(log.call_args_list[-2:], [
+            mock.call("review: sandbox timeout after 3600.0s. Last recorded event: tool.execution_complete."),
+            mock.call("review: 2 tool calls without a recorded finish: other tool, shell."),
+        ])
 
     def test_checkout_rejects_a_moved_pr_head(self):
         response = subprocess.CompletedProcess([], 0, stdout="e" * 40 + "\n")

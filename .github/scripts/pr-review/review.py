@@ -11,6 +11,8 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -22,6 +24,12 @@ from sandbox import AGENT_TIMEOUT_MINUTES, checkout_pr, run_in_sandbox
 
 SOL = "gpt-6.1-sol"
 OPUS = "claude-opus-5.5"
+TOOL_NAMES = ("view", "glob", "grep", "bash", "shell")
+ACTIVITY_EVENTS = (
+    "session.start", "session.error", "session.idle", "session.shutdown",
+    "assistant.turn_start", "assistant.turn_end", "assistant.message", "assistant.usage",
+    "tool.execution_start", "tool.execution_complete", "result",
+)
 
 
 def is_copilot_reviewer(login: str) -> bool:
@@ -65,38 +73,107 @@ def closer_look_context(repo: str, pr: int, bundle: Path) -> str:
     return f", including Needs a closer look {match['html_url']}"
 
 
-def model_pass(model: str, effort: str, prompt: str, checkout: Path, bundle: Path, *, phase: str) -> str:
-    progress(f"Running {model} with {effort} reasoning")
-    prompt_file = bundle / "prompt.txt"
-    prompt_file.write_text(prompt, encoding="utf-8")
-    result = run_in_sandbox(
-        checkout, bundle,
-        [
-            "--model", model, "--reasoning-effort", effort, "--output-format", "json", "--no-ask-user",
-            "--no-auto-update", "--no-custom-instructions", "--disable-builtin-mcps", "--allow-all-paths",
-            "--available-tools", "view", "glob", "grep", "bash", "shell",
-            "--allow-tool", "view", "glob", "grep", "shell",
-        ],
-        phase=phase,
-    )
-    if result.returncode == 124:
-        raise RuntimeError(f"{model} exceeded its {AGENT_TIMEOUT_MINUTES}-minute sandbox time limit")
-    answer = ""
-    error_message = ""
-    for line in result.stdout.splitlines():
+def copilot_events(stdout: str) -> list[dict[str, Any]]:
+    events = []
+    for line in stdout.split("\n"):
         if not line.startswith("{"):
             continue
         try:
             event = json.loads(line)
         except json.JSONDecodeError:
             continue
-        data = event.get("data") or {}
+        if isinstance(event, dict):
+            events.append(event)
+    return events
+
+
+def event_data(event: dict[str, Any]) -> dict[str, Any]:
+    data = event.get("data")
+    return data if isinstance(data, dict) else {}
+
+
+def event_time(event: dict[str, Any]) -> datetime | None:
+    timestamp = event.get("timestamp")
+    if isinstance(timestamp, str):
+        try:
+            parsed = datetime.fromisoformat(timestamp)
+        except ValueError:
+            return None
+        if parsed.tzinfo is not None:
+            return parsed
+    return None
+
+
+def report_activity(phase: str, elapsed: float, outcome: str, events: list[dict[str, Any]]) -> None:
+    pending: dict[str, tuple[str, datetime | None]] = {}
+    timings: list[tuple[float, str, str]] = []
+    last_event = "none recorded"
+    for event in events:
+        kind = event.get("type")
+        if kind in ACTIVITY_EVENTS:
+            last_event = kind
+        if kind not in ("tool.execution_start", "tool.execution_complete"):
+            continue
+        data = event_data(event)
+        call = data.get("toolCallId")
+        if not isinstance(call, str) or not call:
+            continue
+        if kind == "tool.execution_start":
+            name = data.get("toolName")
+            pending[call] = (name if name in TOOL_NAMES else "other tool", event_time(event))
+        elif call in pending:
+            name, start = pending.pop(call)
+            end = event_time(event)
+            if start is not None and end is not None and end >= start:
+                status = " failed" if data.get("success") is False else ""
+                timings.append(((end - start).total_seconds(), name, status))
+    progress(f"{phase}: {outcome} after {elapsed:.1f}s. Last recorded event: {last_event}.")
+    if timings:
+        slowest = ", ".join(
+            f"{name}{status} {seconds:.1f}s" for seconds, name, status in sorted(timings, reverse=True)[:3]
+        )
+        progress(f"{phase}: slowest completed tools: {slowest}.")
+    if pending:
+        names = ", ".join(sorted({name for name, _ in pending.values()}))
+        progress(f"{phase}: {len(pending)} tool calls without a recorded finish: {names}.")
+
+
+def model_pass(model: str, effort: str, prompt: str, checkout: Path, bundle: Path, *, phase: str) -> str:
+    progress(f"{phase}: running {model} with {effort} reasoning")
+    prompt_file = bundle / "prompt.txt"
+    prompt_file.write_text(prompt, encoding="utf-8")
+    started = time.monotonic()
+    try:
+        result = run_in_sandbox(
+            checkout, bundle,
+            [
+                "--model", model, "--reasoning-effort", effort, "--output-format", "json", "--no-ask-user",
+                "--no-auto-update", "--no-custom-instructions", "--disable-builtin-mcps", "--allow-all-paths",
+                "--available-tools", *TOOL_NAMES,
+                "--allow-tool", "view", "glob", "grep", "shell",
+            ],
+            phase=phase,
+        )
+    except subprocess.TimeoutExpired:
+        report_activity(phase, time.monotonic() - started, "runner timeout", [])
+        raise
+    elapsed = time.monotonic() - started
+    events = copilot_events(result.stdout)
+    answer = ""
+    error_message = ""
+    for event in events:
+        data = event_data(event)
         if event.get("type") == "assistant.message":
             content = data.get("content")
             if isinstance(content, str) and content.strip():
                 answer = content.strip()
         elif event.get("type") == "session.error" and isinstance(data.get("message"), str):
             error_message = data["message"]
+    if result.returncode == 124:
+        report_activity(phase, elapsed, "sandbox timeout", events)
+        raise RuntimeError(f"{model} exceeded its {AGENT_TIMEOUT_MINUTES}-minute sandbox time limit")
+    outcome = f"exit {result.returncode}" if result.returncode else "completed" if answer else "no answer"
+    report_activity(phase, elapsed, outcome, events)
     if result.returncode:
         stderr_lines = (result.stderr or "").strip().splitlines()
         detail = error_message or " ".join(stderr_lines[-4:]) or "no diagnostic"
