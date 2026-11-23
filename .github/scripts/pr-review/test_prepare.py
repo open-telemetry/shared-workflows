@@ -47,6 +47,25 @@ class ReviewBundleTest(unittest.TestCase):
                 prepare.small_suggestion(Path("source"), "head", "example.txt", 2, 2, "\n".join(["line"] * 15))
             )
 
+    def test_suggestions_preserve_trailing_blank_lines(self):
+        blob = mock.Mock(returncode=0, stdout="old\n")
+        metadata = {"number": 123, "base": {"sha": "base"}, "head": {"sha": "head"}}
+        scope = {"example.txt": {"changed_lines": [1], "hunks": [(1, 1)]}}
+        with mock.patch.object(prepare, "run", return_value=blob):
+            for text in ("new", "old"):
+                with self.subTest(text=text):
+                    result = prepare.prepare_review({
+                        "body": "Review summary",
+                        "comments": [{
+                            "kind": "review", "path": "example.txt", "line": 1,
+                            "body": "Keep the blank line.", "suggestion": f"{text}\n\n",
+                        }],
+                    }, Path("source"), scope, metadata)
+                    self.assertEqual(
+                        result["review"]["comments"][0]["body"],
+                        f"Keep the blank line.\n\n```suggestion\n{text}\n\n```",
+                    )
+
     def test_metadata_uses_explicit_target_and_checks_resolved_url(self):
         metadata = {"number": 123, "html_url": "https://github.com/org/Repo/pull/123"}
         with mock.patch.object(common, "gh_json", return_value=metadata) as api:

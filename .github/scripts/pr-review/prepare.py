@@ -78,7 +78,7 @@ def small_suggestion(
     if end > len(lines):
         return False
     original = lines[start - 1 : end]
-    text = replacement.rstrip("\n")
+    text = replacement.removesuffix("\n")
     proposed = text.split("\n") if text else []
     ops = difflib.SequenceMatcher(None, original, proposed, autojunk=False).get_opcodes()
     return original != proposed and sum(j2 - j1 for op, _, _, j1, j2 in ops if op != "equal") < 15
@@ -116,7 +116,7 @@ def prepare_review(
         if "suggestion" in raw:
             suggestion = raw["suggestion"]
             if small_suggestion(checkout, head, path, start, line, suggestion):
-                body += "\n\n```suggestion\n" + suggestion.rstrip("\n") + "\n```"
+                body += "\n\n```suggestion\n" + suggestion.removesuffix("\n") + "\n```"
             else:
                 progress(f"Kept comment without suggestion for {path!r}:{line}")
         comment = {"path": path, "line": line, "side": "RIGHT", "body": body}
