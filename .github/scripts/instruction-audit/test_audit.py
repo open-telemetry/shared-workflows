@@ -1,3 +1,4 @@
+import base64
 import json
 import os
 import unittest
@@ -5,7 +6,7 @@ from unittest.mock import patch
 
 import audit
 import model
-from rules import blocks, select
+from rules import blocks, remaining_rules
 
 
 ROOT = ".github/copilot-instructions.md"
@@ -15,7 +16,7 @@ FIRST = "- Check the new setting only if present.\n  Skip internal settings."
 
 class RulesTest(unittest.TestCase):
     def test_selects_exact_blocks_in_order(self):
-        source = f"# Scope\n\n{FIRST}\n\n- Check existing docs.\n"
+        source = f"# Scope\n\n{FIRST}\n\n- Check existing docs.\n- Check existing docs.\n"
         nested = """---
 applyTo: "**/*.md"
 ---
@@ -27,20 +28,23 @@ Keep public examples current.
 ```
 """
         files = {NESTED: nested, ROOT: source}
-        first = select(files, None)
+        (first, resumable), *rest = remaining_rules(files, None)
         self.assertEqual(first.anchor, {"path": ROOT, "text": FIRST})
         self.assertEqual((first.first_line, first.last_line), (3, 4))
-        second = select(files, first.anchor)
-        self.assertEqual(second.text, "- Check existing docs.")
-        final = select(files, second.anchor)
+        self.assertTrue(resumable)
+        self.assertEqual(list(remaining_rules(files, first.anchor)), rest)
+        self.assertEqual([(rule.text, resumable) for rule, resumable in rest[:-1]],
+                         [("- Check existing docs.", False)] * 2)
+        final, _ = rest[-1]
         self.assertEqual(final.anchor, {"path": NESTED, "text": "Keep public examples current."})
-        self.assertIsNone(select(files, final.anchor))
+        self.assertEqual(list(remaining_rules(files, final.anchor)), [])
 
     def test_missing_rewritten_or_ambiguous_anchor_skips_only_its_file(self):
         cursor = {"path": ROOT, "text": FIRST}
         for sources in ({}, {ROOT: FIRST.replace("new", "old")}, {ROOT: f"{FIRST}\n{FIRST}\n"}):
             with self.subTest(sources=sources):
-                self.assertEqual(select({**sources, NESTED: "- Later rule.\n"}, cursor).path, NESTED)
+                self.assertEqual([rule.path for rule, _ in remaining_rules(
+                    {**sources, NESTED: "- Later rule.\n"}, cursor)], [NESTED])
 
     def test_preserves_line_endings_and_indented_exceptions(self):
         source = "- Check the setting.\r\n\r\n  - Except for tests.\r\n- Check docs.\r\n"
@@ -103,12 +107,59 @@ class ValidationTest(unittest.TestCase):
             model.response("", 2, model.STARTED + "\n" + unknown)
 
 
+class PassTest(unittest.TestCase):
+    @patch.dict(os.environ, {"GITHUB_REPOSITORY": "open-telemetry/example"})
+    @patch("builtins.print")
+    @patch.object(audit, "summary")
+    @patch.object(audit, "read_blob")
+    @patch.object(audit, "read_cursor")
+    @patch.object(audit, "snapshot")
+    @patch.object(model, "ask")
+    def test_pass_resumes_on_one_snapshot_and_stops_at_finding_or_end(
+        self, ask, snapshot, read_cursor, read_blob, summary, _print
+    ):
+        for outcome in ("finding", "complete"):
+            with self.subTest(outcome=outcome):
+                repo = audit.target()
+                snapshot.reset_mock()
+                snapshot.return_value = ("main", "a" * 40, "b" * 40, {ROOT: "root", NESTED: "nested"})
+                read_cursor.return_value = ("c" * 40, "d" * 40, {"path": ROOT, "text": FIRST})
+                read_blob.side_effect = [
+                    f"{FIRST}\n- Clean rule.\n",
+                    "- Changed code only.\n- Finding rule.\n- Changed code only.\n- Final rule.\n",
+                ]
+                ask.reset_mock()
+                ask.side_effect = [
+                    {"status": status, "reason": "Audit reason.", "edit": None}
+                    for status in (["clean", "not_auditable", "finding"] if outcome == "finding"
+                                   else ["clean", "not_auditable", "clean", "not_auditable", "clean"])
+                ]
+                summary.reset_mock()
+                result = audit.prepare(repo, "snapshot")
+                snapshot.assert_called_once_with(repo, "snapshot")
+                self.assertEqual(result["status"], outcome)
+                self.assertEqual(
+                    [json.loads(call.args[1].split("encoded as data:\n")[1].splitlines()[0])["selected_rule"]
+                     for call in ask.call_args_list],
+                    ["- Clean rule.", "- Changed code only.", "- Finding rule."]
+                    + (["- Changed code only.", "- Final rule."] if outcome == "complete" else []),
+                )
+                if outcome == "finding":
+                    self.assertEqual(result["rule"], {"path": NESTED, "text": "- Finding rule."})
+                    self.assertEqual(result["completed"], {"path": ROOT, "text": "- Clean rule."})
+                    summary.assert_called_once_with("Rules checked before stopping: 1 clean, 1 not auditable.")
+                else:
+                    self.assertIsNone(result["rule"])
+                    self.assertEqual(result["completed"], {"path": NESTED, "text": "- Final rule."})
+
+
 class StateTest(unittest.TestCase):
     @patch.dict(os.environ, {"GITHUB_REPOSITORY": "open-telemetry/example"})
     @patch.object(audit, "summary")
     @patch.object(audit, "api")
     def test_end_of_pass_removes_cursor_and_detects_concurrent_changes(self, api, _summary):
-        result = {"status": "complete", "repo": audit.target(), "head": "b" * 40, "cursor": "c" * 40}
+        result = {"status": "complete", "repo": audit.target(), "head": "b" * 40, "cursor": "c" * 40,
+                  "rule": None, "completed": {"path": ROOT, "text": FIRST}}
         api.return_value = {"object": {"sha": "a" * 40}}
         with self.assertRaises(ValueError):
             audit.save_state(result)
@@ -120,6 +171,25 @@ class StateTest(unittest.TestCase):
             body={"message": "Advance instruction audit for open-telemetry/example",
                   "branch": audit.STATE, "sha": result["cursor"]},
         )
+
+    @patch.object(audit, "summary")
+    @patch.object(audit, "api")
+    def test_saves_preceding_rule_until_finding_is_published(self, api, _summary):
+        repo = "open-telemetry/example"
+        completed = {"path": ROOT, "text": FIRST}
+        finding = {"path": NESTED, "text": "- Finding rule."}
+        result = {"status": "finding", "repo": repo, "head": "a" * 40, "cursor": "b" * 40,
+                  "rule": finding, "completed": completed}
+        api.return_value = {"object": {"sha": result["head"]}}
+        audit.save_state(result | {"completed": None})
+        api.assert_not_called()
+        for published, expected in ((False, completed), (True, finding)):
+            with self.subTest(published=published):
+                audit.save_state(result, published=published)
+                self.assertEqual(api.call_args.args, (repo, "/contents/example.json"))
+                body = api.call_args.kwargs["body"]
+                self.assertEqual(body["sha"], result["cursor"])
+                self.assertEqual(json.loads(base64.b64decode(body["content"])), expected)
 
     @patch.object(audit, "output")
     @patch.object(audit, "summary")
@@ -135,7 +205,7 @@ class StateTest(unittest.TestCase):
             (repo, "/pulls?state=open&per_page=100&page=1"),
             (repo, "/pulls?state=open&per_page=100&page=2"),
         ])
-        summary.assert_called_once_with("Open audit PR limit reached (5). Cursor unchanged.")
+        summary.assert_called_once_with("Open audit PR limit reached (5). No draft opened.")
         output.assert_not_called()
 
     @patch.dict(os.environ, {"GITHUB_RUN_ID": "42"})

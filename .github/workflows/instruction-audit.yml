@@ -27,7 +27,7 @@ jobs:
   audit:
     if: github.repository_owner == 'open-telemetry' && github.event_name == 'workflow_dispatch' && github.run_attempt == 1
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 360
     permissions:
       contents: read
       copilot-requests: write
@@ -35,7 +35,7 @@ jobs:
       digest: ${{ steps.audit.outputs.digest }}
       repository: ${{ steps.audit.outputs.repository }}
       fix: ${{ steps.audit.outputs.fix }}
-      finding: ${{ steps.audit.outputs.finding }}
+      save_cursor: ${{ steps.audit.outputs.save_cursor }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -50,7 +50,7 @@ jobs:
         id: firewall
         with:
           version: v0.29.11
-      - name: Check one instruction
+      - name: Audit remaining instructions until the first finding
         id: audit
         env:
           GH_TOKEN: ${{ github.token }}
@@ -110,7 +110,7 @@ jobs:
     needs: [audit, publish]
     if: >-
       !cancelled() && github.run_attempt == 1 && needs.audit.result == 'success' &&
-      (needs.audit.outputs.finding == 'false' ||
+      (needs.audit.outputs.save_cursor == 'true' ||
        (needs.publish.result == 'success' && needs.publish.outputs.handled == 'true'))
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -130,4 +130,5 @@ jobs:
       - name: Save the cursor
         env:
           GH_TOKEN: ${{ github.token }}
+          AUDIT_PUBLISHED: ${{ needs.publish.result == 'success' && needs.publish.outputs.handled == 'true' }}
         run: python3 .github/scripts/instruction-audit/audit.py save

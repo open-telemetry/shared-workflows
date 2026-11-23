@@ -1,6 +1,7 @@
-"""Select one Markdown block without changing the saved rule text."""
+"""Read Markdown rules without changing their text."""
 
 import re
+from collections import Counter
 from dataclasses import dataclass
 
 
@@ -71,16 +72,16 @@ def blocks(path, document):
         yield Rule(path, "".join(lines[start:i]).rstrip("\r\n"), start + 1, i)
 
 
-def select(documents, anchor):
+def remaining_rules(documents, anchor):
     for path in sorted(documents):
         if anchor and path < anchor["path"]:
             continue
         candidates = list(blocks(path, documents[path]))
+        counts = Counter(rule.text for rule in candidates)
         if anchor and path == anchor["path"]:
-            matches = [i for i, rule in enumerate(candidates) if rule.text == anchor["text"]]
-            if len(matches) != 1:
+            if counts[anchor["text"]] != 1:
                 continue
-            candidates = candidates[matches[0] + 1:]
-        if candidates:
-            return candidates[0]
-    return None
+            start = next(i for i, rule in enumerate(candidates) if rule.text == anchor["text"])
+            candidates = candidates[start + 1:]
+        for rule in candidates:
+            yield rule, counts[rule.text] == 1
