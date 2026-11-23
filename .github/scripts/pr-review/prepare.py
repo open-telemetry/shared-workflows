@@ -33,7 +33,7 @@ def parse_diff(diff: str) -> DiffScope:
     files: DiffScope = {}
     current: FileScope | None = None
     right_line = 0
-    for line in diff.splitlines():
+    for line in diff.split("\n"):
         if line.startswith("diff --git "):
             current = None
         elif current is None and line.startswith("+++ "):
@@ -57,6 +57,8 @@ def build_bundle(repo: str, pr: int, directory: Path) -> tuple[dict[str, Any], D
     metadata = pr_metadata(repo, pr)
     if metadata["state"] != "open":
         raise RuntimeError("The PR is not open")
+    if metadata["base"]["repo"]["private"] is not False:
+        raise RuntimeError("PR review is only available for public repositories")
     progress(f"Preparing review bundle in {directory}")
     diff = gh(["api", "-H", "Accept: application/vnd.github.diff", f"repos/{repo}/pulls/{pr}"]).stdout
     (directory / "pr.diff").write_text(diff, encoding="utf-8")
@@ -72,11 +74,12 @@ def small_suggestion(
     blob = run(["git", "cat-file", "blob", f"{head}:{path}"], cwd=checkout, check=False, timeout=120)
     if blob.returncode:
         return False
-    lines = blob.stdout.splitlines()
+    lines = blob.stdout.removesuffix("\n").split("\n") if blob.stdout else []
     if end > len(lines):
         return False
     original = lines[start - 1 : end]
-    proposed = replacement.rstrip("\n").splitlines()
+    text = replacement.rstrip("\n")
+    proposed = text.split("\n") if text else []
     ops = difflib.SequenceMatcher(None, original, proposed, autojunk=False).get_opcodes()
     return original != proposed and sum(j2 - j1 for op, _, _, j1, j2 in ops if op != "equal") < 15
 

@@ -1,6 +1,6 @@
 # PR review
 
-To opt in, add your repository to the [PR review opt-in list](../.github/scripts/pr-review/repositories.json). Use the repository name without the `open-telemetry/` prefix. The only field is `name`:
+To opt in a public OpenTelemetry repository, add it to the [PR review opt-in list](../.github/scripts/pr-review/repositories.json). Use the repository name without the `open-telemetry/` prefix. The only field is `name`:
 
 ```json
 {"name": "my-repository"}

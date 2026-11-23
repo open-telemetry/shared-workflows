@@ -29,6 +29,24 @@ class ReviewBundleTest(unittest.TestCase):
         self.assertEqual(list(scope), ["example.txt"])
         self.assertEqual(scope["example.txt"]["changed_lines"], [1, 2])
 
+    def test_line_separators_in_diff_content_do_not_move_the_anchor(self):
+        scope = prepare.parse_diff(
+            "diff --git a/example.txt b/example.txt\n+++ b/example.txt\n@@ -1 +1,2 @@\n"
+            " context\u2028 continuation\f still the first line\n+changed\n"
+        )
+        self.assertEqual(scope["example.txt"]["changed_lines"], [2])
+
+    def test_suggestion_preserves_separators_and_allows_deletion(self):
+        blob = mock.Mock(returncode=0, stdout="first\u2028continuation\ntarget\n")
+        with mock.patch.object(prepare, "run", return_value=blob):
+            self.assertFalse(prepare.small_suggestion(Path("source"), "head", "example.txt", 2, 2, "target"))
+            self.assertTrue(prepare.small_suggestion(Path("source"), "head", "example.txt", 2, 2, ""))
+            replacement = "\u2028".join(["segment"] * 15)
+            self.assertTrue(prepare.small_suggestion(Path("source"), "head", "example.txt", 2, 2, replacement))
+            self.assertFalse(
+                prepare.small_suggestion(Path("source"), "head", "example.txt", 2, 2, "\n".join(["line"] * 15))
+            )
+
     def test_metadata_uses_explicit_target_and_checks_resolved_url(self):
         metadata = {"number": 123, "html_url": "https://github.com/org/repo/pull/123"}
         with mock.patch.object(common, "gh_json", return_value=metadata) as api:
@@ -41,7 +59,7 @@ class ReviewBundleTest(unittest.TestCase):
     def test_bundle_writes_only_the_diff_from_the_target_repository(self):
         metadata = {
             "state": "open", "html_url": "https://github.com/org/repo/pull/123",
-            "head": {"sha": "head"},
+            "base": {"repo": {"private": False}}, "head": {"sha": "head"},
         }
         diff = "diff --git a/example.txt b/example.txt\n+++ b/example.txt\n@@ -0,0 +1 @@\n+text\n"
         with (
@@ -58,6 +76,16 @@ class ReviewBundleTest(unittest.TestCase):
             gh.assert_called_once_with([
                 "api", "-H", "Accept: application/vnd.github.diff", "repos/org/repo/pulls/123",
             ])
+
+    def test_bundle_rejects_private_targets_before_fetching_the_diff(self):
+        metadata = {"state": "open", "base": {"repo": {"private": True}}}
+        with (
+            mock.patch.object(prepare, "pr_metadata", return_value=metadata),
+            mock.patch.object(prepare, "gh") as gh,
+            self.assertRaisesRegex(RuntimeError, "only available for public repositories"),
+        ):
+            prepare.build_bundle("org/private", 123, Path("bundle"))
+        gh.assert_not_called()
 
 
 if __name__ == "__main__":

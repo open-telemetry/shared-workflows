@@ -196,12 +196,18 @@ class ReviewTest(unittest.TestCase):
             inputs = root / "input"
             inputs.mkdir()
             cli = root / "npm" / ".bin" / "copilot"
+            awf = root / "awf-bin" / "awf"
 
             def launch(args, *, cwd, env, **kwargs):
-                self.assertEqual(args[0], "awf")
+                self.assertEqual(args[:2], ["/usr/bin/sudo", "--non-interactive"])
+                self.assertEqual(args[3], str(awf))
+                preserved = set(args[2].removeprefix("--preserve-env=").split(","))
+                self.assertEqual(preserved, env.keys())
+                self.assertIn("COPILOT_GITHUB_TOKEN", preserved)
                 self.assertIn(f"{inputs}:{inputs}:ro", args)
                 self.assertEqual(env["GITHUB_WORKSPACE"], str(cwd))
                 self.assertEqual(Path(env["HOME"]).parent, cwd.parent)
+                self.assertNotIn("PATH", env)
                 self.assertNotIn("GH_TOKEN", env)
                 self.assertNotIn("ACTIONS_RUNTIME_TOKEN", env)
                 self.assertNotIn("GITHUB_TOKEN", env)
@@ -216,11 +222,12 @@ class ReviewTest(unittest.TestCase):
                 mock.patch.dict(os.environ, {
                     "GH_TOKEN": "fixture",
                     "GITHUB_TOKEN": "fixture",
+                    "COPILOT_GITHUB_TOKEN": "fixture",
                     "ACTIONS_RUNTIME_TOKEN": "fixture",
                     "AWF_IMAGE_TAG": "fixture",
                     "RUNNER_TEMP": directory,
                 }),
-                mock.patch.object(sandbox.shutil, "which", return_value=str(cli)),
+                mock.patch.object(sandbox.shutil, "which", side_effect={"copilot": str(cli), "awf": str(awf)}.get),
                 mock.patch.object(sandbox, "run", side_effect=launch) as run,
             ):
                 sandbox.run_in_sandbox(seed, inputs, ["--help"])

@@ -42,6 +42,9 @@ def run_in_sandbox(checkout: Path, inputs: Path, args: list[str]) -> subprocess.
     copilot = shutil.which("copilot")
     if copilot is None:
         raise RuntimeError("Copilot CLI is not installed")
+    awf = shutil.which("awf")
+    if awf is None:
+        raise RuntimeError("Agentic Workflow Firewall is not installed")
     cli_dir = Path(copilot).parent.parent
     # AWF creates root-owned mount points beside its work directory. The disposable runner removes them.
     awf_work = Path(tempfile.mkdtemp(prefix="pr-review-awf-", dir=os.environ.get("RUNNER_TEMP"))) / "work"
@@ -61,8 +64,7 @@ def run_in_sandbox(checkout: Path, inputs: Path, args: list[str]) -> subprocess.
         })
         env = {
             key: os.environ[key] for key in (
-                "PATH", "USER", "LOGNAME", "LANG",
-                "GITHUB_ACTIONS", "RUNNER_ENVIRONMENT", "COPILOT_GITHUB_TOKEN",
+                "LANG", "GITHUB_ACTIONS", "RUNNER_ENVIRONMENT", "COPILOT_GITHUB_TOKEN",
             ) if key in os.environ
         }
         env["HOME"] = str(home)
@@ -70,7 +72,8 @@ def run_in_sandbox(checkout: Path, inputs: Path, args: list[str]) -> subprocess.
         capture = awf_work.parent / "output"
         result = run(
             [
-                "awf", "--config", str(config), "--work-dir", str(awf_work),
+                "/usr/bin/sudo", "--non-interactive", f"--preserve-env={','.join(env)}",
+                str(Path(awf).resolve()), "--config", str(config), "--work-dir", str(awf_work),
                 "--image-tag", os.environ["AWF_IMAGE_TAG"], "--container-workdir", str(workspace),
                 "--mount", f"{cli_dir}:{cli_dir}:ro", "--mount", f"{inputs}:{inputs}:ro",
                 "--env", "GITHUB_COPILOT_PROMPT_MODE_EXTENSIONS=false",
