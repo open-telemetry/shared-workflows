@@ -85,6 +85,8 @@ def ask(checkout, prompt):
     shutil.copyfile(Path(__file__).with_name("launch-copilot.sh"), bundle / "launch-copilot.sh")
     home = root / "home"
     home.mkdir()
+    runtime_home = root / "runtime"
+    runtime_home.mkdir(mode=0o700)
     config = root / "awf.json"
     config.write_text(json.dumps({
         "network": {"isolation": True, "allowDomains": ["github.com", "release-assets.githubusercontent.com"]},
@@ -102,11 +104,13 @@ def ask(checkout, prompt):
         str(Path(awf).resolve()), "--config", str(config), "--work-dir", str(awf_root / "work"),
         "--image-tag", os.environ["AWF_IMAGE_TAG"], "--container-workdir", str(checkout),
         "--mount", f"{cli_dir}:{cli_dir}:ro", "--mount", f"{bundle}:{bundle}:ro",
+        "--mount", f"{runtime_home}:{runtime_home}:rw",
         "--env", "GITHUB_COPILOT_PROMPT_MODE_EXTENSIONS=false",
         "--capture-command-output", str(capture), "--proxy-logs-dir", str(awf_root / "proxy-logs"),
         "--agent-timeout", "18",
         "--log-level", "info", "--",
-        "/bin/bash", str(bundle / "launch-copilot.sh"), str(checkout), str(bundle), str(config), copilot,
+        "/bin/bash", str(bundle / "launch-copilot.sh"), str(checkout), str(bundle), str(config),
+        str(runtime_home), copilot,
         "--model", "gpt-6.1-sol", "--reasoning-effort", "max", "--output-format", "json", "--no-ask-user",
         "--no-auto-update", "--no-custom-instructions", "--disable-builtin-mcps", "--allow-all-paths",
         "--available-tools", "view", "glob", "grep", "--allow-tool", "view", "glob", "grep",

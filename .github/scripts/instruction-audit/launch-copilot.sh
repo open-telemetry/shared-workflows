@@ -6,7 +6,8 @@ fail() { echo "Sandbox check failed: $1" >&2; exit 1; }
 checkout=$1
 inputs=$2
 host_config=$3
-shift 3
+runtime_home=$4
+shift 4
 test ! -S /var/run/docker.sock || fail 'Docker socket is visible'
 test -z "${GH_TOKEN:-}${GITHUB_TOKEN:-}${ACTIONS_RUNTIME_TOKEN:-}${ACTIONS_ID_TOKEN_REQUEST_TOKEN:-}" ||
   fail 'Actions credential is visible'
@@ -18,6 +19,7 @@ test ! -w "$inputs" && test -r "$inputs/prompt.txt" || fail 'Audit inputs are no
 echo '[instruction-audit] Verified credential isolation' >&2
 
 copilot=$1
+export HOME="$runtime_home" COPILOT_HOME="$runtime_home/.copilot"
 test -w "$HOME" || fail 'Copilot home is not writable'
 "$copilot" --version >/dev/null || fail 'Copilot CLI version check failed'
 echo '[instruction-audit] Copilot binary executed' >&2
