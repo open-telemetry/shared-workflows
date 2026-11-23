@@ -1084,6 +1084,36 @@ class PullRequestEvaluationTest(unittest.IsolatedAsyncioTestCase):
                     )
 
     @patch("pull_request_evaluation.fetch_pull_request_source")
+    async def test_unclear_inline_thread_does_not_block_maintainer_routing(
+        self,
+        fetch_raw: Mock,
+    ) -> None:
+        fetch_raw.return_value = pull_request_source(
+            reviews=(review_source(actor=actor("reviewer"), state="APPROVED"),),
+            review_threads=(review_thread(comments=(review_thread_comment(
+                actor=actor("reviewer"),
+                body="I wonder if there's more context here.",
+            ),)),),
+        )
+
+        result = await evaluate_pull_request(
+            evaluation_config(),
+            PullRequestEvaluationInput(7),
+            ClassificationService(
+                FakeModelRunner(responder=lambda request: successful_response(
+                    request, inline_verdict="unclear",
+                )),
+                MemoryClassificationCacheStore(),
+            ),
+        )
+
+        self.assertIsInstance(result, EvaluationSuccess)
+        assert isinstance(result, EvaluationSuccess)
+        self.assertEqual(DashboardRoute.MAINTAINER, result.route)
+        self.assertEqual({}, result.pending_actions)
+        self.assertEqual((), result.facts.author_action_review_thread_urls)
+
+    @patch("pull_request_evaluation.fetch_pull_request_source")
     async def test_copilot_findings_keep_author_work_with_the_author(
         self,
         fetch_raw: Mock,

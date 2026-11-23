@@ -598,10 +598,6 @@ class ResolveDiscussionsTest(unittest.TestCase):
                     "action": "author",
                     "since": ROOT_TIMESTAMP,
                 },
-                "thread-unclear": {
-                    "action": "author",
-                    "since": ROOT_TIMESTAMP,
-                },
                 "feedback-author": {
                     "action": "author",
                     "since": ROOT_TIMESTAMP,
