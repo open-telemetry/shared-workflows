@@ -115,6 +115,8 @@ from render import render_pr_tables, reviewers_cell_text
 from reviewer_state import ReviewerInput, prepare_reviewers
 from routing_decision import resolve_routing
 from state import (
+    COPILOT_REVIEW_DISPATCH_STATE_FILE,
+    COPILOT_REVIEW_FALLBACK_STATE_VERSION,
     COPILOT_REVIEW_REQUEST_STATE_FILE,
     COPILOT_REVIEW_INTENTS_FILE,
     COPILOT_REVIEW_REQUEST_STATE_VERSION,
@@ -534,8 +536,8 @@ class DashboardReviewCycleSnapshotTest(unittest.IsolatedAsyncioTestCase):
         with tempfile.TemporaryDirectory() as directory:
             checkout = Path(directory)
             (checkout / "repo").mkdir()
-            (checkout / "repo" / "copilot-review-fallback-state.json").write_text(json.dumps({
-                "version": 4, "prs": {"7": asdict(cycle)},
+            (checkout / "repo" / COPILOT_REVIEW_DISPATCH_STATE_FILE).write_text(json.dumps({
+                "version": COPILOT_REVIEW_FALLBACK_STATE_VERSION, "prs": {"7": asdict(cycle)},
             }), encoding="utf-8")
             with (
                 patch.dict(os.environ, {"COPILOT_REVIEW_FALLBACK_AVAILABLE": "false"}),

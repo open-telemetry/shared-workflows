@@ -403,10 +403,12 @@ fingerprint no longer matches. Dashboard calculation owns the intents and
 removes them when they are no longer needed. Delivery writes only the dispatch
 journal for Copilot requests.
 
-Legacy attempt records and receipts migrate to one time-bounded uncertain
-request per PR. On first delivery, the accepted-state branch seeds the journal.
-Once the journal exists, the worker uses it and GitHub's current state to decide
-whether to send. Historical and cached exhaustion flags do not disable future
+On first delivery, the worker copies legacy records from the accepted branch
+if the delivery branch does not already have those files. Legacy attempts and
+receipts seed one time-bounded uncertain request per PR. The worker uses
+`copilot-review-dispatch-state.json` once it exists, even if it is empty.
+Delivery leaves the legacy files intact so pinned calculators can still read
+their own format. Historical and cached exhaustion flags do not disable future
 heads. Required checks and actionable feedback are never bypassed.
 
 Ask a maintainer or admin to add the repository under [Repository access](https://github.com/organizations/open-telemetry/settings/installations/133550497).

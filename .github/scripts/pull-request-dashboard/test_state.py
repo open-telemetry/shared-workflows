@@ -31,6 +31,7 @@ from dashboard_test_support import (
 from state import (
     AUTHOR_NUDGE_STATE_VERSION,
     BACKFILL_STATE_VERSION,
+    COPILOT_REVIEW_FALLBACK_STATE_FILE,
     COPILOT_REVIEW_FALLBACK_STATE_VERSION,
     COPILOT_REVIEW_INTENTS_FILE,
     COPILOT_REVIEW_REQUEST_STATE_FILE,
@@ -43,7 +44,7 @@ from state import (
     STATUS_COMMENT_REVISION,
     author_nudge_state_path,
     backfill_state_path,
-    copilot_review_fallback_state_path,
+    copilot_review_dispatch_state_path,
     claim_delivery_versions,
     current_delivery_versions,
     full_publish_needed_path,
@@ -65,7 +66,7 @@ from state import (
     load_author_nudges,
     load_backfill_state,
     load_copilot_review_cycles,
-    load_copilot_review_cycles_file,
+    load_copilot_review_cycles_from,
     load_copilot_review_intents,
     load_dashboard_state_cache,
     load_delivery_versions,
@@ -89,7 +90,7 @@ from state import (
 
 
 class StateTest(unittest.TestCase):
-    def test_cycle_journal_survives_intent_changes(self) -> None:
+    def test_prior_journal_versions_seed_the_dispatch_journal(self) -> None:
         with (
             tempfile.TemporaryDirectory() as directory,
             patch("state._state_dir", Path(directory)),
@@ -97,15 +98,31 @@ class StateTest(unittest.TestCase):
         ):
             cycles = {"7": copilot_review_cycle("current-head", baseline_review_ids=(10, 11))}
             save_copilot_review_cycles(cycles)
-            path = copilot_review_fallback_state_path()
+            path = copilot_review_dispatch_state_path()
+            legacy = path.with_name(COPILOT_REVIEW_FALLBACK_STATE_FILE)
             data = json.loads(path.read_text(encoding="utf-8"))
-            for version in (4, 5, 6, 9, COPILOT_REVIEW_FALLBACK_STATE_VERSION):
+            for version in range(4, 11):
                 with self.subTest(version=version):
-                    path.write_text(json.dumps({**data, "version": version}), encoding="utf-8")
-                    save_copilot_review_intents({"7": {"head_sha": "next-head"}})
-                    save_copilot_review_intents({})
+                    path.unlink()
+                    original = json.dumps({**data, "version": version})
+                    legacy.write_text(original, encoding="utf-8")
                     self.assertEqual(cycles, load_copilot_review_cycles())
-                    self.assertEqual(cycles, load_copilot_review_cycles_file(path))
+                    save_copilot_review_cycles(cycles)
+                    self.assertEqual(cycles, load_copilot_review_cycles_from(path.parent))
+                    self.assertEqual(original, legacy.read_text(encoding="utf-8"))
+
+    def test_empty_dispatch_journal_ignores_legacy_records(self) -> None:
+        with (
+            tempfile.TemporaryDirectory() as directory,
+            patch("state._state_dir", Path(directory)),
+        ):
+            receipt = Path(directory) / COPILOT_REVIEW_REQUEST_STATE_FILE
+            receipt.write_text(json.dumps({
+                "version": 8, "prs": {"7": {"requested_at": "2026-08-16T12:00:00Z"}},
+            }), encoding="utf-8")
+            self.assertIn("7", load_copilot_review_cycles())
+            save_copilot_review_cycles({})
+            self.assertEqual({}, load_copilot_review_cycles())
 
     def test_legacy_attempts_coalesce_into_one_unknown_without_exhaustion(self) -> None:
         with (
@@ -129,9 +146,12 @@ class StateTest(unittest.TestCase):
                             ]}
                             if version == 3 else attempt
                         )
-                        copilot_review_fallback_state_path().write_text(json.dumps({
+                        copilot_review_dispatch_state_path().unlink(missing_ok=True)
+                        legacy = Path(directory) / COPILOT_REVIEW_FALLBACK_STATE_FILE
+                        original = json.dumps({
                             "version": version, "prs": {"7": {**entry, "exhausted": exhausted}},
-                        }), encoding="utf-8")
+                        })
+                        legacy.write_text(original, encoding="utf-8")
                         cycles = load_copilot_review_cycles()
                         self.assertEqual({
                             "7": copilot_review_cycle(
@@ -142,6 +162,7 @@ class StateTest(unittest.TestCase):
                         }, cycles)
                         save_copilot_review_cycles(cycles)
                         self.assertEqual(cycles, load_copilot_review_cycles())
+                        self.assertEqual(original, legacy.read_text(encoding="utf-8"))
 
     def test_primary_receipts_migrate_when_no_cycle_was_recorded(self) -> None:
         with (
@@ -151,7 +172,6 @@ class StateTest(unittest.TestCase):
             receipt = Path(directory) / COPILOT_REVIEW_REQUEST_STATE_FILE
             for version in (6, 7, 8, 9, 10, 11):
                 with self.subTest(version=version):
-                    copilot_review_fallback_state_path().unlink(missing_ok=True)
                     receipt.write_text(json.dumps({
                         "version": version,
                         "prs": {"7": {"head_sha": "current-head", "requested_at": "2026-08-16T12:00:00Z"}},
@@ -186,7 +206,7 @@ class StateTest(unittest.TestCase):
             tempfile.TemporaryDirectory() as directory,
             patch("state._state_dir", Path(directory)),
         ):
-            copilot_review_fallback_state_path().write_text(json.dumps({
+            (Path(directory) / COPILOT_REVIEW_FALLBACK_STATE_FILE).write_text(json.dumps({
                 "version": 1, "prs": {"7": {
                     "quota_failure_ids": [], "attempted_at": "2026-08-16T08:00:00Z",
                 }},
@@ -207,7 +227,7 @@ class StateTest(unittest.TestCase):
             tempfile.TemporaryDirectory() as directory,
             patch("state._state_dir", Path(directory)),
         ):
-            copilot_review_fallback_state_path().write_text(json.dumps({
+            (Path(directory) / COPILOT_REVIEW_FALLBACK_STATE_FILE).write_text(json.dumps({
                 "version": 3, "prs": {"7": {"attempts": [], "exhausted": True}},
             }), encoding="utf-8")
             cycle = load_copilot_review_cycles()["7"]
@@ -221,7 +241,10 @@ class StateTest(unittest.TestCase):
             tempfile.TemporaryDirectory() as directory,
             patch("state._state_dir", Path(directory)),
         ):
-            path = copilot_review_fallback_state_path()
+            path = copilot_review_dispatch_state_path()
+            path.with_name(COPILOT_REVIEW_FALLBACK_STATE_FILE).write_text(
+                json.dumps({"version": 1, "prs": {}}), encoding="utf-8",
+            )
             entry = asdict(copilot_review_cycle("current-head"))
             for changes in (
                 {"request_count": -1},
@@ -232,7 +255,8 @@ class StateTest(unittest.TestCase):
             ):
                 with self.subTest(changes=changes):
                     path.write_text(json.dumps({
-                        "version": 4, "prs": {"7": {**entry, **changes}},
+                        "version": COPILOT_REVIEW_FALLBACK_STATE_VERSION,
+                        "prs": {"7": {**entry, **changes}},
                     }), encoding="utf-8")
                     with self.assertRaises(ValueError):
                         load_copilot_review_cycles()
@@ -585,7 +609,7 @@ class StateTest(unittest.TestCase):
             )))
             record_copilot_review_cycle_observations()
             save_copilot_review_intents({})
-            self.assertTrue(copilot_review_fallback_state_path().is_file())
+            self.assertTrue(copilot_review_dispatch_state_path().is_file())
             cycle = load_copilot_review_cycles()["7"]
             self.assertEqual("unknown", cycle.phase)
             self.assertEqual("legacy-2026-08-16T12:00:00+00:00", cycle.dispatch_id)

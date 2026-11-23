@@ -40,7 +40,7 @@ from routing_decision import RoutingInput, resolve_routing
 from state import (
     COPILOT_REVIEW_INTENTS_FILE,
     COPILOT_REVIEW_REQUEST_STATE_FILE,
-    copilot_review_fallback_state_path,
+    copilot_review_dispatch_state_path,
     load_copilot_review_cycles,
     load_copilot_review_intents,
     record_copilot_review_cycle_observations,
@@ -777,7 +777,7 @@ class CopilotReviewDeliveryTest(unittest.TestCase):
         self.durable = {}
         self.tracked_paths = (
             Path(directory.name) / COPILOT_REVIEW_INTENTS_FILE,
-            copilot_review_fallback_state_path(),
+            copilot_review_dispatch_state_path(),
         )
         self.request_error = None
         self.requested_head = None
@@ -820,7 +820,7 @@ class CopilotReviewDeliveryTest(unittest.TestCase):
 
     def request_review(self, _pull_request_id, **_kwargs) -> str:
         self.assertFalse(self.in_commit)
-        durable = json.loads(self.durable[copilot_review_fallback_state_path()])
+        durable = json.loads(self.durable[copilot_review_dispatch_state_path()])
         self.assertEqual("sending", durable["prs"]["7"]["phase"])
         if self.request_error is not None:
             raise self.request_error
@@ -888,7 +888,7 @@ class CopilotReviewDeliveryTest(unittest.TestCase):
                 "prs": {"7": {**intent, "requested_at": format_ts(self.now)}},
             })
             receipt.write_text(legacy, encoding="utf-8")
-            self.tracked_paths = (self.tracked_paths[0], copilot_review_fallback_state_path())
+            self.tracked_paths = (self.tracked_paths[0], copilot_review_dispatch_state_path())
 
             self.assertEqual([], self.deliver())
             self.request.assert_not_called()

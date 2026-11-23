@@ -81,7 +81,7 @@ def run_worker(checkout: Path, control: Path, name: str, mode: str) -> int:
             paused = True
             (control / f"candidate-{name}.json").write_text(json.dumps({
                 "expected_sha": expected,
-                "cycle": json.loads(state.copilot_review_fallback_state_path().read_text(encoding="utf-8")),
+                "cycle": json.loads(state.copilot_review_dispatch_state_path().read_text(encoding="utf-8")),
             }), encoding="utf-8")
             pause()
         return real_push(directory, branch, expected)
@@ -89,7 +89,7 @@ def run_worker(checkout: Path, control: Path, name: str, mode: str) -> int:
     def request(_node_id: str, **_kwargs: object) -> str:
         result = subprocess.run(
             ["git", f"--git-dir={control / 'remote.git'}", "show",
-             f"{DELIVERY_BRANCH}:{REPO_KEY}/{state.COPILOT_REVIEW_FALLBACK_STATE_FILE}"],
+             f"{DELIVERY_BRANCH}:{REPO_KEY}/{state.COPILOT_REVIEW_DISPATCH_STATE_FILE}"],
             check=True, capture_output=True, text=True, encoding="utf-8",
             creationflags=SUBPROCESS_FLAGS,
         )
@@ -155,7 +155,6 @@ class CopilotReviewGitIntegrationTest(unittest.TestCase):
         self.save_intent()
         delivery.initialize_delivery_state(self.accepted)
         state.save_delivery_versions(state.current_delivery_versions())
-        state.save_copilot_review_cycles({})
         self.publish_seed()
 
     def git(self, directory: Path, *arguments: str) -> str:
@@ -192,7 +191,7 @@ class CopilotReviewGitIntegrationTest(unittest.TestCase):
         ))
 
     def cycle(self) -> dict:
-        return self.remote_json(state.COPILOT_REVIEW_FALLBACK_STATE_FILE)["prs"]["7"]
+        return self.remote_json(state.COPILOT_REVIEW_DISPATCH_STATE_FILE)["prs"]["7"]
 
     def requests(self) -> list[Path]:
         return list(self.root.glob("request-*.json"))
@@ -235,7 +234,7 @@ class CopilotReviewGitIntegrationTest(unittest.TestCase):
         writer = self.root / "cycle-writer"
         self.git(self.root, "clone", "--branch", DELIVERY_BRANCH, str(self.remote), str(writer))
         expected_sha = self.git(writer, "rev-parse", "HEAD")
-        (writer / REPO_KEY / state.COPILOT_REVIEW_FALLBACK_STATE_FILE).write_text(json.dumps({
+        (writer / REPO_KEY / state.COPILOT_REVIEW_DISPATCH_STATE_FILE).write_text(json.dumps({
             "version": state.COPILOT_REVIEW_FALLBACK_STATE_VERSION,
             "prs": {"7": asdict(cycle)},
         }), encoding="utf-8")
@@ -245,12 +244,15 @@ class CopilotReviewGitIntegrationTest(unittest.TestCase):
             self.assertTrue(state_branch.push_state(writer, DELIVERY_BRANCH, expected_sha))
 
     def test_legacy_migration_reloads_the_latest_receipt_after_a_real_cas_retry(self) -> None:
-        (self.seed / REPO_KEY / state.COPILOT_REVIEW_FALLBACK_STATE_FILE).write_text(json.dumps({
+        fallback = {
             "version": 1, "prs": {"7": {
                 "quota_failure_ids": [10], "attempted_at": (NOW - timedelta(hours=1)).isoformat(),
                 "exhausted": True,
             }},
-        }), encoding="utf-8")
+        }
+        (self.seed / REPO_KEY / state.COPILOT_REVIEW_FALLBACK_STATE_FILE).write_text(
+            json.dumps(fallback), encoding="utf-8",
+        )
         receipt = self.seed / REPO_KEY / state.COPILOT_REVIEW_REQUEST_STATE_FILE
         receipt.write_text(json.dumps({
             "version": 8, "prs": {"7": {
@@ -277,9 +279,10 @@ class CopilotReviewGitIntegrationTest(unittest.TestCase):
         self.assertEqual("2026-08-16T07:55:00+00:00", self.cycle()["started_at"])
         self.assertEqual({"kept": True}, self.remote_json("other-worker.json"))
         self.assertEqual(legacy, self.remote_json(state.COPILOT_REVIEW_REQUEST_STATE_FILE))
+        self.assertEqual(fallback, self.remote_json(state.COPILOT_REVIEW_FALLBACK_STATE_FILE))
         self.assertEqual(
             state.COPILOT_REVIEW_FALLBACK_STATE_VERSION,
-            self.remote_json(state.COPILOT_REVIEW_FALLBACK_STATE_FILE)["version"],
+            self.remote_json(state.COPILOT_REVIEW_DISPATCH_STATE_FILE)["version"],
         )
         self.assertEqual([], self.requests())
 
@@ -375,8 +378,8 @@ class CopilotReviewGitIntegrationTest(unittest.TestCase):
         worker = self.start_worker("sender", "head-race")
         self.wait_ready(worker, "sender")
         reserved = self.cycle()
-        observed = state.load_copilot_review_cycles_file(
-            self.root / "sender" / "state" / REPO_KEY / state.COPILOT_REVIEW_FALLBACK_STATE_FILE,
+        observed = state.load_copilot_review_cycles_from(
+            self.root / "sender" / "state" / REPO_KEY,
         )["7"]
         self.save_observation(
             copilot_review_exists=True,

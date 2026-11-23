@@ -4,7 +4,7 @@ import argparse
 import hashlib
 import json
 import sys
-from collections.abc import Iterable, Mapping
+from collections.abc import Collection, Iterable, Mapping
 from datetime import timezone
 from pathlib import Path
 from typing import Any, cast
@@ -40,6 +40,7 @@ COPILOT_REVIEW_INTENTS_FILE = "copilot-review-intent-state.json"
 # Legacy intents on the accepted branch and receipts on the delivery branch.
 COPILOT_REVIEW_REQUEST_STATE_FILE = "copilot-review-request-state.json"
 COPILOT_REVIEW_FALLBACK_STATE_FILE = "copilot-review-fallback-state.json"
+COPILOT_REVIEW_DISPATCH_STATE_FILE = "copilot-review-dispatch-state.json"
 STATUS_COMMENT_ROLLOUT_STATE_FILE = "status-comment-rollout-state.json"
 DELIVERY_VERSIONS_FILE = "delivery-versions.json"
 DELIVERY_STATE_FILE = "delivery-state.json"
@@ -63,7 +64,9 @@ NOTIFICATION_STATE_VERSION = 3
 AUTHOR_NUDGE_STATE_VERSION = 5
 # copilot-review-intent-state.json: accepted routing intents for review requests.
 COPILOT_REVIEW_REQUEST_STATE_VERSION = 13
-COPILOT_REVIEW_FALLBACK_STATE_VERSION = 10
+# copilot-review-dispatch-state.json: dispatch journal, with a shared delivery
+# version key for both the journal and the legacy fallback state.
+COPILOT_REVIEW_FALLBACK_STATE_VERSION = 11
 # status-comment-rollout-state.json: target/completed renderer revisions and queue.
 STATUS_COMMENT_ROLLOUT_STATE_VERSION = 3
 # Rendered status-comment behavior. Increment when existing comments need to
@@ -120,8 +123,8 @@ def author_nudge_state_path() -> Path:
     return state_dir() / AUTHOR_NUDGE_STATE_FILE
 
 
-def copilot_review_fallback_state_path() -> Path:
-    return state_dir() / COPILOT_REVIEW_FALLBACK_STATE_FILE
+def copilot_review_dispatch_state_path() -> Path:
+    return state_dir() / COPILOT_REVIEW_DISPATCH_STATE_FILE
 
 
 def backfill_state_path() -> Path:
@@ -1320,11 +1323,6 @@ def load_copilot_review_intents() -> dict[str, Any]:
 
 
 def save_copilot_review_intents(intents: dict[str, Any]) -> None:
-    if not using_delivery_state():
-        # First delivery seeds its journal from accepted state.
-        cycles = load_copilot_review_cycles_file(copilot_review_fallback_state_path(), legacy_only=True)
-        if cycles:
-            save_copilot_review_cycles(cycles)
     save_state_file(
         accepted_state_dir() / COPILOT_REVIEW_INTENTS_FILE,
         {"prs": intents},
@@ -1442,44 +1440,57 @@ def _legacy_copilot_review_cycle(entry: Any, version: int) -> CopilotReviewCycle
     )
 
 
-def load_copilot_review_cycles_file(
-    path: Path, *, legacy_only: bool = False,
-) -> dict[str, CopilotReviewCycle]:
-    exists = path.exists()
-    data = json.loads(path.read_text(encoding="utf-8")) if exists else None
-    if exists and (
+def _read_copilot_review_records(
+    path: Path, versions: Collection[int],
+) -> tuple[int, dict[str, Any]] | None:
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        return None
+    if (
         not isinstance(data, dict)
         or type(data.get("version")) is not int
-        or data["version"] not in (1, 2, 3, 4, 5, 6, 7, 8, 9, COPILOT_REVIEW_FALLBACK_STATE_VERSION)
+        or data["version"] not in versions
         or not isinstance(data.get("prs"), dict)
     ):
-        raise ValueError(f"incompatible Copilot review cycle state: {path}")
+        raise ValueError(f"incompatible Copilot review state: {path}")
+    return data["version"], data["prs"]
+
+
+def load_copilot_review_cycles_from(repo_dir: Path) -> dict[str, CopilotReviewCycle]:
+    journal = _read_copilot_review_records(
+        repo_dir / COPILOT_REVIEW_DISPATCH_STATE_FILE,
+        (COPILOT_REVIEW_FALLBACK_STATE_VERSION,),
+    )
+    if journal is not None:
+        _, entries = journal
+        return {key: _decode_copilot_review_cycle(entry) for key, entry in entries.items()}
+    return _load_legacy_copilot_review_cycles(repo_dir)
+
+
+def _load_legacy_copilot_review_cycles(repo_dir: Path) -> dict[str, CopilotReviewCycle]:
+    fallback = _read_copilot_review_records(
+        repo_dir / COPILOT_REVIEW_FALLBACK_STATE_FILE, range(1, 11),
+    )
     cycles: dict[str, CopilotReviewCycle] = {}
-    if data is not None:
-        version = data["version"]
+    if fallback is not None:
+        version, entries = fallback
         if version >= 4:
-            if legacy_only:
-                return cycles
-            return {key: _decode_copilot_review_cycle(entry) for key, entry in data["prs"].items()}
+            return {key: _decode_copilot_review_cycle(entry) for key, entry in entries.items()}
         cycles = {
             key: _legacy_copilot_review_cycle(entry, version)
-            for key, entry in data["prs"].items()
+            for key, entry in entries.items()
         }
-    receipt_path = path.with_name(COPILOT_REVIEW_REQUEST_STATE_FILE)
-    if not receipt_path.exists():
+    receipts = _read_copilot_review_records(
+        repo_dir / COPILOT_REVIEW_REQUEST_STATE_FILE, range(6, 13),
+    )
+    if receipts is None:
         return cycles
-    receipts = json.loads(receipt_path.read_text(encoding="utf-8"))
-    if (
-        not isinstance(receipts, dict)
-        or type(receipts.get("version")) is not int
-        or receipts["version"] not in (6, 7, 8, 9, 10, 11, 12)
-        or not isinstance(receipts.get("prs"), dict)
-    ):
-        raise ValueError(f"incompatible legacy Copilot review receipts: {receipt_path}")
-    if receipts["version"] == 12:
+    version, entries = receipts
+    if version == 12:
         # These receipts mirror the dispatch journal, not independent sends.
         return cycles
-    for key, entry in receipts["prs"].items():
+    for key, entry in entries.items():
         if not isinstance(entry, dict):
             raise ValueError("invalid legacy Copilot review receipt")
         value = entry.get("requested_at")
@@ -1501,12 +1512,12 @@ def load_copilot_review_cycles_file(
 
 
 def load_copilot_review_cycles() -> dict[str, CopilotReviewCycle]:
-    return load_copilot_review_cycles_file(copilot_review_fallback_state_path())
+    return load_copilot_review_cycles_from(state_dir())
 
 
 def save_copilot_review_cycles(cycles: dict[str, CopilotReviewCycle]) -> None:
     save_state_file(
-        copilot_review_fallback_state_path(),
+        copilot_review_dispatch_state_path(),
         {"prs": {
             key: _encode_copilot_review_cycle(cycle)
             for key, cycle in cycles.items()

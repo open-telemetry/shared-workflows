@@ -312,13 +312,12 @@ from pull_request_evaluation import (
     evaluate_pull_request,
 )
 from state import (
-    COPILOT_REVIEW_FALLBACK_STATE_FILE,
     empty_state,
     enqueue_status_comment_update,
     initial_backfill_complete,
     load_dashboard_state_cache,
     load_backfill_state,
-    load_copilot_review_cycles_file,
+    load_copilot_review_cycles_from,
     mark_full_publish_needed,
     save_dashboard_state_cache,
     save_backfill_state,
@@ -975,9 +974,7 @@ async def update_dashboard_via_state_branch(args: argparse.Namespace, state_dir:
             repo_dir = checkout / repo_key
             if not repo_dir.is_dir():
                 continue
-            args.copilot_review_cycles = load_copilot_review_cycles_file(
-                repo_dir / COPILOT_REVIEW_FALLBACK_STATE_FILE
-            )
+            args.copilot_review_cycles = load_copilot_review_cycles_from(repo_dir)
             break
     async with CopilotSdkModelRunner() as runner:
         service = ClassificationService(runner, DEFAULT_CLASSIFICATION_CACHE_STORE)
