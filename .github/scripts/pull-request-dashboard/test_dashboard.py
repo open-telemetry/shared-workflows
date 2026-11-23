@@ -42,7 +42,14 @@ from dashboard_contracts import (
     EvaluationResult,
     EvaluationSuccess,
     ReviewerSummary,
+    RoutingHandoff,
     StoredDashboardResult,
+)
+from dashboard_override import (
+    override_ack_marker,
+    persistent_handoff_marker,
+    render_command_reply,
+    top_level_feedback_cutoff_marker,
 )
 from dashboard_test_support import (
     actor,
@@ -61,7 +68,9 @@ from dashboard_test_support import (
 )
 from classification_execution import (
     ClassificationExecutionRequest,
+    ClassificationOperation,
     ClassificationService,
+    ModelRunRequest,
 )
 from classification_policy import (
     ActionDecision,
@@ -74,12 +83,14 @@ from classification_policy import (
     DiscussionIdentity,
     DiscussionKind,
     FeedbackOutcome,
+    RawModelResponse,
     resolve_review_thread_policy,
 )
 from classification_test_support import (
     FakeClassificationOperation,
     FakeModelRunner,
     MemoryClassificationCacheStore,
+    prompt_items,
     successful_response,
 )
 from pull_request_source import (
@@ -96,9 +107,11 @@ from pull_request_evaluation import (
     evaluate_pull_request,
 )
 from pull_request_activity import PullRequestActivity
+from pr_status_comment import render_status_comment
 from render import render_pr_tables, reviewers_cell_text
 from reviewer_state import ReviewerInput, prepare_reviewers
 from routing_decision import resolve_routing
+from state import decode_dashboard_facts, encode_dashboard_facts, stored_result
 
 
 FAILED_CLASSIFICATION = ClassificationFailure(
@@ -168,7 +181,7 @@ async def evaluate_pr(
     *,
     previous_result: StoredDashboardResult | None = None,
     require_clean_copilot_review_branches: list[str] | None = None,
-    classification_service: FakeClassificationOperation | None = None,
+    classification_service: ClassificationOperation | None = None,
 ) -> EvaluationResult | None:
     return await evaluate_pull_request(
         evaluation_config(
@@ -1332,6 +1345,405 @@ class PullRequestEvaluationTest(unittest.IsolatedAsyncioTestCase):
                 )
 
     @patch("pull_request_evaluation.fetch_pull_request_source")
+    async def test_author_handoff_replaces_reviewer_handoff_until_push(
+        self, fetch_raw: Mock
+    ) -> None:
+        pr = pull_request_metadata()
+        cutoff = "2026-08-16T08:00:00Z"
+        reviewer_ack = issue_comment(
+            database_id=3,
+            actor=actor("opentelemetry-pr-dashboard[bot]"),
+            body="\n".join((
+                override_ack_marker(2, pr.head_sha, cutoff),
+                persistent_handoff_marker(2, pr.head_sha),
+                top_level_feedback_cutoff_marker(2, cutoff),
+            )),
+        )
+        command = issue_comment(
+            database_id=4,
+            actor=actor("reviewer"),
+            body="/dashboard route:author",
+            created_at="2026-08-16T09:00:00Z",
+        )
+        approved = review_source(state="APPROVED")
+        source = pull_request_source(
+            pull_request=pr,
+            issue_comments=(reviewer_ack, command),
+            reviews=(approved,),
+        )
+        fetch_raw.return_value = source
+        result = await evaluate_pr({"number": 7})
+        assert isinstance(result, EvaluationSuccess)
+        self.assertEqual(DashboardRoute.AUTHOR, result.route)
+        self.assertEqual(1, result.facts.approval_count)
+        self.assertEqual("2026-08-16T09:00:00+00:00", result.facts.waiting_since)
+        self.assertEqual(cutoff, result.facts.dashboard_top_level_feedback_cutoff)
+
+        # The publisher reads the reply from persisted facts.
+        published_facts = decode_dashboard_facts(encode_dashboard_facts(result.facts))
+        (reply,) = published_facts.dashboard_command_replies
+        ack = issue_comment(
+            database_id=5,
+            actor=reviewer_ack.actor,
+            body=render_command_reply(reply),
+        )
+        self.assertIn("when the author addresses review feedback", ack.body)
+        status = render_status_comment({"state": "open"}, stored_result(result))
+        self.assertIn("An explicit `/dashboard route:author` handoff is active.", status)
+
+        comments = (*source.issue_comments, ack)
+        fetch_raw.return_value = replace(source, issue_comments=comments)
+        same_head = await evaluate_pr({"number": 7})
+        assert isinstance(same_head, EvaluationSuccess)
+        self.assertEqual(DashboardRoute.AUTHOR, same_head.route)
+        self.assertEqual((), same_head.facts.dashboard_command_replies)
+
+        fetch_raw.return_value = replace(
+            source, pull_request=replace(pr, head_sha="new-head"), issue_comments=comments
+        )
+        pushed = await evaluate_pr({"number": 7})
+        assert isinstance(pushed, EvaluationSuccess)
+        self.assertEqual(DashboardRoute.MAINTAINER, pushed.route)
+        self.assertEqual(cutoff, pushed.facts.dashboard_top_level_feedback_cutoff)
+        released_status = render_status_comment({"state": "open"}, stored_result(pushed))
+
+        # Returning to the original SHA must not reactivate either handoff.
+        release = issue_comment(database_id=6, actor=reviewer_ack.actor, body=released_status)
+        fetch_raw.return_value = replace(source, issue_comments=(*comments, release))
+        reverted = await evaluate_pr({"number": 7})
+        assert isinstance(reverted, EvaluationSuccess)
+        self.assertEqual(DashboardRoute.MAINTAINER, reverted.route)
+        self.assertEqual((), reverted.facts.dashboard_command_replies)
+
+    @patch("pull_request_evaluation.fetch_pull_request_source")
+    async def test_author_handoff_preserves_existing_feedback_through_push(
+        self, fetch_raw: Mock
+    ) -> None:
+        feedback = issue_comment(
+            database_id=1,
+            actor=actor("reviewer"),
+            body="Please document the limit.",
+        )
+        thread = review_thread()
+        command = issue_comment(
+            database_id=2,
+            body="/dashboard route:author",
+            created_at="2026-08-16T08:00:00Z",
+        )
+        source = pull_request_source(
+            issue_comments=(feedback, command),
+            review_threads=(thread,),
+        )
+        feedback_id = "pr-issue-comment-1"
+        classifier = FakeClassificationOperation(
+            DiscussionClassifications(
+                (action_classification(
+                    thread.node_id, DiscussionKind.REVIEW_THREAD,
+                    DiscussionAction.AUTHOR, "Update the code.",
+                ),),
+                (action_classification(
+                    feedback_id, DiscussionKind.TOP_LEVEL_FEEDBACK,
+                    DiscussionAction.AUTHOR, "Document the limit.",
+                ),),
+                (),
+            )
+        )
+        fetch_raw.return_value = source
+        active = await evaluate_pr({"number": 7}, classification_service=classifier)
+        assert isinstance(active, EvaluationSuccess)
+        self.assertEqual("author_handoff", active.facts.waiting_age_basis)
+        (reply,) = active.facts.dashboard_command_replies
+        acknowledgement = issue_comment(
+            database_id=3,
+            actor=actor("opentelemetry-pr-dashboard[bot]"),
+            body=render_command_reply(reply),
+        )
+
+        fetch_raw.return_value = replace(
+            source,
+            pull_request=replace(source.pull_request, head_sha="new-head"),
+            issue_comments=(*source.issue_comments, acknowledgement),
+        )
+        released = await evaluate_pr({"number": 7}, classification_service=classifier)
+        assert isinstance(released, EvaluationSuccess)
+        self.assertTrue(released.facts.handoff.released)
+        for result in (active, released):
+            with self.subTest(released=result.facts.handoff.released):
+                self.assertEqual(DashboardRoute.AUTHOR, result.route)
+                self.assertEqual(
+                    {feedback_id: "author", thread.node_id: "author"},
+                    {key: item["action"] for key, item in result.pending_actions.items()},
+                )
+                self.assertEqual(
+                    (feedback.url,), result.facts.author_action_top_level_feedback_urls
+                )
+                self.assertEqual(
+                    (thread.comments[0].url,), result.facts.author_action_review_thread_urls
+                )
+
+    @patch("pull_request_evaluation.fetch_pull_request_source")
+    async def test_resolved_thread_classifier_failure_does_not_block_author_routing(
+        self, fetch_raw: Mock
+    ) -> None:
+        reply_time = "2026-08-16T09:00:00Z"
+        resolved = review_thread(
+            is_resolved=True,
+            comments=(
+                review_thread_comment(),
+                review_thread_comment(
+                    node_id="PRRC_2",
+                    actor=actor("author"),
+                    created_at=reply_time,
+                    body="Updated as requested.",
+                ),
+            ),
+        )
+        open_thread = replace(resolved, node_id="PRRT_2", is_resolved=False)
+        for has_completed_reply in (False, True):
+            with self.subTest(has_completed_reply=has_completed_reply):
+                fetch_raw.return_value = pull_request_source(
+                    issue_comments=(issue_comment(
+                        database_id=2,
+                        body="/dashboard route:author",
+                        created_at="2026-08-16T08:00:00Z",
+                    ),),
+                    review_threads=(resolved, open_thread),
+                )
+
+                def respond(request: ModelRunRequest) -> RawModelResponse:
+                    if any(
+                        item["discussion_id"] == resolved.node_id
+                        for item in prompt_items(request)
+                    ):
+                        raise TimeoutError("resolved thread request timed out")
+                    return successful_response(
+                        request,
+                        author_reply="complete" if has_completed_reply else "deferral",
+                    )
+
+                runner = FakeModelRunner(responder=respond)
+                classifier = ClassificationService(runner, MemoryClassificationCacheStore())
+                result = await evaluate_pr({"number": 7}, classification_service=classifier)
+                assert isinstance(result, EvaluationSuccess)
+                self.assertEqual(has_completed_reply, result.facts.handoff.released)
+                self.assertIs(
+                    DashboardRoute.APPROVER if has_completed_reply else DashboardRoute.AUTHOR,
+                    result.route,
+                )
+                self.assertNotIn(resolved.node_id, result.pending_actions)
+                self.assertEqual(
+                    "reviewer" if has_completed_reply else "author",
+                    result.pending_actions[open_thread.node_id]["action"],
+                )
+                self.assertEqual(
+                    [[open_thread.node_id]] if has_completed_reply
+                    else [[open_thread.node_id], [resolved.node_id]],
+                    [
+                        [item["discussion_id"] for item in prompt_items(request)]
+                        for request in runner.requests
+                    ],
+                )
+
+    @patch("pull_request_evaluation.fetch_pull_request_source")
+    async def test_failed_refresh_leaves_author_handoff_unchanged_until_success(
+        self, fetch_raw: Mock
+    ) -> None:
+        original = pull_request_source(
+            issue_comments=(issue_comment(
+                database_id=2,
+                body="/dashboard route:author",
+                created_at="2026-08-16T08:00:00Z",
+            ),),
+        )
+        fetch_raw.return_value = original
+        active = await evaluate_pr({"number": 7})
+        assert isinstance(active, EvaluationSuccess)
+        previous = stored_result(active)
+        state = dashboard_state(previous)
+        prepared = prepare_dashboard_update(state, {7}, 7)
+        fetch_raw.return_value = replace(
+            original, pull_request=replace(original.pull_request, head_sha="different-head"),
+        )
+        failure = await evaluate_pr(
+            {"number": 7},
+            previous_result=previous,
+            classification_service=FakeClassificationOperation(
+                DiscussionClassifications((), (FAILED_CLASSIFICATION,), ()),
+            ),
+        )
+        rejected = accept_dashboard_update(prepared.with_evaluated_result(failure), state)
+        self.assertTrue(rejected.failed_result_rejected)
+        self.assertEqual(state, rejected.dashboard_state)
+
+        released = await evaluate_pr({"number": 7}, previous_result=previous)
+        assert isinstance(released, EvaluationSuccess)
+        self.assertIs(DashboardRoute.APPROVER, released.route)
+        self.assertTrue(released.facts.handoff.released)
+
+        fetch_raw.return_value = original
+        returned = await evaluate_pr(
+            {"number": 7}, previous_result=stored_result(released),
+        )
+        assert isinstance(returned, EvaluationSuccess)
+        self.assertIs(DashboardRoute.APPROVER, returned.route)
+        self.assertTrue(returned.facts.handoff.released)
+
+    @patch("pull_request_evaluation.fetch_pull_request_source")
+    async def test_author_handoff_uses_inline_reply_classification(
+        self, fetch_raw: Mock
+    ) -> None:
+        cutoff = "2026-08-16T08:00:00Z"
+        after_cutoff = "2026-08-16T09:00:00Z"
+        for resolved, reply_time, action, released in (
+            (False, after_cutoff, DiscussionAction.REVIEWER, True),
+            (False, after_cutoff, DiscussionAction.AUTHOR, False),
+            (False, cutoff, DiscussionAction.REVIEWER, False),
+            (True, after_cutoff, DiscussionAction.REVIEWER, True),
+            (True, after_cutoff, DiscussionAction.AUTHOR, False),
+            (True, cutoff, DiscussionAction.REVIEWER, False),
+        ):
+            with self.subTest(resolved=resolved, reply_time=reply_time, action=action):
+                fetch_raw.return_value = pull_request_source(
+                    issue_comments=(
+                        issue_comment(
+                            database_id=2,
+                            body="/dashboard route:author",
+                            created_at=cutoff,
+                        ),
+                    ),
+                    review_threads=(
+                        review_thread(
+                            is_resolved=resolved,
+                            comments=(
+                                review_thread_comment(),
+                                review_thread_comment(
+                                    node_id="PRRC_2",
+                                    actor=actor("author"),
+                                    created_at=reply_time,
+                                    updated_at=reply_time,
+                                    body=(
+                                        "Can you explain what you meant by this?"
+                                        if action is DiscussionAction.REVIEWER
+                                        else "I'll update the wording tomorrow."
+                                    ),
+                                ),
+                            ),
+                        ),
+                    ),
+                )
+                runner = FakeModelRunner(
+                    responder=lambda request: successful_response(
+                        request,
+                        author_reply=(
+                            "complete" if action is DiscussionAction.REVIEWER else "deferral"
+                        ),
+                    )
+                )
+                classifier = ClassificationService(runner, MemoryClassificationCacheStore())
+                result = await evaluate_pr({"number": 7}, classification_service=classifier)
+                assert isinstance(result, EvaluationSuccess)
+                self.assertEqual(released, result.facts.handoff.released)
+                self.assertEqual(
+                    DashboardRoute.APPROVER if released else DashboardRoute.AUTHOR,
+                    result.route,
+                )
+                self.assertEqual(
+                    [] if resolved and reply_time == cutoff else [["PRRT_1"]],
+                    [
+                        [item["discussion_id"] for item in prompt_items(request)]
+                        for request in runner.requests
+                    ],
+                )
+                if resolved:
+                    self.assertEqual({}, result.pending_actions)
+                    self.assertEqual((), result.facts.author_action_review_thread_urls)
+                if resolved and reply_time > cutoff and not released:
+                    repeated = await evaluate_pr(
+                        {"number": 7},
+                        previous_result=stored_result(result),
+                        classification_service=classifier,
+                    )
+                    assert isinstance(repeated, EvaluationSuccess)
+                    self.assertIs(DashboardRoute.AUTHOR, repeated.route)
+                    self.assertEqual(1, len(runner.requests))
+
+    @patch("pull_request_evaluation.fetch_pull_request_source")
+    async def test_completed_top_level_reply_restores_normal_routing(
+        self, fetch_raw: Mock
+    ) -> None:
+        feedback_id = "pr-issue-comment-1"
+        fetch_raw.return_value = pull_request_source(
+            issue_comments=(
+                issue_comment(database_id=1, actor=actor("reviewer"), body="Explain the limit."),
+                issue_comment(
+                    database_id=2,
+                    body="/dashboard route:author",
+                    created_at="2026-08-16T08:00:00Z",
+                ),
+                issue_comment(
+                    database_id=3,
+                    body="The limit keeps the queue within memory. Does that address it?",
+                    created_at="2026-08-16T08:00:00Z",
+                ),
+                issue_comment(
+                    database_id=4,
+                    body="I also added a comment explaining the limit.",
+                    created_at="2026-08-16T09:00:00Z",
+                ),
+            ),
+            checks=(check_source(bucket="fail"),),
+        )
+        feedback = action_classification(
+            feedback_id, DiscussionKind.TOP_LEVEL_FEEDBACK, DiscussionAction.AUTHOR,
+            "The reviewer asks a question.",
+        )
+        completed = (FeedbackOutcome(feedback_id, DiscussionAction.NONE, "Answered"),)
+        first_reply = ClassificationSuccess(
+            DiscussionIdentity("pr-author-reply-3", DiscussionKind.TOP_LEVEL_AUTHOR_REPLY),
+            AuthorCommentDecision(completed),
+        )
+        for outcomes in ((), completed):
+            with self.subTest(outcomes=outcomes):
+                reply = ClassificationSuccess(
+                    DiscussionIdentity("pr-author-reply-4", DiscussionKind.TOP_LEVEL_AUTHOR_REPLY),
+                    AuthorCommentDecision(outcomes),
+                )
+                classifier = FakeClassificationOperation(
+                    DiscussionClassifications((), (feedback,), (first_reply, reply))
+                )
+                result = await evaluate_pr({"number": 7}, classification_service=classifier)
+                assert isinstance(result, EvaluationSuccess)
+                # The failed required check still belongs to the author under normal routing.
+                self.assertEqual(DashboardRoute.AUTHOR, result.route)
+                self.assertEqual(bool(outcomes), result.facts.handoff.released)
+                self.assertEqual(1, len(classifier.requests))
+                self.assertEqual([], classifier.reviewer_feedback_requests)
+
+    @patch("pull_request_evaluation.fetch_pull_request_source")
+    async def test_newer_reviewer_command_ends_author_handoff_without_push(
+        self, fetch_raw: Mock
+    ) -> None:
+        fetch_raw.return_value = pull_request_source(
+            issue_comments=(
+                issue_comment(database_id=2, body="/dashboard route:author"),
+                issue_comment(
+                    database_id=3,
+                    actor=actor("opentelemetry-pr-dashboard[bot]"),
+                    body=override_ack_marker(2, "abcdef123456", to_author=True),
+                ),
+                issue_comment(database_id=4, body="/dashboard route:reviewers"),
+            ),
+            checks=(check_source(bucket="fail"),),
+        )
+        result = await evaluate_pr({"number": 7})
+        assert isinstance(result, EvaluationSuccess)
+        self.assertEqual(DashboardRoute.APPROVER, result.route)
+        self.assertEqual(1, result.facts.ci_failing_count)
+        (reply,) = result.facts.dashboard_command_replies
+        self.assertEqual(4, reply.comment_id)
+        self.assertTrue(reply.persistent_handoff)
+
+    @patch("pull_request_evaluation.fetch_pull_request_source")
     async def test_override_binds_to_the_observed_head_before_classification(
         self, fetch_raw: Mock
     ) -> None:
@@ -1398,7 +1810,7 @@ class PullRequestEvaluationTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(DashboardRoute.APPROVER, result.route)
         self.assertEqual({}, result.pending_actions)
         self.assertEqual(
-            "abcdef123456", result.facts.dashboard_override_head_sha
+            "abcdef123456", result.facts.handoff.head_sha
         )
         self.assertEqual(
             (
@@ -1461,8 +1873,8 @@ class PullRequestEvaluationTest(unittest.IsolatedAsyncioTestCase):
         self.assertIsInstance(result, EvaluationSuccess)
         assert isinstance(result, EvaluationSuccess)
         self.assertEqual(DashboardRoute.AUTHOR, result.route)
-        self.assertEqual("", result.facts.dashboard_override_head_sha)
-        self.assertFalse(result.facts.dashboard_override_persistent)
+        self.assertEqual("", result.facts.handoff.head_sha)
+        self.assertFalse(result.facts.handoff.persistent)
         self.assertEqual(
             (
                 DashboardCommandReply(
@@ -1520,11 +1932,13 @@ class PullRequestEvaluationTest(unittest.IsolatedAsyncioTestCase):
                 route=DashboardRoute.APPROVER,
                 facts=dashboard_facts(
                     dashboard_override_command_id=102,
-                    dashboard_override_bound_command_id=102,
+                    handoff=RoutingHandoff(
+                        command_id=102,
+                        head_sha='abcdef123456',
+                        since='2026-08-16T08:00:00Z',
+                        persistent=True,
+                    ),
                     dashboard_override_command_user="author",
-                    dashboard_override_head_sha="abcdef123456",
-                    dashboard_override_since="2026-08-16T08:00:00Z",
-                    dashboard_override_persistent=True,
                     dashboard_top_level_feedback_cutoff="2026-08-16T08:00:00Z",
                 ),
             ),
@@ -1534,7 +1948,7 @@ class PullRequestEvaluationTest(unittest.IsolatedAsyncioTestCase):
         self.assertIsInstance(result, EvaluationSuccess)
         assert isinstance(result, EvaluationSuccess)
         self.assertEqual(DashboardRoute.AUTHOR, result.route)
-        self.assertTrue(result.facts.dashboard_override_persistent)
+        self.assertTrue(result.facts.handoff.persistent)
         self.assertEqual((), result.facts.dashboard_command_replies)
 
         fetch_raw.return_value = pull_request_source(
@@ -1668,8 +2082,8 @@ class PullRequestEvaluationTest(unittest.IsolatedAsyncioTestCase):
         self.assertIsInstance(result, EvaluationSuccess)
         assert isinstance(result, EvaluationSuccess)
         self.assertEqual(DashboardRoute.AUTHOR, result.route)
-        self.assertTrue(result.facts.dashboard_override_persistent)
-        self.assertTrue(result.facts.dashboard_override_cleared_by_feedback)
+        self.assertTrue(result.facts.handoff.persistent)
+        self.assertTrue(result.facts.handoff.released)
         self.assertEqual(
             {
                 "old-thread": {
@@ -1752,8 +2166,8 @@ class PullRequestEvaluationTest(unittest.IsolatedAsyncioTestCase):
         self.assertIsInstance(result, EvaluationSuccess)
         assert isinstance(result, EvaluationSuccess)
         self.assertEqual(DashboardRoute.APPROVER, result.route)
-        self.assertTrue(result.facts.dashboard_override_persistent)
-        self.assertFalse(result.facts.dashboard_override_cleared_by_feedback)
+        self.assertTrue(result.facts.handoff.persistent)
+        self.assertFalse(result.facts.handoff.released)
         self.assertEqual({}, result.pending_actions)
         self.assertEqual([], classifier.requests)
         self.assertEqual([], classifier.reviewer_feedback_requests)
@@ -1778,9 +2192,9 @@ class PullRequestEvaluationTest(unittest.IsolatedAsyncioTestCase):
         assert isinstance(approved_result, EvaluationSuccess)
         self.assertEqual(DashboardRoute.MAINTAINER, approved_result.route)
         self.assertEqual(1, approved_result.facts.approval_count)
-        self.assertTrue(approved_result.facts.dashboard_override_persistent)
+        self.assertTrue(approved_result.facts.handoff.persistent)
         self.assertFalse(
-            approved_result.facts.dashboard_override_cleared_by_feedback
+            approved_result.facts.handoff.released
         )
         self.assertFalse(approved_result.facts.route_held_for_gates)
         self.assertFalse(approved_result.facts.copilot_review_request_needed)
@@ -1851,7 +2265,7 @@ class PullRequestEvaluationTest(unittest.IsolatedAsyncioTestCase):
         self.assertIsInstance(result, EvaluationSuccess)
         assert isinstance(result, EvaluationSuccess)
         self.assertEqual(DashboardRoute.AUTHOR, result.route)
-        self.assertTrue(result.facts.dashboard_override_cleared_by_feedback)
+        self.assertTrue(result.facts.handoff.released)
         self.assertEqual(("thread-1",), tuple(result.pending_actions))
         self.assertEqual(
             "author",
@@ -1918,7 +2332,7 @@ class PullRequestEvaluationTest(unittest.IsolatedAsyncioTestCase):
         self.assertIsInstance(result, EvaluationSuccess)
         assert isinstance(result, EvaluationSuccess)
         self.assertEqual(DashboardRoute.AUTHOR, result.route)
-        self.assertTrue(result.facts.dashboard_override_cleared_by_feedback)
+        self.assertTrue(result.facts.handoff.released)
         self.assertEqual(
             {
                 "pr-review-501": {
@@ -1972,7 +2386,7 @@ class PullRequestEvaluationTest(unittest.IsolatedAsyncioTestCase):
         self.assertIsInstance(result, EvaluationSuccess)
         assert isinstance(result, EvaluationSuccess)
         self.assertEqual(DashboardRoute.AUTHOR, result.route)
-        self.assertTrue(result.facts.dashboard_override_cleared_by_feedback)
+        self.assertTrue(result.facts.handoff.released)
         self.assertEqual(
             "2026-08-16T07:00:00Z",
             result.pending_actions["pr-review-501"]["since"],
@@ -2017,7 +2431,7 @@ class PullRequestEvaluationTest(unittest.IsolatedAsyncioTestCase):
         self.assertIsInstance(result, EvaluationSuccess)
         assert isinstance(result, EvaluationSuccess)
         self.assertEqual(DashboardRoute.AUTHOR, result.route)
-        self.assertTrue(result.facts.dashboard_override_cleared_by_feedback)
+        self.assertTrue(result.facts.handoff.released)
         self.assertEqual((), result.facts.dashboard_command_replies)
         self.assertEqual(
             {"pr-issue-comment-501": {
@@ -2150,7 +2564,7 @@ class PullRequestEvaluationTest(unittest.IsolatedAsyncioTestCase):
         self.assertIsInstance(result, EvaluationSuccess)
         assert isinstance(result, EvaluationSuccess)
         self.assertEqual(DashboardRoute.APPROVER, result.route)
-        self.assertFalse(result.facts.dashboard_override_cleared_by_feedback)
+        self.assertFalse(result.facts.handoff.released)
         self.assertEqual({}, result.pending_actions)
         self.assertEqual(classifier.requests, [])
         self.assertEqual(len(classifier.reviewer_feedback_requests), 1)
@@ -2198,7 +2612,7 @@ class PullRequestEvaluationTest(unittest.IsolatedAsyncioTestCase):
         self.assertIsInstance(result, EvaluationSuccess)
         assert isinstance(result, EvaluationSuccess)
         self.assertEqual(DashboardRoute.APPROVER, result.route)
-        self.assertFalse(result.facts.dashboard_override_cleared_by_feedback)
+        self.assertFalse(result.facts.handoff.released)
         self.assertEqual(classifier.requests, [])
         self.assertEqual(len(classifier.reviewer_feedback_requests), 1)
 
@@ -2253,7 +2667,7 @@ class PullRequestEvaluationTest(unittest.IsolatedAsyncioTestCase):
         self.assertIsInstance(result, EvaluationSuccess)
         assert isinstance(result, EvaluationSuccess)
         self.assertEqual(DashboardRoute.APPROVER, result.route)
-        self.assertFalse(result.facts.dashboard_override_cleared_by_feedback)
+        self.assertFalse(result.facts.handoff.released)
         self.assertEqual(classifier.requests, [])
         request = classifier.reviewer_feedback_requests[0]
         thread = request.discussions[0]
@@ -2300,7 +2714,7 @@ class PullRequestEvaluationTest(unittest.IsolatedAsyncioTestCase):
                 assert isinstance(result, EvaluationSuccess)
                 self.assertEqual(DashboardRoute.APPROVER, result.route)
                 self.assertFalse(
-                    result.facts.dashboard_override_cleared_by_feedback
+                    result.facts.handoff.released
                 )
                 self.assertEqual({}, result.pending_actions)
 
@@ -2354,7 +2768,7 @@ class PullRequestEvaluationTest(unittest.IsolatedAsyncioTestCase):
         self.assertIsInstance(result, EvaluationSuccess)
         assert isinstance(result, EvaluationSuccess)
         self.assertEqual(DashboardRoute.AUTHOR, result.route)
-        self.assertTrue(result.facts.dashboard_override_cleared_by_feedback)
+        self.assertTrue(result.facts.handoff.released)
         self.assertEqual(
             {
                 "thread-1": {
@@ -2513,7 +2927,7 @@ class PullRequestEvaluationTest(unittest.IsolatedAsyncioTestCase):
         assert result is not None
         self.assertIsInstance(result, EvaluationSuccess)
         assert isinstance(result, EvaluationSuccess)
-        self.assertTrue(result.facts.dashboard_override_cleared_by_feedback)
+        self.assertTrue(result.facts.handoff.released)
         self.assertEqual({}, result.pending_actions)
         self.assertEqual(len(classifier.requests), 1)
         self.assertEqual(len(classifier.reviewer_feedback_requests), 1)
