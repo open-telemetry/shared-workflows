@@ -1,12 +1,6 @@
 # PR review
 
-To opt in a public OpenTelemetry repository, add it to the [PR review opt-in list](../.github/scripts/pr-review/repositories.json). Use the repository name without the `open-telemetry/` prefix. The only field is `name`:
-
-```json
-{"name": "my-repository"}
-```
-
-Dashboard enrollment does not opt a repository into PR review. Once enrolled, run the central review workflow manually with the URL of an open PR:
+This proof of concept runs only on manual dispatch by someone with write access to `open-telemetry/shared-workflows`. Pass the URL of an open PR in a public OpenTelemetry repository where `otelbot` is installed. No repository enrollment is required.
 
 ```sh
 gh workflow run pr-review.yml --repo open-telemetry/shared-workflows \

@@ -1,28 +1,19 @@
-"""Resolve an opted-in GitHub PR URL before creating target repository tokens."""
+"""Resolve an OpenTelemetry PR URL before creating target repository tokens."""
 
-import json
 import os
 import re
 from pathlib import Path
-
-
-REPOSITORIES_PATH = Path(__file__).with_name("repositories.json")
 
 
 def review_target(pr_url: str) -> tuple[str, int]:
     match = re.fullmatch(
         r"https://github\.com/open-telemetry/([A-Za-z0-9_.-]+)/pull/([1-9][0-9]*)/?",
         pr_url,
-        flags=re.IGNORECASE,
+        flags=re.IGNORECASE | re.ASCII,
     )
-    if not match:
+    if not match or match[1] in (".", ".."):
         raise ValueError("Expected a GitHub PR URL: https://github.com/open-telemetry/REPO/pull/NUMBER")
-    repositories = json.loads(REPOSITORIES_PATH.read_text(encoding="utf-8"))
-    names = {item["name"].lower(): item["name"] for item in repositories}
-    name = names.get(match[1].lower())
-    if name is None:
-        raise ValueError("The target repository is not in the PR review opt-in list")
-    return name, int(match[2])
+    return match[1].lower(), int(match[2])
 
 
 def main() -> None:

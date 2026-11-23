@@ -16,17 +16,11 @@ from common import write_json
 
 
 class ReviewTest(unittest.TestCase):
-    def test_target_url_resolves_to_an_opted_in_repository(self):
-        with tempfile.TemporaryDirectory() as directory:
-            opt_ins = Path(directory) / "repositories.json"
-            write_json(opt_ins, [{"name": "Review-Enabled"}])
-            with mock.patch.object(gate, "REPOSITORIES_PATH", opt_ins):
-                self.assertEqual(
-                    gate.review_target("https://github.com/OPEN-TELEMETRY/REVIEW-ENABLED/pull/123/"),
-                    ("Review-Enabled", 123),
-                )
-                with self.assertRaisesRegex(ValueError, "not in the PR review opt-in list"):
-                    gate.review_target("https://github.com/open-telemetry/shared-workflows/pull/123")
+    def test_target_url_resolves_without_repository_enrollment(self):
+        self.assertEqual(
+            gate.review_target("https://github.com/OPEN-TELEMETRY/Any-Repository/pull/123/"),
+            ("any-repository", 123),
+        )
 
     def test_target_url_rejects_untrusted_hosts_paths_and_repositories(self):
         for url in (
@@ -34,11 +28,11 @@ class ReviewTest(unittest.TestCase):
             "https://github.com.example.test/open-telemetry/shared-workflows/pull/123",
             "https://github.com@evil.test/open-telemetry/shared-workflows/pull/123",
             "https://github.com/trask/shared-workflows/pull/123",
-            "https://github.com/open-telemetry/not-opted-in/pull/123",
             "https://github.com/open-telemetry/shared-workflows/pull/0",
             "https://github.com/open-telemetry/shared-workflows/pull/123?repo=other",
             "https://github.com/open-telemetry/shared-workflows/pull/123#discussion",
             "https://github.com/open-telemetry/shared-workflows/issues/123",
+            "https://github.com/open-telemetry/./pull/123",
             "https://github.com/open-telemetry/../pull/123",
             "https://github.com/open-telemetry/shared-workflows/pull/123\nrepo=other",
         ):

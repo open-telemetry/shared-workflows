@@ -57,7 +57,7 @@ def gh_json(args: list[str]) -> Any:
 
 def pr_metadata(repo: str, pr: int) -> dict[str, Any]:
     metadata = gh_json(["api", f"repos/{repo}/pulls/{pr}"])
-    if metadata["html_url"] != f"https://github.com/{repo}/pull/{pr}" or metadata["number"] != pr:
+    if metadata["html_url"].lower() != f"https://github.com/{repo}/pull/{pr}".lower() or metadata["number"] != pr:
         raise RuntimeError("GitHub resolved a different PR target")
     return metadata
 

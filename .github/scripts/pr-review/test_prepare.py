@@ -48,7 +48,7 @@ class ReviewBundleTest(unittest.TestCase):
             )
 
     def test_metadata_uses_explicit_target_and_checks_resolved_url(self):
-        metadata = {"number": 123, "html_url": "https://github.com/org/repo/pull/123"}
+        metadata = {"number": 123, "html_url": "https://github.com/org/Repo/pull/123"}
         with mock.patch.object(common, "gh_json", return_value=metadata) as api:
             self.assertEqual(common.pr_metadata("org/repo", 123), metadata)
             api.assert_called_once_with(["api", "repos/org/repo/pulls/123"])
