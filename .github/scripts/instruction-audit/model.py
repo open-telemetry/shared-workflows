@@ -18,6 +18,18 @@ ISOLATION_FAILURES = (
     "Expected checkout is not available",
     "Audit inputs are not read-only",
 )
+CLI_FAILURES = (
+    (r"unrecognized (?:option|argument)|unexpected argument|unknown (?:option|argument)|Usage: copilot",
+     "command-line argument error"),
+    (r"not authenticated|authentication|HTTP 401|HTTP 403|unauthorized|forbidden", "authentication or permission error"),
+    (r"model.{0,80}(?:unsupported|not available|not supported|not found|invalid)|invalid model",
+     "model unavailable or unsupported"),
+    (r"reasoning effort|reasoning.?effort", "reasoning effort rejected"),
+    (r"rate limit|quota|HTTP 429", "rate or quota limit"),
+    (r"permission denied|read.only file system|EACCES", "file permission error"),
+    (r"cannot find module|not found|no such file", "missing runtime file"),
+    (r"ECONN|ETIMEDOUT|network error|unable to connect|fetch failed", "connection error"),
+)
 
 
 def failure(returncode, diagnostics):
@@ -26,7 +38,10 @@ def failure(returncode, diagnostics):
             return f"Copilot was not started: {reason}"
     if STARTED not in diagnostics.splitlines():
         return f"Copilot startup was not confirmed (firewall exit {returncode})"
-    return f"Copilot did not complete successfully (firewall exit {returncode})"
+    signature = next((label for pattern, label in CLI_FAILURES
+                      if re.search(pattern, diagnostics, flags=re.IGNORECASE)), None)
+    detail = f": {signature}" if signature else ""
+    return f"Copilot did not complete successfully (firewall exit {returncode}){detail}"
 
 
 def response(events, returncode, diagnostics=""):
@@ -79,10 +94,11 @@ def ask(checkout, prompt):
         "--image-tag", os.environ["AWF_IMAGE_TAG"], "--container-workdir", str(checkout),
         "--mount", f"{cli_dir}:{cli_dir}:ro", "--mount", f"{bundle}:{bundle}:ro",
         "--env", "GITHUB_COPILOT_PROMPT_MODE_EXTENSIONS=false",
-        "--capture-command-output", str(capture), "--agent-timeout", "18",
+        "--capture-command-output", str(capture), "--proxy-logs-dir", str(awf_root / "proxy-logs"),
+        "--agent-timeout", "18",
         "--log-level", "info", "--",
         "/bin/bash", str(bundle / "launch-copilot.sh"), str(checkout), str(bundle), str(config), copilot,
-        "--model", "gpt-6.1-sol", "--reasoning-effort", "high", "--output-format", "json", "--no-ask-user",
+        "--model", "gpt-6.1-sol", "--reasoning-effort", "max", "--output-format", "json", "--no-ask-user",
         "--no-auto-update", "--no-custom-instructions", "--disable-builtin-mcps", "--allow-all-paths",
         "--available-tools", "view", "glob", "grep", "--allow-tool", "view", "glob", "grep",
     ], cwd=checkout, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=1200,
@@ -94,6 +110,9 @@ def ask(checkout, prompt):
         with stderr.open("rb") as file:
             diagnostics += "\n" + file.read(64 * 1024).decode("utf-8", errors="replace")
     if result.returncode:
+        if output.is_file():
+            with output.open("rb") as file:
+                diagnostics += "\n" + file.read(64 * 1024).decode("utf-8", errors="replace")
         raise ValueError(failure(result.returncode, diagnostics))
     if not output.is_file() or output.stat().st_size > 16 * 1024 * 1024:
         raise ValueError("Copilot output is missing or too large")
