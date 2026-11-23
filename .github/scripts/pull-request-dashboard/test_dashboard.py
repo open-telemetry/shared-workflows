@@ -800,7 +800,18 @@ class PullRequestEvaluationTest(unittest.IsolatedAsyncioTestCase):
         for record, reviews, terminal, expected in (
             (None, (quota,), False, False),
             (fallback, (quota,), False, False),
-            (fallback, (quota, replace(quota, database_id=11)), False, True),
+            (
+                fallback,
+                (quota, replace(quota, database_id=11, body=f"{quota.body} More guidance.")),
+                False,
+                False,
+            ),
+            (
+                fallback,
+                (quota, replace(quota, database_id=11, submitted_at="2026-08-16T12:00:00Z")),
+                False,
+                True,
+            ),
             (fallback, (), True, True),
             (replace(fallback, exhausted=True), (), False, True),
         ):

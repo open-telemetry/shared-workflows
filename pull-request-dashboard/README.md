@@ -253,7 +253,7 @@ Merge conflicts remain visible without overriding normal CI, discussion, and
 approval routing. A conflicted PR can therefore stay with reviewers or
 maintainers when they can resolve it themselves. If missing required checks or a
 missing Copilot review hold the PR with its author, the live status names the
-conflict and the standard seven-day author reminder still applies. Missing
+conflict and the configured author reminder interval still applies. Missing
 automation does not expire into a dashboard delivery failure while the PR is
 conflicted.
 
@@ -272,6 +272,7 @@ Open a pull request that adds your repository to [`.github/scripts/pull-request-
       "codecov/*"
     ],
     "require_clean_copilot_review_branches": ["main"],
+    "author_reminder_after_business_days": 5,
     "close_stale_after_days": 14,
     "close_stale_exempt_labels": ["never-stale"],
     "labels_to_display": ["size/*", "breaking change"],
@@ -293,7 +294,8 @@ Fields:
 | `labels_to_display` | no | Case-sensitive shell-style label name patterns to display inline after PR titles. Exact names such as `breaking change` and wildcard patterns such as `size/*` are supported. Defaults to `[]`, which displays no labels. |
 | `non_blocking_check_patterns` | no | Check-name globs for non-required checks whose failures should be identified in the live PR status comment. When the PR is waiting on the author, matching failures are reported only when at least one required check is failing and are noted alongside those failures. On other routes, matching failures are shown separately. Matching checks remain informational and do not affect routing or the dashboard CI column. |
 | `require_clean_copilot_review_branches` | no | List of base branch names for which a Copilot review of the current head is normally required before automatically routing a PR to reviewers or maintainers. Copilot findings use the same discussion rules as human feedback: a completed author reply resumes approval-based routing without requiring explicit thread resolution, while a commitment to more work keeps the action with the author. The live PR status links only threads needing author action. An effective `/dashboard route:reviewers` break-glass override bypasses this gate and every other routing blocker. The dashboard requests the first review on the first eligible refresh and re-requests review when a push has left the previous review stale. It does not duplicate a pending request. GitHub's quota-exhausted review notice does not count as a completed review, but it immediately releases the Copilot gate when no fallback token is configured or the fallback requester is exhausted; see the quota behavior below. A request counts as delivered only once GitHub confirms Copilot is a pending reviewer or finds a completed Copilot review of the current head. A gate that never reports holds the PR for at most four hours; after that the PR routes anyway, its status comment says which gate the dashboard stopped waiting for, and the run reports the stall. A conflict resets this clock because GitHub may not start checks or reviews until the conflict is resolved. PRs targeting unlisted branches are never gated. Defaults to `[]` (no branches gated). |
-| `close_stale_after_days` | no | Number of days after the dashboard's author reminder at which a pull request that is still waiting on its author is automatically closed once this many days have passed since the later of that reminder and the latest substantive human activity (from the author or a reviewer; bots and comment edits do not count). The dashboard posts an explanatory comment linking the status comment, then closes the PR. Nothing is closed without a reminder having been posted first, so the effective inactivity period is the one-week reminder delay plus this value. The PR is left open if it became a draft, its head or routing inputs changed since the dashboard last evaluated it, or it carries a label in `close_stale_exempt_labels`. Defaults to disabled. |
+| `author_reminder_after_business_days` | no | Positive integer number of business days a PR must remain waiting on its author before the dashboard posts a reminder. Each business day is 24 hours of Monday-Friday time in UTC; weekends pause the clock and holidays are not excluded. Defaults to `5`. Java instrumentation uses `2`. Changing the interval preserves existing waiting clocks and does not repeat delivered reminders. |
+| `close_stale_after_days` | no | Number of calendar days after the dashboard's author reminder at which a pull request that is still waiting on its author is automatically closed once this many days have passed since the later of that reminder and the latest substantive human activity (from the author or a reviewer; bots and comment edits do not count). The dashboard posts an explanatory comment linking the status comment, then closes the PR. Nothing is closed without a reminder having been posted first, so this interval starts after the configured business-day reminder delay. The PR is left open if it became a draft, its head or routing inputs changed since the dashboard last evaluated it, or it carries a label in `close_stale_exempt_labels`. Defaults to disabled. |
 | `close_stale_exempt_labels` | no | Case-sensitive label names that exempt a PR from `close_stale_after_days`, for example `["never-stale"]`. Defaults to `[]`. |
 | `slack_channel` | no | Slack channel for notifications. Omit to skip Slack processing for this repository. |
 | `slack_user_mapping` | no | Map of GitHub login to Slack user ID for at-mentions. |
@@ -478,11 +480,18 @@ or an approver can use it, and replies to any unrecognized `/dashboard` command.
 ## Author reminder
 
 The dashboard posts one reminder when a pull request remains in *Waiting on
-authors* for one week. The friendly reminder @-mentions the author, links to the
+authors* for `author_reminder_after_business_days`, which defaults to five business
+days. Java instrumentation uses two business days. The clock counts only
+Monday-Friday time in UTC, preserving time of day and pausing during weekends.
+Holidays are not excluded. For example, a wait starting Friday at 12:00 UTC reaches
+two business days on Tuesday at 12:00 UTC. A wait starting on a weekend begins
+counting at 00:00 UTC on Monday.
+
+The friendly reminder @-mentions the author, links to the
 dashboard-managed status comment containing the current blockers, says that
 answering the open items resumes normal approval-based routing, and advertises
 `/dashboard route:reviewers` as a break-glass handoff for any other reason,
-including the dashboard routing the pull request wrongly. The same one-week clock
+including the dashboard routing the pull request wrongly. The same reminder clock
 applies while the author route is held on required checks, Copilot review, or
 merge conflicts.
 
@@ -494,8 +503,8 @@ hold, episode reset, or removal from the dashboard ends the author-waiting
 episode, the appended note says only that the reminder no longer reflects the
 current dashboard state. Both notes link to the live status without naming the
 next route, which may change again. Leaving *Waiting on authors* also resets the
-one-week clock. If the pull request later returns to *Waiting on authors* and
-remains there for another week, the dashboard posts another reminder. Reminders
+reminder clock. If the pull request later returns to *Waiting on authors* and
+remains there for the configured interval, the dashboard posts another reminder. Reminders
 are delivered by hourly runs when the pull request is next refreshed, so a due
 reminder in a large repository may wait for a later round-robin run.
 
