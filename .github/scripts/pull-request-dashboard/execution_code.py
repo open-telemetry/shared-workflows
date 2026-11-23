@@ -96,10 +96,10 @@ class ExecutionCodeLoader:
             source.extractall(directory, filter="data")
         archive.unlink()
         script_dir = directory / ".github" / "scripts" / "pull-request-dashboard"
-        
+
         # Check if this ref has pyproject.toml (new) or requirements.txt (legacy)
         has_pyproject = (script_dir / "pyproject.toml").exists()
-        
+
         if has_pyproject:
             # Modern uv-based installation for refs with pyproject.toml
             environment = script_dir / ".venv"
@@ -108,8 +108,8 @@ class ExecutionCodeLoader:
                 environment / "Scripts" / "python.exe" if sys.platform == "win32"
                 else environment / "bin" / "python"
             )
-            # Install dependencies with uv sync --frozen for reproducible builds
-            self._run(["uv", "sync", "--frozen", "--project", str(script_dir)])
+            # Install dependencies with uv sync --locked for reproducible builds
+            self._run(["uv", "sync", "--locked", "--project", str(script_dir)])
         else:
             # Legacy pip-based installation for stable refs and older rollback targets
             environment = directory / "venv"
@@ -119,7 +119,7 @@ class ExecutionCodeLoader:
                 else environment / "bin" / "python"
             )
             self._run([python, "-m", "pip", "install", "--quiet", "-r", str(script_dir / "requirements.txt")])
-        
+
         self._run(["npm", "ci", "--quiet", "--prefix", str(script_dir)])
         self._run([python, "-m", "copilot", "download-runtime"])
         result = ExecutionCode(ref, script_dir, python)

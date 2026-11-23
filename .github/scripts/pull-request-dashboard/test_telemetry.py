@@ -626,7 +626,7 @@ OTLP_EXPORT_STEPS = {
 }
 TELEMETRY_INSTALL = re.compile(
     r"^env -u ACTIONS_ID_TOKEN_REQUEST_TOKEN -u ACTIONS_ID_TOKEN_REQUEST_URL"
-    r" uv sync --frozen --no-build && echo \"\$PWD/\.venv/bin\" >> \"\$GITHUB_PATH\"$"
+    r" uv sync --locked --no-build && echo \"\$PWD/\.venv/bin\" >> \"\$GITHUB_PATH\"$"
 )
 SETUP_UV = "astral-sh/setup-uv@"
 SCRIPT_WORKING_DIRECTORY = ".github/scripts/pull-request-dashboard"
@@ -670,7 +670,7 @@ class WorkflowOtlpExportWiringTest(unittest.TestCase):
                 ]
                 self.assertTrue(setup, "no actions/setup-python before the step")
                 self.assertTrue(setup_uv, "no astral-sh/setup-uv before the step")
-                self.assertTrue(install, "no frozen uv telemetry install before the step")
+                self.assertTrue(install, "no locked uv telemetry install before the step")
                 self.assertLess(setup[0], install[0])
                 self.assertLess(setup_uv[0], install[0])
                 for i in install:

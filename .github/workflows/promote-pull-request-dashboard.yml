@@ -75,11 +75,11 @@ jobs:
           python3 .github/scripts/pull-request-dashboard/promote_rollout.py "$RELEASE" "$RELEASE_SHA"
 
       - name: Install uv
-        uses: astral-sh/setup-uv@8d55fbecc275b1c35dbe060458839f8d30439ccf # v3.0.0
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
 
       - name: Install Python dependencies
         working-directory: .github/scripts/pull-request-dashboard
-        run: uv sync --frozen
+        run: uv sync --locked
 
       - name: Run pull request dashboard tests
         working-directory: .github/scripts/pull-request-dashboard

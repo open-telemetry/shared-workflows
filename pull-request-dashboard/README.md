@@ -40,7 +40,7 @@ SDK and its matching runtime from the dashboard script directory:
 
 ```sh
 cd .github/scripts/pull-request-dashboard
-uv sync --frozen
+uv sync --locked
 uv run python -m copilot download-runtime
 uv run python eval/score_reviewer_feedback.py --classifier reviewer_feedback --model gpt-5.6-luna
 ```
@@ -86,7 +86,7 @@ turn it on (see **Workflow export**). This setup emits no log records yet.
   An entry point extracts the parent context from its environment only when
   the OpenTelemetry packages are installed. The processes that
   `drain_queue.py` starts run in the virtual environment of
-  `execution_code.py`, which runs `uv sync --frozen` against `pyproject.toml`
+  `execution_code.py`, which runs `uv sync --locked` against `pyproject.toml`
   and `uv.lock` (refs that predate the migration still install
   `requirements.txt`). The workflow steps that export install the same lock
   before they run (see
@@ -136,7 +136,7 @@ turn it on (see **Workflow export**). This setup emits no log records yet.
   - If `GHA_OTLP_ENDPOINT` is empty or not set, export stays off and no
     stderr line shows.
   - Before each of these steps, the job runs `actions/setup-python` and
-    `astral-sh/setup-uv`, then `uv sync --frozen --no-build`. `uv.lock` pins
+    `astral-sh/setup-uv`, then `uv sync --locked --no-build`. `uv.lock` pins
     every package and its hashes, and `--no-build` allows only prebuilt
     wheels. The install command removes the OIDC variables
     `ACTIONS_ID_TOKEN_REQUEST_TOKEN` and `ACTIONS_ID_TOKEN_REQUEST_URL`. It

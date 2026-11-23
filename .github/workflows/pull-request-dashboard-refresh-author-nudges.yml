@@ -43,11 +43,11 @@ jobs:
         with:
           python-version: '3.15'
       - name: Install uv
-        uses: astral-sh/setup-uv@8d55fbecc275b1c35dbe060458839f8d30439ccf # v3.0.0
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
       - name: Install telemetry dependencies
         working-directory: .github/scripts/pull-request-dashboard
         continue-on-error: true
-        run: 'env -u ACTIONS_ID_TOKEN_REQUEST_TOKEN -u ACTIONS_ID_TOKEN_REQUEST_URL uv sync --frozen --no-build && echo "$PWD/.venv/bin" >> "$GITHUB_PATH"'
+        run: 'env -u ACTIONS_ID_TOKEN_REQUEST_TOKEN -u ACTIONS_ID_TOKEN_REQUEST_URL uv sync --locked --no-build && echo "$PWD/.venv/bin" >> "$GITHUB_PATH"'
       - name: Accept author reminder sweep
         env:
           OTEL_GITHUB_STEP_NAME: Accept author reminder sweep
@@ -119,11 +119,11 @@ jobs:
           python-version: '3.15'
 
       - name: Install uv
-        uses: astral-sh/setup-uv@8d55fbecc275b1c35dbe060458839f8d30439ccf # v3.0.0
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
       - name: Install telemetry dependencies
         working-directory: .github/scripts/pull-request-dashboard
         continue-on-error: true
-        run: 'env -u ACTIONS_ID_TOKEN_REQUEST_TOKEN -u ACTIONS_ID_TOKEN_REQUEST_URL uv sync --frozen --no-build && echo "$PWD/.venv/bin" >> "$GITHUB_PATH"'
+        run: 'env -u ACTIONS_ID_TOKEN_REQUEST_TOKEN -u ACTIONS_ID_TOKEN_REQUEST_URL uv sync --locked --no-build && echo "$PWD/.venv/bin" >> "$GITHUB_PATH"'
 
       - uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
         id: dashboard-token

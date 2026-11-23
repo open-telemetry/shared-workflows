@@ -102,7 +102,7 @@ class OwnedExecutionTest(unittest.TestCase):
             self.assertNotIn("checkout", [part for command in commands for part in command])
             self.assertNotEqual(code.script_dir, execution_code.SCRIPT_DIR)
 
-    def test_code_loading_uses_frozen_uv_sync_for_refs_with_pyproject(self) -> None:
+    def test_code_loading_uses_locked_uv_sync_for_refs_with_pyproject(self) -> None:
         commands = []
         ref = "c" * 40
         with tempfile.TemporaryDirectory() as directory:
@@ -123,7 +123,7 @@ class OwnedExecutionTest(unittest.TestCase):
                 code = loader.load(ref)
             environment = code.script_dir / ".venv"
             self.assertIn(["uv", "venv", str(environment)], commands)
-            self.assertIn(["uv", "sync", "--frozen", "--project", str(code.script_dir)], commands)
+            self.assertIn(["uv", "sync", "--locked", "--project", str(code.script_dir)], commands)
             self.assertEqual(code.python, str(environment / "bin" / "python"))
             self.assertNotIn("pip", [part for command in commands for part in command])
             self.assertEqual(commands[-1], [code.python, "-m", "copilot", "download-runtime"])
