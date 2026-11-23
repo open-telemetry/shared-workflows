@@ -103,7 +103,6 @@ class ReviewBundleTest(unittest.TestCase):
             self.assertEqual((bundle / "pr.diff").read_bytes(), diff)
             gh_run.assert_called_once_with(
                 ["gh", "api", "-H", "Accept: application/vnd.github.diff", "repos/org/repo/pulls/123"],
-                preserve_newlines=True,
             )
 
     def test_bundle_rejects_private_targets_before_fetching_the_diff(self):

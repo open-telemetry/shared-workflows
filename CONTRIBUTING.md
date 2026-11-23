@@ -16,7 +16,7 @@ New workflows are welcome, and anyone in the OpenTelemetry community can propose
 Shared workflows in this repo come in two shapes. Pick the one that fits your use case:
 
 - **Reusable workflow** — a workflow that other repos call directly via [`uses:`](https://docs.github.com/en/actions/using-workflows/reusing-workflows). The workflow runs in the *calling* repository's context. Example: [`zizmor.yml`](./.github/workflows/zizmor.yml).
-- **Centrally-executed workflow** — a workflow that runs *from this repo* against an opted-in list of target repositories. The workflow runs in this repository's context and accesses target repos via the GitHub API. Example: [`pull-request-dashboard/`](./pull-request-dashboard/) plus `pull-request-dashboard*.yml`.
+- **Centrally-executed workflow** — a workflow that runs *from this repo* and accesses target repos via the GitHub API. Example: [`pull-request-dashboard/`](./pull-request-dashboard/) plus `pull-request-dashboard*.yml`.
 
 > Workflows that this repo runs only for its own checks (such as [`codeql.yml`](./.github/workflows/codeql.yml)) are **not** shared. They have no companion docs folder.
 
@@ -44,7 +44,7 @@ uses: open-telemetry/shared-workflows/.github/workflows/<workflow-name>.yml@<sha
 
 #### Centrally-executed workflow
 
-The consumer-facing `README.md` lives in a root folder named after the workflow. The scripts, workflow YAML files, and per-workflow `repositories.json` opt-in list stay under `.github/` because the workflow executes inside this repository.
+The consumer-facing `README.md` lives in a root folder named after the workflow. The scripts, workflow YAML files, and any opt-in list stay under `.github/` because the workflow executes inside this repository.
 
 ```
 <workflow-name>/
@@ -56,11 +56,11 @@ The consumer-facing `README.md` lives in a root folder named after the workflow.
     <workflow-name>-<other>.yml      # sibling YAMLs for the same workflow
   scripts/
     <workflow-name>/
-      repositories.json              # per-workflow opt-in list
+      repositories.json              # per-workflow opt-in list, where required
       <workflow scripts...>          # flat, no scripts/ subfolder
 ```
 
-Each centrally-executed workflow has its **own `repositories.json`**, so opting in is per workflow — a repository only appears in the workflows it chose to use.
+Centrally-executed workflows use their **own `repositories.json`** for opt-in. Enrollment in one workflow does not enroll a repository in another. [PR review](./pr-review/) is an exception. Someone with write access to `shared-workflows` manually selects a single PR in a public OpenTelemetry repository where `otelbot` is installed.
 
 ### The workflow's README
 
@@ -70,6 +70,7 @@ The README at the root of the workflow's folder is the contract between the work
 - **How a repository uses it.** Document the model that fits the workflow:
   - **Opt-in via `repositories.json`** — list the required and optional fields a repository entry must include, and show an example entry.
   - **Consume via `uses:`** — show the snippet a calling repo adds to its own workflow file, including any inputs or secrets it must pass.
+  - **Manual dispatch** — explain who can run it, which targets it accepts, and which inputs to supply.
 
 ### Code ownership
 

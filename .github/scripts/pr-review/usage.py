@@ -54,8 +54,17 @@ def read_usage(path: Path, label: str) -> tuple[Counter[str], Decimal | None]:
                 credit = Decimal(credit)
             if isinstance(credit, Decimal) and credit.is_finite() and credit >= 0:
                 credits += credit
+                estimate = f", {credit:,.6f} estimated AI credits"
             else:
                 complete = False
+                estimate = ""
+            duration = record.get("duration_ms")
+            timing = f" in {duration / 1000:.1f}s" if type(duration) is int and 0 <= duration <= 3_600_000 else ""
+            progress(
+                f"{label} request #{len(seen)}{timing}: {counts['input_tokens']:,} input, "
+                f"{counts['output_tokens']:,} output, {counts['cache_read_tokens']:,} cache read, "
+                f"{counts['cache_write_tokens']:,} cache write{estimate}"
+            )
     return tokens, credits if seen and complete else None
 
 

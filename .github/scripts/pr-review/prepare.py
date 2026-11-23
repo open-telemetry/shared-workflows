@@ -62,7 +62,6 @@ def build_bundle(repo: str, pr: int, directory: Path) -> tuple[dict[str, Any], D
     progress(f"Preparing review bundle in {directory}")
     diff = gh(
         ["api", "-H", "Accept: application/vnd.github.diff", f"repos/{repo}/pulls/{pr}"],
-        preserve_newlines=True,
     ).stdout
     (directory / "pr.diff").write_text(diff, encoding="utf-8", newline="")
     return metadata, parse_diff(diff)
@@ -76,7 +75,7 @@ def small_suggestion(
     # Read the committed blob without following working-tree symlinks.
     blob = run(
         ["git", "cat-file", "blob", f"{head}:{path}"],
-        cwd=checkout, check=False, timeout=120, preserve_newlines=True,
+        cwd=checkout, check=False, timeout=120,
     )
     if blob.returncode:
         return False

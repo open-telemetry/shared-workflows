@@ -7,13 +7,14 @@ import argparse
 import json
 import os
 import re
+import shlex
 import shutil
 import subprocess
 import sys
 import tempfile
 import time
 from datetime import datetime
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any
 
 from common import gh_json, progress, write_json
@@ -25,13 +26,28 @@ from sandbox import AGENT_TIMEOUT_MINUTES, checkout_pr, run_in_sandbox
 SOL = "gpt-6.1-sol"
 OPUS = "claude-opus-5.5"
 TOOL_NAMES = ("view", "glob", "grep", "bash", "shell")
-TOOL_EXCERPT_BYTES = 2 * 1024
-PASS_EXCERPT_BYTES = 512 * 1024
+TOOL_PREVIEW_BYTES = 2 * 1024
+PASS_PREVIEW_BYTES = 512 * 1024
 ACTIVITY_EVENTS = (
     "session.start", "session.error", "session.idle", "session.shutdown",
     "assistant.turn_start", "assistant.turn_end", "assistant.message", "assistant.usage",
     "tool.execution_start", "tool.execution_complete", "result",
 )
+GRADLE = {"gradle", "gradlew", "./gradlew"}
+BUILD_COMMANDS = {
+    **dict.fromkeys(
+        GRADLE, r":(?:[\w.-]+:)*[A-Za-z][\w.-]*|test|check|build|assemble|compile(?:Test)?Java|[A-Za-z]\w*Test",
+    ),
+    **dict.fromkeys(("mvn", "mvnw", "./mvnw"), r"test|verify|compile|package"),
+    **dict.fromkeys(("npm", "pnpm", "yarn"), r"test|run|build|lint|check|test:[\w-]+"),
+    **dict.fromkeys(("go", "cargo"), r"test|check|build|\.{1,2}/[\w./-]+"),
+    "pytest": r"[\w./-]+\.py(?:::[\w]+)*",
+    "git": r"status|diff|log|show|HEAD",
+}
+SHELL_FLAGS = {
+    "-q", "-v", "--quiet", "--verbose", "--stat", "--short",
+    "--no-daemon", "--offline", "--stacktrace", "--info", "--continue", "--rerun-tasks", "--parallel",
+}
 
 
 def is_copilot_reviewer(login: str) -> bool:
@@ -124,19 +140,72 @@ def log_text(text: str) -> str:
     return json.dumps(text)[1:-1].replace("::", r"\u003a\u003a").replace("##[", r"##\u005b")
 
 
-def tool_excerpt(data: dict[str, Any], name: str) -> tuple[str, str]:
-    error = data.get("error")
-    if isinstance(error, dict) and isinstance(error.get("message"), str):
-        return "error", error["message"]
-    result = data.get("result")
-    if name in ("bash", "shell") and isinstance(result, dict):
-        output = result.get("content")
-        if isinstance(output, str) and output:
-            return "output", output
-        preview = shell_exit(data).get("outputPreview")
-        if isinstance(preview, str):
-            return "output", preview
-    return "", ""
+def shell_preview(command: object, root: Path) -> str:
+    if (
+        not isinstance(command, str) or len(command) > TOOL_PREVIEW_BYTES
+        or re.search(r"[\x00-\x1f\x7f;|<>$`(){}\\]", command)
+    ):
+        return ""
+    try:
+        prefix = ""
+        if command.startswith("cd "):
+            cd, separator, command = command.partition(" && ")
+            directory = shlex.split(cd)
+            path = public_path(directory[1], root) if len(directory) == 2 else ""
+            if not separator or not path:
+                return ""
+            prefix = f"cd {shlex.quote(path)} && "
+        words = shlex.split(command)
+    except ValueError:
+        return ""
+    if not words or words[0] not in BUILD_COMMANDS:
+        return ""
+    options = iter(words[1:])
+    for word in options:
+        if word == "--tests" and words[0] in GRADLE:
+            if not re.fullmatch(r"[\w.*-]+", next(options, ""), flags=re.ASCII):
+                return ""
+        elif word not in SHELL_FLAGS and (
+            word.startswith("-") or not re.fullmatch(BUILD_COMMANDS[words[0]], word, flags=re.ASCII)
+        ):
+            return ""
+    return prefix + shlex.join(words)
+
+
+def public_path(value: object, root: Path) -> str:
+    if not isinstance(value, str) or len(value) > TOOL_PREVIEW_BYTES:
+        return ""
+    path = PurePosixPath(value)
+    if not value or ".." in path.parts or not re.fullmatch(r"[\w./*?@ -]+", value, flags=re.ASCII):
+        return ""
+    if path.is_absolute():
+        try:
+            path = path.relative_to(root.as_posix())
+        except ValueError:
+            return ""
+        if len(path.parts) < 2 or not path.parts[0].startswith("pass-") or path.parts[1] != "checkout":
+            return ""
+        path = PurePosixPath(*path.parts[2:])
+    return path.as_posix()
+
+
+def tool_preview(name: str, arguments: object, root: Path) -> str:
+    if not isinstance(arguments, dict):
+        return ""
+    if name in ("bash", "shell"):
+        return shell_preview(arguments.get("command"), root)
+    if name not in ("view", "glob", "grep"):
+        return ""
+    path = public_path(arguments.get("path") or arguments.get("file_path"), root)
+    if name == "view":
+        lines = arguments.get("view_range")
+        if path and isinstance(lines, list) and len(lines) == 2 and all(type(line) is int for line in lines):
+            first, last = lines
+            if 1 <= first <= 2**31 - 1 and (first <= last <= 2**31 - 1 or last == -1):
+                return f"{shlex.quote(path)} lines {first}-{'end' if last == -1 else last}"
+        return shlex.quote(path) if path else ""
+    glob = public_path(arguments.get("pattern" if name == "glob" else "glob"), root)
+    return shlex.join([part for part in (path, glob) if part])
 
 
 def shell_exit(data: dict[str, Any]) -> dict[str, Any]:
@@ -149,18 +218,19 @@ def shell_exit(data: dict[str, Any]) -> dict[str, Any]:
     return {}
 
 
-def report_activity(phase: str, elapsed: float, outcome: str, events: list[dict[str, Any]]) -> None:
+def report_activity(phase: str, elapsed: float, outcome: str, events: list[dict[str, Any]], root: Path) -> None:
+    requests: dict[str, dict[str, Any]] = {}
     pending: dict[str, tuple[int, str, datetime | None]] = {}
     next_index = 1
-    budget = PASS_EXCERPT_BYTES
+    budget = PASS_PREVIEW_BYTES
     last_event = "none recorded"
 
-    def excerpt(raw: str) -> str:
+    def preview(raw: str) -> str:
         nonlocal budget
         if not budget:
             return "[omitted: pass limit]"
         text = log_text(raw)
-        size = min(len(text), TOOL_EXCERPT_BYTES, budget)
+        size = min(len(text), TOOL_PREVIEW_BYTES, budget)
         budget -= size
         return text[:size] + (" [truncated]" if size < len(text) else "")
 
@@ -176,52 +246,60 @@ def report_activity(phase: str, elapsed: float, outcome: str, events: list[dict[
             if type(duration) in (int, float) and 0 <= duration <= 3_600_000:
                 progress(f"{prefix}model call finished in {duration / 1000:.1f}s")
         if kind == "assistant.message" and isinstance(data.get("toolRequests"), list):
-            requests = data["toolRequests"]
-        elif kind == "tool.execution_start":
-            requests = [{**data, "name": data.get("toolName")}]
-        else:
-            requests = []
-        for request in requests:
-            if not isinstance(request, dict) or not isinstance(request.get("toolCallId"), str):
-                continue
-            call = request["toolCallId"]
-            if call in pending:
-                if kind == "tool.execution_start":
-                    index, name, _ = pending[call]
-                    pending[call] = (index, name, timestamp)
-                    progress(f"{prefix}tool #{index} {name} started")
-                continue
-            name = request.get("name")
-            name = log_text(name)[:80] if isinstance(name, str) and name else "unknown"
-            index = next_index
-            next_index += 1
-            started = kind == "tool.execution_start"
-            pending[call] = (index, name, timestamp if started else None)
-            action = "started" if started else "requested"
-            arguments = request.get("arguments")
-            if isinstance(arguments, dict) and name in ("bash", "shell"):
-                arguments = arguments.get("command")
-            if arguments and name in TOOL_NAMES:
-                text = arguments if isinstance(arguments, str) else json.dumps(arguments, ensure_ascii=False)
-                action += " " + excerpt(text)
-            progress(f"{prefix}tool #{index} {name} {action}")
-        if kind != "tool.execution_complete":
+            for request in data["toolRequests"]:
+                if isinstance(request, dict) and isinstance(request.get("toolCallId"), str):
+                    requests[request["toolCallId"]] = request
+        if kind not in ("tool.execution_start", "tool.execution_complete"):
             continue
         call = data.get("toolCallId")
-        recorded = pending.pop(call, None) if isinstance(call, str) else None
-        index, name, start = recorded or (0, "unknown", None)
-        label = f"tool #{index} {name}" if recorded else "tool with no recorded request or start"
-        status = "failed" if data.get("success") is False else "finished"
+        if not isinstance(call, str):
+            continue
+        request = requests.pop(call, {})
+        recorded = pending.get(call)
+        if not recorded:
+            name = data.get("toolName") or request.get("name")
+            name = name if name in TOOL_NAMES else "unknown"
+            recorded = (next_index, name, timestamp if kind == "tool.execution_start" else None)
+            next_index += 1
+        index, name, start = recorded
+        label = f"tool #{index} {name}"
+        if kind == "tool.execution_start":
+            pending[call] = recorded
+            arguments = data.get("arguments") or request.get("arguments")
+            summary = preview(tool_preview(name, arguments, root) or "[arguments omitted]") if arguments else ""
+            progress(f"{prefix}{label} started" + (f" {summary}" if summary else ""))
+            continue
+        pending.pop(call, None)
+        shell = shell_exit(data)
+        exit_code = shell.get("exitCode")
+        failed = data.get("success") is False or (type(exit_code) is int and exit_code != 0)
+        status = "failed" if failed else "finished"
         duration = f" in {(timestamp - start).total_seconds():.1f}s" if timestamp and start and timestamp >= start else ""
-        exit_code = shell_exit(data).get("exitCode")
         exit_detail = f" (exit {exit_code})" if type(exit_code) is int else ""
-        progress(f"{prefix}{label} {status}{duration}{exit_detail}")
-        label, raw = tool_excerpt(data, name)
-        if raw:
-            progress(f"{phase}: {label}: {excerpt(raw)}")
+        result = data.get("result")
+        content = result.get("content") if isinstance(result, dict) else result
+        size_label = "result"
+        if not isinstance(content, str):
+            content = shell.get("outputPreview")
+            size_label = "output preview"
+        size = f", {size_label} {len(content.encode('utf-8', errors='replace')):,} B" if isinstance(content, str) else ""
+        error = data.get("error")
+        message = error.get("message") if isinstance(error, dict) else None
+        reason = ""
+        if failed and isinstance(message, str):
+            reason = next(
+                (f", {label}" for pattern, label in (
+                    (r"denied|not allowed", "permission denied"),
+                    (r"timed? ?out|timeout", "timed out"),
+                    (r"not found|no such file", "not found"),
+                ) if re.search(pattern, message, re.IGNORECASE)),
+                ", tool error",
+            )
+        progress(f"{prefix}{label} {status}{duration}{exit_detail}{size}{reason}")
     progress(f"{phase}: {outcome} after {elapsed:.1f}s. Last recorded event: {last_event}.")
     if pending:
-        progress(f"{phase}: {len(pending)} tool calls without a recorded finish.")
+        for index, name, _ in pending.values():
+            progress(f"{phase}: tool #{index} {name} has no recorded finish.")
 
 
 def model_pass(model: str, effort: str, prompt: str, checkout: Path, bundle: Path, *, phase: str) -> str:
@@ -240,8 +318,9 @@ def model_pass(model: str, effort: str, prompt: str, checkout: Path, bundle: Pat
             ],
             phase=phase,
         )
-    except subprocess.TimeoutExpired:
-        report_activity(phase, time.monotonic() - started, "runner timeout", [])
+    except subprocess.TimeoutExpired as error:
+        stdout = (error.stdout or b"").decode("utf-8", errors="replace")
+        report_activity(phase, time.monotonic() - started, "runner timeout", copilot_events(stdout), checkout.parent)
         raise
     elapsed = time.monotonic() - started
     events = copilot_events(result.stdout)
@@ -256,10 +335,10 @@ def model_pass(model: str, effort: str, prompt: str, checkout: Path, bundle: Pat
         elif event.get("type") == "session.error" and isinstance(data.get("message"), str):
             error_message = data["message"]
     if result.returncode == 124:
-        report_activity(phase, elapsed, "sandbox timeout", events)
+        report_activity(phase, elapsed, "sandbox timeout", events, checkout.parent)
         raise RuntimeError(f"{model} exceeded its {AGENT_TIMEOUT_MINUTES}-minute sandbox time limit")
     outcome = f"exit {result.returncode}" if result.returncode else "completed" if answer else "no answer"
-    report_activity(phase, elapsed, outcome, events)
+    report_activity(phase, elapsed, outcome, events, checkout.parent)
     if result.returncode:
         stderr_lines = (result.stderr or "").strip().splitlines()
         detail = error_message or " ".join(stderr_lines[-4:]) or "no diagnostic"

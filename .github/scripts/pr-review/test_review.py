@@ -150,21 +150,23 @@ class ReviewTest(unittest.TestCase):
     def test_model_pass_logs_tool_activity_in_order_without_publishing_drafts(self):
         events = [
             {"type": "assistant.message", "data": {"toolRequests": [{
-                "toolCallId": "shell", "name": "shell", "arguments": {"command": "git status"},
+                "toolCallId": "shell", "name": "shell",
+                "arguments": {"command": "./gradlew :api:test --tests 'com.example.*Test' --no-daemon"},
             }, {"toolCallId": "denied", "name": "write", "arguments": {"content": "private-write"}}]}},
             {"type": "assistant.usage", "data": {"duration": 4500}},
             {"type": "tool.execution_start", "timestamp": "2026-11-23T01:00:00Z", "data": {
-                "toolCallId": "shell", "toolName": "shell", "arguments": {"command": "git status"},
+                "toolCallId": "shell", "toolName": "shell",
             }},
             {"type": "tool.execution_start", "timestamp": "2026-11-23T01:00:01Z", "data": {
                 "toolCallId": "view", "toolName": "view",
+                "arguments": {"path": "api/build.gradle.kts", "view_range": [1, 80]},
             }},
             {"type": "tool.execution_complete", "timestamp": "2026-11-23T01:00:02Z", "data": {
                 "toolCallId": "view", "success": True,
             }},
             {"type": "tool.execution_complete", "timestamp": "2026-11-23T01:00:42Z", "data": {
                 "toolCallId": "shell", "success": False, "result": {
-                    "content": "test output\n::warning::untrusted\n##[error]untrusted\nfixture-token",
+                    "content": "secret output \u00e9",
                     "contents": [{"type": "shell_exit", "exitCode": 2}],
                 },
             }},
@@ -189,27 +191,57 @@ class ReviewTest(unittest.TestCase):
                 "private-draft",
             )
         lines = [call.args[0] for call in log.call_args_list]
-        self.assertIn("review: tool #1 shell requested git status", lines)
+        self.assertIn(
+            "review: 2026-11-23T01:00:00.000+00:00 tool #1 shell started "
+            "./gradlew :api:test --tests 'com.example.*Test' --no-daemon",
+            lines,
+        )
         self.assertIn("review: model call finished in 4.5s", lines)
-        self.assertIn("review: 2026-11-23T01:00:42.000+00:00 tool #1 shell failed in 42.0s (exit 2)", lines)
+        self.assertIn("review: 2026-11-23T01:00:42.000+00:00 tool #1 shell failed in 42.0s (exit 2), result 16 B", lines)
+        self.assertIn("review: 2026-11-23T01:00:01.000+00:00 tool #2 view started api/build.gradle.kts lines 1-80", lines)
         self.assertLess(
             next(i for i, line in enumerate(lines) if "tool #1 shell started" in line),
-            next(i for i, line in enumerate(lines) if "tool #3 view finished" in line),
+            next(i for i, line in enumerate(lines) if "tool #2 view finished" in line),
         )
-        self.assertIn("review: tool #2 write failed", lines)
-        self.assertIn("review: error: Tool denied by policy", lines)
+        self.assertIn("review: tool #3 unknown failed, permission denied", lines)
         self.assertEqual(lines[-1], "review: completed after 50.0s. Last recorded event: result.")
-        self.assertIn(r"review: output: test output\n\u003a\u003awarning\u003a\u003auntrusted\n##\u005berror]untrusted\n[redacted]", lines)
-        self.assertFalse(any("private-" in line or "fixture-token" in line for line in lines))
+        self.assertFalse(any("private-" in line or "secret output" in line or "Tool denied by policy" in line for line in lines))
 
-    def test_excerpt_limits_do_not_drop_tool_events(self):
+    def test_unsafe_invocations_are_omitted(self):
+        for command in (
+            "TOKEN=fixture-secret ./gradlew test",
+            "./gradlew test -PrepoToken=fixture-secret",
+            "./gradlew test --tests fixture-secret; echo fixture-secret",
+            "cd /tmp && ./gradlew :fixture-secret:test",
+            "cd . && ./gradlew test && echo fixture-secret",
+            "./gradlew test\nfixture-secret",
+            "bash -c 'fixture-secret'",
+        ):
+            with self.subTest(command=command):
+                self.assertEqual(runner.shell_preview(command, Path("/tmp/run")), "")
+        self.assertEqual(runner.shell_preview("go test ./...", Path("/tmp/run")), "go test ./...")
+        self.assertEqual(
+            runner.shell_preview(
+                "cd /tmp/run/pass-abc/checkout/java && ./gradlew :api:compileJava --no-daemon", Path("/tmp/run"),
+            ),
+            "cd java && ./gradlew :api:compileJava --no-daemon",
+        )
+        self.assertEqual(
+            runner.tool_preview("grep", {
+                "path": "/tmp/run/pass-abc/checkout/api", "glob": "**/*.java", "pattern": "fixture-secret",
+            }, Path("/tmp/run")),
+            "api '**/*.java'",
+        )
+        self.assertEqual(runner.tool_preview("view", {"path": "/tmp/fixture-secret"}, Path("/tmp/run")), "")
+
+    def test_preview_limits_do_not_drop_tool_events(self):
         events = [
             event
             for call in range(3)
             for event in (
                 {"type": "tool.execution_start", "data": {
                     "toolCallId": str(call), "toolName": "shell",
-                    "arguments": {"command": "pytest"} if call == 0 else None,
+                    "arguments": {"command": "pytest -q"},
                 }},
                 {"type": "tool.execution_complete", "data": {
                     "toolCallId": str(call), "success": True, "result": {"content": "abcdefgh"},
@@ -217,21 +249,18 @@ class ReviewTest(unittest.TestCase):
             )
         ]
         with (
-            mock.patch.object(runner, "TOOL_EXCERPT_BYTES", 4),
-            mock.patch.object(runner, "PASS_EXCERPT_BYTES", 6),
+            mock.patch.object(runner, "PASS_PREVIEW_BYTES", 7),
             mock.patch.object(runner, "progress") as log,
         ):
-            runner.report_activity("review", 3, "completed", events)
+            runner.report_activity("review", 3, "completed", events, Path("run"))
         lines = [call.args[0] for call in log.call_args_list]
-        self.assertEqual(lines[:5], [
-            "review: tool #1 shell started pyte [truncated]",
-            "review: tool #1 shell finished",
-            "review: output: ab [truncated]",
-            "review: tool #2 shell started",
-            "review: tool #2 shell finished",
+        self.assertEqual(lines[:4], [
+            "review: tool #1 shell started pytest  [truncated]",
+            "review: tool #1 shell finished, result 8 B",
+            "review: tool #2 shell started [omitted: pass limit]",
+            "review: tool #2 shell finished, result 8 B",
         ])
-        self.assertEqual(lines.count("review: output: [omitted: pass limit]"), 2)
-        self.assertIn("review: tool #3 shell finished", lines)
+        self.assertIn("review: tool #3 shell finished, result 8 B", lines)
 
     def test_model_pass_reports_the_cli_error_from_json(self):
         response = subprocess.CompletedProcess(
@@ -275,10 +304,28 @@ class ReviewTest(unittest.TestCase):
         ):
             bundle = Path(directory)
             runner.model_pass("model", "max", "prompt", bundle / "checkout", bundle, phase="review")
-        self.assertEqual(log.call_args_list[-2:], [
+        self.assertEqual(log.call_args_list[-3:], [
             mock.call("review: sandbox timeout after 3600.0s. Last recorded event: tool.execution_complete."),
-            mock.call("review: 2 tool calls without a recorded finish."),
+            mock.call("review: tool #1 unknown has no recorded finish."),
+            mock.call("review: tool #2 shell has no recorded finish."),
         ])
+
+    def test_runner_timeout_reports_partial_activity(self):
+        timeout = subprocess.TimeoutExpired([], 3720, output=(
+            b'{"type":"tool.execution_start","data":{"toolCallId":"x","toolName":"shell",'
+            b'"arguments":{"command":"./gradlew :api:test --offline"}}}\n{"unfinished"'
+        ))
+        with (
+            tempfile.TemporaryDirectory() as directory,
+            mock.patch.object(runner, "run_in_sandbox", side_effect=timeout),
+            mock.patch.object(runner.time, "monotonic", side_effect=[0, 3720]),
+            mock.patch.object(runner, "progress") as log,
+            self.assertRaises(subprocess.TimeoutExpired),
+        ):
+            bundle = Path(directory)
+            runner.model_pass("model", "max", "prompt", bundle, bundle, phase="review")
+        log.assert_any_call("review: tool #1 shell started ./gradlew :api:test --offline")
+        log.assert_any_call("review: tool #1 shell has no recorded finish.")
 
     def test_checkout_rejects_a_moved_pr_head(self):
         response = subprocess.CompletedProcess([], 0, stdout="e" * 40 + "\n")
@@ -348,11 +395,13 @@ class ReviewTest(unittest.TestCase):
             with (
                 mock.patch.dict(os.environ, {"RUNNER_TEMP": directory, "GITHUB_STEP_SUMMARY": str(summary)}),
                 mock.patch("builtins.print") as log,
+                mock.patch.object(usage, "progress") as requests,
             ):
                 entry = {
                     "event": "token_usage", "request_id": "first-request", "input_tokens": 1250,
                     "output_tokens": 100, "cache_read_tokens": 40, "cache_write_tokens": 20,
                     "ai_credits_this_response": 0.25, "ai_credits_total": 0.25, "path": "not for publication",
+                    "duration_ms": 4500,
                 }
                 for phase, records in (
                     ("review", [entry, entry, {**entry, "request_id": "second-request", "ai_credits_total": 0.5}]),
@@ -370,6 +419,12 @@ class ReviewTest(unittest.TestCase):
             self.assertIn("| Verification retry | 1,250 | 100 | 40 | 20 | 0.250000 |", result)
             self.assertIn("| Recorded total | 3,750 | 300 | 120 | 60 | 0.750000 |", result)
             self.assertNotIn("not for publication", result)
+            self.assertEqual(requests.call_count, 3)
+            requests.assert_any_call(
+                "Review request #2 in 4.5s: 1,250 input, 100 output, 40 cache read, "
+                "20 cache write, 0.250000 estimated AI credits"
+            )
+            self.assertNotIn("not for publication", str(requests.call_args_list))
 
     def test_usage_summary_does_not_report_missing_logs_or_estimates_as_zero(self):
         with (
@@ -388,7 +443,8 @@ class ReviewTest(unittest.TestCase):
         self.assertIn("| Review | Unavailable | Unavailable | Unavailable | Unavailable | Unavailable |", result)
         self.assertIn("| Verification | 8 | 2 | 0 | 0 | Unavailable |", result)
         self.assertIn("| Recorded total | 8 | 2 | 0 | 0 | Unavailable |", result)
-        self.assertEqual(diagnostic.call_count, 2)
+        diagnostic.assert_any_call("Verification request #1: 8 input, 2 output, 0 cache read, 0 cache write")
+        self.assertEqual(diagnostic.call_count, 3)
 
     def test_only_the_latest_submitted_copilot_review_can_supply_a_hint(self):
         reviews = [[{

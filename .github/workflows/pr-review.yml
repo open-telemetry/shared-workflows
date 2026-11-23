@@ -46,8 +46,8 @@ jobs:
           persist-credentials: false
       - name: Install Copilot CLI
         run: |
-          npm ci --prefix .github/scripts/copilot-cli
-          echo "$GITHUB_WORKSPACE/.github/scripts/copilot-cli/node_modules/.bin" >> "$GITHUB_PATH"
+          npm ci --prefix .github/scripts/pr-review
+          echo "$GITHUB_WORKSPACE/.github/scripts/pr-review/node_modules/.bin" >> "$GITHUB_PATH"
       - uses: github/gh-aw-firewall@d9272015d8523b4c9cf3b00ce26b507046cbf1a3 # v0.29.11
         id: firewall
         with:

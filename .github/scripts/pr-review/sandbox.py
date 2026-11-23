@@ -71,31 +71,33 @@ def run_in_sandbox(checkout: Path, inputs: Path, args: list[str], *, phase: str)
         env["HOME"] = str(home)
         env["GITHUB_WORKSPACE"] = str(workspace)
         capture = awf_work.parent / "output"
-        logs = proxy_logs_dir(phase)
-        logs.mkdir(parents=True)
-        result = run(
-            [
-                "/usr/bin/sudo", "--non-interactive", f"--preserve-env={','.join(env)}",
-                str(Path(awf).resolve()), "--config", str(config), "--work-dir", str(awf_work),
-                "--image-tag", os.environ["AWF_IMAGE_TAG"], "--container-workdir", str(workspace),
-                "--mount", f"{cli_dir}:{cli_dir}:ro", "--mount", f"{inputs}:{inputs}:ro",
-                "--env", "GITHUB_COPILOT_PROMPT_MODE_EXTENSIONS=false",
-                "--capture-command-output", str(capture),
-                "--proxy-logs-dir", str(logs),
-                "--agent-timeout", str(AGENT_TIMEOUT_MINUTES),
-                "--log-level", "info",
-                "--", "/bin/bash", str(inputs / "launch-copilot.sh"),
-                str(workspace), str(inputs), str(config), (checkout / ".git" / "HEAD").read_text().strip(),
-                copilot, *args,
-            ],
-            cwd=workspace, env=env, check=False, timeout=(AGENT_TIMEOUT_MINUTES + 2) * 60,
-        )
         stdout = capture / "attempt-001.stdout.bin"
         stderr = capture / "attempt-001.stderr.bin"
-        if stdout.is_file() and stderr.is_file():
+        logs = proxy_logs_dir(phase)
+        logs.mkdir(parents=True)
+        command = [
+            "/usr/bin/sudo", "--non-interactive", f"--preserve-env={','.join(env)}",
+            str(Path(awf).resolve()), "--config", str(config), "--work-dir", str(awf_work),
+            "--image-tag", os.environ["AWF_IMAGE_TAG"], "--container-workdir", str(workspace),
+            "--mount", f"{cli_dir}:{cli_dir}:ro", "--mount", f"{inputs}:{inputs}:ro",
+            "--env", "GITHUB_COPILOT_PROMPT_MODE_EXTENSIONS=false",
+            "--capture-command-output", str(capture),
+            "--proxy-logs-dir", str(logs),
+            "--agent-timeout", str(AGENT_TIMEOUT_MINUTES),
+            "--log-level", "info",
+            "--", "/bin/bash", str(inputs / "launch-copilot.sh"),
+            str(workspace), str(inputs), str(config), (checkout / ".git" / "HEAD").read_text().strip(),
+            copilot, *args,
+        ]
+        try:
+            result = run(command, cwd=workspace, env=env, check=False, timeout=(AGENT_TIMEOUT_MINUTES + 2) * 60)
+        except subprocess.TimeoutExpired as error:
+            error.output = stdout.read_bytes() if stdout.is_file() else None
+            raise
+        if stdout.is_file():
             return subprocess.CompletedProcess(
                 result.args, result.returncode,
                 stdout.read_text(encoding="utf-8", errors="replace"),
-                result.stderr + "\n" + stderr.read_text(encoding="utf-8", errors="replace"),
+                result.stderr + ("\n" + stderr.read_text(encoding="utf-8", errors="replace") if stderr.is_file() else ""),
             )
         return result
