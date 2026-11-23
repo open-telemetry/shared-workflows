@@ -523,6 +523,41 @@ class QueueBatchTest(unittest.TestCase):
 
         self.assertNotEqual(runner_temps["a"], runner_temps["b"])
 
+    def test_repository_workers_use_repository_reminder_intervals(self) -> None:
+        intervals: dict[str, str] = {}
+
+        def initial_backfill(
+            repository: str, _state_branch: str, env: dict[str, str],
+        ) -> bool:
+            intervals[repository] = env["AUTHOR_REMINDER_AFTER_BUSINESS_DAYS"]
+            return False
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            config_path = root / "repositories.json"
+            config_path.write_text(
+                json.dumps([
+                    {"name": "a", "author_reminder_after_business_days": 2},
+                    {"name": "b"},
+                ]),
+                encoding="utf-8",
+            )
+            processor = process_queue_batch.DashboardBatchProcessor(
+                config_path, script_dir=root / "scripts",
+            )
+            with mock.patch.object(
+                processor, "_initial_backfill_complete", side_effect=initial_backfill,
+            ):
+                for repository in ("a", "b"):
+                    processor.process_repository(
+                        repository,
+                        [WorkItem(repository, 1, (
+                            claim(f"{repository}#pr:1", repository, pr_number=1),
+                        ))],
+                    )
+
+        self.assertEqual({"a": "2", "b": "5"}, intervals)
+
     def test_initial_backfill_is_checked_once_for_all_repository_items(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             config_path = Path(directory) / "repositories.json"

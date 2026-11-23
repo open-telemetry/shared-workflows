@@ -10,16 +10,19 @@ from urllib.parse import parse_qs, urlparse
 import pr_status_comment
 from dashboard_contracts import (
     DashboardRoute,
+    HandoffTarget,
+    RoutingHandoff,
     EvaluationFailure,
     StoredDashboardResult,
 )
+from dashboard_override import DashboardOverrideInput, dashboard_override_facts
 from dashboard_test_support import (
     dashboard_facts,
     dashboard_state,
     evaluation_failure,
     stored_dashboard_result,
 )
-from dashboard_status import status_reviewer_handoff_clearance
+from pull_request_source import normalize_issue_comments
 
 
 def status_result(
@@ -116,13 +119,12 @@ class RenderStatusCommentTest(unittest.TestCase):
             self.pr(),
             status_result(
                 DashboardRoute.AUTHOR,
-                dashboard_override_bound_command_id=12,
-                dashboard_override_head_sha="abcdef123456",
+                handoff=RoutingHandoff(command_id=12, head_sha="abcdef123456", released=True),
                 dashboard_top_level_feedback_cutoff="2026-08-16T08:00:00Z",
-                dashboard_override_cleared_by_feedback=True,
             ),
         )
         comment = {
+            "id": 7,
             "user": {"login": "opentelemetry-pr-dashboard[bot]"},
             "body": body,
         }
@@ -142,10 +144,10 @@ class RenderStatusCommentTest(unittest.TestCase):
             "12:2026-08-16T08:00:00Z -->",
             body,
         )
-        self.assertEqual(
-            (98, "no-status-marker"),
-            status_reviewer_handoff_clearance([
+        recovered = dashboard_override_facts(
+            DashboardOverrideInput(normalize_issue_comments([
                 {
+                    "id": 8,
                     "user": {"login": "alice"},
                     "body": (
                         f"{pr_status_comment.STATUS_MARKER}\n"
@@ -154,6 +156,7 @@ class RenderStatusCommentTest(unittest.TestCase):
                     ),
                 },
                 {
+                    "id": 9,
                     "user": {"login": "opentelemetry-pr-dashboard[bot]"},
                     "body": (
                         "<!-- pull-request-dashboard-reviewer-handoff-cleared:"
@@ -161,8 +164,12 @@ class RenderStatusCommentTest(unittest.TestCase):
                     ),
                 },
                 comment,
-            ]),
+            ])),
+            "alice",
         )
+        self.assertEqual(98, recovered.handoff.command_id)
+        self.assertEqual("no-status-marker", recovered.handoff.head_sha)
+        self.assertTrue(recovered.handoff.released)
 
     def test_optional_status_markers_have_stable_order(self) -> None:
         body = pr_status_comment.render_status_comment(
@@ -170,9 +177,7 @@ class RenderStatusCommentTest(unittest.TestCase):
             status_result(
                 DashboardRoute.AUTHOR,
                 author_nudge_episode_id="abc123",
-                dashboard_override_bound_command_id=12,
-                dashboard_override_head_sha="abcdef123456",
-                dashboard_override_cleared_by_feedback=True,
+                handoff=RoutingHandoff(command_id=12, head_sha="abcdef123456", released=True),
             ),
         )
 
@@ -198,8 +203,9 @@ class RenderStatusCommentTest(unittest.TestCase):
         )
 
     def test_clearance_recovery_prefers_the_latest_marker_for_a_command(self) -> None:
-        def status_comment(head: str, updated_at: str) -> dict[str, object]:
+        def status_comment(comment_id: int, head: str, updated_at: str) -> dict[str, object]:
             return {
+                "id": comment_id,
                 "user": {"login": "opentelemetry-pr-dashboard[bot]"},
                 "updated_at": updated_at,
                 "body": (
@@ -209,13 +215,16 @@ class RenderStatusCommentTest(unittest.TestCase):
                 ),
             }
 
-        self.assertEqual(
-            (12, "current-head"),
-            status_reviewer_handoff_clearance([
-                status_comment("current-head", "2026-08-25T09:00:00Z"),
-                status_comment("old-head", "2026-08-25T08:00:00Z"),
-            ]),
+        recovered = dashboard_override_facts(
+            DashboardOverrideInput(normalize_issue_comments([
+                status_comment(13, "current-head", "2026-08-25T09:00:00Z"),
+                status_comment(14, "old-head", "2026-08-25T08:00:00Z"),
+            ])),
+            "alice",
         )
+        self.assertEqual(12, recovered.handoff.command_id)
+        self.assertEqual("current-head", recovered.handoff.head_sha)
+        self.assertTrue(recovered.handoff.released)
 
     def test_recovers_episode_from_normalized_dashboard_bot_comment(self) -> None:
         marker = pr_status_comment.author_nudge_episode_marker("abc123")
@@ -947,6 +956,63 @@ class UpsertStatusCommentTest(unittest.TestCase):
             "12:2026-08-16T08:00:00Z -->",
             self.commands[0][-1],
         )
+
+    def test_copies_author_release_to_surviving_status_comment(self) -> None:
+        status = pr_status_comment.STATUS_MARKER
+        app = {"slug": pr_status_comment.DASHBOARD_APP_SLUG}
+        release = (
+            "<!-- pull-request-dashboard-override-ack:"
+            "author-released:12:bound-head:2026-08-16T09:00:00Z -->"
+        )
+        cutoff = (
+            "<!-- pull-request-dashboard-top-level-feedback-cutoff:"
+            "12:2026-08-16T08:00:00Z -->"
+        )
+        primary = {"id": 7, "performed_via_github_app": app, "body": f"{status}\nOld status"}
+        duplicate = {
+            "id": 8,
+            "performed_via_github_app": app,
+            "body": f"{status}\n{release}\n{cutoff}",
+        }
+        replacement = pr_status_comment.render_status_comment(
+            {"state": "open"}, status_result()
+        )
+        with patch.object(
+            pr_status_comment, "managed_status_comments", return_value=[primary, duplicate]
+        ):
+            pr_status_comment.upsert_status_comment(
+                "open-telemetry/example", 1, replacement, preserve_clearance=True
+            )
+
+        self.assertEqual(
+            [
+                ["PATCH", "repos/open-telemetry/example/issues/comments/7"],
+                ["DELETE", "repos/open-telemetry/example/issues/comments/8"],
+            ],
+            [command[3:5] for command in self.commands],
+        )
+        patched_body = self.commands[0][-1].removeprefix("body=")
+        self.assertIn(release, patched_body)
+        self.assertIn(cutoff, patched_body)
+        comments = normalize_issue_comments([
+            {
+                "id": 6,
+                "performed_via_github_app": app,
+                "body": (
+                    "<!-- pull-request-dashboard-override-ack:"
+                    "author:12:bound-head:2026-08-16T09:00:00Z -->"
+                ),
+            },
+            {**primary, "body": patched_body},
+        ])
+        restored = dashboard_override_facts(
+            DashboardOverrideInput(comments), "alice", head_sha="bound-head"
+        )
+        self.assertEqual(12, restored.handoff.command_id)
+        self.assertEqual("bound-head", restored.handoff.head_sha)
+        self.assertIs(HandoffTarget.AUTHOR, restored.handoff.target)
+        self.assertTrue(restored.handoff.released)
+        self.assertEqual("2026-08-16T08:00:00Z", restored.top_level_feedback_cutoff)
 
     @patch.object(pr_status_comment, "managed_status_comments", return_value=[])
     def test_does_not_create_comment_when_creation_is_disabled(
