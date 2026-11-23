@@ -1300,6 +1300,48 @@ class ReviewThreadExecutionTest(unittest.IsolatedAsyncioTestCase):
         assert isinstance(result.decision, ActionDecision)
         self.assertIs(result.decision.action, DiscussionAction.AUTHOR)
 
+    async def test_thread_over_batch_budget_is_classified_whole_on_its_own(self) -> None:
+        thread = self.thread(
+            ("approver", "Please update the validation.", "2026-03-12T00:00:00Z"),
+            *(("author", "Context " * 150, f"2026-03-{day:02d}T00:00:00Z")
+              for day in range(13, 30)),
+        )
+        sibling = self.thread(("approver", "Please add a test.", "2026-04-01T00:00:00Z"))
+        sibling["discussion_id"] = "sibling"
+        runner = FakeModelRunner(responder=lambda request: successful_response(
+            request, inline_verdict="author", inline_index=0,
+        ))
+
+        results = await ClassificationService(
+            runner, MemoryClassificationCacheStore(),
+        ).classify(execution_request(review_threads=(thread, sibling)))
+
+        self.assertEqual(
+            [[item["discussion_id"] for item in prompt_items(request)]
+             for request in runner.requests],
+            [["thread"], ["sibling"]],
+        )
+        self.assertEqual(
+            [comment["body"] for comment in thread["comments"]],
+            [comment["body"] for comment in prompt_items(runner.requests[0])[0]["comments"]],
+        )
+        result = results.review_threads[0]
+        self.assertIsInstance(result, ClassificationSuccess)
+        assert isinstance(result.decision, ActionDecision)
+        self.assertEqual(0, result.decision.comment_index)
+        self.assertEqual("2026-03-12T00:00:00Z", result.since)
+
+    async def test_thread_over_single_prompt_limit_fails_without_truncating(self) -> None:
+        thread = self.thread(
+            ("approver", "\u754c" * 32_000, "2026-03-12T00:00:00Z"),
+        )
+
+        result, runner = await self.classify(thread)
+
+        self.assertIsInstance(result, ClassificationFailure)
+        self.assertIn("exceeds 96,000 bytes", result.diagnostics.error)
+        self.assertEqual([], runner.requests)
+
     async def test_informational_and_unclear_threads_do_not_assign_author_work(self) -> None:
         thread = self.thread(("approver", "The second call hits the cache, which is fine.", "2026-03-12T00:00:00Z"))
         for verdict, action in (("none", DiscussionAction.NONE), ("unclear", DiscussionAction.UNCLEAR)):

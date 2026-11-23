@@ -17,6 +17,8 @@ from utils import parse_ts, truncate
 
 DISCUSSION_COMMENT_BODY_MAX_CHARS = 500
 MAX_PROMPT_CHARS = 18_000
+# Allow a larger request for one thread without splitting its conversation.
+MAX_INLINE_THREAD_PROMPT_BYTES = 96_000
 TOP_LEVEL_CLASSIFICATION_BATCH_SIZE = 10
 AUTHOR_COMMENT_DIAGNOSTIC_ITEM_LIMIT = 10
 PRAISE_MAX_CHARS = 80
@@ -986,6 +988,7 @@ def render_prompt_inputs(
     prompt_template: str,
     *,
     max_prompt_chars: int = MAX_PROMPT_CHARS,
+    max_inline_prompt_bytes: int | None = None,
 ) -> str:
     rendered_inputs = [
         {
@@ -1016,18 +1019,25 @@ def render_prompt_inputs(
         discussions=discussions_text,
         **prompt_args,
     )
-    if len(prompt) <= max_prompt_chars:
-        return prompt
-    if rendered_inputs and "comments" in rendered_inputs[0]:
+    if max_inline_prompt_bytes is not None:
+        if (
+            len(prompt) <= max_prompt_chars
+            and len(prompt.encode("utf-8")) <= max_inline_prompt_bytes
+        ):
+            return prompt
         prompt = prompt_template.format(
-            discussions=json.dumps(rendered_inputs, separators=(",", ":"), ensure_ascii=False),
+            discussions=json.dumps(
+                rendered_inputs, separators=(",", ":"), ensure_ascii=False,
+            ),
             **prompt_args,
         )
-        if len(prompt) <= max_prompt_chars:
+        if len(prompt.encode("utf-8")) <= max_inline_prompt_bytes:
             return prompt
         raise _PromptTooLongError(
-            f"whole inline thread prompt exceeds max_prompt_chars={max_prompt_chars}"
+            f"inline thread prompt exceeds {max_inline_prompt_bytes:,} bytes"
         )
+    if len(prompt) <= max_prompt_chars:
+        return prompt
     for discussion in rendered_inputs:
         discussion["body"] = truncate(
             str(discussion.get("body") or ""),
@@ -1057,10 +1067,18 @@ def render_verdict_prompt(
     *,
     max_prompt_chars: int = MAX_PROMPT_CHARS,
 ) -> str:
+    max_inline_prompt_bytes = None
+    if contract is VerdictContract.INLINE_THREAD:
+        max_inline_prompt_bytes = (
+            MAX_INLINE_THREAD_PROMPT_BYTES
+            if len(discussions) == 1
+            else min(max_prompt_chars, MAX_INLINE_THREAD_PROMPT_BYTES)
+        )
     return render_prompt_inputs(
         [verdict_prompt_input(discussion, contract) for discussion in discussions],
         contract.prompt_template,
         max_prompt_chars=max_prompt_chars,
+        max_inline_prompt_bytes=max_inline_prompt_bytes,
     )
 
 

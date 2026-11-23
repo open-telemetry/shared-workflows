@@ -119,7 +119,7 @@ def _discussion_comment(
         "timestamp": timestamp,
         "actor": actor,
         "actor_role": role_for(actor, author, reviewers),
-        "body": truncate(body),
+        "body": body,
         "positive_reactors": sorted(positive_reactors or set()),
     }
     if activity_timestamp and activity_timestamp != timestamp:

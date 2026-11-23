@@ -1114,6 +1114,38 @@ class PullRequestEvaluationTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual((), result.facts.author_action_review_thread_urls)
 
     @patch("pull_request_evaluation.fetch_pull_request_source")
+    async def test_inline_request_after_long_comment_context_routes_to_author(
+        self,
+        fetch_raw: Mock,
+    ) -> None:
+        body = "More context. " * 100 + "Please fix the missing validation."
+        fetch_raw.return_value = pull_request_source(
+            reviews=(review_source(actor=actor("reviewer"), state="APPROVED"),),
+            review_threads=(review_thread(comments=(review_thread_comment(
+                actor=actor("reviewer"),
+                body=body,
+            ),)),),
+        )
+
+        def responder(request):
+            comment = prompt_items(request)[0]["comments"][0]
+            self.assertEqual(body, comment["body"])
+            return successful_response(request, inline_verdict="author")
+
+        result = await evaluate_pull_request(
+            evaluation_config(),
+            PullRequestEvaluationInput(7),
+            ClassificationService(
+                FakeModelRunner(responder=responder),
+                MemoryClassificationCacheStore(),
+            ),
+        )
+
+        self.assertIsInstance(result, EvaluationSuccess)
+        assert isinstance(result, EvaluationSuccess)
+        self.assertEqual(DashboardRoute.AUTHOR, result.route)
+
+    @patch("pull_request_evaluation.fetch_pull_request_source")
     async def test_copilot_findings_keep_author_work_with_the_author(
         self,
         fetch_raw: Mock,

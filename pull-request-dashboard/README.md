@@ -373,12 +373,14 @@ summary that is not attached to an inline review thread.
   owes the next step. Informational notes and optional suggestions don't need
   a reply. An unclear thread does not by itself put the PR with the author.
   A completed author reply hands the action away from the author but does not
-  close the thread on GitHub. If
-  the PR has enough approvals, it resumes approval-based routing and can move to
+  close the thread on GitHub. If the PR has enough approvals, it can move to
   maintainers without reviewer confirmation; otherwise it waits on reviewers.
   A reply that commits to more work keeps the PR with the author. Author-only
   inline threads are treated as annotations rather than review feedback unless a
   non-author joins them. These rules apply equally to human and Copilot feedback.
+  Long threads are classified on their own, without truncating comments.
+  If a whole thread exceeds the 96,000-byte prompt limit, the refresh reports a
+  classification failure and leaves the last accepted routing intact.
 - Top-level feedback has no resolved state. The dashboard therefore tracks each
   actionable top-level feedback item independently. 📌 means that one or more
   of those items are waiting on the author.
