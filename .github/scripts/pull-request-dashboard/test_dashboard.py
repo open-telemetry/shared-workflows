@@ -2790,7 +2790,7 @@ class PullRequestEvaluationTest(unittest.IsolatedAsyncioTestCase):
         )
 
     @patch("pull_request_evaluation.fetch_pull_request_source")
-    async def test_edited_older_praise_attributes_remaining_thread_participants(
+    async def test_completed_inline_reply_uses_the_cited_reply_time(
         self,
         fetch_raw: Mock,
     ) -> None:
@@ -2842,14 +2842,16 @@ class PullRequestEvaluationTest(unittest.IsolatedAsyncioTestCase):
                 "thread-1": {
                     "action": "reviewer",
                     "since": "2026-08-16T09:00:00Z",
-                    "ignored_last_comment": True,
-                    "ignored_comment_index": 1,
                 },
             },
             result.pending_actions,
         )
         self.assertEqual(
             (
+                ReviewerSummary(
+                    login="praise-reviewer",
+                    unresolved_thread=True,
+                ),
                 ReviewerSummary(
                     login="root-reviewer",
                     unresolved_thread=True,

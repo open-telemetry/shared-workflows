@@ -8,6 +8,7 @@ from pathlib import Path
 from utils import truncate
 
 CASES = Path(__file__).resolve().parent / "eval" / "reviewer_feedback_cases.json"
+OVERRIDE_CASES = CASES.with_name("reviewer_feedback_override_cases.json")
 LABELS = {"author_action", "no_author_action"}
 ROLES = {"scored", "context"}
 STABILITIES = {"stable", "flaky"}
@@ -144,6 +145,25 @@ class EvalFixtureTest(unittest.TestCase):
                     ],
                     case["run_labels"],
                 )
+
+
+class RoutingOverrideFixtureTest(unittest.TestCase):
+    def test_examples_are_adjudicated_and_traceable_to_the_same_pull_request(self) -> None:
+        cases = json.loads(OVERRIDE_CASES.read_text(encoding="utf-8"))
+        self.assertEqual(LABELS, {case["adjudicated_label"] for case in cases})
+        self.assertEqual(len(cases), len({case["feedback_url"] for case in cases}))
+        fragments = {
+            "review_thread": r"discussion_r\d+",
+            "review_summary": r"pullrequestreview-\d+",
+            "top_level_comment": r"issuecomment-\d+",
+        }
+        for case in cases:
+            with self.subTest(case=case["id"]):
+                pr = f"https://github.com/open-telemetry/{case['repo']}/pull/{case['pull_request']}"
+                self.assertEqual(f"{pr}#{case['id']}", case["feedback_url"])
+                self.assertRegex(case["id"], f"^{fragments[case['feedback_kind']]}$")
+                for field in ("status_url", "override_url"):
+                    self.assertRegex(case[field], rf"^{re.escape(pr)}#issuecomment-\d+$")
 
 
 if __name__ == "__main__":

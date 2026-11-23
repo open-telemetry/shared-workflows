@@ -45,7 +45,7 @@ FULL_PUBLISH_DELIVERED_FILE = "full-publish-delivered.json"
 # current vector, ordinary state loaders may regenerate mismatched disposable
 # caches. Every constant ending in _STATE_VERSION or _REVISION is included.
 # dashboard-state.json: accepted routing results and backfill readiness.
-DASHBOARD_STATE_VERSION = 23
+DASHBOARD_STATE_VERSION = 24
 DASHBOARD_STATE_COMPATIBLE_VERSIONS = (21,)
 # backfill-state.json: round-robin cursor used by full dashboard refreshes.
 BACKFILL_STATE_VERSION = 3

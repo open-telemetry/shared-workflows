@@ -12,6 +12,7 @@ from score_reviewer_feedback import (  # noqa: E402
     classify,
     majority,
     report,
+    report_overrides,
     summarize,
 )
 import classification_policy as policy  # noqa: E402
@@ -175,6 +176,27 @@ class BatchCasesTest(unittest.TestCase):
 
 
 class ClassifyTest(unittest.IsolatedAsyncioTestCase):
+    async def test_inline_override_case_is_sent_as_a_review_thread(self) -> None:
+        class Runner:
+            async def run(self, request) -> RawModelResponse:
+                self.prompt = request.prompt
+                return RawModelResponse(
+                    0, '{"items":[{"discussion_id":"discussion_r42","verdict":"no_author_action"}]}', ""
+                )
+
+        runner = Runner()
+        observed = await classify(
+            [{**case("discussion_r42"), "feedback_kind": "review_thread"}],
+            policy.REVIEWER_FEEDBACK_PROMPT_TEMPLATE,
+            ("verdict",),
+            {"no_author_action": "no_author_action"},
+            "model",
+            runner,
+        )
+
+        self.assertIn('"feedback_kind": "review_thread"', runner.prompt)
+        self.assertEqual({"discussion_r42": "no_author_action"}, observed)
+
     async def test_runner_calls_are_concurrent_and_bounded(self) -> None:
         state = {"active": 0, "calls": 0, "maximum": 0}
 
@@ -198,6 +220,22 @@ class ClassifyTest(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(state["calls"], 10)
         self.assertEqual(state["maximum"], 4)
+
+
+class RoutingOverrideReportTest(unittest.TestCase):
+    def test_missing_and_wrong_predictions_both_count_against_accuracy(self) -> None:
+        cases = [
+            {**case("a", stability=None, adjudicated="no_author_action"), "feedback_url": "source-a"},
+            {**case("b", stability=None, adjudicated="author_action"), "feedback_url": "source-b"},
+        ]
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            report_overrides(cases, [{"a": "author_action"}] * 3)
+
+        self.assertIn("correct        0/2", out.getvalue())
+        self.assertIn("wrong          1", out.getvalue())
+        self.assertIn("no answer      1", out.getvalue())
+        self.assertIn("expected no_author_action, got author_action: source-a", out.getvalue())
 
 
 if __name__ == "__main__":

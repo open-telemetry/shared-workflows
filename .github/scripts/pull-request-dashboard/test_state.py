@@ -918,7 +918,7 @@ class StateTest(unittest.TestCase):
     def test_notification_state_version_is_independent(self) -> None:
         self.assertEqual(BACKFILL_STATE_VERSION, 3)
         self.assertEqual(NOTIFICATION_STATE_VERSION, 3)
-        self.assertEqual(DASHBOARD_STATE_VERSION, 23)
+        self.assertEqual(DASHBOARD_STATE_VERSION, 24)
         self.assertEqual(DASHBOARD_STATE_COMPATIBLE_VERSIONS, (21,))
         self.assertEqual(STATUS_COMMENT_ROLLOUT_STATE_VERSION, 3)
         self.assertEqual(STATUS_COMMENT_REVISION, 24)
