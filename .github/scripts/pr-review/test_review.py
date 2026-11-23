@@ -10,18 +10,18 @@ import gate
 import post
 import review as runner
 import sandbox
-from common import Summary, write_json
+from common import write_json
 
 
 class ReviewTest(unittest.TestCase):
     def test_target_url_resolves_to_an_opted_in_repository(self):
         self.assertEqual(
             gate.review_target("https://github.com/open-telemetry/shared-workflows/pull/123"),
-            ("open-telemetry/shared-workflows", 123),
+            ("shared-workflows", 123),
         )
         self.assertEqual(
             gate.review_target("https://github.com/OPEN-TELEMETRY/SHARED-WORKFLOWS/pull/123/"),
-            ("open-telemetry/shared-workflows", 123),
+            ("shared-workflows", 123),
         )
 
     def test_target_url_rejects_untrusted_hosts_paths_and_repositories(self):
@@ -46,22 +46,18 @@ class ReviewTest(unittest.TestCase):
             "number": 123, "url": "https://github.com/org/repo/pull/123", "baseRefOid": "base", "headRefOid": "head",
         }
 
-        def build_bundle(repo, pr, bundle, summary):
-            self.assertEqual((repo, pr), ("org/repo", 123))
-            write_json(bundle / "diff-scope.json", {})
-            return metadata
-
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "review-result.json"
             with (
-                mock.patch.object(runner, "build_bundle", side_effect=build_bundle),
+                mock.patch.object(runner, "build_bundle", return_value=(metadata, {})) as build,
                 mock.patch.object(runner, "checkout_pr") as checkout,
                 mock.patch.object(runner, "check_snapshot") as check,
                 mock.patch.object(runner, "closer_look_context", return_value=", including Needs a closer look https://example.test"),
                 mock.patch.object(runner, "model_pass", side_effect=["review", "simplifications", '{"comments":[]}']) as model,
             ):
-                runner.prepare_result("org/repo", 123, path, Summary(pr=123))
+                runner.prepare_result("org/repo", 123, path)
             first, second, final = [call.args for call in model.call_args_list]
+            build.assert_called_once_with("org/repo", 123, first[4])
             self.assertEqual([first[:2], second[:2], final[:2]], [(runner.SOL, "max"), (runner.SOL, "max"), (runner.OPUS, "high")])
             self.assertTrue(first[2].startswith(f"review {metadata['url']}, including Needs a closer look"))
             self.assertTrue(second[2].startswith(f"are there any simplifications worth doing in {metadata['url']}?"))
@@ -204,25 +200,34 @@ class ReviewTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             bundle = Path(directory)
             with mock.patch.object(runner, "gh_json", side_effect=[reviews, [[]]]) as api:
-                self.assertEqual(runner.closer_look_context("org/repo", 123, bundle, Summary(pr=123)), "")
+                self.assertEqual(runner.closer_look_context("org/repo", 123, bundle), "")
                 self.assertIn("/reviews/2/comments?", api.call_args.args[0][-1])
             with mock.patch.object(runner, "gh_json", side_effect=[reviews, [[{
                 "body": "Needs a closer look", "html_url": "inline",
             }]]]):
                 self.assertEqual(
-                    runner.closer_look_context("org/repo", 123, bundle, Summary(pr=123)),
+                    runner.closer_look_context("org/repo", 123, bundle),
                     ", including Needs a closer look inline",
                 )
 
-    def test_suggestion_limit_counts_green_lines_and_leaves_the_comment(self):
+    def test_suggestion_limit_counts_green_lines_against_the_committed_blob(self):
         with tempfile.TemporaryDirectory() as directory:
-            bundle = Path(directory)
-            (bundle / "files").mkdir()
-            (bundle / "files" / "example.txt").write_text("unchanged\nbefore\n", encoding="utf-8")
-            write_json(bundle / "diff-scope.json", {
-                "example.txt": {"hunks": [[1, 2]], "changed_lines": [2]},
-            })
-            metadata = {"number": 123, "baseRefOid": "base", "headRefOid": "head"}
+            checkout = Path(directory)
+            env = {**os.environ, "GIT_CONFIG_GLOBAL": os.devnull, "GIT_CONFIG_NOSYSTEM": "1"}
+
+            def git(*args: str) -> str:
+                return common.run(["git", *args], cwd=checkout, env=env).stdout.strip()
+
+            git("init", "--quiet", "--template=")
+            source = checkout / "example.txt"
+            source.write_text("unchanged\nbefore\n", encoding="utf-8")
+            git("add", "example.txt")
+            git("-c", "user.name=Test", "-c", "user.email=test@example.test", "commit", "--quiet", "-m", "Fixture")
+            head = git("rev-parse", "HEAD")
+            source.write_text("scratch edit\nbefore\n", encoding="utf-8")
+
+            scope = {"example.txt": {"hunks": [(1, 2)], "changed_lines": [2]}}
+            metadata = {"number": 123, "baseRefOid": "base", "headRefOid": head}
             for added in (14, 15):
                 with self.subTest(added=added):
                     replacement = "unchanged\n" + "new\n" * added
@@ -233,14 +238,29 @@ class ReviewTest(unittest.TestCase):
                             "start_line": 1, "line": 2, "body": "Simpler code. Update the import.",
                             "suggestion": replacement,
                         }],
-                    }, bundle, metadata, Summary(pr=123))
+                    }, checkout, scope, metadata)
                     review = result["review"]
                     self.assertNotIn("event", review)
-                    self.assertEqual(review["commit_id"], "head")
+                    self.assertEqual(review["commit_id"], head)
                     body = "[Simplification] Simpler code. Update the import."
                     if added == 14:
                         body += "\n\n```suggestion\n" + replacement + "```"
                     self.assertEqual(review["comments"][0]["body"], body)
+
+    def test_plain_comment_does_not_read_source(self):
+        with mock.patch.object(post, "run") as git:
+            result = post.prepare_review(
+                {"body": "Review summary", "comments": [{
+                    "kind": "review", "path": "example.txt", "line": 2, "body": "A finding",
+                }]},
+                Path("source"),
+                {"example.txt": {"hunks": [(1, 2)], "changed_lines": [2]}},
+                {"number": 123, "baseRefOid": "base", "headRefOid": "head"},
+            )
+        git.assert_not_called()
+        self.assertEqual(result["review"]["comments"], [
+            {"path": "example.txt", "line": 2, "side": "RIGHT", "body": "A finding"},
+        ])
 
     def test_findings_publish_as_a_comment_review(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -251,21 +271,21 @@ class ReviewTest(unittest.TestCase):
                 "comments": [{"path": "example.txt", "line": 2, "side": "RIGHT", "body": "A finding"}],
             }
             write_json(path, {"repository": "org/repo", "pr": 123, "base_sha": "base", "review": review})
-            summary = Summary(pr=123)
 
-            def submit(args, current_summary):
+            def submit(args):
                 self.assertEqual(args[:5], ["api", "repos/org/repo/pulls/123/reviews", "--method", "POST", "--input"])
                 self.assertEqual(post.load_json(Path(args[5]), "review"), {**review, "event": "COMMENT"})
-                self.assertIs(current_summary, summary)
                 return {"html_url": "https://example.test/review"}
 
             with (
                 mock.patch.object(runner, "check_snapshot") as check,
                 mock.patch.object(post, "gh_json", side_effect=submit) as api,
+                mock.patch.object(runner, "progress") as log,
             ):
-                runner.publish_result("org/repo", 123, path, summary)
-            check.assert_called_once_with("org/repo", 123, "base", "head", summary)
+                runner.publish_result("org/repo", 123, path)
+            check.assert_called_once_with("org/repo", 123, "base", "head")
             api.assert_called_once()
+            log.assert_called_once_with("Published review https://example.test/review")
 
     def test_empty_review_posts_a_top_level_comment_without_a_user_token(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -274,15 +294,14 @@ class ReviewTest(unittest.TestCase):
                 "repository": "org/repo", "pr": 123, "base_sha": "base",
                 "review": {"commit_id": "head", "comments": []},
             })
-            summary = Summary(pr=123)
             with (
                 mock.patch.object(runner, "check_snapshot") as check,
                 mock.patch.object(runner, "gh_json", return_value={"html_url": "https://example.test"}) as api,
             ):
-                runner.publish_result("org/repo", 123, path, summary)
-            check.assert_called_once_with("org/repo", 123, "base", "head", summary)
+                runner.publish_result("org/repo", 123, path)
+            check.assert_called_once_with("org/repo", 123, "base", "head")
             api.assert_called_once_with(
-                ["api", "-X", "POST", "repos/org/repo/issues/123/comments", "-f", "body=No findings."], summary
+                ["api", "-X", "POST", "repos/org/repo/issues/123/comments", "-f", "body=No findings."]
             )
 
     def test_publisher_rejects_result_for_another_repository_or_pr(self):
@@ -294,7 +313,7 @@ class ReviewTest(unittest.TestCase):
                     mock.patch.object(runner, "gh_json") as api,
                     self.assertRaisesRegex(RuntimeError, "different PR"),
                 ):
-                    runner.publish_result("org/repo", 123, path, Summary(pr=123))
+                    runner.publish_result("org/repo", 123, path)
                 api.assert_not_called()
 
     def test_snapshot_rejects_closed_or_changed_prs_in_the_target_repository(self):
@@ -306,9 +325,8 @@ class ReviewTest(unittest.TestCase):
                 }) as metadata,
                 self.assertRaisesRegex(RuntimeError, "changed or closed"),
             ):
-                summary = Summary(pr=123)
-                runner.check_snapshot("org/repo", 123, "base", "head", summary)
-                metadata.assert_called_once_with("org/repo", 123, summary)
+                runner.check_snapshot("org/repo", 123, "base", "head")
+                metadata.assert_called_once_with("org/repo", 123)
 
     def test_windows_subprocess_uses_no_window(self):
         with (

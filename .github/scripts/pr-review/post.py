@@ -8,15 +8,20 @@ import re
 from pathlib import Path
 from typing import Any
 
-from common import Summary, gh_json
+from common import gh_json, progress, run
+from prepare import DiffScope
 
 
-def small_suggestion(source: Path, start: int, end: int, replacement: str) -> bool:
-    if "```" in replacement or not source.is_file():
+def small_suggestion(
+    checkout: Path, head: str, path: str, start: int, end: int, replacement: str
+) -> bool:
+    if "```" in replacement:
         return False
-    lines = source.read_text(encoding="utf-8").splitlines()
-    if lines and lines[-1] == "...[file truncated]...":
-        lines = lines[:-2]
+    # Read the committed blob without following working-tree symlinks.
+    blob = run(["git", "cat-file", "blob", f"{head}:{path}"], cwd=checkout, check=False, timeout=120)
+    if blob.returncode:
+        return False
+    lines = blob.stdout.splitlines()
     if end > len(lines):
         return False
     original = lines[start - 1 : end]
@@ -26,9 +31,8 @@ def small_suggestion(source: Path, start: int, end: int, replacement: str) -> bo
 
 
 def prepare_review(
-    findings: dict[str, Any], bundle: Path, metadata: dict[str, Any], summary: Summary
+    findings: dict[str, Any], checkout: Path, diff_scope: DiffScope, metadata: dict[str, Any]
 ) -> dict[str, Any]:
-    diff_scope = load_json(bundle / "diff-scope.json", "diff scope")
     raw_comments = findings.get("comments") if isinstance(findings, dict) else None
     if not isinstance(raw_comments, list):
         raise ValueError("Final findings must contain a comments array")
@@ -48,19 +52,19 @@ def prepare_review(
             raise ValueError("Invalid final review comment")
         path, line, body = raw["path"], raw["line"], raw["body"].strip()
         start = raw.get("start_line", line)
-        scope = diff_scope.get(path, {})
-        if line not in scope.get("changed_lines", []) or not any(
-            first <= start <= line <= last for first, last in scope.get("hunks", [])
+        scope = diff_scope.get(path)
+        if scope is None or line not in scope["changed_lines"] or not any(
+            first <= start <= line <= last for first, last in scope["hunks"]
         ):
             raise ValueError(f"Invalid diff anchor for {path!r}:{start}-{line}")
         if raw["kind"] == "simplification" and not body.startswith("[Simplification] "):
             body = f"[Simplification] {body}"
         if "suggestion" in raw:
             suggestion = raw["suggestion"]
-            if small_suggestion(bundle / "files" / path, start, line, suggestion):
+            if small_suggestion(checkout, metadata["headRefOid"], path, start, line, suggestion):
                 body += "\n\n```suggestion\n" + suggestion.rstrip("\n") + "\n```"
             else:
-                summary.notes.append(f"Kept comment without suggestion for {path!r}:{line}")
+                progress(f"Kept comment without suggestion for {path!r}:{line}")
         comment = {"path": path, "line": line, "side": "RIGHT", "body": body}
         if start != line:
             comment.update(start_line=start, start_side="RIGHT")
@@ -75,11 +79,11 @@ def prepare_review(
     }
 
 
-def post_review(repo: str, pr: int, payload_path: Path, summary: Summary) -> None:
+def post_review(repo: str, pr: int, payload_path: Path) -> str:
     review = gh_json(
-        ["api", f"repos/{repo}/pulls/{pr}/reviews", "--method", "POST", "--input", str(payload_path)], summary
+        ["api", f"repos/{repo}/pulls/{pr}/reviews", "--method", "POST", "--input", str(payload_path)]
     )
-    summary.review_url = review["html_url"]
+    return review["html_url"]
 
 
 def load_json(path: Path, label: str) -> dict[str, Any]:

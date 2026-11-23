@@ -19,8 +19,6 @@ jobs:
     permissions:
       contents: read
     outputs:
-      repository: ${{ steps.gate.outputs.repository }}
-      owner: ${{ steps.gate.outputs.owner }}
       repo_name: ${{ steps.gate.outputs.repo_name }}
       pr_number: ${{ steps.gate.outputs.pr_number }}
     steps:
@@ -36,7 +34,7 @@ jobs:
   review:
     needs: gate
     concurrency:
-      group: pr-review-${{ needs.gate.outputs.repository }}-${{ needs.gate.outputs.pr_number }}
+      group: pr-review-open-telemetry/${{ needs.gate.outputs.repo_name }}-${{ needs.gate.outputs.pr_number }}
       cancel-in-progress: true
     runs-on: ubuntu-latest
     permissions:
@@ -59,7 +57,7 @@ jobs:
         with:
           client-id: ${{ vars.OTELBOT_CLIENT_ID }}
           private-key: ${{ secrets.OTELBOT_PRIVATE_KEY }}
-          owner: ${{ needs.gate.outputs.owner }}
+          owner: open-telemetry
           repositories: ${{ needs.gate.outputs.repo_name }}
           permission-contents: read
           permission-pull-requests: read
@@ -68,8 +66,9 @@ jobs:
           GH_TOKEN: ${{ steps.read-token.outputs.token }}
           COPILOT_GITHUB_TOKEN: ${{ github.token }}
           AWF_IMAGE_TAG: ${{ steps.firewall.outputs.image-tag }}
-          PR_URL: ${{ inputs.pr_url }}
-        run: python .github/scripts/pr-review/review.py "$PR_URL" prepare review-result.json
+          PR_REPO: open-telemetry/${{ needs.gate.outputs.repo_name }}
+          PR_NUMBER: ${{ needs.gate.outputs.pr_number }}
+        run: python .github/scripts/pr-review/review.py "$PR_REPO" "$PR_NUMBER" prepare review-result.json
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: review-result
@@ -94,12 +93,12 @@ jobs:
         with:
           client-id: ${{ vars.OTELBOT_CLIENT_ID }}
           private-key: ${{ secrets.OTELBOT_PRIVATE_KEY }}
-          owner: ${{ needs.gate.outputs.owner }}
+          owner: open-telemetry
           repositories: ${{ needs.gate.outputs.repo_name }}
           permission-pull-requests: write
-          permission-issues: write
       - name: Post the result as otelbot
         env:
           GH_TOKEN: ${{ steps.write-token.outputs.token }}
-          PR_URL: ${{ inputs.pr_url }}
-        run: python .github/scripts/pr-review/review.py "$PR_URL" post review-result.json
+          PR_REPO: open-telemetry/${{ needs.gate.outputs.repo_name }}
+          PR_NUMBER: ${{ needs.gate.outputs.pr_number }}
+        run: python .github/scripts/pr-review/review.py "$PR_REPO" "$PR_NUMBER" post review-result.json
