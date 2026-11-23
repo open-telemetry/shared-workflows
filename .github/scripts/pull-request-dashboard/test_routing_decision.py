@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import datetime, timedelta, timezone
 import unittest
 
-from dashboard_contracts import DashboardFacts, DashboardRoute
+from dashboard_contracts import DashboardFacts, DashboardRoute, RoutingHandoff
 from dashboard_test_support import dashboard_facts
 from routing_decision import (
     RoutingInput,
@@ -26,7 +27,6 @@ class RoutingTestMixin:
         previous_facts: DashboardFacts | dict[str, object] | None = None,
         required_approvals: int = 1,
         require_clean_copilot_review: bool = False,
-        manual_reviewer_handoff: bool = False,
         pending_human_reviewer_logins: frozenset[str] = frozenset(),
         pending_review_requested_at: dict[str, str] | None = None,
         now: datetime = NOW,
@@ -53,7 +53,6 @@ class RoutingTestMixin:
                 previous_facts=typed_previous_facts,
                 required_approvals=required_approvals,
                 require_clean_copilot_review=require_clean_copilot_review,
-                manual_reviewer_handoff=manual_reviewer_handoff,
                 pending_human_reviewer_logins=pending_human_reviewer_logins,
                 pending_review_requested_at=pending_review_requested_at or {},
                 now=now,
@@ -219,8 +218,7 @@ class RoutingDecisionTest(RoutingTestMixin, unittest.TestCase):
             "ci_failing_count": 1,
             "ci_pending_count": 1,
             "head_sha": "abc",
-            "dashboard_override_head_sha": "abc",
-            "dashboard_override_since": "2026-08-16T11:55:00Z",
+            "handoff": RoutingHandoff(head_sha='abc', since='2026-08-16T11:55:00Z'),
             "last_author_activity_at": "2026-08-16T08:00:00+00:00",
             "copilot_review_exists": False,
             "copilot_review_requested": False,
@@ -229,7 +227,6 @@ class RoutingDecisionTest(RoutingTestMixin, unittest.TestCase):
         outcome = self.resolve(
             facts,
             require_clean_copilot_review=True,
-            manual_reviewer_handoff=True,
         )
 
         self.assertEqual(
@@ -271,6 +268,7 @@ class RoutingDecisionTest(RoutingTestMixin, unittest.TestCase):
                     outcome = self.resolve(
                         dashboard_facts(
                             head_sha="current-head",
+                            handoff=RoutingHandoff(head_sha="current-head"),
                             approval_count=approvals,
                             is_maintenance_bot=maintenance_bot,
                             ci_failing_count=1 if blocked else 0,
@@ -291,7 +289,6 @@ class RoutingDecisionTest(RoutingTestMixin, unittest.TestCase):
                         ),
                         required_approvals=required,
                         require_clean_copilot_review=True,
-                        manual_reviewer_handoff=True,
                     )
 
                     self.assertEqual(expected, outcome.route)
@@ -433,7 +430,7 @@ class RoutingDecisionTest(RoutingTestMixin, unittest.TestCase):
         self.assertTrue(
             reviewer_handoff_active(
                 dashboard_facts(
-                    dashboard_override_head_sha="current-head",
+                    handoff=RoutingHandoff(head_sha='current-head'),
                     head_sha="current-head",
                 )
             )
@@ -441,40 +438,34 @@ class RoutingDecisionTest(RoutingTestMixin, unittest.TestCase):
         self.assertTrue(
             reviewer_handoff_active(
                 dashboard_facts(
-                    dashboard_override_head_sha="current-head",
+                    handoff=RoutingHandoff(head_sha='current-head', since='not-a-timestamp'),
                     head_sha="current-head",
-                    dashboard_override_since="not-a-timestamp",
                 )
             )
         )
         self.assertTrue(
             reviewer_handoff_active(
                 dashboard_facts(
-                    dashboard_override_head_sha="old-head",
-                    dashboard_override_persistent=True,
+                    handoff=RoutingHandoff(head_sha='old-head', persistent=True),
                     head_sha="new-head",
                 )
             )
         )
         for facts in (
-            {"dashboard_override_head_sha": "old-head", "head_sha": "new-head"},
-            {"dashboard_override_head_sha": "", "head_sha": "current-head"},
+            {"handoff": RoutingHandoff(head_sha="old-head"), "head_sha": "new-head"},
+            {"handoff": RoutingHandoff(), "head_sha": "current-head"},
             {"head_sha": "current-head"},
-            {"dashboard_override_head_sha": "current-head", "head_sha": ""},
+            {"handoff": RoutingHandoff(head_sha="current-head"), "head_sha": ""},
             {
-                "dashboard_override_head_sha": "current-head",
+                "handoff": RoutingHandoff(head_sha='current-head', released=True),
                 "head_sha": "current-head",
-                "dashboard_override_cleared_by_feedback": True,
             },
             {
-                "dashboard_override_head_sha": "old-head",
-                "dashboard_override_persistent": True,
+                "handoff": RoutingHandoff(head_sha='old-head', persistent=True, released=True),
                 "head_sha": "new-head",
-                "dashboard_override_cleared_by_feedback": True,
             },
             {
-                "dashboard_override_head_sha": "old-head",
-                "dashboard_override_persistent": True,
+                "handoff": RoutingHandoff(head_sha='old-head', persistent=True),
                 "head_sha": "",
             },
         ):
@@ -846,8 +837,10 @@ class RoutingWaitAgeTest(RoutingTestMixin, unittest.TestCase):
                             {
                                 "approval_count": approval_count,
                                 "head_sha": "abc",
-                                "dashboard_override_head_sha": "abc",
-                                "dashboard_override_since": "2026-08-16T11:55:00Z",
+                                "handoff": RoutingHandoff(
+                                    head_sha='abc',
+                                    since='2026-08-16T11:55:00Z',
+                                ),
                                 "last_author_activity_at": "2026-07-29T08:00:00Z",
                             },
                             {"thread": {
@@ -861,7 +854,6 @@ class RoutingWaitAgeTest(RoutingTestMixin, unittest.TestCase):
                                 "waiting_since": "2026-07-29T08:00:00Z",
                                 "waiting_age_basis": "last_author_activity",
                             },
-                            manual_reviewer_handoff=True,
                         )
 
                         self.assertEqual(
@@ -879,12 +871,10 @@ class RoutingWaitAgeTest(RoutingTestMixin, unittest.TestCase):
     def test_manual_handoff_wait_survives_refresh_push_and_route_progression(self) -> None:
         facts = dashboard_facts(
             head_sha="abc",
-            dashboard_override_head_sha="abc",
-            dashboard_override_since="2026-08-16T11:55:00Z",
-            dashboard_override_persistent=True,
+            handoff=RoutingHandoff(head_sha='abc', since='2026-08-16T11:55:00Z', persistent=True),
             last_author_activity_at="2026-07-29T08:00:00Z",
         )
-        started = self.resolve(facts, manual_reviewer_handoff=True)
+        started = self.resolve(facts)
         for head_sha, approval_count, last_author_activity_at in (
             ("abc", 0, "2026-07-29T08:00:00Z"),
             ("new-head", 0, "2026-08-16T12:30:00Z"),
@@ -903,7 +893,6 @@ class RoutingWaitAgeTest(RoutingTestMixin, unittest.TestCase):
                     }},
                     previous_route=started.route,
                     previous_facts=started.facts,
-                    manual_reviewer_handoff=True,
                     now=NOW + timedelta(hours=1),
                 )
 
@@ -918,12 +907,13 @@ class RoutingWaitAgeTest(RoutingTestMixin, unittest.TestCase):
         outcome = self.resolve(
             {
                 "head_sha": "new-head",
-                "dashboard_override_head_sha": "abc",
-                "dashboard_override_since": "2026-08-16T11:55:00Z",
-                "dashboard_override_persistent": True,
+                "handoff": RoutingHandoff(
+                    head_sha='abc',
+                    since='2026-08-16T11:55:00Z',
+                    persistent=True,
+                ),
                 "last_author_activity_at": "2026-08-16T12:30:00Z",
             },
-            manual_reviewer_handoff=True,
             now=NOW + timedelta(hours=1),
         )
 
@@ -932,24 +922,21 @@ class RoutingWaitAgeTest(RoutingTestMixin, unittest.TestCase):
 
     def test_inactive_or_undated_handoff_keeps_normal_wait_age(self) -> None:
         for changes in (
-            {"dashboard_override_since": ""},
-            {"dashboard_override_since": "invalid"},
-            {"dashboard_override_head_sha": ""},
-            {"dashboard_override_head_sha": "old-head"},
-            {"dashboard_override_cleared_by_feedback": True},
+            {"since": ""},
+            {"since": "invalid"},
+            {"head_sha": ""},
+            {"head_sha": "old-head"},
+            {"released": True},
         ):
             with self.subTest(changes=changes):
+                handoff = RoutingHandoff(head_sha="abc", since="2026-08-16T11:55:00Z")
                 facts = dashboard_facts(
                     head_sha="abc",
                     ci_pending_count=0,
-                    dashboard_override_head_sha="abc",
-                    dashboard_override_since="2026-08-16T11:55:00Z",
+                    handoff=replace(handoff, **changes),
                     last_author_activity_at="2026-07-29T08:00:00Z",
-                ).with_changes(**changes)
-                outcome = self.resolve(
-                    facts,
-                    manual_reviewer_handoff=reviewer_handoff_active(facts),
                 )
+                outcome = self.resolve(facts)
 
                 self.assertEqual(
                     "2026-07-29T08:00:00+00:00", outcome.facts.waiting_since
@@ -961,8 +948,7 @@ class RoutingWaitAgeTest(RoutingTestMixin, unittest.TestCase):
     def test_manual_handoff_does_not_replace_a_later_review_rerequest(self) -> None:
         facts = dashboard_facts(
             head_sha="abc",
-            dashboard_override_head_sha="abc",
-            dashboard_override_since="2026-08-16T10:00:00Z",
+            handoff=RoutingHandoff(head_sha='abc', since='2026-08-16T10:00:00Z'),
             last_author_activity_at="2026-07-29T08:00:00Z",
             reviewers=[{"login": "reviewer", "pending_review": True}],
         )
@@ -980,7 +966,6 @@ class RoutingWaitAgeTest(RoutingTestMixin, unittest.TestCase):
                     },
                     pending_human_reviewer_logins=frozenset({"reviewer"}),
                     pending_review_requested_at={"reviewer": "2026-08-16T11:00:00Z"},
-                    manual_reviewer_handoff=True,
                 )
                 carried = self.resolve(
                     facts,
@@ -988,7 +973,6 @@ class RoutingWaitAgeTest(RoutingTestMixin, unittest.TestCase):
                     previous_facts=started.facts,
                     pending_human_reviewer_logins=frozenset({"reviewer"}),
                     pending_review_requested_at={"reviewer": "2026-08-16T11:00:00Z"},
-                    manual_reviewer_handoff=True,
                     now=NOW + timedelta(hours=1),
                 )
 
@@ -1012,8 +996,7 @@ class RoutingWaitAgeTest(RoutingTestMixin, unittest.TestCase):
                 with self.subTest(requested_at=requested_at, previous_route=previous_route):
                     facts = dashboard_facts(
                         head_sha="abc",
-                        dashboard_override_head_sha="abc",
-                        dashboard_override_since="2026-08-16T09:00:00Z",
+                        handoff=RoutingHandoff(head_sha='abc', since='2026-08-16T09:00:00Z'),
                         last_author_activity_at="2026-07-29T08:00:00Z",
                         reviewers=[{"login": "reviewer", "pending_review": True}],
                     )
@@ -1026,7 +1009,6 @@ class RoutingWaitAgeTest(RoutingTestMixin, unittest.TestCase):
                         },
                         pending_human_reviewer_logins=frozenset({"reviewer"}),
                         pending_review_requested_at={"reviewer": requested_at},
-                        manual_reviewer_handoff=True,
                     )
                     carried = self.resolve(
                         facts,
@@ -1034,7 +1016,6 @@ class RoutingWaitAgeTest(RoutingTestMixin, unittest.TestCase):
                         previous_facts=started.facts,
                         pending_human_reviewer_logins=frozenset({"reviewer"}),
                         pending_review_requested_at={"reviewer": requested_at},
-                        manual_reviewer_handoff=True,
                         now=NOW + timedelta(hours=1),
                     )
                     for outcome in (started, carried):
@@ -1046,16 +1027,14 @@ class RoutingWaitAgeTest(RoutingTestMixin, unittest.TestCase):
             {
                 "approval_count": 1,
                 "head_sha": "abc",
-                "dashboard_override_head_sha": "abc",
-                "dashboard_override_since": "2026-08-16T09:00:00Z",
+                "handoff": RoutingHandoff(head_sha='abc', since='2026-08-16T09:00:00Z'),
             },
             previous_route="approver",
             previous_facts={
-                "dashboard_override_since": "2026-08-16T09:00:00Z",
+                "handoff": RoutingHandoff(since='2026-08-16T09:00:00Z'),
                 "waiting_since": "2026-08-16T10:00:00Z",
                 "waiting_age_basis": "review_rerequest",
             },
-            manual_reviewer_handoff=True,
         )
 
         self.assertEqual("maintainer", outcome.route)
@@ -1066,8 +1045,7 @@ class RoutingWaitAgeTest(RoutingTestMixin, unittest.TestCase):
         outcome = self.resolve(
             {
                 "head_sha": "abc",
-                "dashboard_override_head_sha": "abc",
-                "dashboard_override_since": "2026-08-16T09:00:00Z",
+                "handoff": RoutingHandoff(head_sha='abc', since='2026-08-16T09:00:00Z'),
             },
             pending_human_reviewer_logins=frozenset({"first", "second"}),
             pending_review_requested_at={
@@ -1075,7 +1053,6 @@ class RoutingWaitAgeTest(RoutingTestMixin, unittest.TestCase):
                 "second": "2026-08-16T10:00:00Z",
                 "not-pending": "2026-08-16T11:00:00Z",
             },
-            manual_reviewer_handoff=True,
         )
 
         self.assertEqual("2026-08-16T10:00:00+00:00", outcome.facts.waiting_since)

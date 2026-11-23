@@ -14,6 +14,7 @@ from copilot_review import COPILOT_ERROR_BODY, refresh_copilot_review_cycle
 from dashboard_contracts import (
     CopilotReviewCycle,
     CopilotReviewCycleUpdate,
+    RoutingHandoff,
     DashboardCommandReply,
     DashboardRoute,
     DashboardState,
@@ -665,14 +666,14 @@ class StateTest(unittest.TestCase):
         self.assertEqual("true\n", output.getvalue())
         load_state.assert_called_once_with("open-telemetry/example", "state-branch")
 
-    def test_loads_accepted_dashboard_state_from_state_branch(self) -> None:
+    def test_loads_accepted_v21_dashboard_state_from_state_branch(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             checkout_dir = Path(temp_dir)
             state_path = checkout_dir / "example" / "dashboard-state.json"
             state_path.parent.mkdir()
             state_path.write_text(
                 json.dumps({
-                    "version": DASHBOARD_STATE_VERSION,
+                    "version": 21,
                     "initial_backfill_complete": True,
                     "prs": {"123": {"route": "author"}},
                 }),
@@ -760,7 +761,7 @@ class StateTest(unittest.TestCase):
             )
 
     def test_predecessor_writes_cannot_replace_migrated_accepted_state(self) -> None:
-        for dashboard_version, request_version in ((20, 8), (21, 9)):
+        for dashboard_version, request_version in ((20, 8), (21, 9), (23, 9)):
             with self.subTest(version=dashboard_version), tempfile.TemporaryDirectory() as directory:
                 root = Path(directory)
                 legacy_snapshot = root / "dashboard-state.json"
@@ -786,7 +787,7 @@ class StateTest(unittest.TestCase):
                     self.assertEqual({"8": {"head_sha": "next-head"}}, load_copilot_review_intents())
 
     def test_dashboard_state_rejects_incompatible_versions(self) -> None:
-        for version in range(11, DASHBOARD_STATE_VERSION):
+        for version in (*range(11, 21), 22):
             with self.subTest(version=version), tempfile.TemporaryDirectory() as temp_dir:
                 with (
                     patch("state._state_dir", Path(temp_dir)),
@@ -803,9 +804,26 @@ class StateTest(unittest.TestCase):
 
                     self.assertIsNone(load_dashboard_state_cache())
 
+    def test_loads_previous_routing_snapshot(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir, patch("state._state_dir", Path(temp_dir)):
+            dashboard_state_path().write_text(
+                json.dumps({
+                    "version": 27,
+                    "initial_backfill_complete": True,
+                    "prs": {"7": {"route": "author", "facts": {
+                        "dashboard_override_bound_command_id": 42,
+                        "dashboard_override_head_sha": "head",
+                    }}},
+                }),
+                encoding="utf-8",
+            )
+            result = load_dashboard_state_cache()
+            self.assertTrue(result.initial_backfill_complete)
+            self.assertEqual(42, result.result_for(7).facts.handoff.command_id)
+            self.assertEqual("head", result.result_for(7).facts.handoff.head_sha)
+
     def test_version_thirteen_codec_does_not_invent_durable_cutoff(self) -> None:
         legacy_facts = dashboard_facts(
-            dashboard_override_since="2026-08-16T08:00:00Z",
             dashboard_command_replies=(
                 DashboardCommandReply(
                     91,
@@ -821,13 +839,14 @@ class StateTest(unittest.TestCase):
             stored_dashboard_result(facts=legacy_facts)
         ))
         stored["version"] = 13
+        stored["prs"]["1"]["facts"]["dashboard_override_since"] = "2026-08-16T08:00:00Z"
 
         loaded = decode_dashboard_state(stored)
         facts = loaded.results[0].facts
 
-        self.assertEqual("2026-08-16T08:00:00Z", facts.dashboard_override_since)
+        self.assertEqual("2026-08-16T08:00:00Z", facts.handoff.since)
         self.assertEqual("", facts.dashboard_top_level_feedback_cutoff)
-        self.assertFalse(facts.dashboard_override_persistent)
+        self.assertFalse(facts.handoff.persistent)
         self.assertEqual(
             "",
             facts.dashboard_command_replies[0].top_level_feedback_cutoff,
@@ -840,7 +859,6 @@ class StateTest(unittest.TestCase):
         self,
     ) -> None:
         legacy_facts = dashboard_facts(
-            dashboard_override_head_sha="bound-head",
             dashboard_top_level_feedback_cutoff="2026-08-16T08:00:00Z",
             dashboard_command_replies=(
                 DashboardCommandReply(
@@ -857,6 +875,7 @@ class StateTest(unittest.TestCase):
             stored_dashboard_result(facts=legacy_facts)
         ))
         stored["version"] = 16
+        stored["prs"]["1"]["facts"]["dashboard_override_head_sha"] = "bound-head"
 
         loaded = decode_dashboard_state(stored)
         facts = loaded.results[0].facts
@@ -865,7 +884,7 @@ class StateTest(unittest.TestCase):
             "2026-08-16T08:00:00Z",
             facts.dashboard_top_level_feedback_cutoff,
         )
-        self.assertFalse(facts.dashboard_override_persistent)
+        self.assertFalse(facts.handoff.persistent)
         self.assertFalse(
             facts.dashboard_command_replies[0].persistent_handoff
         )
@@ -879,12 +898,14 @@ class StateTest(unittest.TestCase):
             copilot_request_fingerprint="copilot-fingerprint",
             dashboard_override_command_id=91,
             dashboard_override_command_user="alice",
-            dashboard_override_bound_command_id=91,
-            dashboard_override_head_sha="current-head",
-            dashboard_override_since="2026-08-16T08:00:00Z",
+            handoff=RoutingHandoff(
+                command_id=91,
+                head_sha='current-head',
+                since='2026-08-16T08:00:00Z',
+                persistent=True,
+                released=True,
+            ),
             dashboard_top_level_feedback_cutoff="2026-08-16T08:00:00Z",
-            dashboard_override_persistent=True,
-            dashboard_override_cleared_by_feedback=True,
             dashboard_command_replies=(
                 DashboardCommandReply(
                     91,
@@ -1369,16 +1390,25 @@ class StateTest(unittest.TestCase):
         }
         expected["prs"]["123"]["facts"]["author_can_act"] = True
         del expected["prs"]["123"]["facts"]["copilot_first_review_missing_since"]
+        facts = expected["prs"]["123"]["facts"]
+        facts["handoff"] = {
+            "command_id": facts.pop("dashboard_override_bound_command_id"),
+            "head_sha": facts.pop("dashboard_override_head_sha"),
+            "since": facts.pop("dashboard_override_since"),
+            "target": "reviewers",
+            "released": facts.pop("dashboard_override_cleared_by_feedback"),
+            "persistent": False,
+        }
         self.assertEqual(expected, encode_dashboard_state(decoded))
 
     def test_notification_state_version_is_independent(self) -> None:
         self.assertEqual(BACKFILL_STATE_VERSION, 3)
         self.assertEqual(NOTIFICATION_STATE_VERSION, 3)
-        self.assertEqual(DASHBOARD_STATE_VERSION, 27)
-        self.assertEqual(DASHBOARD_STATE_COMPATIBLE_VERSIONS, (20, 21))
+        self.assertEqual(DASHBOARD_STATE_VERSION, 28)
+        self.assertEqual(DASHBOARD_STATE_COMPATIBLE_VERSIONS, (20, 21, 23))
         self.assertEqual(STATUS_COMMENT_ROLLOUT_STATE_VERSION, 3)
-        self.assertEqual(STATUS_COMMENT_REVISION, 22)
-        self.assertEqual(AUTHOR_NUDGE_STATE_VERSION, 4)
+        self.assertEqual(STATUS_COMMENT_REVISION, 24)
+        self.assertEqual(AUTHOR_NUDGE_STATE_VERSION, 5)
         self.assertEqual(COPILOT_REVIEW_REQUEST_STATE_VERSION, 13)
 
     def test_version_fifteen_dashboard_state_is_regenerated(self) -> None:
@@ -1417,32 +1447,34 @@ class StateTest(unittest.TestCase):
             )
             self.assertTrue(author_nudge_state_path().exists())
 
-    def test_author_nudge_state_loads_version_two_for_migration(self) -> None:
-        with tempfile.TemporaryDirectory() as temp_dir, patch("state._state_dir", Path(temp_dir)):
-            author_nudge_state_path().write_text(
-                json.dumps({
-                    "version": 2,
-                    "prs": {
-                        "123": {
-                            "waiting_since": "2026-07-10T00:00:00Z",
-                            "nudged_at": "2026-07-17T00:00:00Z",
-                            "episode_id": "episode-1",
-                        },
+    def test_author_nudge_state_preserves_waits_and_reminders_for_migration(self) -> None:
+        for version in (2, 3, 4):
+            with (
+                self.subTest(version=version),
+                tempfile.TemporaryDirectory() as temp_dir,
+                patch("state._state_dir", Path(temp_dir)),
+            ):
+                nudges = {
+                    "122": {
+                        "waiting_since": "2026-07-14T00:00:00Z",
+                        "nudged_at": "",
+                        "episode_id": "episode-2",
                     },
-                }),
-                encoding="utf-8",
-            )
-
-            self.assertEqual(
-                {
                     "123": {
                         "waiting_since": "2026-07-10T00:00:00Z",
                         "nudged_at": "2026-07-17T00:00:00Z",
                         "episode_id": "episode-1",
                     },
-                },
-                load_author_nudges(),
-            )
+                }
+                author_nudge_state_path().write_text(
+                    json.dumps({
+                        "version": version,
+                        "prs": nudges,
+                    }),
+                    encoding="utf-8",
+                )
+
+                self.assertEqual(nudges, load_author_nudges())
 
     def test_upgraded_copilot_intents_do_not_carry_receipt_timestamps(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir, patch("state._state_dir", Path(temp_dir)):

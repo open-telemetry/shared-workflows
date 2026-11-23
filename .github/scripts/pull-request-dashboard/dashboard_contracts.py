@@ -47,6 +47,7 @@ class DashboardCommandReply:
             "routed",
             "cleared_by_feedback",
             "unauthorized",
+            "author_unavailable",
             "unknown_command",
         ):
             raise ValueError(f"unknown dashboard command reply kind: {self.kind!r}")
@@ -107,6 +108,34 @@ class CopilotReviewCycleUpdate:
     after: CopilotReviewCycle | None
 
 
+class HandoffTarget(str, Enum):
+    AUTHOR = "author"
+    REVIEWERS = "reviewers"
+
+
+@dataclass(frozen=True)
+class RoutingHandoff:
+    command_id: int = 0
+    head_sha: str = ""
+    since: str = ""
+    target: HandoffTarget = HandoffTarget.REVIEWERS
+    released: bool = False
+    persistent: bool = False
+
+    def matches(self, other: RoutingHandoff) -> bool:
+        return bool(self.head_sha) and (
+            self.command_id, self.head_sha, self.target
+        ) == (other.command_id, other.head_sha, other.target)
+
+    def release(self) -> RoutingHandoff:
+        return replace(self, released=True)
+
+    def active_on(self, head_sha: str) -> bool:
+        return bool(self.head_sha and head_sha) and not self.released and (
+            self.persistent or self.head_sha == head_sha
+        )
+
+
 @dataclass(frozen=True)
 class DashboardFacts:
     author: str = ""
@@ -116,12 +145,8 @@ class DashboardFacts:
     copilot_request_fingerprint: str = ""
     dashboard_override_command_id: int = 0
     dashboard_override_command_user: str = ""
-    dashboard_override_bound_command_id: int = 0
-    dashboard_override_head_sha: str = ""
-    dashboard_override_since: str = ""
+    handoff: RoutingHandoff = field(default_factory=RoutingHandoff)
     dashboard_top_level_feedback_cutoff: str = ""
-    dashboard_override_persistent: bool = False
-    dashboard_override_cleared_by_feedback: bool = False
     dashboard_command_replies: tuple[DashboardCommandReply, ...] = ()
     copilot_review_requested: bool = False
     copilot_review_quota_exhausted: bool = False

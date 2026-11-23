@@ -22,6 +22,8 @@ from dashboard_contracts import (
     EvaluationSuccess,
     ReviewerSummary,
     StoredDashboardResult,
+    HandoffTarget,
+    RoutingHandoff,
     freeze_json_object,
     thaw_json,
 )
@@ -51,14 +53,14 @@ FULL_PUBLISH_DELIVERED_FILE = "full-publish-delivered.json"
 # caches. Every constant ending in _STATE_VERSION or _REVISION is included.
 # dashboard-routing-state.json: accepted PR routing results and backfill readiness.
 # Routing facts carry conditional before/after Copilot cycle updates.
-DASHBOARD_STATE_VERSION = 27
-DASHBOARD_STATE_COMPATIBLE_VERSIONS = (20, 21)
+DASHBOARD_STATE_VERSION = 28
+DASHBOARD_STATE_COMPATIBLE_VERSIONS = (20, 21, 23)
 # backfill-state.json: round-robin cursor used by full dashboard refreshes.
 BACKFILL_STATE_VERSION = 3
 # notification-state.json: pending and delivered Slack notification records.
 NOTIFICATION_STATE_VERSION = 3
 # author-nudge-state.json: waiting episodes and delivered author reminders.
-AUTHOR_NUDGE_STATE_VERSION = 4
+AUTHOR_NUDGE_STATE_VERSION = 5
 # copilot-review-intent-state.json: accepted routing intents for review requests.
 COPILOT_REVIEW_REQUEST_STATE_VERSION = 13
 COPILOT_REVIEW_FALLBACK_STATE_VERSION = 10
@@ -66,7 +68,7 @@ COPILOT_REVIEW_FALLBACK_STATE_VERSION = 10
 STATUS_COMMENT_ROLLOUT_STATE_VERSION = 3
 # Rendered status-comment behavior. Increment when existing comments need to
 # adopt a change; hourly runs durably roll it out to all open PRs.
-STATUS_COMMENT_REVISION = 22
+STATUS_COMMENT_REVISION = 24
 FULL_PUBLISH_STATE_VERSION = 1
 INITIAL_BACKFILL_COMPLETE_KEY = "initial_backfill_complete"
 _state_dir: Path | None = None
@@ -626,6 +628,8 @@ def _encode_command_reply(reply: DashboardCommandReply) -> dict[str, Any]:
             # DashboardCommandReply refuses a routed reply without a route.
             stored["route"] = reply.route.value
             stored["held_gates"] = reply.held_gates
+            if reply.subcommand:
+                stored["subcommand"] = reply.subcommand
         return stored
     return {
         "comment_id": reply.comment_id,
@@ -640,6 +644,55 @@ def _copilot_review_limit(value: Any) -> CopilotReviewLimit:
     if reason not in ("", "quota", "errors", "requests", "timeout"):
         raise ValueError("invalid Copilot review request limit")
     return cast(CopilotReviewLimit, reason)
+
+
+def _decode_handoff(value: Any) -> RoutingHandoff:
+    if not isinstance(value, dict):
+        raise ValueError("handoff must be an object")
+    return RoutingHandoff(
+        command_id=_integer(value.get("command_id", _MISSING), "handoff.command_id"),
+        head_sha=_string(value.get("head_sha", _MISSING), "handoff.head_sha"),
+        since=_string(value.get("since", _MISSING), "handoff.since"),
+        target=HandoffTarget(value.get("target", HandoffTarget.REVIEWERS.value)),
+        released=_boolean(value.get("released", _MISSING), "handoff.released"),
+        persistent=_boolean(value.get("persistent", _MISSING), "handoff.persistent"),
+    )
+
+
+def _encode_handoff(handoff: RoutingHandoff) -> dict[str, Any]:
+    return {
+        "command_id": handoff.command_id,
+        "head_sha": handoff.head_sha,
+        "since": handoff.since,
+        "target": handoff.target.value,
+        "released": handoff.released,
+        "persistent": handoff.persistent,
+    }
+
+
+def _decode_facts_handoff(value: dict[str, Any]) -> RoutingHandoff:
+    if "handoff" in value:
+        return _decode_handoff(value["handoff"])
+    return RoutingHandoff(
+        command_id=(
+            _integer(value.get("dashboard_override_bound_command_id", _MISSING),
+                     "facts.dashboard_override_bound_command_id")
+            or _integer(value.get("dashboard_override_command_id", _MISSING),
+                        "facts.dashboard_override_command_id")
+        ),
+        head_sha=_string(value.get("dashboard_override_head_sha", _MISSING),
+                         "facts.dashboard_override_head_sha"),
+        since=_string(value.get("dashboard_override_since", _MISSING),
+                      "facts.dashboard_override_since"),
+        released=_boolean(
+            value.get("dashboard_override_cleared_by_feedback", _MISSING),
+            "facts.dashboard_override_cleared_by_feedback",
+        ),
+        persistent=_boolean(
+            value.get("dashboard_override_persistent", _MISSING),
+            "facts.dashboard_override_persistent",
+        ),
+    )
 
 
 def decode_dashboard_facts(value: Any) -> DashboardFacts:
@@ -680,29 +733,10 @@ def decode_dashboard_facts(value: Any) -> DashboardFacts:
             value.get("dashboard_override_command_user", _MISSING),
             "facts.dashboard_override_command_user",
         ),
-        dashboard_override_bound_command_id=_integer(
-            value.get("dashboard_override_bound_command_id", _MISSING),
-            "facts.dashboard_override_bound_command_id",
-        ),
-        dashboard_override_head_sha=_string(
-            value.get("dashboard_override_head_sha", _MISSING),
-            "facts.dashboard_override_head_sha",
-        ),
-        dashboard_override_since=_string(
-            value.get("dashboard_override_since", _MISSING),
-            "facts.dashboard_override_since",
-        ),
+        handoff=_decode_facts_handoff(value),
         dashboard_top_level_feedback_cutoff=_string(
             value.get("dashboard_top_level_feedback_cutoff", _MISSING),
             "facts.dashboard_top_level_feedback_cutoff",
-        ),
-        dashboard_override_persistent=_boolean(
-            value.get("dashboard_override_persistent", _MISSING),
-            "facts.dashboard_override_persistent",
-        ),
-        dashboard_override_cleared_by_feedback=_boolean(
-            value.get("dashboard_override_cleared_by_feedback", _MISSING),
-            "facts.dashboard_override_cleared_by_feedback",
         ),
         dashboard_command_replies=tuple(
             _decode_command_reply(reply)
@@ -871,7 +905,6 @@ def encode_dashboard_facts(facts: DashboardFacts) -> dict[str, Any]:
         "copilot_request_fingerprint": facts.copilot_request_fingerprint,
         "dashboard_override_command_id": facts.dashboard_override_command_id,
         "dashboard_override_command_user": facts.dashboard_override_command_user,
-        "dashboard_override_head_sha": facts.dashboard_override_head_sha,
         "dashboard_command_replies": [
             _encode_command_reply(reply)
             for reply in facts.dashboard_command_replies
@@ -923,20 +956,12 @@ def encode_dashboard_facts(facts: DashboardFacts) -> dict[str, Any]:
         )
     if facts.copilot_review_error_count:
         stored["copilot_review_error_count"] = facts.copilot_review_error_count
-    if facts.dashboard_override_bound_command_id:
-        stored["dashboard_override_bound_command_id"] = (
-            facts.dashboard_override_bound_command_id
-        )
-    if facts.dashboard_override_since:
-        stored["dashboard_override_since"] = facts.dashboard_override_since
+    if facts.handoff != RoutingHandoff():
+        stored["handoff"] = _encode_handoff(facts.handoff)
     if facts.dashboard_top_level_feedback_cutoff:
         stored["dashboard_top_level_feedback_cutoff"] = (
             facts.dashboard_top_level_feedback_cutoff
         )
-    if facts.dashboard_override_persistent:
-        stored["dashboard_override_persistent"] = True
-    if facts.dashboard_override_cleared_by_feedback:
-        stored["dashboard_override_cleared_by_feedback"] = True
     if facts.ci_failing_count is not None:
         stored["ci_failing_count"] = facts.ci_failing_count
     if facts.ci_failing_since is not None:
@@ -1077,7 +1102,7 @@ def encode_dashboard_state(state: DashboardState) -> dict[str, Any]:
 def load_dashboard_state_cache() -> DashboardState | None:
     path = dashboard_state_path()
     if path.exists():
-        state = load_state_file(path, DASHBOARD_STATE_VERSION)
+        state = load_state_file(path, DASHBOARD_STATE_VERSION, compatible_versions=(27,))
     else:
         state = load_state_file(
             path.with_name("dashboard-state.json"),
@@ -1136,7 +1161,7 @@ def load_author_nudge_state_file(path: Path) -> dict[str, Any]:
     state = load_state_file(
         path,
         AUTHOR_NUDGE_STATE_VERSION,
-        compatible_versions=(2, 3),
+        compatible_versions=(2, 3, 4),
     )
     if state is None or not isinstance(state.get("prs"), dict):
         return {}

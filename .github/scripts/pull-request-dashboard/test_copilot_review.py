@@ -643,7 +643,7 @@ class CopilotReviewCycleTest(unittest.TestCase):
                     ),
                     pending_actions={}, previous_route=previous_route,
                     previous_facts=previous_facts, required_approvals=1,
-                    require_clean_copilot_review=True, manual_reviewer_handoff=False,
+                    require_clean_copilot_review=True,
                     pending_human_reviewer_logins=frozenset(), now=now,
                 ))
                 self.assertEqual(expected_route, outcome.route)

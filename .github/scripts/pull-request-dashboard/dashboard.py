@@ -126,23 +126,12 @@ Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
                                                   fetched, and excludes required
                                                   contexts whose app has already
                                                   finished reporting.
-    dashboard_override_bound_command_id
-                                      int         ID of the command bound to the
-                                                  reviewer handoff.
-    dashboard_override_head_sha     str           Head an override is bound to;
-                                                  identifies the durable command
-                                                  binding.
-    dashboard_override_since        str (iso)     Effective content timestamp of
-                                                  the command bound to the handoff.
+    handoff                         RoutingHandoff
+                                                  Bound command, target, head,
+                                                  timestamp, and release state.
     dashboard_top_level_feedback_cutoff
                                        str (iso)  Top-level feedback at or before
                                                   this command timestamp is retired.
-    dashboard_override_persistent   bool          Handoff remains active across
-                                                  pushes until newer feedback
-                                                  clears it.
-    dashboard_override_cleared_by_feedback
-                                      bool        Actionable human reviewer
-                                                  feedback ended the handoff.
     conflicts                       str           "yes" | "no" | "unknown".
     copilot_review_requested        bool          Copilot is a pending requested
                                                   reviewer, so a review is in
