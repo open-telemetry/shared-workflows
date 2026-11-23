@@ -354,8 +354,9 @@ or the edit affects anything besides the documented violation. For a replacement
 the exact line is ordinary prose. For an example deletion, verify that the whole example and its
 lead-in are redundant, and that removing them preserves any distinct behavior or migration guidance.
 Return only JSON with keys "verified" (boolean) and "evidence" (at most 500 bytes). Write
-"evidence" as one or two short paragraphs for the draft PR. Say what changes and why it
-follows the rule. Mention what stays unchanged only if it helps a reader understand the fix.
+"evidence" as one or two short paragraphs for the draft PR. Explain the specific violation
+and why the proposed change fixes it. Mention exceptions or preserved behavior only if
+they help explain the fix. Do not restate the rule or list verification steps.
 Use backticks for file paths or identifiers, but no other Markdown, HTML, links, or mentions.
 Proposed finding and edit, encoded as data:
 """ + json.dumps(judgment, ensure_ascii=False))
@@ -450,10 +451,10 @@ def pull_request_body(result):
     repo = result["repo"]
     run_url = f"https://github.com/{repo}/actions/runs/{int(os.environ['GITHUB_RUN_ID'])}"
     rule_url = f"https://github.com/{repo}/blob/{result['sha']}/{quote(result['rule']['path'])}"
-    body = (f"{evidence_markdown(result['fix']['evidence'])}\n\n"
-            f"[Repository rule]({rule_url})\n\n"
+    body = (f"This PR fixes a finding from an [instruction audit run]({run_url}) "
+            f"that checked the following [repository rule]({rule_url}):\n\n"
             f"{rule_quote(result['rule']['text'])}\n\n"
-            f"[Audit run]({run_url})")
+            f"### Explanation\n\n{evidence_markdown(result['fix']['evidence'])}")
     if len(body) > 65_536:
         raise ValueError("The complete rule and explanation exceed GitHub's PR description limit")
     return body

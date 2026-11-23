@@ -39,6 +39,6 @@ The workflow continues past clean and non-auditable rules. At a finding, it open
 
 The audit can report findings in any in-scope file. It can replace one prose line or delete one redundant fenced YAML example and its lead-in in an existing non-hidden Markdown file. A separate model pass verifies the proposed edit before publication. The workflow never runs target code or applies a model-supplied patch. Other findings appear in the run summary for manual handling.
 
-Draft descriptions explain the verified fix in Markdown, quote the complete selected rule, and link to the rule's source and the audit run.
+Draft descriptions link to the audit run and the source of the selected rule, quote the full rule, and then explain the verified fix under **Explanation**.
 
 The read-only Copilot job cannot use either publication credential. When there is a verified fix and publishing is enabled, the publication job uses the caller's `GITHUB_TOKEN` to create a fix branch from the audited commit. It uses a caller-scoped `otelbot` token with **Pull requests: write** to open the draft, so eligible PR checks can start without the `GITHUB_TOKEN` approval gate. Each run can open at most one draft, and each repository can have up to five open audit PRs, including those marked ready for review. If GitHub denies the `otelbot` token request or the limit is reached, no new fix branch is created.

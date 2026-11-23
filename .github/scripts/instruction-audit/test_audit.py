@@ -244,11 +244,12 @@ class StateTest(unittest.TestCase):
         body = api.call_args.kwargs["body"]
         self.assertEqual((body["base"], body["head"], body["draft"]), ("main", "otelbot/instruction-audit-42", True))
         self.assertEqual(body["body"],
-                         "Correct the timeout in `README.md`. It is ten seconds.\n\nThe default stays the same.\n\n"
-                         f"[Repository rule](https://github.com/{repo}/blob/{result['sha']}/{ROOT})\n\n"
+                         f"This PR fixes a finding from an [instruction audit run](https://github.com/{repo}/actions/runs/42) "
+                         f"that checked the following [repository rule](https://github.com/{repo}/blob/{result['sha']}/{ROOT}):\n\n"
                          "> Document the `timeout` setting.\n>\n> Include the compatibility exception.\n> "
                          + "Keep this guidance. " * 30 + "End of rule.\n\n"
-                         f"[Audit run](https://github.com/{repo}/actions/runs/42)")
+                         "### Explanation\n\nCorrect the timeout in `README.md`. It is ten seconds.\n\n"
+                         "The default stays the same.")
         output.assert_called_once_with("handled", "true")
 
     def test_evidence_does_not_render_model_supplied_links_mentions_or_html(self):
