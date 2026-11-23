@@ -347,11 +347,12 @@ review. The dashboard therefore does not attribute quota notices to a fallback
 attempt or declare that requester exhausted. A quota notice after fallback
 selection does not trigger another quota retry or immediately release the gate.
 
-Each head's review cycle permits at most three dashboard requests: the initial
+The dashboard budgets three requests per tracked cycle: the initial
 request, one generic-error retry, and one switch to the fallback credential.
 Any completed review of the current head satisfies coverage, regardless of who
 requested it. Findings still follow normal discussion routing. Later heads get
-a fresh budget once the active request has settled or timed out.
+a fresh budget once the active request has settled or timed out. Returning to
+a SHA whose cycle is no longer tracked can start a fresh cycle.
 
 The delivery worker commits a dispatch reservation before calling GitHub.
 Git state retries update records only; they never replay the review mutation.
@@ -365,6 +366,9 @@ proposed head reset preserves the preceding head's request budget.
 Unreviewed head resets and request-window renewals stay with the dispatcher.
 A sending reservation stays with its dispatcher until the outcome is recorded,
 since the mutation can land on a different head.
+GitHub takes a PR ID, not an expected head. If a request races a push and GitHub
+reports the preceding head, the dispatcher counts the send against that head's
+cycle when it still has it, without restarting the deadline.
 
 Transport failures leave an uncertain request, even if GitHub no longer lists
 Copilot as a requested reviewer. That uncertainty blocks additional dashboard
@@ -381,8 +385,8 @@ Configuring or restoring fallback credentials can start a new window, but does
 not reset the request count. The renewed window is committed with the next
 dispatch reservation. Credential changes do not cancel in-flight requests.
 Coverage and same-head limits are saved even when no request is queued.
-Delivery records current-head coverage when it discards a queued request, even
-if the review made that request's routing fingerprint stale.
+Delivery records current-head coverage when it discards a queued request
+whose head or routing fingerprint no longer matches.
 
 Existing attempt records and older request receipts migrate to one time-bounded
 uncertain request, which is saved before receipt formats are updated. On first

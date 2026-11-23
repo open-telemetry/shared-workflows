@@ -23,8 +23,8 @@ from copilot_review import (
 )
 from dashboard_contracts import CopilotReviewCycle, CopilotReviewCycleUpdate, StoredDashboardResult
 from github_cli import CopilotReviewRequestRejected, fetch_pr_reviews, request_copilot_review
-from pull_request_source import normalize_reviews
-from routing_snapshot import fetch_routing_snapshot
+from pull_request_source import Review, normalize_reviews
+from routing_snapshot import RoutingSnapshot, fetch_routing_snapshot
 from state import (
     apply_copilot_review_cycle_update,
     load_copilot_review_cycles,
@@ -137,20 +137,21 @@ def deliver_copilot_review_requests(
             ):
                 raise RuntimeError("Copilot dispatch changed; refusing to overwrite its state")
 
-        try:
-            observed_cycle = load_copilot_review_cycles().get(key)
+        def read_preflight() -> tuple[RoutingSnapshot, str, tuple[Review, ...]]:
             snapshot = fetch_routing_snapshot(repo, pr_number)
             stale_reason = stale_request_reason(entry, snapshot)
-            # A new review can invalidate the routing fingerprint without invalidating coverage.
+            # Dispatch needs a current intent; coverage needs only a current head.
             reviews = (
                 snapshot.reviews if stale_reason
                 else normalize_reviews(fetch_pr_reviews(owner, repo_name, pr_number))
             )
+            return snapshot, stale_reason, reviews
+
+        try:
+            observed_cycle = load_copilot_review_cycles().get(key)
+            snapshot, stale_reason, reviews = read_preflight()
             exists, stale = copilot_review_status(reviews, snapshot.head_sha)
-            if (
-                exists and not stale
-                and snapshot.head_sha and snapshot.head_sha == entry.get("head_sha")
-            ):
+            if snapshot.head_sha and exists and not stale:
                 if observed_cycle is None or observed_cycle.phase != "sending":
                     complete = refresh_copilot_review_cycle(
                         observed_cycle, reviews, snapshot.head_sha, utc_now(),
@@ -233,18 +234,22 @@ def deliver_copilot_review_requests(
             if not commit_cycle_update(CopilotReviewCycleUpdate(observed_cycle, reservation)):
                 reservation = None
                 continue
-            snapshot = fetch_routing_snapshot(repo, pr_number)
-            stale_reason = stale_request_reason(entry, snapshot)
+            snapshot, stale_reason, reviews = read_preflight()
+            exists, stale = copilot_review_status(reviews, snapshot.head_sha)
+            if snapshot.head_sha and exists and not stale:
+                finish(
+                    refresh_copilot_review_cycle(
+                        rollback_cycle, reviews, snapshot.head_sha, utc_now(),
+                        fallback_available=bool(token),
+                    ),
+                    discard=True,
+                )
+                continue
             if stale_reason:
                 print(
                     f"discarding reserved Copilot request for PR #{pr_number}: {stale_reason}",
                     file=sys.stderr,
                 )
-                finish(rollback_cycle, discard=True)
-                continue
-            reviews = normalize_reviews(fetch_pr_reviews(owner, repo_name, pr_number))
-            exists, stale = copilot_review_status(reviews, snapshot.head_sha)
-            if exists and not stale:
                 finish(rollback_cycle, discard=True)
                 continue
             if copilot_review_error_count(reviews, snapshot.head_sha) >= COPILOT_REVIEW_ERROR_LIMIT:
@@ -316,7 +321,15 @@ def deliver_copilot_review_requests(
                     ) from state_error
                 raise
             head_changed = requested_head != reservation.head_sha
+            request_count = reservation.request_count
+            started_at = reservation.started_at
             if head_changed:
+                if rollback_cycle is not None and rollback_cycle.head_sha == requested_head:
+                    request_count = rollback_cycle.request_count + 1
+                    started_at = rollback_cycle.started_at or sent_at
+                else:
+                    request_count = 1
+                    started_at = sent_at
                 print(
                     f"Copilot request for PR #{pr_number} returned head {requested_head}; "
                     f"not acknowledging the old head {entry['head_sha']}",
@@ -325,8 +338,7 @@ def deliver_copilot_review_requests(
             finish(
                 replace(
                     reservation, phase="accepted", head_sha=requested_head,
-                    request_count=1 if head_changed else reservation.request_count,
-                    started_at=sent_at if head_changed else reservation.started_at,
+                    request_count=request_count, started_at=started_at,
                     sent_at=sent_at, baseline_review_ids=baseline_ids,
                 ),
                 sent_at,

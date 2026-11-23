@@ -949,6 +949,34 @@ class CopilotReviewDeliveryTest(unittest.TestCase):
         self.assertEqual({"7": replace(prior, phase="complete")}, load_copilot_review_cycles())
         self.assertEqual({}, load_copilot_review_requests())
 
+    def test_coverage_on_new_head_settles_unknown_older_intent(self) -> None:
+        prior = copilot_review_cycle("current-head", phase="unknown")
+        save_copilot_review_cycles({"7": prior})
+        review = self.notice(body="No issues found.", head="reviewed-head")
+        self.snapshot = routing_snapshot({
+            "checks": [],
+            "pr": {"id": "PR_node", "state": "OPEN", "headRefOid": "reviewed-head"},
+            "reviews": [review],
+        })
+
+        self.assertEqual([], self.deliver())
+        self.request.assert_not_called()
+        self.restore()
+        completed = load_copilot_review_cycles()["7"]
+        self.assertEqual("reviewed-head", completed.head_sha)
+        self.assertEqual("complete", completed.phase)
+        self.assertEqual({}, load_copilot_review_requests())
+
+        self.now += timedelta(minutes=1)
+        self.snapshot = routing_snapshot(
+            head_sha="next-head", copilot_request_fingerprint="accepted-fingerprint",
+        )
+        self.reviews = [review]
+        self.enqueue()
+        self.assertEqual([], self.deliver())
+        self.request.assert_called_once_with("PR_node")
+        self.assertEqual("next-head", load_copilot_review_cycles()["7"].head_sha)
+
     def test_completion_does_not_clear_a_competing_reservation(self) -> None:
         prior = copilot_review_cycle("current-head", phase="unknown")
         save_copilot_review_cycles({"7": prior})
@@ -1262,6 +1290,33 @@ class CopilotReviewDeliveryTest(unittest.TestCase):
         self.request.assert_not_called()
         self.assertEqual({"7": prior}, load_copilot_review_cycles())
 
+    def test_final_preflight_completes_cycle_without_charging_the_unsent_slot(self) -> None:
+        for head in ("current-head", "previous-head"):
+            with self.subTest(head=head):
+                prior = copilot_review_cycle(head, phase="ready", request_count=2)
+                save_copilot_review_cycles({"7": prior})
+                self.enqueue()
+                review = self.notice(body="No issues found.", head=head)
+                if head == self.snapshot.head_sha:
+                    self.fetch_snapshot.side_effect = [self.snapshot, self.snapshot]
+                    self.fetch_reviews.side_effect = [[], [review]]
+                else:
+                    self.fetch_snapshot.side_effect = [
+                        self.snapshot,
+                        routing_snapshot({
+                            "checks": [],
+                            "pr": {"id": "PR_node", "state": "OPEN", "headRefOid": head},
+                            "reviews": [review],
+                        }),
+                    ]
+                    self.fetch_reviews.side_effect = [[]]
+
+                self.assertEqual([], self.deliver())
+                self.request.assert_not_called()
+                self.restore()
+                self.assertEqual({"7": replace(prior, phase="complete")}, load_copilot_review_cycles())
+                self.assertEqual({}, load_copilot_review_requests())
+
     def test_missing_fallback_credentials_do_not_reset_another_heads_budget(self) -> None:
         os.environ["COPILOT_REVIEW_FALLBACK_TOKEN"] = ""
         prior = copilot_review_cycle(
@@ -1305,6 +1360,32 @@ class CopilotReviewDeliveryTest(unittest.TestCase):
         self.assertEqual("accepted", retry.phase)
         self.assertEqual(2, retry.request_count)
         self.assertEqual(accepted.started_at, retry.started_at)
+
+    def test_return_to_preceding_head_charges_its_existing_budget(self) -> None:
+        prior = copilot_review_cycle(
+            "previous-head", phase="limited", request_count=3, limit_reason="requests",
+            started_at="2026-08-16T07:30:00Z",
+        )
+        save_copilot_review_cycles({"7": prior})
+        self.commit(lambda: 0)
+        self.requested_head = prior.head_sha
+
+        self.assertEqual([], self.deliver())
+        self.restore()
+        accepted = load_copilot_review_cycles()["7"]
+        self.assertEqual("previous-head", accepted.head_sha)
+        self.assertEqual("accepted", accepted.phase)
+        self.assertEqual(4, accepted.request_count)
+        self.assertEqual(prior.started_at, accepted.started_at)
+        self.assertEqual({}, load_copilot_review_requests())
+
+        self.snapshot = replace(self.snapshot, head_sha=prior.head_sha)
+        self.now += timedelta(minutes=1)
+        self.reviews = [self.notice(body=ERROR_BODY)]
+        self.enqueue()
+        self.assertEqual([], self.deliver())
+        self.request.assert_called_once()
+        self.assertEqual("requests", load_copilot_review_cycles()["7"].limit_reason)
 
     def test_per_request_send_time_follows_final_baseline_fetch(self) -> None:
         def fetch(*_args):
