@@ -122,7 +122,7 @@ def event_time(event: dict[str, Any]) -> datetime | None:
     return None
 
 
-def log_text(text: str) -> str:
+def log_text(text: str, *, multiline: bool = False) -> str:
     for key in ("GH_TOKEN", "GITHUB_TOKEN", "COPILOT_GITHUB_TOKEN"):
         if token := os.environ.get(key):
             text = text.replace(token, "[redacted]")
@@ -136,8 +136,11 @@ def log_text(text: str) -> str:
     )
     text = re.sub(r"(https?://)[^/\s@]+@", r"\1[redacted]@", text, flags=re.IGNORECASE)
     text = re.sub(r"(https?://[^?\s\"']+)\?[^ \t\r\n\"']*", r"\1?[redacted]", text, flags=re.IGNORECASE)
-    # Keep guest-provided newlines and workflow commands out of the Actions log protocol.
-    return json.dumps(text)[1:-1].replace("::", r"\u003a\u003a").replace("##[", r"##\u005b")
+    lines = text.split("\n") if multiline else [text]
+    return "\n".join(
+        json.dumps(line)[1:-1].replace("::", r"\u003a\u003a").replace("##[", r"##\u005b")
+        for line in lines
+    )
 
 
 def shell_preview(command: object, root: Path) -> str:
@@ -346,6 +349,9 @@ def model_pass(model: str, effort: str, prompt: str, checkout: Path, bundle: Pat
         raise RuntimeError(f"{model} failed (exit {result.returncode}): {detail}")
     if not answer:
         raise RuntimeError(f"{model} did not return an answer")
+    progress(f"{phase}: final answer")
+    for line in log_text(answer, multiline=True).split("\n"):
+        progress(f"{phase}: | {line}")
     return answer
 
 

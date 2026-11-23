@@ -148,6 +148,13 @@ class ReviewTest(unittest.TestCase):
             self.assertEqual(launch.call_args.kwargs["phase"], "review")
 
     def test_model_pass_logs_tool_activity_in_order_without_publishing_drafts(self):
+        answer = (
+            "A finding to verify.\n\n"
+            "::warning::fixture-token\r##[error]\n"
+            "-----BEGIN PRIVATE KEY-----\n"
+            "fixture-key-data\n"
+            "-----END PRIVATE KEY-----"
+        )
         events = [
             {"type": "assistant.message", "data": {"toolRequests": [{
                 "toolCallId": "shell", "name": "shell",
@@ -174,6 +181,7 @@ class ReviewTest(unittest.TestCase):
                 "toolCallId": "denied", "success": False, "error": {"message": "Tool denied by policy"},
             }},
             {"type": "assistant.message", "data": {"content": "private-draft"}},
+            {"type": "assistant.message", "data": {"content": answer}},
             {"type": "result"},
             {"type": "private-unknown-event"},
         ]
@@ -188,7 +196,7 @@ class ReviewTest(unittest.TestCase):
             bundle = Path(directory)
             self.assertEqual(
                 runner.model_pass("model", "max", "prompt", bundle, bundle, phase="review"),
-                "private-draft",
+                answer,
             )
         lines = [call.args[0] for call in log.call_args_list]
         self.assertIn(
@@ -204,7 +212,14 @@ class ReviewTest(unittest.TestCase):
             next(i for i, line in enumerate(lines) if "tool #2 view finished" in line),
         )
         self.assertIn("review: tool #3 unknown failed, permission denied", lines)
-        self.assertEqual(lines[-1], "review: completed after 50.0s. Last recorded event: result.")
+        self.assertEqual(lines[-6:], [
+            "review: completed after 50.0s. Last recorded event: result.",
+            "review: final answer",
+            "review: | A finding to verify.",
+            "review: | ",
+            r"review: | \u003a\u003awarning\u003a\u003a[redacted]\r##\u005berror]",
+            "review: | [redacted private key]",
+        ])
         self.assertFalse(any("private-" in line or "secret output" in line or "Tool denied by policy" in line for line in lines))
 
     def test_unsafe_invocations_are_omitted(self):
@@ -309,6 +324,7 @@ class ReviewTest(unittest.TestCase):
             mock.call("review: tool #1 unknown has no recorded finish."),
             mock.call("review: tool #2 shell has no recorded finish."),
         ])
+        self.assertNotIn(mock.call("review: final answer"), log.call_args_list)
 
     def test_runner_timeout_reports_partial_activity(self):
         timeout = subprocess.TimeoutExpired([], 3720, output=(

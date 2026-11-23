@@ -17,6 +17,6 @@ gh workflow run pr-review.yml --repo open-telemetry/shared-workflows \
 
 `otelbot[bot]` posts findings on the PR, or a **No findings** comment. Both start with a note that the review is experimental. If the PR closes or its base or head changes during the run, the workflow skips posting.
 
-The **Review, simplify, and double-check** step shows tool activity after each pass, not live. Look there for model and tool timings, safe tool arguments, result sizes when available, and calls that did not finish. The log omits tool output.
+The **Review, simplify, and double-check** step shows tool activity and each pass's final answer, including any verification retry. Compare the review and simplification answers with the verification answer to see which findings made it through. The log redacts known credential patterns and omits prompts, intermediate messages, and tool output.
 
 The **Report Copilot token usage** step breaks down input, output, and cache tokens per model request when available. The run's **Summary** totals token usage and estimated AI credits by pass. Use GitHub billing reports for actual charges.
