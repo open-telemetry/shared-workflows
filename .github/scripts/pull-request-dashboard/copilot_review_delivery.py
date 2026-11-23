@@ -16,6 +16,7 @@ from copilot_review import (
     copilot_review_ids,
     copilot_review_in_flight,
     copilot_review_status,
+    copilot_review_window_expired,
     is_copilot_quota_failure,
     is_copilot_reviewer,
     refresh_copilot_review_cycle,
@@ -225,6 +226,7 @@ def deliver_copilot_review_requests(
                 request_count=(cycle.request_count if cycle is not None else 0) + 1,
                 dispatch_id=str(uuid.uuid4()),
                 started_at=(cycle.started_at if cycle is not None else "") or format_ts(prepared_at),
+                reserved_at=format_ts(prepared_at),
                 sent_at="",
                 baseline_review_ids=baseline_ids,
                 limit_reason="",
@@ -282,17 +284,13 @@ def deliver_copilot_review_requests(
 
             commit_state(validate_reservation)
             sending_at = utc_now()
-            refreshed = refresh_copilot_review_cycle(
-                reservation, reviews, snapshot.head_sha, sending_at,
-                fallback_available=bool(token),
-            )
-            if refreshed is not None and refreshed.phase == "limited":
+            if copilot_review_window_expired(reservation.started_at, sending_at):
                 print(
                     f"discarding reserved Copilot request for PR #{pr_number}: "
                     "the review cycle expired before dispatch",
                     file=sys.stderr,
                 )
-                finish(refreshed, discard=True)
+                finish(replace(reservation, phase="limited", limit_reason="timeout"), discard=True)
                 continue
             sent_at = format_ts(sending_at)
             try:

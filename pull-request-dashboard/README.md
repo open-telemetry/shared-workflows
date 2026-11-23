@@ -372,9 +372,10 @@ cycle when it still has it, without restarting the deadline.
 
 Transport failures leave an uncertain request, even if GitHub no longer lists
 Copilot as a requested reviewer. That uncertainty blocks additional dashboard
-requests across pushes until current-head coverage or a four-hour timeout.
-A crash before saving the outcome leaves a sending reservation until its timeout.
-Failed reservation rollbacks are reported and retain the saved barrier.
+requests across pushes until current-head coverage or four hours after the send.
+A crash before saving the outcome leaves a sending reservation for four hours
+after reservation. Neither deadline extends the router's gate hold. Failed
+reservation rollbacks are reported and retain the saved barrier.
 
 The cycle's four-hour window survives ordinary retries. Reaching the window or
 request limit stops automatic requests for that head without bypassing the

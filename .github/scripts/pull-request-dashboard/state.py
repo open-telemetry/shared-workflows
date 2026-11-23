@@ -60,7 +60,7 @@ NOTIFICATION_STATE_VERSION = 3
 AUTHOR_NUDGE_STATE_VERSION = 4
 # copilot-review-request-state.json: pending and delivered review requests.
 COPILOT_REVIEW_REQUEST_STATE_VERSION = 12
-COPILOT_REVIEW_FALLBACK_STATE_VERSION = 7
+COPILOT_REVIEW_FALLBACK_STATE_VERSION = 8
 # status-comment-rollout-state.json: target/completed renderer revisions and queue.
 STATUS_COMMENT_ROLLOUT_STATE_VERSION = 3
 # Rendered status-comment behavior. Increment when existing comments need to
@@ -1351,6 +1351,7 @@ def _decode_copilot_review_cycle(entry: Any) -> CopilotReviewCycle:
     count = entry.get("request_count")
     dispatch_id = entry.get("dispatch_id")
     started_at = entry.get("started_at")
+    reserved_at = entry.get("reserved_at", "")
     sent_at = entry.get("sent_at")
     ids = entry.get("baseline_review_ids")
     reason = entry.get("limit_reason")
@@ -1360,7 +1361,8 @@ def _decode_copilot_review_cycle(entry: Any) -> CopilotReviewCycle:
         or phase not in ("ready", "sending", "accepted", "unknown", "complete", "limited")
         or type(count) is not int or count < 0
         or not isinstance(dispatch_id, str)
-        or not isinstance(started_at, str) or not isinstance(sent_at, str)
+        or not isinstance(started_at, str) or not isinstance(reserved_at, str)
+        or not isinstance(sent_at, str)
         or not isinstance(ids, list)
         or any(type(value) is not int or value <= 0 for value in ids)
         or reason not in ("", "quota", "errors", "requests", "timeout")
@@ -1371,7 +1373,7 @@ def _decode_copilot_review_cycle(entry: Any) -> CopilotReviewCycle:
         or (phase == "sending" and bool(sent_at))
     ):
         raise ValueError("invalid Copilot review cycle")
-    for value in (started_at, sent_at):
+    for value in (started_at, reserved_at, sent_at):
         if value:
             timestamp = parse_ts(value)
             if timestamp is None or timestamp.tzinfo is None:
@@ -1383,6 +1385,7 @@ def _decode_copilot_review_cycle(entry: Any) -> CopilotReviewCycle:
         request_count=count,
         dispatch_id=dispatch_id,
         started_at=started_at,
+        reserved_at=reserved_at,
         sent_at=sent_at,
         baseline_review_ids=tuple(ids),
         limit_reason=cast(CopilotReviewLimit, reason),
@@ -1397,6 +1400,7 @@ def _encode_copilot_review_cycle(cycle: CopilotReviewCycle) -> dict[str, Any]:
         "request_count": cycle.request_count,
         "dispatch_id": cycle.dispatch_id,
         "started_at": cycle.started_at,
+        "reserved_at": cycle.reserved_at,
         "sent_at": cycle.sent_at,
         "baseline_review_ids": list(cycle.baseline_review_ids),
         "limit_reason": cycle.limit_reason,
@@ -1456,7 +1460,7 @@ def load_copilot_review_cycles_file(
     if exists and (
         not isinstance(data, dict)
         or type(data.get("version")) is not int
-        or data["version"] not in (1, 2, 3, 4, 5, 6, COPILOT_REVIEW_FALLBACK_STATE_VERSION)
+        or data["version"] not in (1, 2, 3, 4, 5, 6, 7, COPILOT_REVIEW_FALLBACK_STATE_VERSION)
         or not isinstance(data.get("prs"), dict)
     ):
         raise ValueError(f"incompatible Copilot review cycle state: {path}")

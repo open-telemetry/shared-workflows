@@ -130,6 +130,13 @@ def _new_copilot_notices(
     return quota, error
 
 
+def copilot_review_window_expired(started_at: str, now: datetime) -> bool:
+    start = parse_ts(started_at)
+    if start is None or start.tzinfo is None:
+        raise RuntimeError("Copilot review has an invalid window start timestamp")
+    return now - start >= GATE_HOLD_LIMIT
+
+
 def refresh_copilot_review_cycle(
     cycle: CopilotReviewCycle | None,
     reviews: Sequence[Review],
@@ -170,10 +177,10 @@ def refresh_copilot_review_cycle(
             started_at=format_ts(now),
         )
     if cycle.request_count and cycle.phase in ("sending", "accepted", "unknown", "ready"):
-        started_at = parse_ts(cycle.started_at)
-        if started_at is None or started_at.tzinfo is None:
-            raise RuntimeError("Copilot review cycle has an invalid start timestamp")
-        if now - started_at >= GATE_HOLD_LIMIT:
+        window_start = cycle.started_at
+        if cycle.phase in ("sending", "unknown"):
+            window_start = cycle.sent_at or cycle.reserved_at or window_start
+        if copilot_review_window_expired(window_start, now):
             cycle = replace(cycle, phase="limited", limit_reason="timeout")
         elif cycle.phase == "accepted":
             exists, stale = copilot_review_status(reviews, cycle.head_sha)

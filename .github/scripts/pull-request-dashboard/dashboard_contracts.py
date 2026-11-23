@@ -95,6 +95,7 @@ class CopilotReviewCycle:
     request_count: int = 0
     dispatch_id: str = ""
     started_at: str = ""
+    reserved_at: str = ""
     sent_at: str = ""
     baseline_review_ids: tuple[int, ...] = ()
     limit_reason: CopilotReviewLimit = ""

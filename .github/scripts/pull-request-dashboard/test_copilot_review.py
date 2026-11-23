@@ -568,6 +568,19 @@ class CopilotReviewCycleTest(unittest.TestCase):
         unknown = replace(accepted, phase="unknown")
         self.assertEqual(unknown, self.refresh(unknown, (completed,), head="next-head"))
 
+    def test_late_reservation_survives_original_cycle_deadline(self) -> None:
+        reserved = self.NOW + timedelta(hours=3, minutes=59)
+        cycle = copilot_review_cycle(
+            "current-head", phase="sending", sent_at="", reserved_at=format_ts(reserved),
+            request_count=2,
+        )
+        self.assertEqual(cycle, self.refresh(
+            cycle, head="next-head", now=self.NOW + timedelta(hours=4),
+        ))
+        fresh = self.refresh(cycle, head="next-head", now=reserved + timedelta(hours=4))
+        self.assertEqual("next-head", fresh.head_sha)
+        self.assertEqual("ready", fresh.phase)
+
     def test_enabling_fallback_renews_a_quota_limited_window_only_once(self) -> None:
         limited = copilot_review_cycle(
             "current-head", phase="limited", limit_reason="quota",
@@ -1437,13 +1450,41 @@ class CopilotReviewDeliveryTest(unittest.TestCase):
         self.request.assert_called_once()
 
     def test_expiry_during_reservation_prevents_rpc(self) -> None:
+        self.assertEqual([], self.deliver())
+        self.now += timedelta(hours=3, minutes=59)
+        self.reviews = [self.notice(body=ERROR_BODY)]
+        self.enqueue()
+
         def delayed(action):
             self.commit(action)
-            self.now += timedelta(hours=4)
+            self.now += timedelta(minutes=1)
 
         self.assertEqual([], self.deliver(delayed))
-        self.request.assert_not_called()
+        self.request.assert_called_once()
         self.assertEqual("timeout", load_copilot_review_cycles()["7"].limit_reason)
+
+    def test_ambiguous_retry_blocks_new_head_until_four_hours_after_send(self) -> None:
+        self.assertEqual([], self.deliver())
+        self.now += timedelta(hours=3, minutes=59)
+        self.reviews = [self.notice(body=ERROR_BODY)]
+        self.request_error = TransientGhError("lost response")
+        self.enqueue()
+        self.assertIn("lost response", self.deliver()[0])
+        unknown = load_copilot_review_cycles()["7"]
+        self.assertEqual("unknown", unknown.phase)
+
+        self.snapshot = replace(self.snapshot, head_sha="next-head")
+        self.request_error = None
+        self.now += timedelta(minutes=1)
+        self.enqueue()
+        self.assertEqual([], self.deliver())
+        self.assertEqual(2, self.request.call_count)
+        self.assertEqual(unknown, load_copilot_review_cycles()["7"])
+
+        self.now += timedelta(hours=3, minutes=59)
+        self.assertEqual([], self.deliver())
+        self.assertEqual(3, self.request.call_count)
+        self.assertEqual("next-head", load_copilot_review_cycles()["7"].head_sha)
 
     def test_pending_request_and_current_coverage_do_not_duplicate_requests(self) -> None:
         self.reviews = [self.notice(body="No issues found.")]
