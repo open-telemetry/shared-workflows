@@ -357,9 +357,14 @@ The delivery worker commits a dispatch reservation before calling GitHub.
 Git state retries update records only; they never replay the review mutation.
 Definite rejections and pre-dispatch failures, including failed GitHub CLI
 launches, restore the previous budget.
-Coverage and quota observations apply only to the exact cycle snapshot that was
-evaluated. A sending reservation stays with its dispatcher until the outcome is
-recorded, since the mutation can land on a different head.
+Routing observations and dispatch reservations carry the complete before/after
+cycle decision. A state retry applies that decision only if its before-state
+still matches; it does not re-evaluate newer state using older GitHub reads.
+A changed cycle defers the request until a fresh observation. Canceling a
+proposed head reset preserves the preceding head's request budget.
+Unreviewed head resets and request-window renewals stay with the dispatcher.
+A sending reservation stays with its dispatcher until the outcome is recorded,
+since the mutation can land on a different head.
 
 Transport failures leave an uncertain request, even if GitHub no longer lists
 Copilot as a requested reviewer. That uncertainty blocks additional dashboard
@@ -373,8 +378,9 @@ router's normal gate timeout and alert. Idle quota-blocked cycles pause while
 fallback credentials are absent, without starting another gate timeout.
 A fresh generic error settles an accepted request before this pause is applied.
 Configuring or restoring fallback credentials can start a new window, but does
-not reset the request count. Credential changes do not cancel in-flight requests.
-Coverage and quota limits are saved even when no request is queued.
+not reset the request count. The renewed window is committed with the next
+dispatch reservation. Credential changes do not cancel in-flight requests.
+Coverage and same-head limits are saved even when no request is queued.
 
 Existing attempt records and older request receipts migrate to one time-bounded
 uncertain request, which is saved before receipt formats are updated. Historical

@@ -101,6 +101,12 @@ class CopilotReviewCycle:
 
 
 @dataclass(frozen=True)
+class CopilotReviewCycleUpdate:
+    before: CopilotReviewCycle | None
+    after: CopilotReviewCycle | None
+
+
+@dataclass(frozen=True)
 class DashboardFacts:
     author: str = ""
     assignees: tuple[str, ...] = ()
@@ -121,7 +127,7 @@ class DashboardFacts:
     copilot_review_fallback_available: bool = False
     copilot_review_request_in_flight: bool = False
     copilot_review_request_limit_reason: CopilotReviewLimit = ""
-    copilot_review_observed_cycle: CopilotReviewCycle | None = None
+    copilot_review_cycle_update: CopilotReviewCycleUpdate | None = None
     copilot_review_error_count: int = 0
     copilot_review_exists: bool = False
     copilot_review_stale: bool = False

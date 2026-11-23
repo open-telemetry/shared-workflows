@@ -30,6 +30,7 @@ from copilot_review import (
 )
 from dashboard_contracts import (
     CopilotReviewCycle,
+    CopilotReviewCycleUpdate,
     DashboardFacts,
     DashboardRoute,
     EvaluationDiagnostics,
@@ -234,7 +235,10 @@ def _compute_facts(
         copilot_review_request_limit_reason=(
             cycle.limit_reason if cycle is not None and cycle.head_sha == head_sha else ""
         ),
-        copilot_review_observed_cycle=observed_cycle,
+        copilot_review_cycle_update=(
+            CopilotReviewCycleUpdate(observed_cycle, cycle)
+            if observed_cycle is not None else None
+        ),
         copilot_review_error_count=copilot_review_error_count(source.reviews, head_sha),
         copilot_review_exists=copilot_review_exists,
         copilot_review_stale=copilot_review_stale,

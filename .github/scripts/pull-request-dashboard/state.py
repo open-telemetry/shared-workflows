@@ -5,13 +5,13 @@ import hashlib
 import json
 import sys
 from collections.abc import Iterable, Mapping
-from dataclasses import replace
 from datetime import timezone
 from pathlib import Path
 from typing import Any, cast
 
 from dashboard_contracts import (
     CopilotReviewCycle,
+    CopilotReviewCycleUpdate,
     CopilotReviewLimit,
     CopilotReviewPhase,
     CopilotReviewRequester,
@@ -48,8 +48,8 @@ FULL_PUBLISH_DELIVERED_FILE = "full-publish-delivered.json"
 # current vector, ordinary state loaders may regenerate mismatched disposable
 # caches. Every constant ending in _STATE_VERSION or _REVISION is included.
 # dashboard-state.json: accepted PR routing results and backfill readiness.
-# Routing facts fence Copilot observations with the evaluated cycle snapshot.
-DASHBOARD_STATE_VERSION = 26
+# Routing facts carry conditional before/after Copilot cycle updates.
+DASHBOARD_STATE_VERSION = 27
 DASHBOARD_STATE_COMPATIBLE_VERSIONS: tuple[int, ...] = ()
 # backfill-state.json: round-robin cursor used by full dashboard refreshes.
 BACKFILL_STATE_VERSION = 3
@@ -59,7 +59,7 @@ NOTIFICATION_STATE_VERSION = 3
 AUTHOR_NUDGE_STATE_VERSION = 4
 # copilot-review-request-state.json: pending and delivered review requests.
 COPILOT_REVIEW_REQUEST_STATE_VERSION = 12
-COPILOT_REVIEW_FALLBACK_STATE_VERSION = 6
+COPILOT_REVIEW_FALLBACK_STATE_VERSION = 7
 # status-comment-rollout-state.json: target/completed renderer revisions and queue.
 STATUS_COMMENT_ROLLOUT_STATE_VERSION = 3
 # Rendered status-comment behavior. Increment when existing comments need to
@@ -657,7 +657,7 @@ def decode_dashboard_facts(value: Any) -> DashboardFacts:
         raw_reviewers = []
     if not isinstance(raw_reviewers, list):
         raise ValueError("facts.reviewers must be an array")
-    raw_cycle = value.get("copilot_review_observed_cycle")
+    raw_cycle_update = value.get("copilot_review_cycle_update")
     author = _string(value.get("author", _MISSING), "facts.author")
     return DashboardFacts(
         author=author,
@@ -729,8 +729,9 @@ def decode_dashboard_facts(value: Any) -> DashboardFacts:
         copilot_review_request_limit_reason=_copilot_review_limit(
             value.get("copilot_review_request_limit_reason", _MISSING),
         ),
-        copilot_review_observed_cycle=(
-            _decode_copilot_review_cycle(raw_cycle) if raw_cycle is not None else None
+        copilot_review_cycle_update=(
+            _decode_copilot_review_cycle_update(raw_cycle_update)
+            if raw_cycle_update is not None else None
         ),
         copilot_review_error_count=_integer(
             value.get("copilot_review_error_count", _MISSING),
@@ -918,9 +919,9 @@ def encode_dashboard_facts(facts: DashboardFacts) -> dict[str, Any]:
         stored["copilot_review_request_in_flight"] = True
     if facts.copilot_review_request_limit_reason:
         stored["copilot_review_request_limit_reason"] = facts.copilot_review_request_limit_reason
-    if facts.copilot_review_observed_cycle is not None:
-        stored["copilot_review_observed_cycle"] = _encode_copilot_review_cycle(
-            facts.copilot_review_observed_cycle,
+    if facts.copilot_review_cycle_update is not None:
+        stored["copilot_review_cycle_update"] = _encode_copilot_review_cycle_update(
+            facts.copilot_review_cycle_update,
         )
     if facts.copilot_review_error_count:
         stored["copilot_review_error_count"] = facts.copilot_review_error_count
@@ -1390,6 +1391,22 @@ def _encode_copilot_review_cycle(cycle: CopilotReviewCycle) -> dict[str, Any]:
     }
 
 
+def _decode_copilot_review_cycle_update(entry: Any) -> CopilotReviewCycleUpdate:
+    if not isinstance(entry, dict) or "before" not in entry or "after" not in entry:
+        raise ValueError("invalid Copilot review cycle update")
+    return CopilotReviewCycleUpdate(
+        before=_decode_copilot_review_cycle(entry["before"]) if entry["before"] is not None else None,
+        after=_decode_copilot_review_cycle(entry["after"]) if entry["after"] is not None else None,
+    )
+
+
+def _encode_copilot_review_cycle_update(update: CopilotReviewCycleUpdate) -> dict[str, Any]:
+    return {
+        "before": _encode_copilot_review_cycle(update.before) if update.before is not None else None,
+        "after": _encode_copilot_review_cycle(update.after) if update.after is not None else None,
+    }
+
+
 def _legacy_copilot_review_cycle(entry: Any, version: int) -> CopilotReviewCycle:
     if not isinstance(entry, dict) or not isinstance(entry.get("exhausted", False), bool):
         raise ValueError("invalid legacy Copilot review record")
@@ -1425,7 +1442,7 @@ def load_copilot_review_cycles_file(path: Path) -> dict[str, CopilotReviewCycle]
     if exists and (
         not isinstance(data, dict)
         or type(data.get("version")) is not int
-        or data["version"] not in (1, 2, 3, 4, 5, COPILOT_REVIEW_FALLBACK_STATE_VERSION)
+        or data["version"] not in (1, 2, 3, 4, 5, 6, COPILOT_REVIEW_FALLBACK_STATE_VERSION)
         or not isinstance(data.get("prs"), dict)
     ):
         raise ValueError(f"incompatible Copilot review cycle state: {path}")
@@ -1487,36 +1504,44 @@ def save_copilot_review_cycles(cycles: dict[str, CopilotReviewCycle]) -> None:
     )
 
 
+def apply_copilot_review_cycle_update(
+    cycles: dict[str, CopilotReviewCycle],
+    key: str,
+    update: CopilotReviewCycleUpdate,
+) -> bool:
+    current = cycles.get(key)
+    # CAS replay can observe the already-applied after-state.
+    if current == update.after:
+        return True
+    if current != update.before:
+        return False
+    if update.after is None:
+        cycles.pop(key, None)
+    else:
+        cycles[key] = update.after
+    return True
+
+
 def record_copilot_review_cycle_observations() -> None:
     cycles = load_copilot_review_cycles()
     accepted = load_dashboard_state_cache()
     for result in (accepted.results if accepted is not None else ()):
         key = str(result.pr_number)
         facts = result.facts
-        cycle = cycles.get(key)
-        # The dispatcher owns a sending reservation until it records the outcome.
+        update = facts.copilot_review_cycle_update
+        if update is None or update.after is None or not facts.head_sha:
+            continue
+        before, after = update.before, update.after
+        # The dispatcher owns sending reservations and unreviewed head or window resets.
         if (
-            cycle is None
-            or not cycle.dispatch_id
-            or cycle != facts.copilot_review_observed_cycle
-            or cycle.phase == "sending"
-            or not facts.head_sha
+            before is not None and (
+                before.phase == "sending"
+                or (before.head_sha != after.head_sha and after.phase != "complete")
+                or (after.phase == "ready" and before.started_at != after.started_at)
+            )
         ):
             continue
-        if facts.copilot_review_exists and not facts.copilot_review_stale:
-            cycles[key] = replace(
-                cycle if cycle.head_sha == facts.head_sha else CopilotReviewCycle(
-                    facts.head_sha, requester=cycle.requester,
-                ),
-                phase="complete", limit_reason="",
-            )
-        elif (
-            facts.head_sha == cycle.head_sha
-            and facts.copilot_review_request_limit_reason == "quota"
-            and not facts.copilot_review_request_in_flight
-            and cycle.phase in ("ready", "accepted")
-        ):
-            cycles[key] = replace(cycle, phase="limited", limit_reason="quota")
+        apply_copilot_review_cycle_update(cycles, key, update)
     # Persist migrated journals before any receipt can be rewritten.
     save_copilot_review_cycles(cycles)
 

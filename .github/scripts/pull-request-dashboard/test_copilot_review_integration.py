@@ -6,6 +6,7 @@ hooks coordinate real Git pushes and process termination at dispatch boundaries.
 
 from __future__ import annotations
 
+from dataclasses import asdict, replace
 from datetime import datetime, timedelta, timezone
 import json
 import os
@@ -20,15 +21,18 @@ from unittest.mock import patch
 import delivery
 import state
 import state_branch
+from copilot_review import refresh_copilot_review_cycle
 from copilot_review_delivery import record_copilot_review_observation
+from dashboard_contracts import CopilotReviewCycle, CopilotReviewCycleUpdate
 from dashboard_test_support import (
+    copilot_review_cycle,
     dashboard_facts,
     dashboard_state,
     pull_request_source,
     stored_dashboard_result,
 )
 from github_cli import repo_state_key
-from routing_snapshot import build_routing_snapshot
+from routing_snapshot import RoutingSnapshot, build_routing_snapshot
 
 
 REPO = "open-telemetry/example"
@@ -59,13 +63,20 @@ def run_worker(checkout: Path, control: Path, name: str, mode: str) -> int:
         (control / f"ready-{name}").write_text("ready", encoding="utf-8")
         wait_for_file(control / "go")
 
+    def fetch_snapshot(*_args: object) -> RoutingSnapshot:
+        current_head = control / "current-head"
+        return (
+            replace(snapshot, head_sha=current_head.read_text(encoding="utf-8"))
+            if current_head.exists() else snapshot
+        )
+
     def push(directory: Path, branch: str, expected: str) -> bool:
         nonlocal paused
         cycles = state.load_copilot_review_cycles()
         cycle = cycles.get("7")
         if not paused and (
             mode == "migrate-conflict"
-            or (mode == "contend" and cycle is not None and cycle.phase == "sending")
+            or (mode in ("contend", "head-change") and cycle is not None and cycle.phase == "sending")
         ):
             paused = True
             (control / f"candidate-{name}.json").write_text(json.dumps({
@@ -91,7 +102,7 @@ def run_worker(checkout: Path, control: Path, name: str, mode: str) -> int:
         (control / f"request-{name}.json").write_text(json.dumps(durable), encoding="utf-8")
         if mode in ("crash-after", "head-race"):
             pause()
-        return "next-head" if mode == "head-race" else snapshot.head_sha
+        return "next-head" if mode == "head-race" else durable["head_sha"]
 
     def other_delivery(*_args: object, **_kwargs: object) -> list[str]:
         if mode == "migrate-conflict":
@@ -99,7 +110,7 @@ def run_worker(checkout: Path, control: Path, name: str, mode: str) -> int:
         return []
 
     with (
-        patch("copilot_review_delivery.fetch_routing_snapshot", return_value=snapshot),
+        patch("copilot_review_delivery.fetch_routing_snapshot", side_effect=fetch_snapshot),
         patch("copilot_review_delivery.fetch_pr_reviews", return_value=[]),
         patch("copilot_review_delivery.request_copilot_review", side_effect=request),
         patch("copilot_review_delivery.utc_now", return_value=NOW),
@@ -221,6 +232,19 @@ class CopilotReviewGitIntegrationTest(unittest.TestCase):
                 worker.kill()
             worker.communicate(timeout=10)
 
+    def save_remote_cycle(self, cycle: CopilotReviewCycle) -> None:
+        writer = self.root / "cycle-writer"
+        self.git(self.root, "clone", "--branch", DELIVERY_BRANCH, str(self.remote), str(writer))
+        expected_sha = self.git(writer, "rev-parse", "HEAD")
+        (writer / REPO_KEY / state.COPILOT_REVIEW_FALLBACK_STATE_FILE).write_text(json.dumps({
+            "version": state.COPILOT_REVIEW_FALLBACK_STATE_VERSION,
+            "prs": {"7": asdict(cycle)},
+        }), encoding="utf-8")
+        self.git(writer, "add", ".")
+        with patch.dict(os.environ, self.environment):
+            self.assertTrue(state_branch.commit_staged_state(writer, "Advance review cycle", expected_sha))
+            self.assertTrue(state_branch.push_state(writer, DELIVERY_BRANCH, expected_sha))
+
     def test_legacy_migration_survives_a_real_cas_retry_and_receipt_rewrite(self) -> None:
         (self.seed / REPO_KEY / state.COPILOT_REVIEW_FALLBACK_STATE_FILE).write_text(json.dumps({
             "version": 1, "prs": {"7": {
@@ -282,6 +306,61 @@ class CopilotReviewGitIntegrationTest(unittest.TestCase):
         sent = json.loads(self.requests()[0].read_text(encoding="utf-8"))
         self.assertEqual(sent["dispatch_id"], self.cycle()["dispatch_id"])
 
+    def test_newer_head_budget_survives_a_stale_reservation_cas_retry(self) -> None:
+        worker = self.start_worker("stale", "head-change")
+        self.wait_ready(worker, "stale")
+        newer = copilot_review_cycle(
+            "next-head", phase="limited", request_count=3, limit_reason="requests",
+        )
+        self.save_remote_cycle(newer)
+        saved = self.cycle()
+        (self.root / "current-head").write_text("next-head", encoding="utf-8")
+        (self.root / "go").touch()
+        log = self.finish_worker(worker)
+        self.assertIn("push rejected (attempt 1)", log)
+        self.assertEqual(saved, self.cycle())
+        self.assertEqual([], self.requests())
+
+        self.snapshot = replace(self.snapshot, head_sha="next-head")
+        self.save_observation(copilot_review_request_needed=True)
+        with (
+            patch.object(state, "_state_dir", self.accepted),
+            patch.object(state, "_using_delivery_state", False),
+        ):
+            record_copilot_review_observation(
+                7, stored_dashboard_result(7, facts=dashboard_facts(
+                    head_sha=self.snapshot.head_sha, copilot_review_request_needed=True,
+                    copilot_request_fingerprint=self.snapshot.copilot_request_fingerprint,
+                )), NOW,
+            )
+        self.finish_worker(self.start_worker("later"))
+        self.assertEqual(saved, self.cycle())
+        self.assertEqual([], self.requests())
+
+    def test_checkpointed_head_change_preserves_the_preceding_budget_after_cancellation(self) -> None:
+        prior = copilot_review_cycle(
+            "next-head", phase="limited", request_count=3, limit_reason="requests",
+        )
+        self.save_remote_cycle(prior)
+        saved = self.cycle()
+        after = refresh_copilot_review_cycle(
+            prior, (), self.snapshot.head_sha, NOW, fallback_available=False,
+        )
+        self.save_observation(
+            copilot_review_request_needed=True,
+            copilot_review_cycle_update=CopilotReviewCycleUpdate(prior, after),
+        )
+        worker = self.start_worker("cancelled", "head-change")
+        self.wait_ready(worker, "cancelled")
+        (self.root / "current-head").write_text("next-head", encoding="utf-8")
+        (self.root / "go").touch()
+        self.finish_worker(worker)
+        self.assertEqual(saved, self.cycle())
+        self.assertEqual([], self.requests())
+        self.finish_worker(self.start_worker("restarted"))
+        self.assertEqual(saved, self.cycle())
+        self.assertEqual([], self.requests())
+
     def assert_crash_recovery(self, mode: str, expected_requests: int) -> None:
         worker = self.start_worker("crashed", mode)
         self.wait_ready(worker, "crashed")
@@ -308,7 +387,12 @@ class CopilotReviewGitIntegrationTest(unittest.TestCase):
         observed = state.load_copilot_review_cycles_file(
             self.root / "sender" / "state" / REPO_KEY / state.COPILOT_REVIEW_FALLBACK_STATE_FILE,
         )["7"]
-        self.save_observation(copilot_review_exists=True, copilot_review_observed_cycle=observed)
+        self.save_observation(
+            copilot_review_exists=True,
+            copilot_review_cycle_update=CopilotReviewCycleUpdate(
+                observed, replace(observed, phase="complete"),
+            ),
+        )
         (self.accepted / state.COPILOT_REVIEW_REQUEST_STATE_FILE).write_text(json.dumps({
             "version": state.COPILOT_REVIEW_REQUEST_STATE_VERSION, "prs": {},
         }), encoding="utf-8")

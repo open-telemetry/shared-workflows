@@ -33,6 +33,7 @@ from dashboard_state_update import (
     prepare_dashboard_update,
 )
 from dashboard_contracts import (
+    CopilotReviewCycleUpdate,
     DashboardCommandReply,
     DashboardFacts,
     DashboardRoute,
@@ -862,7 +863,7 @@ class PullRequestEvaluationTest(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(result.facts.copilot_review_request_needed)
 
     @patch("pull_request_evaluation.fetch_pull_request_source")
-    async def test_current_coverage_exports_the_cycle_snapshot_without_an_intent(self, fetch_raw) -> None:
+    async def test_current_coverage_exports_the_cycle_update_without_an_intent(self, fetch_raw) -> None:
         fetch_raw.return_value = pull_request_source(
             pull_request=pull_request_metadata(head_sha="new-head", base_branch="main"),
             reviews=(review_source(
@@ -881,14 +882,19 @@ class PullRequestEvaluationTest(unittest.IsolatedAsyncioTestCase):
             FakeClassificationOperation(),
         )
         self.assertIsInstance(result, EvaluationSuccess)
-        self.assertEqual(cycle, result.facts.copilot_review_observed_cycle)
+        update = result.facts.copilot_review_cycle_update
+        assert update is not None and update.after is not None
+        self.assertEqual(cycle, update.before)
+        self.assertEqual("complete", update.after.phase)
+        self.assertEqual("new-head", update.after.head_sha)
+        self.assertEqual(0, update.after.request_count)
         self.assertFalse(result.facts.copilot_review_request_in_flight)
         self.assertFalse(result.facts.copilot_review_request_needed)
 
     @patch("routing_decision.utc_now", return_value=datetime(2026, 8, 16, 12, tzinfo=timezone.utc))
     @patch("pull_request_evaluation.utc_now", return_value=datetime(2026, 8, 16, 12, tzinfo=timezone.utc))
     @patch("pull_request_evaluation.fetch_pull_request_source")
-    async def test_quota_limit_exports_the_cycle_snapshot_without_a_request_intent(
+    async def test_quota_limit_exports_the_cycle_update_without_a_request_intent(
         self, fetch_raw, _cycle_clock, _routing_clock,
     ) -> None:
         fetch_raw.return_value = pull_request_source(
@@ -913,7 +919,10 @@ class PullRequestEvaluationTest(unittest.IsolatedAsyncioTestCase):
         )
         self.assertIsInstance(result, EvaluationSuccess)
         self.assertEqual("quota", result.facts.copilot_review_request_limit_reason)
-        self.assertEqual(cycle, result.facts.copilot_review_observed_cycle)
+        self.assertEqual(
+            CopilotReviewCycleUpdate(cycle, replace(cycle, phase="limited", limit_reason="quota")),
+            result.facts.copilot_review_cycle_update,
+        )
         self.assertFalse(result.facts.copilot_review_request_in_flight)
         self.assertFalse(result.facts.copilot_review_request_needed)
 

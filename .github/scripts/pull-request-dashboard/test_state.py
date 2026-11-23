@@ -10,17 +10,21 @@ import tempfile
 import unittest
 from unittest.mock import ANY, patch
 
-from copilot_review import refresh_copilot_review_cycle
+from copilot_review import COPILOT_ERROR_BODY, refresh_copilot_review_cycle
 from dashboard_contracts import (
+    CopilotReviewCycle,
+    CopilotReviewCycleUpdate,
     DashboardCommandReply,
     DashboardRoute,
     DashboardState,
 )
 from dashboard_test_support import (
+    actor,
     copilot_review_cycle,
     dashboard_facts,
     dashboard_state,
     evaluation_success,
+    review_source,
     stored_dashboard_result,
 )
 from state import (
@@ -94,7 +98,7 @@ class StateTest(unittest.TestCase):
             save_copilot_review_cycles(cycles)
             path = copilot_review_fallback_state_path()
             data = json.loads(path.read_text(encoding="utf-8"))
-            for version in (4, 5, COPILOT_REVIEW_FALLBACK_STATE_VERSION):
+            for version in (4, 5, 6, COPILOT_REVIEW_FALLBACK_STATE_VERSION):
                 with self.subTest(version=version):
                     path.write_text(json.dumps({**data, "version": version}), encoding="utf-8")
                     save_copilot_review_requests({"7": {"head_sha": "next-head"}})
@@ -237,6 +241,9 @@ class StateTest(unittest.TestCase):
                         load_copilot_review_cycles()
 
     def test_cycle_facts_round_trip_with_explicit_limits(self) -> None:
+        cycle = copilot_review_cycle(
+            "current-head", dispatch_id="observed-cycle", baseline_review_ids=(11,),
+        )
         for reason in ("", "quota", "errors", "requests", "timeout"):
             with self.subTest(reason=reason):
                 facts = dashboard_facts(
@@ -244,18 +251,30 @@ class StateTest(unittest.TestCase):
                     copilot_review_fallback_available=True,
                     copilot_review_request_in_flight=not reason,
                     copilot_review_request_limit_reason=reason,
-                    copilot_review_observed_cycle=copilot_review_cycle(
-                        "current-head", dispatch_id="observed-cycle", baseline_review_ids=(11,),
+                    copilot_review_cycle_update=CopilotReviewCycleUpdate(
+                        cycle, replace(
+                            cycle, phase="limited" if reason else "accepted", limit_reason=reason,
+                        ),
                     ),
                 )
                 self.assertEqual(facts, decode_dashboard_facts(encode_dashboard_facts(facts)))
         self.assertFalse(decode_dashboard_facts({}).copilot_review_request_in_flight)
         self.assertEqual("", decode_dashboard_facts({}).copilot_review_request_limit_reason)
-        self.assertIsNone(decode_dashboard_facts({}).copilot_review_observed_cycle)
+        self.assertIsNone(decode_dashboard_facts({}).copilot_review_cycle_update)
+        for before, after in ((None, cycle), (cycle, None), (None, None)):
+            with self.subTest(before=before, after=after):
+                facts = dashboard_facts(copilot_review_cycle_update=CopilotReviewCycleUpdate(before, after))
+                self.assertEqual(facts, decode_dashboard_facts(encode_dashboard_facts(facts)))
         with self.assertRaisesRegex(ValueError, "invalid Copilot"):
             decode_dashboard_facts({"copilot_review_request_limit_reason": "exhausted"})
-        with self.assertRaisesRegex(ValueError, "invalid Copilot review cycle"):
-            decode_dashboard_facts({"copilot_review_observed_cycle": {"dispatch_id": "incomplete"}})
+        for update in (
+            0, [], {"before": None}, {"after": None},
+            {"before": {"dispatch_id": "incomplete"}, "after": None},
+            {"before": None, "after": {"dispatch_id": "incomplete"}},
+        ):
+            with self.subTest(update=update):
+                with self.assertRaisesRegex(ValueError, "invalid Copilot review cycle"):
+                    decode_dashboard_facts({"copilot_review_cycle_update": update})
 
     def test_coverage_checkpoint_completes_a_cycle_without_a_request_intent(self) -> None:
         with (
@@ -268,7 +287,9 @@ class StateTest(unittest.TestCase):
             save_dashboard_state_cache(dashboard_state(stored_dashboard_result(
                 7, facts=dashboard_facts(
                     head_sha="covered-head", copilot_review_exists=True,
-                    copilot_review_observed_cycle=cycle,
+                    copilot_review_cycle_update=CopilotReviewCycleUpdate(
+                        cycle, CopilotReviewCycle("covered-head", phase="complete"),
+                    ),
                 ),
             )))
             save_copilot_review_requests({})
@@ -285,11 +306,14 @@ class StateTest(unittest.TestCase):
             patch("state._using_delivery_state", False),
         ):
             cycle = copilot_review_cycle("current-head", dispatch_id="newer")
+            observed = replace(cycle, dispatch_id="older")
             save_copilot_review_cycles({"7": cycle})
             save_dashboard_state_cache(dashboard_state(stored_dashboard_result(
                 7, facts=dashboard_facts(
                     head_sha="current-head", copilot_review_exists=True,
-                    copilot_review_observed_cycle=replace(cycle, dispatch_id="older"),
+                    copilot_review_cycle_update=CopilotReviewCycleUpdate(
+                        observed, replace(observed, phase="complete"),
+                    ),
                 ),
             )))
             record_copilot_review_cycle_observations()
@@ -305,7 +329,9 @@ class StateTest(unittest.TestCase):
             save_dashboard_state_cache(dashboard_state(stored_dashboard_result(
                 7, facts=dashboard_facts(
                     head_sha="old-head", copilot_review_exists=True,
-                    copilot_review_observed_cycle=observed,
+                    copilot_review_cycle_update=CopilotReviewCycleUpdate(
+                        observed, replace(observed, phase="complete"),
+                    ),
                 ),
             )))
             for cycle in (
@@ -334,7 +360,9 @@ class StateTest(unittest.TestCase):
                     head_sha="current-head",
                     copilot_review_quota_exhausted=True,
                     copilot_review_request_limit_reason="quota",
-                    copilot_review_observed_cycle=cycle,
+                    copilot_review_cycle_update=CopilotReviewCycleUpdate(
+                        cycle, replace(cycle, phase="limited", limit_reason="quota"),
+                    ),
                 ),
             )))
             save_copilot_review_requests({})
@@ -367,7 +395,9 @@ class StateTest(unittest.TestCase):
                     head_sha="current-head",
                     copilot_review_quota_exhausted=True,
                     copilot_review_request_limit_reason="quota",
-                    copilot_review_observed_cycle=cycle,
+                    copilot_review_cycle_update=CopilotReviewCycleUpdate(
+                        cycle, replace(cycle, phase="limited", limit_reason="quota"),
+                    ),
                 ),
             )))
             save_copilot_review_requests({})
@@ -399,7 +429,9 @@ class StateTest(unittest.TestCase):
                     copilot_review_quota_exhausted=True,
                     copilot_review_request_in_flight=False,
                     copilot_review_request_limit_reason="quota",
-                    copilot_review_observed_cycle=cycle,
+                    copilot_review_cycle_update=CopilotReviewCycleUpdate(
+                        cycle, replace(cycle, phase="limited", limit_reason="quota"),
+                    ),
                 ),
             )))
             save_copilot_review_requests({})
@@ -422,7 +454,7 @@ class StateTest(unittest.TestCase):
             patch("state._using_delivery_state", False),
         ):
             for phase, in_flight in (
-                ("sending", False), ("unknown", False), ("accepted", True),
+                ("sending", False), ("unknown", True), ("accepted", True),
             ):
                 with self.subTest(phase=phase):
                     cycle = copilot_review_cycle(
@@ -435,8 +467,11 @@ class StateTest(unittest.TestCase):
                             head_sha="current-head",
                             copilot_review_quota_exhausted=True,
                             copilot_review_request_in_flight=in_flight,
-                            copilot_review_request_limit_reason="quota",
-                            copilot_review_observed_cycle=cycle,
+                            copilot_review_request_limit_reason="timeout" if phase == "sending" else "",
+                            copilot_review_cycle_update=CopilotReviewCycleUpdate(
+                                cycle, replace(cycle, phase="limited", limit_reason="timeout")
+                                if phase == "sending" else cycle,
+                            ),
                         ),
                     )))
                     record_copilot_review_cycle_observations()
@@ -448,13 +483,14 @@ class StateTest(unittest.TestCase):
             patch("state._state_dir", Path(directory)),
             patch("state._using_delivery_state", False),
         ):
+            observed = copilot_review_cycle("current-head", dispatch_id="observed")
             save_dashboard_state_cache(dashboard_state(stored_dashboard_result(
                 7, facts=dashboard_facts(
                     head_sha="current-head",
                     copilot_review_quota_exhausted=True,
                     copilot_review_request_limit_reason="quota",
-                    copilot_review_observed_cycle=copilot_review_cycle(
-                        "current-head", dispatch_id="observed",
+                    copilot_review_cycle_update=CopilotReviewCycleUpdate(
+                        observed, replace(observed, phase="limited", limit_reason="quota"),
                     ),
                 ),
             )))
@@ -468,6 +504,69 @@ class StateTest(unittest.TestCase):
                     save_copilot_review_cycles({"7": cycle})
                     record_copilot_review_cycle_observations()
                     self.assertEqual(cycle, load_copilot_review_cycles()["7"])
+
+    def test_checkpointing_does_not_clear_or_renew_a_paused_budget(self) -> None:
+        cycle = copilot_review_cycle(
+            "current-head", requester="fallback", phase="limited",
+            request_count=2, limit_reason="quota",
+        )
+        resumed = refresh_copilot_review_cycle(
+            cycle, (), "current-head", datetime(2026, 8, 16, 13, tzinfo=timezone.utc),
+            fallback_available=True,
+        )
+        with (
+            tempfile.TemporaryDirectory() as directory,
+            patch("state._state_dir", Path(directory)),
+            patch("state._using_delivery_state", False),
+        ):
+            for after in (None, resumed):
+                with self.subTest(after=after):
+                    save_copilot_review_cycles({"7": cycle})
+                    save_dashboard_state_cache(dashboard_state(stored_dashboard_result(
+                        7, facts=dashboard_facts(
+                            head_sha="current-head", copilot_review_fallback_available=True,
+                            copilot_review_cycle_update=CopilotReviewCycleUpdate(cycle, after),
+                        ),
+                    )))
+                    save_copilot_review_requests({})
+                    record_copilot_review_cycle_observations()
+                    self.assertEqual({"7": cycle}, load_copilot_review_cycles())
+
+    def test_terminal_policy_decisions_are_checkpointed_without_a_request_intent(self) -> None:
+        errors = tuple(review_source(
+            database_id=review_id, actor=actor("copilot"), commit_id="current-head",
+            body=COPILOT_ERROR_BODY, submitted_at="2026-08-16T08:01:00Z",
+        ) for review_id in (11, 12))
+        with (
+            tempfile.TemporaryDirectory() as directory,
+            patch("state._state_dir", Path(directory)),
+            patch("state._using_delivery_state", False),
+        ):
+            for reason, reviews, now in (
+                ("errors", errors, datetime(2026, 8, 16, 9, tzinfo=timezone.utc)),
+                ("timeout", (), datetime(2026, 8, 16, 12, tzinfo=timezone.utc)),
+            ):
+                with self.subTest(reason=reason):
+                    cycle = copilot_review_cycle("current-head")
+                    save_copilot_review_cycles({"7": cycle})
+                    after = refresh_copilot_review_cycle(
+                        cycle, reviews, "current-head", now, fallback_available=False,
+                    )
+                    save_dashboard_state_cache(dashboard_state(stored_dashboard_result(
+                        7, facts=dashboard_facts(
+                            head_sha="current-head",
+                            copilot_review_request_limit_reason=reason,
+                            copilot_review_error_count=2 if reason == "errors" else 0,
+                            copilot_review_cycle_update=CopilotReviewCycleUpdate(cycle, after),
+                        ),
+                    )))
+                    save_copilot_review_requests({})
+                    record_copilot_review_cycle_observations()
+                    record_copilot_review_cycle_observations()
+                    saved = load_copilot_review_cycles()["7"]
+                    self.assertEqual("limited", saved.phase)
+                    self.assertEqual(reason, saved.limit_reason)
+                    self.assertEqual(1, saved.request_count)
 
     def test_uncovered_legacy_receipts_are_persisted_before_receipt_format_changes(self) -> None:
         with (
@@ -1247,7 +1346,7 @@ class StateTest(unittest.TestCase):
     def test_notification_state_version_is_independent(self) -> None:
         self.assertEqual(BACKFILL_STATE_VERSION, 3)
         self.assertEqual(NOTIFICATION_STATE_VERSION, 3)
-        self.assertEqual(DASHBOARD_STATE_VERSION, 26)
+        self.assertEqual(DASHBOARD_STATE_VERSION, 27)
         self.assertEqual(DASHBOARD_STATE_COMPATIBLE_VERSIONS, ())
         self.assertEqual(STATUS_COMMENT_ROLLOUT_STATE_VERSION, 3)
         self.assertEqual(STATUS_COMMENT_REVISION, 22)

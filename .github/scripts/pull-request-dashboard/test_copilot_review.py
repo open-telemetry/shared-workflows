@@ -26,7 +26,7 @@ from copilot_review_delivery import (
     deliver_copilot_review_requests,
     record_copilot_review_observation,
 )
-from dashboard_contracts import DashboardRoute
+from dashboard_contracts import CopilotReviewCycleUpdate, DashboardRoute
 from dashboard_test_support import (
     actor,
     copilot_review_cycle,
@@ -801,6 +801,25 @@ class CopilotReviewDeliveryTest(unittest.TestCase):
     def deliver(self, commit=None) -> list[str]:
         return deliver_copilot_review_requests("open-telemetry/example", commit or self.commit)
 
+    def retry_with_cycle(self, cycle):
+        calls = 0
+
+        def persist(action):
+            nonlocal calls
+            calls += 1
+            if calls == 1:
+                self.in_commit = True
+                try:
+                    action()
+                    self.restore()
+                finally:
+                    self.in_commit = False
+                save_copilot_review_cycles({"7": cycle})
+                self.commit(lambda: 0)
+            self.commit(action)
+
+        return persist
+
     def test_first_request_is_durable_and_not_repeated_without_confirmation(self) -> None:
         self.assertEqual([], self.deliver())
         self.request.assert_called_once_with("PR_node")
@@ -1093,6 +1112,26 @@ class CopilotReviewDeliveryTest(unittest.TestCase):
         self.request.assert_not_called()
         self.assertEqual("another-worker", load_copilot_review_cycles()["7"].dispatch_id)
 
+    def test_stale_cas_retry_preserves_a_newer_head_budget(self) -> None:
+        newer = copilot_review_cycle(
+            "next-head", phase="limited", request_count=3, limit_reason="requests",
+        )
+        self.fetch_snapshot.side_effect = [
+            self.snapshot, replace(self.snapshot, head_sha="next-head"),
+        ]
+        self.assertEqual([], self.deliver(self.retry_with_cycle(newer)))
+        self.request.assert_not_called()
+        self.assertEqual({"7": newer}, load_copilot_review_cycles())
+
+    def test_stale_cas_retry_does_not_consume_a_changed_same_head_budget(self) -> None:
+        prior = copilot_review_cycle("current-head", phase="ready")
+        save_copilot_review_cycles({"7": prior})
+        self.commit(lambda: 0)
+        newer = replace(prior, request_count=2, baseline_review_ids=(10,))
+        self.assertEqual([], self.deliver(self.retry_with_cycle(newer)))
+        self.request.assert_not_called()
+        self.assertEqual({"7": newer}, load_copilot_review_cycles())
+
     def test_reservation_changed_during_preflight_prevents_rpc(self) -> None:
         calls = 0
 
@@ -1118,7 +1157,9 @@ class CopilotReviewDeliveryTest(unittest.TestCase):
             save_dashboard_state_cache(dashboard_state(stored_dashboard_result(
                 7, facts=dashboard_facts(
                     head_sha=self.snapshot.head_sha, copilot_review_exists=True,
-                    copilot_review_observed_cycle=reservation,
+                    copilot_review_cycle_update=CopilotReviewCycleUpdate(
+                        reservation, replace(reservation, phase="complete"),
+                    ),
                 ),
             )))
             self.commit(record_copilot_review_cycle_observations)
@@ -1159,6 +1200,31 @@ class CopilotReviewDeliveryTest(unittest.TestCase):
         self.assertEqual([], self.deliver())
         self.request.assert_not_called()
         self.assertEqual({}, load_copilot_review_cycles())
+        self.assertEqual({}, load_copilot_review_requests())
+
+    def test_cancelled_head_reset_restores_the_preceding_budget(self) -> None:
+        prior = copilot_review_cycle(
+            "next-head", phase="limited", request_count=3, limit_reason="requests",
+        )
+        save_copilot_review_cycles({"7": prior})
+        self.commit(lambda: 0)
+        self.fetch_snapshot.side_effect = [
+            self.snapshot, replace(self.snapshot, head_sha="next-head"),
+        ]
+        self.assertEqual([], self.deliver())
+        self.request.assert_not_called()
+        self.assertEqual({"7": prior}, load_copilot_review_cycles())
+
+    def test_missing_fallback_credentials_do_not_reset_another_heads_budget(self) -> None:
+        os.environ["COPILOT_REVIEW_FALLBACK_TOKEN"] = ""
+        prior = copilot_review_cycle(
+            "next-head", phase="limited", request_count=3, limit_reason="requests",
+        )
+        save_copilot_review_cycles({"7": prior})
+        self.enqueue(quota_exhausted=True)
+        self.assertEqual([], self.deliver())
+        self.request.assert_not_called()
+        self.assertEqual({"7": prior}, load_copilot_review_cycles())
         self.assertEqual({}, load_copilot_review_requests())
 
     def test_mutation_head_race_does_not_acknowledge_the_old_intent(self) -> None:

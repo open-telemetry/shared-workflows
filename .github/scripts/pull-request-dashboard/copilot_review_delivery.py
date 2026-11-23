@@ -21,11 +21,12 @@ from copilot_review import (
     refresh_copilot_review_cycle,
     stale_request_reason,
 )
-from dashboard_contracts import CopilotReviewCycle, StoredDashboardResult
+from dashboard_contracts import CopilotReviewCycle, CopilotReviewCycleUpdate, StoredDashboardResult
 from github_cli import CopilotReviewRequestRejected, fetch_pr_reviews, request_copilot_review
 from pull_request_source import normalize_reviews
 from routing_snapshot import fetch_routing_snapshot
 from state import (
+    apply_copilot_review_cycle_update,
     load_copilot_review_cycles,
     load_copilot_review_requests,
     save_copilot_review_cycles,
@@ -96,28 +97,48 @@ def deliver_copilot_review_requests(
             update_receipt(discard=True)
             return 0
 
+        def commit_cycle_update(
+            update: CopilotReviewCycleUpdate,
+            requested_at: str | None = None,
+            *,
+            discard: bool = False,
+        ) -> bool:
+            applied = False
+
+            def record() -> int:
+                nonlocal applied
+                cycles = load_copilot_review_cycles()
+                applied = apply_copilot_review_cycle_update(cycles, key, update)
+                if applied:
+                    save_copilot_review_cycles(cycles)
+                    # Empty timestamps checkpoint pending receipts; None leaves receipts untouched.
+                    if requested_at is not None or discard:
+                        update_receipt(requested_at, discard=discard)
+                return 0
+
+            commit_state(record)
+            if not applied:
+                print(
+                    f"Copilot cycle changed for PR #{pr_number}; conditional update skipped",
+                    file=sys.stderr,
+                )
+            return applied
+
         def finish(
             cycle: CopilotReviewCycle | None,
             requested_at: str | None = None,
             *,
             discard: bool = False,
         ) -> None:
-            def record() -> int:
-                cycles = load_copilot_review_cycles()
-                current = cycles.get(key)
-                if current != reservation and current != cycle:
-                    raise RuntimeError("Copilot dispatch changed; refusing to overwrite its state")
-                if cycle is None:
-                    cycles.pop(key, None)
-                else:
-                    cycles[key] = cycle
-                save_copilot_review_cycles(cycles)
-                update_receipt(requested_at, discard=discard)
-                return 0
-
-            commit_state(record)
+            if not commit_cycle_update(
+                CopilotReviewCycleUpdate(reservation, cycle),
+                requested_at if requested_at is not None else "",
+                discard=discard,
+            ):
+                raise RuntimeError("Copilot dispatch changed; refusing to overwrite its state")
 
         try:
+            observed_cycle = load_copilot_review_cycles().get(key)
             snapshot = fetch_routing_snapshot(repo, pr_number)
             stale_reason = stale_request_reason(entry, snapshot)
             if stale_reason:
@@ -152,64 +173,51 @@ def deliver_copilot_review_requests(
                 continue
             baseline_ids = copilot_review_ids(reviews)
             prepared_at = utc_now()
-            dispatch_id = str(uuid.uuid4())
-
-            def reserve() -> int:
-                nonlocal reservation, rollback_cycle
-                reservation = None
-                cycles = load_copilot_review_cycles()
-                prior = cycles.get(key)
-                if prior is not None and prior.dispatch_id == dispatch_id:
-                    if prior.phase != "sending":
-                        raise RuntimeError("Copilot dispatch was already processed")
-                    reservation = prior
-                    return 0
-                cycle = refresh_copilot_review_cycle(
-                    prior, reviews, snapshot.head_sha, prepared_at,
-                    fallback_available=bool(token),
-                )
-                if cycle is not None:
-                    cycles[key] = cycle
-                if (
-                    copilot_review_in_flight(cycle)
-                    or (cycle is not None and cycle.phase in ("limited", "complete"))
-                ):
-                    save_copilot_review_cycles(cycles)
-                    return 0
-                if (
-                    copilot_quota_issue(reviews, snapshot.head_sha)
+            cycle = refresh_copilot_review_cycle(
+                observed_cycle, reviews, snapshot.head_sha, prepared_at,
+                fallback_available=bool(token),
+            )
+            # Keep same-head settlement, but retain the prior budget for an unsent head reset.
+            rollback_cycle = (
+                observed_cycle
+                if observed_cycle is not None and cycle is not None
+                and observed_cycle.head_sha != cycle.head_sha
+                else cycle
+            )
+            if (
+                copilot_review_in_flight(cycle)
+                or (cycle is not None and cycle.phase in ("limited", "complete"))
+            ):
+                commit_cycle_update(CopilotReviewCycleUpdate(observed_cycle, cycle))
+                continue
+            if (
+                copilot_quota_issue(reviews, snapshot.head_sha)
+                or entry.get("quota_exhausted")
+            ) and not token:
+                commit_cycle_update(CopilotReviewCycleUpdate(observed_cycle, rollback_cycle), discard=True)
+                continue
+            requester = (
+                "fallback"
+                if token and (
+                    (cycle is not None and cycle.requester == "fallback")
                     or entry.get("quota_exhausted")
-                ) and not token:
-                    save_copilot_review_cycles(cycles)
-                    update_receipt(discard=True)
-                    return 0
-                rollback_cycle = cycle
-                requester = (
-                    "fallback"
-                    if token and (
-                        (cycle is not None and cycle.requester == "fallback")
-                        or entry.get("quota_exhausted")
-                        or any(is_copilot_quota_failure(review) for review in reviews)
-                    )
-                    else "app"
+                    or any(is_copilot_quota_failure(review) for review in reviews)
                 )
-                reservation = replace(
-                    cycle or CopilotReviewCycle(snapshot.head_sha),
-                    requester=requester,
-                    phase="sending",
-                    request_count=(cycle.request_count if cycle is not None else 0) + 1,
-                    dispatch_id=dispatch_id,
-                    started_at=(cycle.started_at if cycle is not None else "") or format_ts(prepared_at),
-                    sent_at="",
-                    baseline_review_ids=baseline_ids,
-                    limit_reason="",
-                )
-                cycles[key] = reservation
-                save_copilot_review_cycles(cycles)
-                return 0
-
-            commit_state(reserve)
-            if reservation is None:
+                else "app"
+            )
+            reservation = replace(
+                cycle or CopilotReviewCycle(snapshot.head_sha),
+                requester=requester,
+                phase="sending",
+                request_count=(cycle.request_count if cycle is not None else 0) + 1,
+                dispatch_id=str(uuid.uuid4()),
+                started_at=(cycle.started_at if cycle is not None else "") or format_ts(prepared_at),
+                sent_at="",
+                baseline_review_ids=baseline_ids,
+                limit_reason="",
+            )
+            if not commit_cycle_update(CopilotReviewCycleUpdate(observed_cycle, reservation)):
+                reservation = None
                 continue
             snapshot = fetch_routing_snapshot(repo, pr_number)
             stale_reason = stale_request_reason(entry, snapshot)
