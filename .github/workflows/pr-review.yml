@@ -14,7 +14,7 @@ permissions: {}
 
 jobs:
   gate:
-    if: github.repository == 'open-telemetry/shared-workflows' && github.event_name == 'workflow_dispatch'
+    if: github.repository == 'open-telemetry/shared-workflows'
     runs-on: ubuntu-latest
     permissions:
       contents: read

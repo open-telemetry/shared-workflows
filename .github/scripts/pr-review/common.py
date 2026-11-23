@@ -55,5 +55,18 @@ def gh_json(args: list[str]) -> Any:
     return json.loads(result.stdout or "null")
 
 
+def pr_metadata(repo: str, pr: int) -> dict[str, Any]:
+    metadata = gh_json(["api", f"repos/{repo}/pulls/{pr}"])
+    if metadata["html_url"] != f"https://github.com/{repo}/pull/{pr}" or metadata["number"] != pr:
+        raise RuntimeError("GitHub resolved a different PR target")
+    return metadata
+
+
+def check_snapshot(repo: str, pr: int, base: str, head: str) -> None:
+    live = pr_metadata(repo, pr)
+    if live["state"] != "open" or (live["base"]["sha"], live["head"]["sha"]) != (base, head):
+        raise RuntimeError("The PR changed or closed during review; start a new run")
+
+
 def write_json(path: Path, value: Any) -> None:
     path.write_text(json.dumps(value, indent=2, sort_keys=True) + "\n", encoding="utf-8")

@@ -9,6 +9,7 @@ from unittest import mock
 import common
 import gate
 import post
+import prepare
 import review as runner
 import sandbox
 from common import write_json
@@ -69,8 +70,9 @@ class ReviewTest(unittest.TestCase):
             self.assertEqual(second[3:], first[3:])
             self.assertEqual(final[3:], first[3:])
             self.assertEqual(check.call_count, 2)
-            self.assertEqual(post.load_json(path, "result")["repository"], "org/repo")
-            self.assertEqual(post.load_json(path, "result")["review"], {
+            result = json.loads(path.read_text(encoding="utf-8"))
+            self.assertEqual(result["repository"], "org/repo")
+            self.assertEqual(result["review"], {
                 "body": "No findings.", "comments": [], "commit_id": "head",
             })
 
@@ -106,6 +108,7 @@ class ReviewTest(unittest.TestCase):
             result = runner.verify_findings("Check both passes.", Path("source"), Path("input"), scope, metadata)
 
         self.assertEqual(model.call_count, 2)
+        self.assertIn("Invalid diff anchor for 'example.txt':1-1", model.call_args.args[2])
         self.assertEqual(result["review"]["comments"], [
             {"path": "example.txt", "line": 2, "side": "RIGHT", "body": "A finding"},
         ])
@@ -151,6 +154,17 @@ class ReviewTest(unittest.TestCase):
             bundle = Path(directory)
             runner.model_pass("model", "max", "prompt", bundle / "checkout", bundle)
 
+    def test_model_pass_redacts_the_token_in_stderr_diagnostics(self):
+        response = subprocess.CompletedProcess([], 1, stdout="", stderr="AWF failed with fixture-token\n")
+        with (
+            tempfile.TemporaryDirectory() as directory,
+            mock.patch.dict(os.environ, {"COPILOT_GITHUB_TOKEN": "fixture-token"}),
+            mock.patch.object(runner, "run_in_sandbox", return_value=response),
+            self.assertRaisesRegex(RuntimeError, r"AWF failed with \[redacted\]"),
+        ):
+            bundle = Path(directory)
+            runner.model_pass("model", "max", "prompt", bundle / "checkout", bundle)
+
     def test_model_pass_rejects_partial_output_on_timeout(self):
         response = subprocess.CompletedProcess(
             [], 124, stdout='{"type":"assistant.message","data":{"content":"{\\"comments\\":[]}"}}\n',
@@ -191,7 +205,7 @@ class ReviewTest(unittest.TestCase):
                 self.assertNotIn("GH_TOKEN", env)
                 self.assertNotIn("ACTIONS_RUNTIME_TOKEN", env)
                 self.assertNotIn("GITHUB_TOKEN", env)
-                config = post.load_json(Path(args[args.index("--config") + 1]), "firewall config")
+                config = json.loads(Path(args[args.index("--config") + 1]).read_text(encoding="utf-8"))
                 self.assertEqual(config["network"]["allowDomains"], [
                     "github.com", "release-assets.githubusercontent.com",
                 ])
@@ -259,7 +273,7 @@ class ReviewTest(unittest.TestCase):
             for added in (14, 15):
                 with self.subTest(added=added):
                     replacement = "unchanged\n" + "new\n" * added
-                    result = post.prepare_review({
+                    result = prepare.prepare_review({
                         "body": "Review summary",
                         "comments": [{
                             "kind": "simplification", "path": "example.txt",
@@ -276,8 +290,8 @@ class ReviewTest(unittest.TestCase):
                     self.assertEqual(review["comments"][0]["body"], body)
 
     def test_plain_comment_does_not_read_source(self):
-        with mock.patch.object(post, "run") as git:
-            result = post.prepare_review(
+        with mock.patch.object(prepare, "run") as git:
+            result = prepare.prepare_review(
                 {"body": "Review summary", "comments": [{
                     "kind": "review", "path": "example.txt", "line": 2, "body": "A finding",
                 }]},
@@ -302,15 +316,15 @@ class ReviewTest(unittest.TestCase):
 
             def submit(args):
                 self.assertEqual(args[:5], ["api", "repos/org/repo/pulls/123/reviews", "--method", "POST", "--input"])
-                self.assertEqual(post.load_json(Path(args[5]), "review"), {**review, "event": "COMMENT"})
+                self.assertEqual(json.loads(Path(args[5]).read_text(encoding="utf-8")), {**review, "event": "COMMENT"})
                 return {"html_url": "https://example.test/review"}
 
             with (
-                mock.patch.object(runner, "check_snapshot") as check,
+                mock.patch.object(post, "check_snapshot") as check,
                 mock.patch.object(post, "gh_json", side_effect=submit) as api,
-                mock.patch.object(runner, "progress") as log,
+                mock.patch.object(post, "progress") as log,
             ):
-                runner.publish_result("org/repo", 123, path)
+                post.publish_result("org/repo", 123, path)
             check.assert_called_once_with("org/repo", 123, "base", "head")
             api.assert_called_once()
             log.assert_called_once_with("Published review https://example.test/review")
@@ -323,10 +337,10 @@ class ReviewTest(unittest.TestCase):
                 "review": {"commit_id": "head", "comments": []},
             })
             with (
-                mock.patch.object(runner, "check_snapshot") as check,
-                mock.patch.object(runner, "gh_json", return_value={"html_url": "https://example.test"}) as api,
+                mock.patch.object(post, "check_snapshot") as check,
+                mock.patch.object(post, "gh_json", return_value={"html_url": "https://example.test"}) as api,
             ):
-                runner.publish_result("org/repo", 123, path)
+                post.publish_result("org/repo", 123, path)
             check.assert_called_once_with("org/repo", 123, "base", "head")
             api.assert_called_once_with(
                 ["api", "-X", "POST", "repos/org/repo/issues/123/comments", "-f", "body=No findings."]
@@ -338,22 +352,22 @@ class ReviewTest(unittest.TestCase):
                 path = Path(directory) / "result.json"
                 write_json(path, {"repository": repo, "pr": pr})
                 with (
-                    mock.patch.object(runner, "gh_json") as api,
+                    mock.patch.object(post, "gh_json") as api,
                     self.assertRaisesRegex(RuntimeError, "different PR"),
                 ):
-                    runner.publish_result("org/repo", 123, path)
+                    post.publish_result("org/repo", 123, path)
                 api.assert_not_called()
 
     def test_snapshot_rejects_closed_or_changed_prs_in_the_target_repository(self):
         for state, base, head in (("closed", "base", "head"), ("open", "new", "head"), ("open", "base", "new")):
             with (
                 self.subTest(state=state, base=base, head=head),
-                mock.patch.object(runner, "pr_metadata", return_value={
+                mock.patch.object(common, "pr_metadata", return_value={
                     "state": state, "base": {"sha": base}, "head": {"sha": head},
                 }) as metadata,
                 self.assertRaisesRegex(RuntimeError, "changed or closed"),
             ):
-                runner.check_snapshot("org/repo", 123, "base", "head")
+                common.check_snapshot("org/repo", 123, "base", "head")
                 metadata.assert_called_once_with("org/repo", 123)
 
     def test_windows_subprocess_uses_no_window(self):

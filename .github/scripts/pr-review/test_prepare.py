@@ -3,6 +3,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
+import common
 import prepare
 
 
@@ -18,12 +19,12 @@ class ReviewBundleTest(unittest.TestCase):
 
     def test_metadata_uses_explicit_target_and_checks_resolved_url(self):
         metadata = {"number": 123, "html_url": "https://github.com/org/repo/pull/123"}
-        with mock.patch.object(prepare, "gh_json", return_value=metadata) as api:
-            self.assertEqual(prepare.pr_metadata("org/repo", 123), metadata)
+        with mock.patch.object(common, "gh_json", return_value=metadata) as api:
+            self.assertEqual(common.pr_metadata("org/repo", 123), metadata)
             api.assert_called_once_with(["api", "repos/org/repo/pulls/123"])
             api.return_value = {**metadata, "html_url": "https://github.com/other/repo/pull/123"}
             with self.assertRaisesRegex(RuntimeError, "different PR target"):
-                prepare.pr_metadata("org/repo", 123)
+                common.pr_metadata("org/repo", 123)
 
     def test_bundle_writes_only_the_diff_from_the_target_repository(self):
         metadata = {
