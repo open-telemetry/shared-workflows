@@ -53,13 +53,6 @@ Keep public examples current.
 
 
 class ValidationTest(unittest.TestCase):
-    def test_path_scope(self):
-        document = '---\napplyTo: "docs/**/*.md, README.md"\n---\nNo stale docs.'
-        for path in ("README.md", "docs/top.md", "docs/sub/page.md"):
-            self.assertTrue(audit.applies_to(NESTED, document, path))
-        for path in ("sub/README.md", "example/docs/sub/page.md", "docs/file.java"):
-            self.assertFalse(audit.applies_to(NESTED, document, path))
-
     def test_small_document_edit_accepts_markdown_and_multiple_lines(self):
         before = "The timeout is ten seconds.\nSee the notes."
         original = f"Overview\n\n{before}\n\n```yaml\nsetting: true\n```\n"
@@ -67,12 +60,12 @@ class ValidationTest(unittest.TestCase):
         self.assertEqual(audit.edited_content(edit, original), original.replace(before, edit["after"]))
         self.assertEqual(audit.edited_content(edit | {"after": ""}, original), original.replace(before, ""))
 
-    def test_edit_must_match_one_span_in_a_markdown_file(self):
-        edit = {"path": "docs/settings.md", "before": "Old.", "after": "New."}
+    def test_edit_must_match_one_span_at_a_repository_relative_path(self):
+        edit = {"path": "build.gradle", "before": "Old.", "after": "New."}
         for invalid, original in (
-            ({"path": ".github/workflows/test.md"}, "Old."),
+            ({"path": "/README.md"}, "Old."),
             ({"path": "docs/../README.md"}, "Old."),
-            ({"path": "build.gradle"}, "Old."),
+            ({"path": "src\\..\\README.md"}, "Old."),
             ({}, "Moved."),
             ({}, "Old.\nOld."),
             ({"before": " "}, " "),
@@ -111,16 +104,19 @@ class PassTest(unittest.TestCase):
         read_blob.assert_not_called()
 
     @patch.object(audit, "summary")
-    @patch.object(audit, "read_blob", return_value="Old value in the docs.\n")
+    @patch.object(audit, "read_blob", return_value="oldValue();\n")
     @patch.object(model, "ask")
     def test_publish_keeps_finding_even_when_proposed_edit_is_unsupported(self, ask, read_blob, summary):
-        document = '---\napplyTo: "docs/**"\n---\n' + FIRST
+        document = '---\napplyTo: "**"\n---\n' + FIRST
         rule = Rule(NESTED, FIRST, 4, 5)
-        reason = "The timeout in `docs/settings.md` is wrong."
-        edit = {"path": "docs/settings.md", "before": "Old value", "after": "New `timeout`"}
-        entries = {"docs/settings.md": "a" * 40, "README.md": "b" * 40}
-        for candidate, publishable in ((edit, True), (edit | {"before": "absent"}, False),
-                                       (edit | {"path": "README.md"}, False)):
+        reason = "Use the new value."
+        edit = {"path": "src/Settings.java", "before": "oldValue()", "after": "newValue()"}
+        entries = {"src/Settings.java": ("100644", "a" * 40),
+                   ".github/workflows/check.yml": ("100644", "a" * 40),
+                   "gradlew": ("100755", "b" * 40)}
+        for candidate, publishable in ((edit, True), (edit | {"path": ".github/workflows/check.yml"}, True),
+                                       (edit | {"path": "gradlew"}, True), (edit | {"before": "absent"}, False),
+                                       (edit | {"path": "missing.java"}, False)):
             with self.subTest(candidate=candidate):
                 ask.reset_mock()
                 summary.reset_mock()
@@ -131,7 +127,9 @@ class PassTest(unittest.TestCase):
                 self.assertEqual((status, explanation), ("finding", reason))
                 ask.assert_called_once()
                 if publishable:
-                    self.assertEqual(fix, {"edit": edit, "original": read_blob.return_value, "oid": "a" * 40})
+                    mode, oid = entries[candidate["path"]]
+                    self.assertEqual(fix, {"edit": candidate, "original": read_blob.return_value,
+                                           "oid": oid, "mode": mode})
                     summary.assert_not_called()
                 else:
                     self.assertIsNone(fix)
@@ -151,7 +149,9 @@ class PassTest(unittest.TestCase):
             with self.subTest(outcome=outcome):
                 repo = audit.target()
                 snapshot.reset_mock()
-                snapshot.return_value = ("main", "a" * 40, "b" * 40, {ROOT: "root", NESTED: "nested"})
+                snapshot.return_value = ("main", "a" * 40, "b" * 40, {
+                    ROOT: ("100644", "root"), NESTED: ("100644", "nested"),
+                })
                 read_cursor.return_value = ("c" * 40, "d" * 40, {"path": ROOT, "text": FIRST})
                 read_blob.side_effect = [
                     f"{FIRST}\n- Clean rule.\n",
@@ -180,6 +180,46 @@ class PassTest(unittest.TestCase):
                 else:
                     self.assertIsNone(result["rule"])
                     self.assertEqual(result["completed"], {"path": NESTED, "text": "- Final rule."})
+
+    @patch.dict(os.environ, {"GITHUB_REPOSITORY": "open-telemetry/example"})
+    @patch("builtins.print")
+    @patch.object(audit, "summary")
+    @patch.object(audit, "read_blob")
+    @patch.object(audit, "read_cursor", return_value=(None, None, None))
+    @patch.object(audit, "snapshot")
+    @patch.object(model, "ask")
+    def test_publish_continues_past_unfixable_findings_until_fix_or_end(
+        self, ask, snapshot, _read_cursor, read_blob, summary, _print
+    ):
+        original = "oldValue();\n"
+        oid = audit.blob_sha(original)
+        edit = {"path": "src/Settings.java", "before": "oldValue()", "after": "newValue()"}
+        snapshot.return_value = ("main", "a" * 40, "b" * 40, {
+            ROOT: ("100644", "root"), edit["path"]: ("100644", oid),
+        })
+        documents = {"root": "- First rule.\n- Second rule.\n- Third rule.\n", oid: original}
+        read_blob.side_effect = lambda _, key: documents[key]
+        for candidate in (None, edit):
+            with self.subTest(candidate=candidate):
+                summary.reset_mock()
+                ask.reset_mock()
+                ask.side_effect = [
+                    {"status": "finding", "reason": "First finding.", "edit": None},
+                    {"status": "finding", "reason": "Second finding.", "edit": candidate},
+                    {"status": "clean", "reason": "Third rule is clean.", "edit": None},
+                ]
+                result = audit.prepare(audit.target(), "snapshot", publish_fixes=True)
+                self.assertIn("First finding.", summary.call_args_list[0].args[0])
+                if candidate is None:
+                    self.assertEqual(ask.call_count, 3)
+                    self.assertEqual(result["status"], "complete")
+                    self.assertIsNone(result["fix"])
+                else:
+                    self.assertEqual(ask.call_count, 2)
+                    self.assertEqual(result["status"], "finding")
+                    self.assertEqual(result["rule"]["text"], "- Second rule.")
+                    self.assertEqual(result["completed"]["text"], "- First rule.")
+                    self.assertEqual(result["fix"]["edit"], edit)
 
 
 class StateTest(unittest.TestCase):
@@ -220,22 +260,19 @@ class StateTest(unittest.TestCase):
                 self.assertEqual(body["sha"], result["cursor"])
                 self.assertEqual(json.loads(base64.b64decode(body["content"])), expected)
 
-    @patch.object(audit, "output")
-    @patch.object(audit, "summary")
     @patch.object(audit, "api")
-    def test_five_open_audit_prs_across_pages_block_all_publication_writes(self, api, summary, output):
+    def test_five_open_audit_prs_across_pages_block_all_publication_writes(self, api):
         repo = "open-telemetry/example"
         audit_prs = [{"head": {"repo": {"full_name": repo}, "ref": audit.FIX_PREFIX + str(run)}}
                      for run in range(5)]
         other_pr = {"head": {"repo": {"full_name": repo}, "ref": "unrelated"}}
         api.side_effect = [audit_prs[:4] + [other_pr] * 96, audit_prs[4:]]
-        audit.create_branch({"repo": repo})
+        with self.assertRaisesRegex(ValueError, "Open audit PR limit reached"):
+            audit.create_branch({"repo": repo})
         self.assertEqual([request.args for request in api.call_args_list], [
             (repo, "/pulls?state=open&per_page=100&page=1"),
             (repo, "/pulls?state=open&per_page=100&page=2"),
         ])
-        summary.assert_called_once_with("Open audit PR limit reached (5). No draft opened.")
-        output.assert_not_called()
 
     @patch.dict(os.environ, {"GITHUB_RUN_ID": "42"})
     @patch.object(audit, "output")
@@ -249,8 +286,8 @@ class StateTest(unittest.TestCase):
                                           "Include the compatibility exception.\n"
                                           + "Keep this guidance. " * 30 + "End of rule."},
             "reason": "Correct the timeout in `README.md`.\nIt is ten seconds.\n\nThe default stays the same.",
-            "fix": {"edit": {"path": "README.md", "before": "Five seconds.", "after": "Ten seconds."},
-                    "original": "Five seconds.\n"},
+            "fix": {"edit": {"path": "gradlew", "before": "Five seconds.", "after": "Ten seconds."},
+                    "original": "Five seconds.\n", "mode": "100755"},
         }
         open_prs = [{"head": {"repo": {"full_name": repo}, "ref": audit.FIX_PREFIX + str(run)}}
                     for run in range(4)]
@@ -261,12 +298,13 @@ class StateTest(unittest.TestCase):
             (repo, "/pulls?state=open&per_page=100&page=1"),
             (repo, "/git/trees"), (repo, "/git/commits"), (repo, "/git/refs"),
         ])
+        self.assertEqual(api.call_args_list[1].kwargs["body"]["tree"], [
+            {"path": "gradlew", "mode": "100755", "type": "blob", "content": "Ten seconds.\n"},
+        ])
         self.assertEqual(api.call_args_list[2].kwargs["body"]["parents"], [result["sha"]])
         self.assertEqual(api.call_args.kwargs["body"]["ref"], "refs/heads/otelbot/instruction-audit-42")
-        output.assert_called_once_with("created", "true")
         api.reset_mock(side_effect=True)
         api.return_value = {"number": 123, "draft": True}
-        output.reset_mock()
         audit.publish(result)
         self.assertEqual(api.call_count, 1)
         self.assertEqual(api.call_args.args, (repo, "/pulls"))

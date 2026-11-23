@@ -1,5 +1,4 @@
 import base64
-import fnmatch
 import hashlib
 import html
 import json
@@ -8,7 +7,6 @@ import re
 import subprocess
 import sys
 import tempfile
-from functools import cache
 from pathlib import Path
 from urllib.error import HTTPError
 from urllib.parse import quote, urlencode
@@ -24,7 +22,7 @@ OPEN_AUDIT_PR_LIMIT = 5
 NAME = re.compile(r"[a-z0-9][a-z0-9_.-]{0,99}")
 REF = re.compile(r"[A-Za-z0-9_-]+(?:[./][A-Za-z0-9_-]+)*")
 SHA = re.compile(r"[0-9a-f]{40}")
-DOC = re.compile(r"(?:[A-Za-z0-9_-][A-Za-z0-9_.-]*/)*[A-Za-z0-9_-][A-Za-z0-9_.-]*\.md")
+FILE_MODES = ("100644", "100755")
 RESULT = Path("audit-result.json")
 LIMIT = 128 * 1024
 RESULT_LIMIT = 4 * LIMIT
@@ -150,8 +148,8 @@ def snapshot(repo, checkout):
         if record:
             metadata, name = record.split(b"\t", 1)
             mode, kind, oid = metadata.decode().split()
-            if kind == "blob" and mode == "100644":
-                entries[name.decode(errors="surrogateescape")] = oid
+            if kind == "blob" and mode in FILE_MODES:
+                entries[name.decode(errors="surrogateescape")] = (mode, oid)
     return base, sha, tree, entries
 
 
@@ -161,47 +159,17 @@ def read_blob(checkout, oid):
     return git(checkout, "cat-file", "blob", oid).decode("utf-8")
 
 
-def applies_to(instruction, document, path):
-    if instruction == ".github/copilot-instructions.md":
-        return True
-    front = re.match(r"\A---\r?\n(.*?)\r?\n---(?:\r?\n|$)", document, flags=re.DOTALL)
-    if not front:
-        return False
-    # Only authorize the simple scalar form. More complex front matter can still be audited.
-    values = re.findall(r"^applyTo:[ \t]*(.+?)\s*$", front[1], flags=re.MULTILINE)
-    if len(values) != 1:
-        return False
-    value = values[0]
-    if value[0] in "\"'" and value[-1] == value[0]:
-        value = value[1:-1]
-    for pattern in value.split(","):
-        pattern = pattern.strip()
-        if not re.fullmatch(r"[A-Za-z0-9_./*?-]+", pattern):
-            return False
-        # Match slash-delimited segments; only ** can cross a directory.
-        parts = pattern.split("/")
-
-        @cache
-        def matches(index, components):
-            if index == len(parts):
-                return not components
-            if parts[index] == "**":
-                return any(matches(index + 1, components[i:]) for i in range(len(components) + 1))
-            return (bool(components) and fnmatch.fnmatchcase(components[0], parts[index])
-                    and matches(index + 1, components[1:]))
-
-        if matches(0, tuple(path.split("/"))):
-            return True
-    return False
-
-
 def edit_path(edit):
     if type(edit) is not dict or set(edit) != {"path", "before", "after"}:
         raise UnsupportedEdit("Expected a path and before/after text")
     try:
-        return text(edit["path"], 240, DOC)
+        path = text(edit["path"], EDIT_LIMIT)
+        if (re.search(r"[\x00-\x1f\x7f\\]", path)
+                or any(part.lower() in ("", ".", "..", ".git") for part in path.split("/"))):
+            raise ValueError
+        return path
     except ValueError:
-        raise UnsupportedEdit("Path is not a supported Markdown path") from None
+        raise UnsupportedEdit("Expected a repository-relative file path") from None
 
 
 def edited_content(edit, original):
@@ -250,7 +218,9 @@ def validate_result(result):
     if (fix := result["fix"]) is not None:
         if status != "finding":
             raise ValueError("Only a finding can supply a fix")
-        fields(fix, "edit", "original", "oid")
+        fields(fix, "edit", "original", "oid", "mode")
+        if fix["mode"] not in FILE_MODES:
+            raise ValueError("Invalid snapshot file mode")
         text(fix["oid"], 40, SHA)
         if blob_sha(text(fix["original"], LIMIT)) != fix["oid"]:
             raise ValueError("Original does not match the inspected blob")
@@ -262,26 +232,31 @@ def prepare(repo, checkout, *, publish_fixes=False):
     base, sha, tree, entries = snapshot(repo, checkout)
     head, cursor, anchor = read_cursor(repo)
     documents = {}
-    for path, oid in entries.items():
+    for path, (_, oid) in entries.items():
         if INSTRUCTIONS.fullmatch(path):
             documents[path] = read_blob(checkout, oid)
     result = dict(repo=repo, base=base, sha=sha, tree=tree, head=head, cursor=cursor,
                   completed=None, rule=None, status="complete",
                   reason="No more rules. The next dispatch starts at the beginning.",
                   fix=None)
-    counts = {"clean": 0, "not_auditable": 0}
+    counts = {"clean": 0, "not_auditable": 0, "finding": 0}
     for rule, resumable in remaining_rules(documents, anchor):
         location = f"{rule.path}:{rule.first_line}-{rule.last_line}"
         print(f"Checking {location}", flush=True)
         status, reason, fix = audit_rule(checkout, entries, rule, documents[rule.path], publish_fixes=publish_fixes)
         print(f"{location}: {status}", flush=True)
-        if status == "finding":
+        if status == "finding" and (not publish_fixes or fix is not None):
             result.update(rule=rule.anchor, status=status, reason=reason, fix=fix)
             break
+        if status == "finding":
+            summary(f"### Finding without a publishable edit\n\n`{location}`\n\n"
+                    f"<pre>{html.escape(reason)}</pre>")
         counts[status] += 1
         if resumable:
             result["completed"] = rule.anchor
     summary(f"Rules checked before stopping: {counts['clean']} clean, {counts['not_auditable']} not auditable.")
+    if counts["finding"]:
+        summary(f"Continued past {counts['finding']} finding(s) without a publishable edit.")
     return validate_result(result)
 
 
@@ -310,10 +285,10 @@ Verify those claims against the snapshot. Use backticks for identifiers, but no 
     if publish_fixes:
         response += """
 Include exactly the keys "status", "reason", and "edit". For a finding with a small fix
-in one existing, non-hidden Markdown file in scope, give "edit" as {"path", "before", "after"}.
+in one existing text file in the repository, give "edit" as {"path", "before", "after"}.
 "before" is one exact non-empty span that occurs only once; "after" replaces it and can be
-empty for deletion. Each must fit in 4096 UTF-8 bytes. Set "edit" to null if a documentation
-change would not fix the finding.
+empty for deletion. Each must fit in 4096 UTF-8 bytes. Set "edit" to null if you cannot propose
+a fix that fits this format.
 """
     else:
         response += 'Include exactly the keys "status" and "reason".\n'
@@ -329,14 +304,15 @@ change would not fix the finding.
     if publish_fixes and status == "finding" and (edit := judgment.get("edit")) is not None:
         try:
             path = edit_path(edit)
-            if path not in entries or not applies_to(rule.path, document, path):
-                raise UnsupportedEdit("Path is absent, not a regular file, or outside the instruction's applyTo")
+            if path not in entries:
+                raise UnsupportedEdit("Path is not an existing regular file in the snapshot")
+            mode, oid = entries[path]
             try:
-                original = text(read_blob(checkout, entries[path]), LIMIT)
+                original = text(read_blob(checkout, oid), LIMIT)
             except ValueError:
-                raise UnsupportedEdit("Cannot use the original Markdown as a UTF-8 snapshot blob") from None
+                raise UnsupportedEdit("Cannot use the original file as a UTF-8 snapshot blob") from None
             edited_content(edit, original)
-            fix = dict(edit=edit, original=original, oid=entries[path])
+            fix = dict(edit=edit, original=original, oid=oid, mode=mode)
         except UnsupportedEdit as error:
             summary(f"Proposed edit not published: {error}.")
     return status, reason, fix
@@ -366,8 +342,7 @@ def create_branch(result):
             if (head.get("repo") or {}).get("full_name", "").lower() == repo and head["ref"].startswith(FIX_PREFIX):
                 open_audit_prs += 1
                 if open_audit_prs == OPEN_AUDIT_PR_LIMIT:
-                    summary(f"Open audit PR limit reached ({OPEN_AUDIT_PR_LIMIT}). No draft opened.")
-                    return
+                    raise ValueError(f"Open audit PR limit reached ({OPEN_AUDIT_PR_LIMIT}). No draft opened.")
         if len(prs) < 100:
             break
     else:
@@ -377,7 +352,7 @@ def create_branch(result):
     replacement = edited_content(fix["edit"], fix["original"])
     tree = api(repo, "/git/trees", method="POST", body={
         "base_tree": result["tree"],
-        "tree": [{"path": path, "mode": "100644", "type": "blob", "content": replacement}],
+        "tree": [{"path": path, "mode": fix["mode"], "type": "blob", "content": replacement}],
     })
     commit = api(repo, "/git/commits", method="POST", body={
         "message": f"Fix instruction audit finding in {path}",
@@ -386,7 +361,6 @@ def create_branch(result):
     })
     api(repo, "/git/refs", method="POST", body={"ref": "refs/heads/" + fix_branch(),
                                                "sha": text(commit["sha"], 40, SHA)})
-    output("created", "true")
 
 
 def inline_markdown(value):

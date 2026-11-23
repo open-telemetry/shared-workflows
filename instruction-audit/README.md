@@ -1,6 +1,6 @@
 # Instruction audit
 
-This reusable workflow checks the calling public OpenTelemetry repository's Copilot instructions until the first finding or the end of the pass. Add a manual caller at `.github/workflows/instruction-audit.yml` in that repository:
+This reusable workflow checks the calling public OpenTelemetry repository's Copilot instructions and can open a draft fix PR. Add a manual caller at `.github/workflows/instruction-audit.yml` in that repository:
 
 ```yaml
 name: Instruction audit
@@ -33,11 +33,13 @@ The workflow checks out the caller's default branch once and records the commit 
 
 The `otelbot/instruction-audit-state` branch in the caller repository keeps a JSON file with the last completed rule's path and exact text. If that text no longer matches exactly once, or the file is gone, the next run starts in the next instruction file. At the end of the pass, the run reports completion and clears the cursor. The following dispatch starts at the beginning.
 
-The workflow continues past clean and non-auditable rules. At a finding, it opens a draft only if publication is enabled and the proposed fix passes validation. Otherwise, it saves the last preceding clean or non-auditable rule that has unique text in its file, so the next dispatch can retry the finding. If the audit job itself fails or times out, it saves no progress. Start a new dispatch instead of rerunning jobs.
+Report-only runs stop at the first finding. With publication enabled, the workflow reports findings it can't fix and keeps going until it can open a draft or reaches the end of the pass. If publishing is blocked or fails, the run fails and leaves that finding pending. Whenever a finding remains pending, the workflow saves progress through the last preceding rule whose text is unique in its file. If the audit job itself fails or times out, it saves no progress. Start a new dispatch instead of rerunning jobs.
 
 ## What the workflow can publish
 
-The audit can report findings in any in-scope file. Report-only runs do not request edits. With publication enabled, Copilot can propose replacing or deleting one small span in an existing non-hidden Markdown file. The workflow checks that the file is in scope and that the original text occurs exactly once in the snapshot. It never runs target code. Findings without a publishable edit appear in the run summary for manual handling.
+The audit applies the selected rule across the repository, honoring any `applyTo` or exceptions in the rule itself. Report-only runs do not request edits. With publication enabled, Copilot can propose replacing or deleting one small span in any existing regular UTF-8 file, regardless of its location or extension. The workflow checks that the original text occurs exactly once in the snapshot and preserves the file mode. The audit never runs target code. Findings without a publishable edit appear in the run summary.
+
+Drafts can trigger the caller's PR workflows. Enable publication only if those workflows can safely handle unreviewed changes from a same-repository branch. GitHub's repository rules and token permissions still apply to the proposed changes.
 
 Draft descriptions link to the audit run and the source of the selected rule, quote the full rule, and then explain the proposed fix under **Explanation**.
 
