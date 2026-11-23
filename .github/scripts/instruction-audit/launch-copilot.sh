@@ -23,4 +23,7 @@ export HOME="$runtime_home" COPILOT_HOME="$runtime_home/.copilot"
 test -w "$HOME" || fail 'Copilot home is not writable'
 "$copilot" --version >/dev/null || fail 'Copilot CLI version check failed'
 echo '[instruction-audit] Copilot binary executed' >&2
-exec "$@" -C "$inputs" -p "$(cat "$inputs/prompt.txt")
+session="$runtime_home/session"
+mkdir "$session"
+cd "$session"
+exec "$@" -C "$session" --trust-folder -p "$(cat "$inputs/prompt.txt")"
