@@ -124,11 +124,18 @@ class StateTest(unittest.TestCase):
     @patch.object(audit, "output")
     @patch.object(audit, "summary")
     @patch.object(audit, "api")
-    def test_existing_draft_blocks_all_publication_writes(self, api, _summary, output):
+    def test_five_open_audit_prs_across_pages_block_all_publication_writes(self, api, summary, output):
         repo = "open-telemetry/example"
-        api.return_value = [{"number": 123, "head": {"repo": {"full_name": repo}, "ref": audit.FIX_PREFIX + "12"}}]
+        audit_prs = [{"head": {"repo": {"full_name": repo}, "ref": audit.FIX_PREFIX + str(run)}}
+                     for run in range(5)]
+        other_pr = {"head": {"repo": {"full_name": repo}, "ref": "unrelated"}}
+        api.side_effect = [audit_prs[:4] + [other_pr] * 96, audit_prs[4:]]
         audit.create_branch({"repo": repo})
-        self.assertEqual(api.call_count, 1)
+        self.assertEqual([request.args for request in api.call_args_list], [
+            (repo, "/pulls?state=open&per_page=100&page=1"),
+            (repo, "/pulls?state=open&per_page=100&page=2"),
+        ])
+        summary.assert_called_once_with("Open audit PR limit reached (5). Cursor unchanged.")
         output.assert_not_called()
 
     @patch.dict(os.environ, {"GITHUB_RUN_ID": "42"})
@@ -146,7 +153,10 @@ class StateTest(unittest.TestCase):
                     "original": "Five seconds.\n",
                     "evidence": "Correct the timeout in `README.md`.\nIt is ten seconds.\n\nThe default stays the same."},
         }
-        api.side_effect = [[], {"sha": "c" * 40}, {"sha": "d" * 40}, {}]
+        open_prs = [{"head": {"repo": {"full_name": repo}, "ref": audit.FIX_PREFIX + str(run)}}
+                    for run in range(4)]
+        open_prs.append({"head": {"repo": {"full_name": "someone/example"}, "ref": audit.FIX_PREFIX + "4"}})
+        api.side_effect = [open_prs, {"sha": "c" * 40}, {"sha": "d" * 40}, {}]
         audit.create_branch(result)
         self.assertEqual([request.args for request in api.call_args_list], [
             (repo, "/pulls?state=open&per_page=100&page=1"),

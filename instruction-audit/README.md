@@ -33,7 +33,7 @@ The workflow checks out the caller's default branch once and records the commit 
 
 The `otelbot/instruction-audit-state` branch in the caller repository keeps a JSON file with the last completed rule's path and exact text. If that text no longer matches exactly once, or the file is gone, the next run starts in the next instruction file. At the end of the pass, the run reports completion and clears the cursor. The following dispatch starts at the beginning.
 
-A clean check or a rule that can't be checked retroactively advances the cursor in either mode. A finding only advances it after a draft opens. Report-only findings, publication blocked by an existing audit draft, and infrastructure or validation failures leave the cursor in place. Start a new dispatch instead of rerunning jobs.
+A clean check or a rule that can't be checked retroactively advances the cursor in either mode. A finding only advances it after a draft opens. Report-only findings, publication blocked by the open audit PR limit, and infrastructure or validation failures leave the cursor in place. Start a new dispatch instead of rerunning jobs.
 
 ## What the workflow can publish
 
@@ -41,4 +41,4 @@ The audit can report findings in any in-scope file. It can replace one prose lin
 
 Draft descriptions explain the verified fix in Markdown, quote the complete selected rule, and link to the rule's source and the audit run.
 
-The read-only Copilot job cannot use either publication credential. When there is a verified fix and publishing is enabled, the publication job uses the caller's `GITHUB_TOKEN` to create a fix branch from the audited commit. It uses a caller-scoped `otelbot` token with **Pull requests: write** to open the draft, so eligible PR checks can start without the `GITHUB_TOKEN` approval gate. If GitHub denies the `otelbot` token request or an audit PR is already open, no new fix branch is created.
+The read-only Copilot job cannot use either publication credential. When there is a verified fix and publishing is enabled, the publication job uses the caller's `GITHUB_TOKEN` to create a fix branch from the audited commit. It uses a caller-scoped `otelbot` token with **Pull requests: write** to open the draft, so eligible PR checks can start without the `GITHUB_TOKEN` approval gate. Each run can open at most one draft, and each repository can have up to five open audit PRs, including those marked ready for review. If GitHub denies the `otelbot` token request or the limit is reached, no new fix branch is created.

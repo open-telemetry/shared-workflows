@@ -20,6 +20,7 @@ from rules import INSTRUCTIONS, select
 
 STATE = "otelbot/instruction-audit-state"
 FIX_PREFIX = "otelbot/instruction-audit-"
+OPEN_AUDIT_PR_LIMIT = 5
 NAME = re.compile(r"[a-z0-9][a-z0-9_.-]{0,99}")
 REF = re.compile(r"[A-Za-z0-9_-]+(?:[./][A-Za-z0-9_-]+)*")
 SHA = re.compile(r"[0-9a-f]{40}")
@@ -367,17 +368,20 @@ def fix_branch():
 def create_branch(result):
     repo = result["repo"]
     query = "/pulls?" + urlencode({"state": "open", "per_page": 100})
+    open_audit_prs = 0
     for page in range(1, 21):
         prs = api(repo, query + f"&page={page}", public=True)
         for pr in prs:
             head = pr["head"]
             if (head.get("repo") or {}).get("full_name", "").lower() == repo and head["ref"].startswith(FIX_PREFIX):
-                summary(f"Already has an open audit PR: https://github.com/{repo}/pull/{int(pr['number'])}. Cursor unchanged.")
-                return
+                open_audit_prs += 1
+                if open_audit_prs == OPEN_AUDIT_PR_LIMIT:
+                    summary(f"Open audit PR limit reached ({OPEN_AUDIT_PR_LIMIT}). Cursor unchanged.")
+                    return
         if len(prs) < 100:
             break
     else:
-        raise ValueError("Could not check every open PR for an existing audit draft")
+        raise ValueError("Could not check every open PR against the audit PR limit")
     fix = result["fix"]
     path = fix["edit"]["path"]
     replacement = edited_content(fix["edit"], fix["original"])
