@@ -6,7 +6,7 @@ from unittest.mock import patch
 
 import audit
 import model
-from rules import blocks, remaining_rules
+from rules import Rule, blocks, remaining_rules
 
 
 ROOT = ".github/copilot-instructions.md"
@@ -60,36 +60,27 @@ class ValidationTest(unittest.TestCase):
         for path in ("sub/README.md", "example/docs/sub/page.md", "docs/file.java"):
             self.assertFalse(audit.applies_to(NESTED, document, path))
 
-    def test_edit_is_one_existing_literal_prose_line(self):
-        original = "Overview\n\nThe timeout is ten seconds.\n"
-        edit = {"path": "docs/overview.md", "line": 3, "before": "The timeout is ten seconds.",
-                "after": "The timeout is five seconds."}
-        self.assertEqual(audit.edited_content(edit, original), "Overview\n\nThe timeout is five seconds.\n")
-        for invalid in (
-            {"path": ".github/workflows/test.md"}, {"path": "docs/../README.md"},
-            {"line": True}, {"line": 1}, {"before": "Other text."}, {"after": "---"},
-            {"after": "See <https://example.com>."}, {"after": "The timeout is five seconds.\n"},
-        ):
-            with self.subTest(invalid=invalid), self.assertRaises(ValueError):
-                audit.edited_content(edit | invalid, original)
-        with self.assertRaises(ValueError):
-            audit.edited_content(edit, original + "\n```sh\ncode\n```\n")
+    def test_small_document_edit_accepts_markdown_and_multiple_lines(self):
+        before = "The timeout is ten seconds.\nSee the notes."
+        original = f"Overview\n\n{before}\n\n```yaml\nsetting: true\n```\n"
+        edit = {"path": "docs/overview.md", "before": before, "after": "Set `timeout` to five seconds.\nSee **Notes**."}
+        self.assertEqual(audit.edited_content(edit, original), original.replace(before, edit["after"]))
+        self.assertEqual(audit.edited_content(edit | {"after": ""}, original), original.replace(before, ""))
 
-    def test_removes_only_a_complete_standalone_yaml_example(self):
-        before = "The equivalent YAML is:\n\n```yaml\nsetting: true\n```"
-        original = "Keep this example.\n\n```yaml\n      <KEY>: value\n```\n\n" + before + "\n\n## Next\n"
-        edit = {"path": "docs/settings.md", "line": 7, "before": before, "after": None}
-        self.assertEqual(audit.edited_content(edit, original),
-                         "Keep this example.\n\n```yaml\n      <KEY>: value\n```\n\n## Next\n")
-        for invalid in (
-            edit | {"before": before.rsplit("\n", 1)[0]},
-            edit | {"before": before + "\n\n## Next"},
-            edit | {"line": 9, "before": "\n".join(before.split("\n")[2:])},
+    def test_edit_must_match_one_span_in_a_markdown_file(self):
+        edit = {"path": "docs/settings.md", "before": "Old.", "after": "New."}
+        for invalid, original in (
+            ({"path": ".github/workflows/test.md"}, "Old."),
+            ({"path": "docs/../README.md"}, "Old."),
+            ({"path": "build.gradle"}, "Old."),
+            ({}, "Moved."),
+            ({}, "Old.\nOld."),
+            ({"before": " "}, " "),
+            ({"after": "Old."}, "Old."),
+            ({"after": "x" * 4097}, "Old."),
         ):
-            with self.subTest(invalid=invalid), self.assertRaises(ValueError):
-                audit.edited_content(invalid, original)
-        with self.assertRaisesRegex(ValueError, "inside a fenced block"):
-            audit.edited_content(edit | {"line": 9}, "````markdown\n\n" + original + "````\n")
+            with self.subTest(invalid=invalid), self.assertRaises(audit.UnsupportedEdit):
+                audit.edited_content(edit | invalid, original)
 
     def test_model_error_does_not_accept_preceding_answer(self):
         message = json.dumps({"type": "assistant.message", "data": {"content": '{"status":"clean"}'}})
@@ -108,6 +99,44 @@ class ValidationTest(unittest.TestCase):
 
 
 class PassTest(unittest.TestCase):
+    @patch.object(audit, "read_blob")
+    @patch.object(model, "ask")
+    def test_report_only_does_not_request_or_validate_an_edit(self, ask, read_blob):
+        reason = "The timeout in `README.md` is wrong."
+        ask.return_value = {"status": "finding", "reason": reason, "edit": {"path": "build.gradle"}}
+        result = audit.audit_rule("snapshot", {}, Rule(ROOT, FIRST, 1, 2), FIRST, publish_fixes=False)
+        self.assertEqual(result, ("finding", reason, None))
+        ask.assert_called_once()
+        self.assertNotIn('"edit"', ask.call_args.args[1])
+        read_blob.assert_not_called()
+
+    @patch.object(audit, "summary")
+    @patch.object(audit, "read_blob", return_value="Old value in the docs.\n")
+    @patch.object(model, "ask")
+    def test_publish_keeps_finding_even_when_proposed_edit_is_unsupported(self, ask, read_blob, summary):
+        document = '---\napplyTo: "docs/**"\n---\n' + FIRST
+        rule = Rule(NESTED, FIRST, 4, 5)
+        reason = "The timeout in `docs/settings.md` is wrong."
+        edit = {"path": "docs/settings.md", "before": "Old value", "after": "New `timeout`"}
+        entries = {"docs/settings.md": "a" * 40, "README.md": "b" * 40}
+        for candidate, publishable in ((edit, True), (edit | {"before": "absent"}, False),
+                                       (edit | {"path": "README.md"}, False)):
+            with self.subTest(candidate=candidate):
+                ask.reset_mock()
+                summary.reset_mock()
+                ask.return_value = {"status": "finding", "reason": reason, "edit": candidate}
+                status, explanation, fix = audit.audit_rule(
+                    "snapshot", entries, rule, document, publish_fixes=True
+                )
+                self.assertEqual((status, explanation), ("finding", reason))
+                ask.assert_called_once()
+                if publishable:
+                    self.assertEqual(fix, {"edit": edit, "original": read_blob.return_value, "oid": "a" * 40})
+                    summary.assert_not_called()
+                else:
+                    self.assertIsNone(fix)
+                    summary.assert_called_once()
+
     @patch.dict(os.environ, {"GITHUB_REPOSITORY": "open-telemetry/example"})
     @patch("builtins.print")
     @patch.object(audit, "summary")
@@ -130,7 +159,7 @@ class PassTest(unittest.TestCase):
                 ]
                 ask.reset_mock()
                 ask.side_effect = [
-                    {"status": status, "reason": "Audit reason.", "edit": None}
+                    {"status": status, "reason": "Audit reason."}
                     for status in (["clean", "not_auditable", "finding"] if outcome == "finding"
                                    else ["clean", "not_auditable", "clean", "not_auditable", "clean"])
                 ]
@@ -219,9 +248,9 @@ class StateTest(unittest.TestCase):
             "rule": {"path": ROOT, "text": "Document the `timeout` setting.\n\n"
                                           "Include the compatibility exception.\n"
                                           + "Keep this guidance. " * 30 + "End of rule."},
-            "fix": {"edit": {"path": "README.md", "line": 1, "before": "Five seconds.", "after": "Ten seconds."},
-                    "original": "Five seconds.\n",
-                    "evidence": "Correct the timeout in `README.md`.\nIt is ten seconds.\n\nThe default stays the same."},
+            "reason": "Correct the timeout in `README.md`.\nIt is ten seconds.\n\nThe default stays the same.",
+            "fix": {"edit": {"path": "README.md", "before": "Five seconds.", "after": "Ten seconds."},
+                    "original": "Five seconds.\n"},
         }
         open_prs = [{"head": {"repo": {"full_name": repo}, "ref": audit.FIX_PREFIX + str(run)}}
                     for run in range(4)]

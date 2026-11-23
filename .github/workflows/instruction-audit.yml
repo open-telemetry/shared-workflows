@@ -4,7 +4,7 @@ on:
   workflow_call:
     inputs:
       publish:
-        description: Allow one draft PR for a verified, publishable finding
+        description: Allow one draft PR for a publishable finding
         type: boolean
         default: false
       otelbot_client_id:
@@ -55,6 +55,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           COPILOT_GITHUB_TOKEN: ${{ github.token }}
+          AUDIT_PUBLISH: ${{ inputs.publish }}
           AWF_IMAGE_TAG: ${{ steps.firewall.outputs.image-tag }}
         run: python3 .github/scripts/instruction-audit/audit.py audit
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
