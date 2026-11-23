@@ -390,15 +390,23 @@ Only report findings on changed right-side lines.
         if hint:
             regular_prompt += f"\nRead {bundle / 'copilot-review.json'} and check its assessment against the current diff."
         findings = model_pass(SOL, "max", regular_prompt + "\n" + context, checkout, bundle, phase="review")
+        simplification_prompt = f"""are there any simplifications worth doing in {url}?
+A simplification makes the changed code easier to read: less code, fewer concepts, or less indirection.
+Before reporting one, write the code as it would look afterward and compare it with the PR.
+Report it only if a reader would find the result clearly simpler, not just shorter or less repetitive.
+Don't suggest a new helper for a few short, readable repetitions.
+Prefer deleting code, reusing an existing helper or API, or collapsing redundant logic.
+Reporting nothing is a fine answer.
+"""
         simplifications = model_pass(
-            SOL, "max", f"are there any simplifications worth doing in {url}?\n{context}", checkout, bundle,
-            phase="simplification",
+            SOL, "max", simplification_prompt + context, checkout, bundle, phase="simplification",
         )
         (bundle / "review.txt").write_text(findings, encoding="utf-8")
         (bundle / "simplifications.txt").write_text(simplifications, encoding="utf-8")
 
         result = verify_findings(f"""Double-check {bundle / 'review.txt'} and {bundle / 'simplifications.txt'} against {url}.
 Keep only findings worth posting, remove duplicates, and prefix simplifications with [Simplification].
+Drop simplifications that only trade repetition for indirection, or that the author could reasonably reject as a matter of taste.
 {context}
 Your final message must be a single JSON object, with no text outside it. Format:
 {{"body":"review summary","comments":[{{"kind":"review","path":"file",
