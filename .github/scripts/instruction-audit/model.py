@@ -9,7 +9,29 @@ import tempfile
 from pathlib import Path
 
 
-def response(events, returncode):
+STARTED = "[instruction-audit] Verified credential isolation"
+ISOLATION_FAILURES = (
+    "Docker socket is visible",
+    "Actions credential is visible",
+    "Copilot proxy token not isolated",
+    "Host configuration is visible",
+    "Expected checkout is not available",
+    "Audit inputs are not read-only",
+)
+
+
+def failure(returncode, diagnostics):
+    for reason in ISOLATION_FAILURES:
+        if f"Sandbox check failed: {reason}" in diagnostics.splitlines():
+            return f"Copilot was not started: {reason}"
+    if STARTED not in diagnostics.splitlines():
+        return f"Copilot startup was not confirmed (firewall exit {returncode})"
+    return f"Copilot did not complete successfully (firewall exit {returncode})"
+
+
+def response(events, returncode, diagnostics=""):
+    if returncode:
+        raise ValueError(failure(returncode, diagnostics))
     answer = ""
     error = False
     for line in events.splitlines():
@@ -21,8 +43,8 @@ def response(events, returncode):
             error = True
         if event.get("type") == "assistant.message" and data.get("content", "").strip():
             answer = data["content"].strip()
-    if returncode or error or not answer:
-        raise ValueError(f"Copilot did not complete successfully (firewall exit {returncode})")
+    if error or not answer:
+        raise ValueError("Copilot reported a session error or returned no answer")
     answer = re.sub(r"\A```(?:json)?[ \t]*\n(.*)\n```\Z", r"\1", answer, flags=re.DOTALL)
     return json.loads(answer)
 
@@ -49,10 +71,11 @@ def ask(checkout, prompt):
                                           "COPILOT_GITHUB_TOKEN") if key in os.environ}
     env.update(HOME=str(home), GITHUB_WORKSPACE=str(checkout))
     cli_dir = Path(copilot).parent.parent
-    capture = root / "output"
+    awf_root = Path(tempfile.mkdtemp(prefix="instruction-audit-awf-", dir=os.environ["RUNNER_TEMP"]))
+    capture = awf_root / "output"
     result = subprocess.run([
         "/usr/bin/sudo", "--non-interactive", f"--preserve-env={','.join(env)}",
-        str(Path(awf).resolve()), "--config", str(config), "--work-dir", str(root / "work"),
+        str(Path(awf).resolve()), "--config", str(config), "--work-dir", str(awf_root / "work"),
         "--image-tag", os.environ["AWF_IMAGE_TAG"], "--container-workdir", str(checkout),
         "--mount", f"{cli_dir}:{cli_dir}:ro", "--mount", f"{bundle}:{bundle}:ro",
         "--env", "GITHUB_COPILOT_PROMPT_MODE_EXTENSIONS=false",
@@ -65,6 +88,13 @@ def ask(checkout, prompt):
     ], cwd=checkout, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=1200,
        creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
     output = capture / "attempt-001.stdout.bin"
+    stderr = capture / "attempt-001.stderr.bin"
+    diagnostics = result.stderr.decode("utf-8", errors="replace")
+    if stderr.is_file():
+        with stderr.open("rb") as file:
+            diagnostics += "\n" + file.read(64 * 1024).decode("utf-8", errors="replace")
+    if result.returncode:
+        raise ValueError(failure(result.returncode, diagnostics))
     if not output.is_file() or output.stat().st_size > 16 * 1024 * 1024:
-        raise ValueError(f"Copilot output is missing or too large (firewall exit {result.returncode})")
-    return response(output.read_text(encoding="utf-8"), result.returncode)
+        raise ValueError("Copilot output is missing or too large")
+    return response(output.read_text(encoding="utf-8"), result.returncode, diagnostics)

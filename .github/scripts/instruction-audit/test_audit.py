@@ -77,6 +77,15 @@ class ValidationTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             model.response(message + '\n{"type":"session.error"}', 0)
 
+    def test_model_failure_reports_stage_without_echoing_diagnostics(self):
+        unknown = "arbitrary runner or model output"
+        with self.assertRaisesRegex(ValueError, r"startup was not confirmed \(firewall exit 2\)"):
+            model.response("", 2, unknown)
+        with self.assertRaisesRegex(ValueError, "Copilot was not started: Copilot proxy token not isolated"):
+            model.response("", 1, "Sandbox check failed: Copilot proxy token not isolated\n" + unknown)
+        with self.assertRaisesRegex(ValueError, r"did not complete successfully \(firewall exit 2\)"):
+            model.response("", 2, model.STARTED + "\n" + unknown)
+
 
 class StateTest(unittest.TestCase):
     @patch.dict(os.environ, {"TARGET": "example"})
