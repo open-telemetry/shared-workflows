@@ -17,4 +17,8 @@ test -d "$checkout/.git" || fail 'Expected checkout is not available'
 test ! -w "$inputs" && test -r "$inputs/prompt.txt" || fail 'Audit inputs are not read-only'
 echo '[instruction-audit] Verified credential isolation' >&2
 
+copilot=$1
+test -w "$HOME" || fail 'Copilot home is not writable'
+"$copilot" --version >/dev/null || fail 'Copilot CLI version check failed'
+echo '[instruction-audit] Copilot binary executed' >&2
 exec "$@" -C "$inputs" -p "$(cat "$inputs/prompt.txt")

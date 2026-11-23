@@ -17,6 +17,8 @@ ISOLATION_FAILURES = (
     "Host configuration is visible",
     "Expected checkout is not available",
     "Audit inputs are not read-only",
+    "Copilot home is not writable",
+    "Copilot CLI version check failed",
 )
 CLI_FAILURES = (
     (r"unrecognized (?:option|argument)|unexpected argument|unknown (?:option|argument)|Usage: copilot",
@@ -26,9 +28,10 @@ CLI_FAILURES = (
      "model unavailable or unsupported"),
     (r"reasoning effort|reasoning.?effort", "reasoning effort rejected"),
     (r"rate limit|quota|HTTP 429", "rate or quota limit"),
-    (r"permission denied|read.only file system|EACCES", "file permission error"),
-    (r"cannot find module|not found|no such file", "missing runtime file"),
+    (r"permission denied|read.only file system|EACCES|EPERM|EROFS", "file permission error"),
+    (r"cannot find module|not found|no such file|ENOENT|shared libraries", "missing runtime file"),
     (r"ECONN|ETIMEDOUT|network error|unable to connect|fetch failed", "connection error"),
+    (r"syntax error|fatal error|uncaught exception|segmentation fault", "runtime error"),
 )
 
 
@@ -40,6 +43,12 @@ def failure(returncode, diagnostics):
         return f"Copilot startup was not confirmed (firewall exit {returncode})"
     signature = next((label for pattern, label in CLI_FAILURES
                       if re.search(pattern, diagnostics, flags=re.IGNORECASE)), None)
+    if not signature and '"type":"model.call_start"' in diagnostics:
+        signature = "model call started"
+    if not signature and '"type":"session.start"' in diagnostics:
+        signature = "Copilot session started without a model call"
+    if not signature and "[instruction-audit] Copilot binary executed" in diagnostics.splitlines():
+        signature = "binary started but no Copilot session event was captured"
     detail = f": {signature}" if signature else ""
     return f"Copilot did not complete successfully (firewall exit {returncode}){detail}"
 
