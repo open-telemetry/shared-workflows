@@ -1,0 +1,125 @@
+name: Instruction audit
+
+run-name: Audit Copilot instructions in ${{ inputs.repository }}
+
+on:
+  push:
+    branches: [trask-instruction-audit-workflow]
+  workflow_dispatch:
+    inputs:
+      repository:
+        description: Public OpenTelemetry repository name, without the owner
+        required: true
+        type: string
+      publish:
+        description: Allow one draft PR for a verified, publishable finding
+        type: boolean
+        default: false
+
+permissions: {}
+
+concurrency:
+  group: instruction-audit
+  cancel-in-progress: false
+
+env:
+  TARGET: ${{ inputs.repository }}
+  PYTHONDONTWRITEBYTECODE: "1"
+
+jobs:
+  audit:
+    if: github.repository == 'open-telemetry/shared-workflows' && github.event_name == 'workflow_dispatch' && github.run_attempt == 1
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      copilot-requests: write
+    outputs:
+      digest: ${{ steps.audit.outputs.digest }}
+      repository: ${{ steps.audit.outputs.repository }}
+      fix: ${{ steps.audit.outputs.fix }}
+      finding: ${{ steps.audit.outputs.finding }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install Copilot CLI
+        run: |
+          npm ci --ignore-scripts --prefix .github/scripts/instruction-audit
+          echo "$GITHUB_WORKSPACE/.github/scripts/instruction-audit/node_modules/.bin" >> "$GITHUB_PATH"
+      - uses: github/gh-aw-firewall@d9272015d8523b4c9cf3b00ce26b507046cbf1a3 # v0.29.11
+        id: firewall
+        with:
+          version: v0.29.11
+      - name: Check one instruction
+        id: audit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          COPILOT_GITHUB_TOKEN: ${{ github.token }}
+          AWF_IMAGE_TAG: ${{ steps.firewall.outputs.image-tag }}
+        run: python3 .github/scripts/instruction-audit/audit.py audit
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: instruction-audit
+          path: audit-result.json
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    needs: audit
+    if: github.run_attempt == 1 && inputs.publish && needs.audit.outputs.fix == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      handled: ${{ steps.publish.outputs.handled }}
+    env:
+      RESULT_DIGEST: ${{ needs.audit.outputs.digest }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: instruction-audit
+      - name: Validate the proposed Markdown fix
+        run: python3 .github/scripts/instruction-audit/audit.py validate-publish
+      - uses: actions/create-github-app-token@f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc # v3.4.0
+        id: write-token
+        with:
+          client-id: ${{ vars.OTELBOT_CLIENT_ID }}
+          private-key: ${{ secrets.OTELBOT_PRIVATE_KEY }}
+          owner: open-telemetry
+          repositories: ${{ needs.audit.outputs.repository }}
+          permission-contents: write
+          permission-pull-requests: write
+      - name: Open at most one draft PR
+        id: publish
+        env:
+          GH_TOKEN: ${{ steps.write-token.outputs.token }}
+        run: python3 .github/scripts/instruction-audit/audit.py publish
+
+  cursor:
+    needs: [audit, publish]
+    if: >-
+      !cancelled() && github.run_attempt == 1 && needs.audit.result == 'success' &&
+      (needs.audit.outputs.finding == 'false' ||
+       (needs.publish.result == 'success' && needs.publish.outputs.handled == 'true'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    env:
+      RESULT_DIGEST: ${{ needs.audit.outputs.digest }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: instruction-audit
+      - name: Save the cursor
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 .github/scripts/instruction-audit/audit.py save

@@ -60,7 +60,7 @@ The consumer-facing `README.md` lives in a root folder named after the workflow.
       <workflow scripts...>          # flat, no scripts/ subfolder
 ```
 
-Each centrally-executed workflow has its **own `repositories.json`**, so opting in is per workflow — a repository only appears in the workflows it chose to use.
+Each centrally-executed workflow has its **own `repositories.json`** for opt-in. Enrollment in one workflow does not enroll a repository in another. [Instruction audit](./instruction-audit/) is manual. A maintainer with write access to `shared-workflows` selects one public OpenTelemetry repository when dispatching it.
 
 ### The workflow's README
 
@@ -70,6 +70,7 @@ The README at the root of the workflow's folder is the contract between the work
 - **How a repository uses it.** Document the model that fits the workflow:
   - **Opt-in via `repositories.json`** — list the required and optional fields a repository entry must include, and show an example entry.
   - **Consume via `uses:`** — show the snippet a calling repo adds to its own workflow file, including any inputs or secrets it must pass.
+  - **Manual dispatch** — explain who can run it, which targets it accepts, and which inputs to supply.
 
 ### Code ownership
 
