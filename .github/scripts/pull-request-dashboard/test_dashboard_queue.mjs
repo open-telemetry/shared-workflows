@@ -869,6 +869,8 @@ test("expired leases are recovered and dispatch is requested", async (t) => {
     lane: "live",
     itemKey: claim.itemKey,
     claimGeneration: claim.claimGeneration,
+    dispatcherGeneration: request.generation,
+    workerId: "worker",
     status: "requeued",
   }]);
   await queue.recoverExpiredLeases();
@@ -886,16 +888,19 @@ test("repeatedly abandoned items stop being recovered", async (t) => {
   });
 
   let abandoned = 0;
+  const expiredClaims = [];
   for (let round = 0; round < 6 && abandoned === 0; round += 1) {
     const request = await queue.requestDispatcher(`request-${round}`);
+    const workerId = `worker-${round}`;
     await queue.activateDispatcher({
       generation: request.generation,
-      workerId: `worker-${round}`,
+      workerId,
     });
     await queue.claimWave({
       generation: request.generation,
-      workerId: `worker-${round}`,
+      workerId,
     });
+    expiredClaims.push({ dispatcherGeneration: request.generation, workerId });
     advance(1_001);
     abandoned = (await queue.recoverExpiredLeases()).abandonedItems;
   }
@@ -910,11 +915,20 @@ test("repeatedly abandoned items stop being recovered", async (t) => {
   assert.deepEqual(events.map((event) => event.status), [
     "requeued", "requeued", "requeued", "requeued", "abandoned",
   ]);
+  assert.deepEqual(
+    events.map(({ dispatcherGeneration, workerId }) => ({ dispatcherGeneration, workerId })),
+    expiredClaims,
+  );
+  assert.equal(new Set(events.map((event) => event.dispatcherGeneration)).size, events.length);
+  assert.deepEqual(new Set(events.map((event) => event.workerId)).size, events.length);
+  assert.equal(new Set(events.map((event) => event.itemKey)).size, 1);
+  assert.equal(new Set(events.map((event) => event.claimGeneration)).size, 1);
   assert.deepEqual(events.at(-1), {
     event: "dashboard_queue_item_recovery",
     lane: "live",
     itemKey: "example#pr:123",
     claimGeneration: 1,
+    ...expiredClaims.at(-1),
     status: "abandoned",
   });
 });
@@ -948,6 +962,8 @@ test("maintenance recovery logs only committed claims after CAS retries", async 
     lane: "maintenance",
     itemKey: claim.itemKey,
     claimGeneration: claim.claimGeneration,
+    dispatcherGeneration: request.generation,
+    workerId: "worker",
     status: "requeued",
   }]);
   const stored = store.entries.get(item.shardKey).value;
@@ -1380,6 +1396,8 @@ test("expired recovery preserves a dirty generation at the attempt ceiling", asy
     lane: "live",
     itemKey: "example#pr:123",
     claimGeneration: 1,
+    dispatcherGeneration: request.generation,
+    workerId: "worker-final",
     status: "requeued",
   });
 });

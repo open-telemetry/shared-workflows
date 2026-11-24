@@ -260,6 +260,8 @@ class QueueWorkerClientTest(unittest.TestCase):
                 self.assertEqual(json.loads(stderr.getvalue()), {
                     "event": "dashboard_queue_acknowledgment_failed",
                     "lane": lane,
+                    "dispatcherGeneration": 3,
+                    "workerId": "worker",
                     "itemKey": "example#pr:1",
                     "claimGeneration": 7,
                     "operationId": operation_id,

@@ -855,6 +855,8 @@ export class DashboardQueue {
           const recovery = {
             itemKey,
             claimGeneration: item.claimedGeneration,
+            dispatcherGeneration: item.dispatcherGeneration,
+            workerId: item.leaseOwner,
             status: "requeued",
           };
           items.push(recovery);

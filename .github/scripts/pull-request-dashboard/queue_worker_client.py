@@ -90,6 +90,8 @@ class QueueWorkerClient:
                         print(json.dumps({
                             "event": "dashboard_queue_acknowledgment_failed",
                             "lane": request_payload["lane"],
+                            "dispatcherGeneration": request_payload.get("generation"),
+                            "workerId": request_payload.get("workerId"),
                             "itemKey": request_payload.get("itemKey"),
                             "claimGeneration": request_payload.get("claimGeneration"),
                             "operationId": request_payload["operationId"],
