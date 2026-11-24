@@ -425,7 +425,7 @@ class RenderStatusCommentTest(unittest.TestCase):
 
         self.assertIn(
             "Wait for the required status checks to report; this pull request "
-            "moves to reviewers once the results are clean.",
+            "moves to reviewers once the results pass.",
             body,
         )
         self.assertIn(
@@ -781,7 +781,7 @@ class RenderStatusCommentTest(unittest.TestCase):
         self.assertIn("- **Top-level threads:** [20]", body)
         self.assertIn(
             "- _Showing 20 of 22 feedback links; "
-            "resolve the remaining items from the pull request's conversation._",
+            "find the rest in the pull request's conversation._",
             body,
         )
         self.assertNotIn(top_level_feedback_urls[-1], body)
@@ -806,7 +806,7 @@ class RenderStatusCommentTest(unittest.TestCase):
         self.assertNotIn("Top-level threads", body)
         self.assertIn(
             "- _Showing 20 of 21 feedback links; "
-            "resolve the remaining items from the pull request's conversation._",
+            "find the rest in the pull request's conversation._",
             body,
         )
 
@@ -858,8 +858,8 @@ class RenderStatusCommentTest(unittest.TestCase):
         expected_summaries = {
             "approver": ("Waiting on reviewers", "Review the latest changes."),
             "maintainer": ("Waiting on maintainers", "Merge when ready."),
-            "transient-failure": ("Waiting on the pull request dashboard maintainers", "Determine the next action."),
-            "unknown": ("Waiting on the pull request dashboard maintainers", "Determine the next action."),
+            "transient-failure": ("Waiting on the pull request dashboard maintainers", "The dashboard couldn't evaluate this pull request. If this persists, report it below."),
+            "unknown": ("Waiting on the pull request dashboard maintainers", "The dashboard couldn't evaluate this pull request. If this persists, report it below."),
         }
 
         for route, (headline, next_step) in expected_summaries.items():

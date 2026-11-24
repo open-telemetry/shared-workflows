@@ -232,7 +232,7 @@ def author_body(
     if held_gates:
         return [
             f"Wait for {held_gates} to report; this pull request moves to "
-            "reviewers once the results are clean."
+            "reviewers once the results pass."
         ]
     _, fallback_next_step = route_status_summary("author")
     return [fallback_next_step]
@@ -289,7 +289,7 @@ def render_status_comment(
         body = ["Move out of draft to request review."]
     elif result is None:
         headline = "Waiting on the pull request dashboard"
-        body = ["Finish refreshing this pull request."]
+        body = ["The dashboard hasn't evaluated this pull request yet."]
     else:
         route = result.route
         conflicted = facts.conflicts == "yes"
@@ -329,9 +329,10 @@ def render_status_comment(
                 if body:
                     body.append("")
                 body.append(
-                    "An explicit `/dashboard route:author` handoff is active. "
-                    "It returns to reviewers when the author addresses review "
-                    "feedback or pushes a new commit. Comment "
+                    "This pull request was handed to the author with "
+                    "`/dashboard route:author`. It returns to reviewers when "
+                    "the author addresses review feedback or pushes a new "
+                    "commit. Comment "
                     "`/dashboard route:reviewers` to hand it back sooner."
                 )
         else:
@@ -468,7 +469,7 @@ def feedback_breakdown_lines(
     if shown < feedback_count:
         lines.append(
             f"{indent}- _Showing {shown} of {feedback_count} feedback links; "
-            "resolve the remaining items from the pull request's conversation._"
+            "find the rest in the pull request's conversation._"
         )
     return lines
 
