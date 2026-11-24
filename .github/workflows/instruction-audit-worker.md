@@ -11,6 +11,7 @@ on:
 permissions:
   contents: read
   copilot-requests: write
+inlined-imports: true
 engine:
   id: copilot
   model: gpt-6.1-sol
