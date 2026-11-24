@@ -1216,6 +1216,68 @@ class PullRequestEvaluationTest(unittest.IsolatedAsyncioTestCase):
                     )
 
     @patch("pull_request_evaluation.fetch_pull_request_source")
+    async def test_unclear_inline_thread_does_not_block_maintainer_routing(
+        self,
+        fetch_raw: Mock,
+    ) -> None:
+        fetch_raw.return_value = pull_request_source(
+            reviews=(review_source(actor=actor("reviewer"), state="APPROVED"),),
+            review_threads=(review_thread(comments=(review_thread_comment(
+                actor=actor("reviewer"),
+                body="I wonder if there's more context here.",
+            ),)),),
+        )
+
+        result = await evaluate_pull_request(
+            evaluation_config(),
+            PullRequestEvaluationInput(7),
+            ClassificationService(
+                FakeModelRunner(responder=lambda request: successful_response(
+                    request, inline_verdict="unclear",
+                )),
+                MemoryClassificationCacheStore(),
+            ),
+        )
+
+        self.assertIsInstance(result, EvaluationSuccess)
+        assert isinstance(result, EvaluationSuccess)
+        self.assertEqual(DashboardRoute.MAINTAINER, result.route)
+        self.assertEqual({}, result.pending_actions)
+        self.assertEqual((), result.facts.author_action_review_thread_urls)
+
+    @patch("pull_request_evaluation.fetch_pull_request_source")
+    async def test_inline_request_after_long_comment_context_routes_to_author(
+        self,
+        fetch_raw: Mock,
+    ) -> None:
+        body = "More context. " * 100 + "Please fix the missing validation."
+        fetch_raw.return_value = pull_request_source(
+            reviews=(review_source(actor=actor("reviewer"), state="APPROVED"),),
+            review_threads=(review_thread(comments=(review_thread_comment(
+                actor=actor("reviewer"),
+                body=body,
+            ),)),),
+        )
+
+        def responder(request):
+            comment = prompt_items(request)[0]["comments"][0]
+            self.assertEqual(body, comment["body"])
+            return successful_response(request, inline_verdict="author")
+
+        result = await evaluate_pull_request(
+            evaluation_config(),
+            PullRequestEvaluationInput(7),
+            ClassificationService(
+                FakeModelRunner(responder=responder),
+                MemoryClassificationCacheStore(),
+            ),
+        )
+
+        self.assertIsInstance(result, EvaluationSuccess)
+        assert isinstance(result, EvaluationSuccess)
+        self.assertEqual(DashboardRoute.AUTHOR, result.route)
+
+    @patch("pull_request_evaluation.fetch_pull_request_source")
     async def test_copilot_findings_keep_author_work_with_the_author(
         self,
         fetch_raw: Mock,
@@ -2922,7 +2984,7 @@ class PullRequestEvaluationTest(unittest.IsolatedAsyncioTestCase):
         )
 
     @patch("pull_request_evaluation.fetch_pull_request_source")
-    async def test_edited_older_praise_attributes_remaining_thread_participants(
+    async def test_completed_inline_reply_uses_the_cited_reply_time(
         self,
         fetch_raw: Mock,
     ) -> None:
@@ -2974,14 +3036,16 @@ class PullRequestEvaluationTest(unittest.IsolatedAsyncioTestCase):
                 "thread-1": {
                     "action": "reviewer",
                     "since": "2026-08-16T09:00:00Z",
-                    "ignored_last_comment": True,
-                    "ignored_comment_index": 1,
                 },
             },
             result.pending_actions,
         )
         self.assertEqual(
             (
+                ReviewerSummary(
+                    login="praise-reviewer",
+                    unresolved_thread=True,
+                ),
                 ReviewerSummary(
                     login="root-reviewer",
                     unresolved_thread=True,

@@ -325,7 +325,7 @@ from utils import utc_now
 from telemetry import session as telemetry_session
 
 # --- CLI defaults ----------------------------------------------------------
-DEFAULT_MODEL = "gpt-5.6-luna"
+DEFAULT_MODEL = "gpt-6-luna"
 DEFAULT_BACKFILL_MAX_PRS = 50
 BACKFILL_FAILED_PR_PRIORITY_LIMIT = 10
 BACKFILL_RECORDED_FAILURE_STATUS = 2

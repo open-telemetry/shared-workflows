@@ -818,23 +818,28 @@ class StateTest(unittest.TestCase):
 
                     self.assertIsNone(load_dashboard_state_cache())
 
-    def test_loads_previous_routing_snapshot(self) -> None:
-        with tempfile.TemporaryDirectory() as temp_dir, patch("state._state_dir", Path(temp_dir)):
-            dashboard_state_path().write_text(
-                json.dumps({
-                    "version": 27,
-                    "initial_backfill_complete": True,
-                    "prs": {"7": {"route": "author", "facts": {
-                        "dashboard_override_bound_command_id": 42,
-                        "dashboard_override_head_sha": "head",
-                    }}},
-                }),
-                encoding="utf-8",
-            )
-            result = load_dashboard_state_cache()
-            self.assertTrue(result.initial_backfill_complete)
-            self.assertEqual(42, result.result_for(7).facts.handoff.command_id)
-            self.assertEqual("head", result.result_for(7).facts.handoff.head_sha)
+    def test_loads_previous_routing_snapshots(self) -> None:
+        for version in (27, 28):
+            with (
+                self.subTest(version=version),
+                tempfile.TemporaryDirectory() as temp_dir,
+                patch("state._state_dir", Path(temp_dir)),
+            ):
+                dashboard_state_path().write_text(
+                    json.dumps({
+                        "version": version,
+                        "initial_backfill_complete": True,
+                        "prs": {"7": {"route": "author", "facts": {
+                            "dashboard_override_bound_command_id": 42,
+                            "dashboard_override_head_sha": "head",
+                        }}},
+                    }),
+                    encoding="utf-8",
+                )
+                result = load_dashboard_state_cache()
+                self.assertTrue(result.initial_backfill_complete)
+                self.assertEqual(42, result.result_for(7).facts.handoff.command_id)
+                self.assertEqual("head", result.result_for(7).facts.handoff.head_sha)
 
     def test_version_thirteen_codec_does_not_invent_durable_cutoff(self) -> None:
         legacy_facts = dashboard_facts(
@@ -1418,7 +1423,7 @@ class StateTest(unittest.TestCase):
     def test_notification_state_version_is_independent(self) -> None:
         self.assertEqual(BACKFILL_STATE_VERSION, 3)
         self.assertEqual(NOTIFICATION_STATE_VERSION, 3)
-        self.assertEqual(DASHBOARD_STATE_VERSION, 28)
+        self.assertEqual(DASHBOARD_STATE_VERSION, 29)
         self.assertEqual(DASHBOARD_STATE_COMPATIBLE_VERSIONS, (20, 21, 23))
         self.assertEqual(STATUS_COMMENT_ROLLOUT_STATE_VERSION, 3)
         self.assertEqual(STATUS_COMMENT_REVISION, 24)

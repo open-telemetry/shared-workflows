@@ -29,6 +29,7 @@ from classification_execution import (  # noqa: E402
 import classification_policy as policy  # noqa: E402
 
 CASES = Path(__file__).resolve().parent / "reviewer_feedback_cases.json"
+OVERRIDE_CASES = CASES.with_name("reviewer_feedback_override_cases.json")
 BATCH_SIZE = 10
 
 # Classifiers answer in their own vocabulary; map each onto the recorded labels.
@@ -82,7 +83,7 @@ async def classify(
                 c["requester"],
                 c["pr_author"],
                 c["body"],
-                (
+                c.get("feedback_kind") or (
                     "review_summary"
                     if c["id"].startswith("pr-review-")
                     else "top_level_comment"
@@ -197,6 +198,11 @@ def summarize(cases: list[dict], trials: list[dict[str, str]]) -> dict:
         "adjudicated": adjudicated,
         "scored": scored,
         "correct": sum(1 for c in scored if settled[c["id"]] == c["adjudicated_label"]),
+        "incorrect": [
+            {**c, "got": settled[c["id"]]}
+            for c in scored
+            if settled[c["id"]] != c["adjudicated_label"]
+        ],
     }
 
 
@@ -266,10 +272,69 @@ def report(
         print(f"  ... and {len(drift) - 40} more")
 
 
+def report_overrides(cases: list[dict], trials: list[dict[str, str]]) -> None:
+    s = summarize(cases, trials)
+    print(f"correct        {s['correct']}/{len(s['adjudicated'])}")
+    print(f"wrong          {len(s['incorrect'])}")
+    print(f"no answer      {len(s['no_answer'])}")
+    print(f"partial answer {len(s['partial_answer'])}")
+    print(f"tied           {len(s['tied'])}")
+    for case in s["incorrect"]:
+        print(f"  expected {case['adjudicated_label']}, got {case['got']}: {case['feedback_url']}")
+
+
+async def classify_overrides(
+    cases: list[dict], model: str, runner: ModelRunner,
+) -> dict[str, str]:
+    inline = [case for case in cases if case["feedback_kind"] == "review_thread"]
+    top_level = [case for case in cases if case["feedback_kind"] != "review_thread"]
+
+    async def classify_inline(group: list[dict]) -> dict[str, str]:
+        contract = policy.VerdictContract.INLINE_THREAD
+        discussions = tuple(
+            policy.ClassificationDiscussion(
+                policy.DiscussionIdentity(case["id"], policy.DiscussionKind.REVIEW_THREAD),
+                comments=(policy.DiscussionComment(
+                    actor_role="approver", actor=case["requester"], body=case["body"],
+                ),),
+                pr_author=case["pr_author"],
+            )
+            for case in group
+        )
+        observed = {}
+        for request in policy.prepare_verdict_requests(discussions, contract):
+            try:
+                response = await runner.run(ModelRunRequest(request.prompt, model))
+            except Exception as error:
+                print(f"Inline evaluation request failed: {error}", file=sys.stderr)
+                continue
+            for result in policy.resolve_verdict_response(request, response):
+                if not result.failed and isinstance(result.decision, policy.VerdictDecision):
+                    verdict = result.decision.verdict
+                    if verdict is not policy.Verdict.UNCLEAR:
+                        observed[result.identity.discussion_id] = (
+                            "author_action" if verdict is policy.Verdict.AUTHOR else "no_author_action"
+                        )
+        return observed
+
+    _template, fields, mapping = VOCABULARIES["reviewer_feedback"]
+    observed = await classify(
+        top_level, policy.REVIEWER_FEEDBACK_PROMPT_TEMPLATE, fields, mapping, model, runner,
+    )
+    for batch in batch_cases(inline):
+        observed.update(await classify_inline(batch))
+    return observed
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--classifier", choices=sorted(VOCABULARIES), required=True)
     parser.add_argument("--model", default="gpt-5.4-mini")
+    parser.add_argument(
+        "--routing-overrides",
+        action="store_true",
+        help="score adjudicated reviewer-routing override examples instead of the recorded baseline",
+    )
     parser.add_argument(
         "--trials",
         type=int,
@@ -289,27 +354,38 @@ def main() -> None:
             f"available: {', '.join(available_classifiers())}"
         )
 
-    data = json.loads(CASES.read_text(encoding="utf-8"))
-    print(
-        f"{args.classifier} / {args.model} x{args.trials}   "
-        f"baseline generated {data['baseline_generated_at']}; "
-        f"measurements updated {data['measurements_updated_at']}\n"
-    )
+    if args.routing_overrides:
+        cases = [
+            {**case, "role": "scored", "stability": None}
+            for case in json.loads(OVERRIDE_CASES.read_text(encoding="utf-8"))
+        ]
+        print(f"{args.classifier} / {args.model} x{args.trials}   routing overrides\n")
+    else:
+        data = json.loads(CASES.read_text(encoding="utf-8"))
+        cases = data["cases"]
+        print(
+            f"{args.classifier} / {args.model} x{args.trials}   "
+            f"baseline generated {data['baseline_generated_at']}; "
+            f"measurements updated {data['measurements_updated_at']}\n"
+        )
 
     async def run_trials() -> list[dict]:
         async with CopilotSdkModelRunner() as runner:
+            if args.routing_overrides:
+                return [
+                    await classify_overrides(cases, args.model, runner)
+                    for _ in range(args.trials)
+                ]
             return [
-                await classify(data["cases"], template, fields, mapping, args.model, runner)
+                await classify(cases, template, fields, mapping, args.model, runner)
                 for _ in range(args.trials)
             ]
 
     trials = asyncio.run(run_trials())
-    report(
-        data["cases"],
-        trials,
-        data["counts"]["flaky"],
-        data["baseline_configuration"]["runs"],
-    )
+    if args.routing_overrides:
+        report_overrides(cases, trials)
+    else:
+        report(cases, trials, data["counts"]["flaky"], data["baseline_configuration"]["runs"])
 
 
 if __name__ == "__main__":

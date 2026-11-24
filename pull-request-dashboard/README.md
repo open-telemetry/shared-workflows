@@ -42,8 +42,18 @@ dashboard script directory:
 cd .github/scripts/pull-request-dashboard
 python -m pip install -r requirements.txt
 python -m copilot download-runtime
-python eval/score_reviewer_feedback.py --classifier reviewer_feedback --model gpt-5.6-luna
+python eval/score_reviewer_feedback.py --classifier reviewer_feedback --model gpt-6-luna
 ```
+
+Add `--routing-overrides` to score adjudicated examples separately from the
+recorded baseline. Each example links to the feedback, the dashboard status
+comment, and the manual `/dashboard route:reviewers` command. The status timestamp
+identifies the edit that listed the feedback under "Waiting on the author".
+The command is a lead, not a label: some handoffs follow real work or a reply.
+The scorer tests whether the cited item itself asks anything of the author.
+Inline examples use the inline classifier with the cited comment as a
+single-comment thread. The score does not replay later replies or the full
+production routing decision.
 
 Set `COPILOT_GITHUB_TOKEN` to a token with Copilot access. Local runs also accept
 `GH_TOKEN` or `GITHUB_TOKEN` when no explicit Copilot token is set. Actions runs
@@ -422,14 +432,18 @@ Inline review threads and top-level feedback have different lifecycles on
 GitHub. Top-level feedback means a standalone PR comment or submitted review
 summary that is not attached to an inline review thread.
 
-- An inline thread remains on the dashboard until someone marks the conversation
-  resolved on GitHub or GitHub marks its code anchor outdated. A completed author
-  reply hands the action away from the author but does not close the thread. If
-  the PR has enough approvals, it resumes approval-based routing and can move to
+- The dashboard reads each unresolved, current inline thread to decide who
+  owes the next step. Informational notes and optional suggestions don't need
+  a reply. An unclear thread does not by itself put the PR with the author.
+  A completed author reply hands the action away from the author but does not
+  close the thread on GitHub. If the PR has enough approvals, it can move to
   maintainers without reviewer confirmation; otherwise it waits on reviewers.
   A reply that commits to more work keeps the PR with the author. Author-only
   inline threads are treated as annotations rather than review feedback unless a
   non-author joins them. These rules apply equally to human and Copilot feedback.
+  Long threads are classified on their own, without truncating comments.
+  If a whole thread exceeds the 96,000-byte prompt limit, the refresh reports a
+  classification failure and leaves the last accepted routing intact.
 - Top-level feedback has no resolved state. The dashboard therefore tracks each
   actionable top-level feedback item independently. 📌 means that one or more
   of those items are waiting on the author.

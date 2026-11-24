@@ -17,6 +17,8 @@ from utils import parse_ts, truncate
 
 DISCUSSION_COMMENT_BODY_MAX_CHARS = 500
 MAX_PROMPT_CHARS = 18_000
+# Allow a larger request for one thread without splitting its conversation.
+MAX_INLINE_THREAD_PROMPT_BYTES = 96_000
 TOP_LEVEL_CLASSIFICATION_BATCH_SIZE = 10
 AUTHOR_COMMENT_DIAGNOSTIC_ITEM_LIMIT = 10
 PRAISE_MAX_CHARS = 80
@@ -207,6 +209,59 @@ for every input discussion_id and copy each discussion_id exactly:
 """
 )
 
+INLINE_THREAD_PROMPT_TEMPLATE = (
+    """You are triaging unresolved inline pull request review threads.
+
+"""
+    + BATCH_CONTRACT
+    + """
+
+Read the whole thread in posting order. Each comment has a zero-based
+comment_index, an actor_role, and a body. Use the timestamps to tell whether
+an older comment was substantively edited after a reply. Authors are the PR
+authors; other participants, including review bots with concrete findings,
+can leave feedback. Ignore routine automation. If a question is directed at
+another participant, do not assign it to the PR author.
+
+Who owes the next step on this thread before the PR can merge?
+
+- author: an unanswered question, a concrete change request, objection or
+  defect that still applies, or the author commits to doing work in this PR.
+  A defect report can require action even without a question or request.
+- reviewer: the author answered, made the requested change, explained why
+  they won't make it, or asked the reviewer a question. If the author says
+  the work remains, keep it with the author. Work left to a separate future
+  PR does not count as a commitment to change this PR.
+- none: no next step, for example an FYI, praise, a withdrawn request, an
+  explicitly non-blocking suggestion, or a request that another participant
+  other than the PR author has already taken responsibility for.
+- unclear: there is not enough evidence to identify a next step.
+
+Track earlier requests as well as replies. A later "thanks", FYI, or optional
+suggestion does not overwrite an earlier unanswered request. If the author
+answered one request but not another, use the one that still needs action.
+Do not treat an optional suggestion as required merely because it describes
+a problem or is phrased as a question. If the reviewer explicitly accepts
+the current change and offers to do the work after merge, it is not required.
+Treat a concrete edit proposed for this PR as a request unless the reviewer
+marks it optional. "I think we can drop the duplicate retry here" asks the
+author to remove it. "The second call hits the cache, so that's fine" is
+informational. Tentative wording alone does not make an edit optional.
+
+For author or reviewer, identify the comment that started the current wait
+and say what that person should do next. For reviewer, cite the author's
+reply; for author, cite the actual request or the author's commitment, not
+an unrelated comment. For none or unclear, return null as comment_index.
+
+Respond with a single JSON object and nothing else.
+{{"items": [{{"discussion_id": "input id", "verdict": "author" | "reviewer" | "none" | "unclear", "comment_index": 0 | null, "reason": "concrete next step or why none can be assigned"}}]}}
+
+---BEGIN INLINE THREADS---
+{discussions}
+---END INLINE THREADS---
+"""
+)
+
 PRAISE_PROMPT_TEMPLATE = (
     """You are triaging single comments left by reviewers on pull requests.
 
@@ -305,6 +360,10 @@ class DiscussionAction(str, Enum):
 
 
 class Verdict(str, Enum):
+    AUTHOR = "author"
+    REVIEWER = "reviewer"
+    NONE = "none"
+    UNCLEAR = "unclear"
     AUTHOR_ACTION = "author_action"
     NO_AUTHOR_ACTION = "no_author_action"
     DEFERRAL = "deferral"
@@ -314,6 +373,7 @@ class Verdict(str, Enum):
 
 
 class VerdictContract(str, Enum):
+    INLINE_THREAD = "inline-thread"
     REVIEWER_FEEDBACK = "reviewer-feedback"
     AUTHOR_REPLY = "author-reply"
     PRAISE = "praise"
@@ -321,14 +381,18 @@ class VerdictContract(str, Enum):
     @property
     def prompt_template(self) -> str:
         return {
+            VerdictContract.INLINE_THREAD: INLINE_THREAD_PROMPT_TEMPLATE,
             VerdictContract.REVIEWER_FEEDBACK: REVIEWER_FEEDBACK_PROMPT_TEMPLATE,
             VerdictContract.AUTHOR_REPLY: AUTHOR_REPLY_PROMPT_TEMPLATE,
             VerdictContract.PRAISE: PRAISE_PROMPT_TEMPLATE,
         }[self]
 
     @property
-    def verdicts(self) -> tuple[Verdict, Verdict]:
+    def verdicts(self) -> tuple[Verdict, ...]:
         return {
+            VerdictContract.INLINE_THREAD: (
+                Verdict.UNCLEAR, Verdict.AUTHOR, Verdict.REVIEWER, Verdict.NONE,
+            ),
             VerdictContract.REVIEWER_FEEDBACK: (
                 Verdict.AUTHOR_ACTION,
                 Verdict.NO_AUTHOR_ACTION,
@@ -345,6 +409,8 @@ class VerdictContract(str, Enum):
 
     @property
     def actions(self) -> Mapping[Verdict, DiscussionAction]:
+        if self is VerdictContract.INLINE_THREAD:
+            return {verdict: DiscussionAction(verdict.value) for verdict in self.verdicts}
         return {
             VerdictContract.REVIEWER_FEEDBACK: {
                 Verdict.AUTHOR_ACTION: DiscussionAction.AUTHOR,
@@ -386,6 +452,7 @@ class DiscussionComment:
     actor_role: str = ""
     body: str = ""
     activity_timestamp: str = ""
+    actor: str = ""
 
     @property
     def effective_activity_timestamp(self) -> str:
@@ -447,6 +514,7 @@ class ClassificationDiscussion:
                 activity_timestamp=str(
                     comment.get("activity_timestamp") or ""
                 ),
+                actor=str(comment.get("actor") or ""),
             )
             for comment in _mapping_items(record.get("comments"))
         )
@@ -487,12 +555,14 @@ class ClassificationDiscussion:
 class ActionDecision:
     action: DiscussionAction
     reason: str
+    comment_index: int | None = None
 
 
 @dataclass(frozen=True)
 class VerdictDecision:
     verdict: Verdict
     reason: str
+    comment_index: int | None = None
 
 
 @dataclass(frozen=True)
@@ -885,6 +955,25 @@ def verdict_prompt_input(
     discussion: ClassificationDiscussion,
     contract: VerdictContract,
 ) -> dict[str, Any]:
+    if contract is VerdictContract.INLINE_THREAD:
+        return {
+            "discussion_id": discussion.identity.discussion_id,
+            "pr_author": discussion.pr_author,
+            "comments": [
+                {
+                    "comment_index": index,
+                    "actor_role": comment.actor_role,
+                    "actor": comment.actor,
+                    "timestamp": comment.timestamp,
+                    **(
+                        {"edited_at": comment.activity_timestamp}
+                        if comment.activity_timestamp else {}
+                    ),
+                    "body": comment.body,
+                }
+                for index, comment in enumerate(discussion.comments)
+            ],
+        }
     if contract is VerdictContract.REVIEWER_FEEDBACK:
         return reviewer_feedback_prompt_input(discussion)
     if contract is VerdictContract.AUTHOR_REPLY:
@@ -899,6 +988,7 @@ def render_prompt_inputs(
     prompt_template: str,
     *,
     max_prompt_chars: int = MAX_PROMPT_CHARS,
+    max_inline_prompt_bytes: int | None = None,
 ) -> str:
     rendered_inputs = [
         {
@@ -929,6 +1019,23 @@ def render_prompt_inputs(
         discussions=discussions_text,
         **prompt_args,
     )
+    if max_inline_prompt_bytes is not None:
+        if (
+            len(prompt) <= max_prompt_chars
+            and len(prompt.encode("utf-8")) <= max_inline_prompt_bytes
+        ):
+            return prompt
+        prompt = prompt_template.format(
+            discussions=json.dumps(
+                rendered_inputs, separators=(",", ":"), ensure_ascii=False,
+            ),
+            **prompt_args,
+        )
+        if len(prompt.encode("utf-8")) <= max_inline_prompt_bytes:
+            return prompt
+        raise _PromptTooLongError(
+            f"inline thread prompt exceeds {max_inline_prompt_bytes:,} bytes"
+        )
     if len(prompt) <= max_prompt_chars:
         return prompt
     for discussion in rendered_inputs:
@@ -960,10 +1067,18 @@ def render_verdict_prompt(
     *,
     max_prompt_chars: int = MAX_PROMPT_CHARS,
 ) -> str:
+    max_inline_prompt_bytes = None
+    if contract is VerdictContract.INLINE_THREAD:
+        max_inline_prompt_bytes = (
+            MAX_INLINE_THREAD_PROMPT_BYTES
+            if len(discussions) == 1
+            else min(max_prompt_chars, MAX_INLINE_THREAD_PROMPT_BYTES)
+        )
     return render_prompt_inputs(
         [verdict_prompt_input(discussion, contract) for discussion in discussions],
         contract.prompt_template,
         max_prompt_chars=max_prompt_chars,
+        max_inline_prompt_bytes=max_inline_prompt_bytes,
     )
 
 
@@ -1401,7 +1516,35 @@ def parse_verdict_decision(
         return VerdictDecision(fail_safe, reason), False
     if verdict not in contract.verdicts:
         return VerdictDecision(fail_safe, reason), False
+    if contract is VerdictContract.INLINE_THREAD:
+        index = obj.get("comment_index")
+        needs_evidence = verdict in (Verdict.AUTHOR, Verdict.REVIEWER)
+        if (
+            not isinstance(obj.get("reason"), str)
+            or not reason.strip()
+            or "comment_index" not in obj
+            or (needs_evidence and (type(index) is not int or index < 0))
+            or (not needs_evidence and index is not None)
+        ):
+            return VerdictDecision(fail_safe, ""), False
+        return VerdictDecision(verdict, truncate(reason, 300), index), True
     return VerdictDecision(verdict, reason), True
+
+
+def _valid_inline_evidence(
+    decision: VerdictDecision, discussion: ClassificationDiscussion
+) -> bool:
+    index = decision.comment_index
+    if decision.verdict not in (Verdict.AUTHOR, Verdict.REVIEWER):
+        return index is None
+    return (
+        index is not None
+        and 0 <= index < len(discussion.comments)
+        and (
+            decision.verdict is not Verdict.REVIEWER
+            or discussion.comments[index].actor_role == "author"
+        )
+    )
 
 
 def resolve_verdict_response(
@@ -1449,6 +1592,8 @@ def resolve_verdict_response(
             json.dumps(item) if item is not None else "",
             request.contract,
         )
+        if request.contract is VerdictContract.INLINE_THREAD:
+            valid_response &= _valid_inline_evidence(decision, discussion)
         failed = (
             response.returncode != 0
             or not valid_response
@@ -1681,15 +1826,16 @@ def map_verdict_result(
 ) -> ClassificationResult:
     if not isinstance(result.decision, VerdictDecision):
         raise TypeError("verdict result requires a VerdictDecision")
-    action = (
-        DiscussionAction.AUTHOR
-        if isinstance(result, ClassificationFailure)
-        else contract.actions.get(
-            result.decision.verdict,
-            DiscussionAction.AUTHOR,
+    if isinstance(result, ClassificationFailure):
+        action = (
+            DiscussionAction.UNCLEAR
+            if contract is VerdictContract.INLINE_THREAD
+            else DiscussionAction.AUTHOR
         )
-    )
-    decision = ActionDecision(action, result.decision.reason)
+        decision = ActionDecision(action, result.decision.reason)
+    else:
+        action = contract.actions.get(result.decision.verdict, DiscussionAction.AUTHOR)
+        decision = ActionDecision(action, result.decision.reason, result.decision.comment_index)
     return replace(result, decision=decision)
 
 
@@ -1885,15 +2031,24 @@ def discussion_cache_key(
 
 
 def decision_to_record(decision: ClassificationDecision) -> dict[str, Any]:
+    evidence = (
+        {"comment_index": decision.comment_index}
+        if isinstance(decision, (ActionDecision, VerdictDecision))
+        and decision.comment_index is not None else {}
+    )
     if isinstance(decision, ActionDecision):
         return {
             "discussion_action": decision.action.value,
             "reason": decision.reason,
+            **evidence,
         }
     if isinstance(decision, VerdictDecision):
+        if decision.verdict in VerdictContract.INLINE_THREAD.verdicts:
+            evidence = {"comment_index": decision.comment_index}
         return {
             "verdict": decision.verdict.value,
             "reason": decision.reason,
+            **evidence,
         }
     record: dict[str, Any] = {
         "feedback_outcomes": [
@@ -1985,6 +2140,10 @@ def classification_result_from_cache_record(
             outcomes,
             str(raw_decision.get("reason") or ""),
         )
+    elif verdict_contract is VerdictContract.INLINE_THREAD and not record.get("failed"):
+        decision, valid = parse_verdict_decision(json.dumps(dict(raw_decision)), verdict_contract)
+        if not valid or not _valid_inline_evidence(decision, discussion):
+            return ClassificationDeferred(discussion.identity, decision)
     elif verdict_contract is not None:
         raw_verdict = str(raw_decision.get("verdict") or "")
         try:
