@@ -239,9 +239,15 @@ def validate_title(value):
         raise ValueError("Expected a short, plain-text PR title without mentions, issue references, or links")
 
 
+def validate_explanation(value):
+    if (not isinstance(value, str) or not value.strip()
+            or any(not char.isprintable() and char not in "\r\n\t" for char in value)):
+        raise ValueError("Expected a non-empty PR explanation in plain text")
+
+
 def validate_result(result):
     fields(result, "repo", "base", "sha", "tree", "head", "cursor", "completed", "rule", "status", "reason",
-           "fix", "title")
+           "fix", "title", "explanation")
     if result["repo"] != target():
         raise ValueError("Result is for a different repository")
     text(result["base"], 180, REF)
@@ -265,8 +271,9 @@ def validate_result(result):
             raise ValueError("Only a finding can supply a fix")
         validate_changes(fix)
         validate_title(result["title"])
-    elif result["title"] is not None:
-        raise ValueError("Only a fix can supply a PR title")
+        validate_explanation(result["explanation"])
+    elif result["title"] is not None or result["explanation"] is not None:
+        raise ValueError("Only a fix can supply a PR title or explanation")
     return result
 
 
@@ -289,7 +296,7 @@ def prepare(repo, checkout, *, publish_fixes=False, continuation=""):
     result = dict(repo=repo, base=base, sha=sha, tree=tree, head=head, cursor=cursor,
                   completed=None, rule=None, status="complete",
                   reason="No more rules. The next dispatch starts at the beginning.",
-                  fix=None, title=None)
+                  fix=None, title=None, explanation=None)
     rules = list(remaining_rules(documents, anchor))
     if continuation and offset >= len(rules):
         raise ValueError("Continuation does not select a remaining rule")
@@ -323,24 +330,30 @@ Instruction selection, encoded as data:
                  selected_rule=rule.text, full_document=document), ensure_ascii=False)}
 """
     response = """
-Return only a JSON object. "status" is "clean", "not_auditable", or "finding". "reason" is
-one or two short paragraphs, at most 4096 UTF-8 bytes. State what you checked and disclose any
-coverage limits. For a finding, explain the verified violations and how to address them. Cite the
-relevant paths and verify your claims against the snapshot. Use backticks for identifiers, but no other markup.
+Return only a JSON object. "status" is "clean", "not_auditable", or "finding". "reason" is for
+the audit run summary: one or two short paragraphs, at most 4096 UTF-8 bytes. State what you
+checked and disclose any coverage limits. For a finding, explain the verified violations and
+how to address them. Cite the relevant paths and verify your claims against the snapshot.
+Use backticks for identifiers, but no other markup.
 """
     if publish_fixes:
         response += f"""
-Include exactly the keys "status", "reason", "patch", and "title". For a finding, include fixes
-for all verified violations of the selected rule that you can safely address in one patch,
-even across files.
+Include exactly the keys "status", "reason", "patch", "title", and "explanation". For a finding,
+include fixes for all verified violations of the selected rule that you can safely address in
+one patch, even across files.
 If any verified violations remain unfixed, say which ones and why in "reason".
 Return the patch as a Git unified diff string against the audited snapshot, with a trailing
-newline and no Markdown fences. If you
-provide a patch, write a specific PR title in the imperative that describes what the
-patch changes, for example "Document the default timeout". Use one line of
-plain text, at most {TITLE_LIMIT} UTF-8 bytes, without mentions, issue references, or links.
+newline and no Markdown fences. If you provide a patch, write a specific PR title in the
+imperative that describes what the patch changes, for example "Document the default timeout".
+Use one line of plain text, at most {TITLE_LIMIT} UTF-8 bytes, without mentions, issue references, or links.
 Do not include an audit prefix; the workflow adds it.
-Set both "patch" and "title" to null if there is no finding or you cannot propose a fix.
+If you provide a patch, write the public PR "explanation" for a reviewer. Lead with what
+changes and why it matters. Keep straightforward fixes brief. For a complex fix, use short
+paragraphs for user-visible behavior, compatibility, or constraints the diff doesn't explain.
+Cut details the reviewer can already see in the diff. Don't repeat the rule or include file
+inventories, search steps, coverage notes, or validation details; those belong in "reason".
+Use backticks for identifiers, but no other markup.
+Set "patch", "title", and "explanation" to null if there is no finding or you cannot propose a fix.
 """
     else:
         response += 'Include exactly the keys "status" and "reason".\n'
@@ -349,17 +362,18 @@ Set both "patch" and "title" to null if there is no finding or you cannot propos
 
 def assess(plan, judgment, checkout):
     result = plan["result"]
-    fields(judgment, "status", "reason", *(("patch", "title") if plan["publish"] else ()))
+    fields(judgment, "status", "reason", *(("patch", "title", "explanation") if plan["publish"] else ()))
     if judgment["status"] not in ("clean", "not_auditable", "finding"):
         raise ValueError("Invalid Copilot judgment")
     status = judgment["status"]
-    proposal, title = (judgment["patch"], judgment["title"]) if plan["publish"] else (None, None)
-    if proposal is None and title is not None:
-        raise ValueError("Only a patch can supply a PR title")
+    proposal, title, explanation = judgment.get("patch"), judgment.get("title"), judgment.get("explanation")
+    if proposal is None and (title is not None or explanation is not None):
+        raise ValueError("Only a patch can supply a PR title or explanation")
     if proposal is not None:
         if status != "finding":
             raise ValueError("Only a finding can supply a patch")
         validate_title(title)
+        validate_explanation(explanation)
     try:
         reason = text(judgment.get("reason"), REASON_LIMIT)
     except ValueError:
@@ -374,7 +388,8 @@ def assess(plan, judgment, checkout):
         except UnsupportedPatch as error:
             summary(f"Proposed patch not published: {error}.")
     if status == "finding" and (not plan["publish"] or fix is not None):
-        result.update(rule=plan["rule"], status="finding", reason=reason, fix=fix, title=title)
+        result.update(rule=plan["rule"], status="finding", reason=reason, fix=fix, title=title,
+                      explanation=explanation)
     else:
         summary(f"Rule outcome: `{status}`.\n\n<pre>{html.escape(reason)}</pre>")
         if plan["next"]:
@@ -448,8 +463,8 @@ def inline_markdown(value):
     return "".join(part if i % 2 else prose(part) for i, part in enumerate(parts))
 
 
-def evidence_markdown(evidence):
-    paragraphs = re.split(r"\n[ \t]*\n", evidence.strip().replace("\r\n", "\n").replace("\r", "\n"))
+def explanation_markdown(explanation):
+    paragraphs = re.split(r"\n[ \t]*\n", explanation.replace("\r\n", "\n").replace("\r", "\n"))
     return "\n\n".join(inline_markdown(" ".join(paragraph.split())) for paragraph in paragraphs if paragraph.strip())
 
 
@@ -469,7 +484,7 @@ def pull_request_body(result):
     body = (f"This PR fixes a finding from an [instruction audit run]({run_url}) "
             f"that checked the following [repository rule]({rule_url}):\n\n"
             f"{rule_quote(result['rule']['text'])}\n\n"
-            f"### Explanation\n\n{evidence_markdown(result['reason'])}")
+            f"### Explanation\n\n{explanation_markdown(result['explanation'])}")
     if len(body) > 65_536:
         raise ValueError("The complete rule and explanation exceed GitHub's PR description limit")
     return body

@@ -190,22 +190,35 @@ class PassTest(unittest.TestCase):
         patch_changes.return_value = [{"path": "src/Settings.java", "mode": "100644",
                                        "type": "blob", "content": "newValue();\n"}]
         plan, _ = audit.prepare(audit.target(), "snapshot", publish_fixes=True)
-        result = audit.assess(plan, {"status": "finding", "reason": "First finding.", "patch": None, "title": None},
-                              "snapshot")
+        result = audit.assess(plan, {"status": "finding", "reason": "First finding.", "patch": None, "title": None,
+                                    "explanation": None}, "snapshot")
         self.assertEqual(result["status"], "continue")
         plan, _ = audit.prepare(audit.target(), "snapshot", publish_fixes=True, continuation=plan["next"])
         title = "Default the timeout at the configuration read"
-        judgment = {"status": "finding", "reason": "Second finding.", "patch": "diff", "title": title}
+        explanation = (
+            "Explicit timeouts were ignored when the setting came from an environment variable. "
+            "Apply the default only when neither the setting nor the variable is present.\n\n"
+            "An explicitly configured zero still disables the timeout. Older deployments that only set the "
+            "environment variable keep their configured value; deployments that set neither now use the "
+            "documented default."
+        )
+        judgment = {"status": "finding", "reason": "Checked Java sources only.", "patch": "diff", "title": title,
+                    "explanation": explanation}
         for invalid in (None, "", "\u00e9" * 51, "Fix timeout\nNew line", "Fix timeout for @someone",
                         "Fix timeout in #42", "Fix timeout in GH-42", "Fix timeout at https://example.com"):
             with self.subTest(title=invalid), self.assertRaisesRegex(ValueError, "plain-text PR title"):
                 audit.assess(plan, judgment | {"title": invalid}, "snapshot")
+        for invalid in (None, " \n", "Fix\0 the timeout."):
+            with self.subTest(explanation=invalid), self.assertRaisesRegex(ValueError, "non-empty PR explanation"):
+                audit.assess(plan, judgment | {"explanation": invalid}, "snapshot")
         result = audit.assess(plan, judgment, "snapshot")
         self.assertEqual(result["status"], "finding")
         self.assertEqual(result["rule"]["text"], "- Second rule.")
         self.assertEqual(result["completed"]["text"], "- First rule.")
         self.assertEqual(result["fix"], patch_changes.return_value)
         self.assertEqual(result["title"], title)
+        self.assertEqual(result["reason"], "Checked Java sources only.")
+        self.assertEqual(result["explanation"], explanation)
         patch_changes.assert_called_once_with("snapshot", "a" * 40, "diff")
 
 
@@ -273,8 +286,10 @@ class StateTest(unittest.TestCase):
             "rule": {"path": ROOT, "text": "Document the `timeout` setting.\n\n"
                                           "Include the compatibility exception.\n"
                                           + "Keep this guidance. " * 30 + "End of rule."},
-            "reason": "Correct the timeout in `README.md`.\nIt is ten seconds.\n\nThe default stays the same.",
+            "reason": "Searched configuration and tests.\n\nCoverage is limited to the defaults.",
             "title": "Document the ten-second timeout",
+            "explanation": "The docs disagree with the default. Record the ten-second value in `README.md`.\n\n"
+                           "Existing timeout settings still work.",
             "fix": [
                 {"path": "gradlew", "mode": "100755", "type": "blob", "content": "Ten seconds.\n"},
                 {"path": "README.md", "mode": "100644", "type": "blob", "content": "Timeout: ten seconds.\n"},
@@ -307,8 +322,9 @@ class StateTest(unittest.TestCase):
                          f"that checked the following [repository rule](https://github.com/{repo}/blob/{result['sha']}/{ROOT}):\n\n"
                          "> Document the `timeout` setting.\n>\n> Include the compatibility exception.\n> "
                          + "Keep this guidance. " * 30 + "End of rule.\n\n"
-                         "### Explanation\n\nCorrect the timeout in `README.md`. It is ten seconds.\n\n"
-                         "The default stays the same.")
+                         "### Explanation\n\nThe docs disagree with the default. "
+                         "Record the ten&#45;second value in `README.md`.\n\n"
+                         "Existing timeout settings still work.")
         output.assert_called_once_with("handled", "true")
 
     @patch.dict(os.environ, {"GITHUB_RUN_ID": "42"})
@@ -320,13 +336,13 @@ class StateTest(unittest.TestCase):
             audit.publish({"repo": "open-telemetry/example", "base": "main", "title": "Fix the finding"})
         output.assert_not_called()
 
-    def test_evidence_does_not_render_model_supplied_links_mentions_or_html(self):
+    def test_inline_markdown_does_not_render_model_supplied_links_mentions_or_html(self):
         self.assertEqual(
-            audit.evidence_markdown(
-                "# Review\n\nFixes #42 GH-42 @team at www.example.com or https://example.com.\n"
+            audit.inline_markdown(
+                "# Review: fixes #42 GH-42 @team at www.example.com or https://example.com. "
                 "![click](https://example.com) <img> `setting.name`"
             ),
-            "&#35;&#8203; Review\n\nFixes &#35;&#8203;42 GH&#45;&#8203;42 &#64;&#8203;team "
+            "&#35;&#8203; Review&#58; fixes &#35;&#8203;42 GH&#45;&#8203;42 &#64;&#8203;team "
             "at www&#46;example.com or https&#58;//example.com. "
             "&#33;&#91;click&#93;&#40;https&#58;//example.com&#41; &#60;img&#62; `setting.name`",
         )
