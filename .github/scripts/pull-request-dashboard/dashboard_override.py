@@ -464,10 +464,13 @@ def render_command_reply(reply: DashboardCommandReply) -> str:
     elif kind == "author_unavailable":
         message = "this pull request has no human author the dashboard can route to."
     elif kind == "routed" and to_author:
+        # The author is expected to follow their own pull request, so this
+        # status reply does not mention anyone.
+        mention = ""
         message = (
-            "this pull request is waiting on the author. Normal routing resumes "
-            "when the author addresses review feedback or the head commit changes. "
-            "Use `/dashboard route:reviewers` to hand it back explicitly."
+            "This pull request is now waiting on the author. It returns to "
+            "reviewers when the author addresses review feedback or pushes a new "
+            "commit. Comment `/dashboard route:reviewers` to hand it back sooner."
         )
     elif kind == "routed":
         # DashboardCommandReply refuses a routed reply without a route.

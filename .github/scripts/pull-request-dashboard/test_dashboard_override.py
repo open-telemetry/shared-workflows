@@ -386,6 +386,25 @@ class DashboardOverrideTest(unittest.TestCase):
             maintainer,
         )
 
+    def test_renders_author_handoff_reply_without_mention(self) -> None:
+        body = dashboard_override.render_command_reply(
+            DashboardCommandReply(
+                9,
+                "routed",
+                "reviewer",
+                "route:author",
+                head_sha="head",
+                route=DashboardRoute.AUTHOR,
+            )
+        )
+
+        self.assertEqual(
+            "This pull request is now waiting on the author. It returns to "
+            "reviewers when the author addresses review feedback or pushes a new "
+            "commit. Comment `/dashboard route:reviewers` to hand it back sooner.",
+            body.splitlines()[-1],
+        )
+
     def test_renders_routed_reply_for_a_command_bound_to_an_earlier_head(self) -> None:
         for held_gates in ("", "the Copilot review"):
             with self.subTest(held_gates=held_gates):
