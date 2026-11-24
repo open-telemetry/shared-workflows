@@ -43,13 +43,13 @@ class ReviewTest(unittest.TestCase):
     def test_prepare_runs_the_three_passes_and_writes_the_checked_result(self):
         metadata = {
             "number": 123, "html_url": "https://github.com/org/repo/pull/123",
-            "base": {"sha": "base"}, "head": {"sha": "head"},
+            "base": {"sha": "base", "ref": "release/1.x"}, "head": {"sha": "head"},
         }
-
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "review-result.json"
             with (
                 mock.patch.object(runner, "build_bundle", return_value=(metadata, {})) as build,
+                mock.patch.object(runner, "checkout_target_branch") as guidance,
                 mock.patch.object(runner, "checkout_pr") as checkout,
                 mock.patch.object(runner, "closer_look_context", return_value=", including Needs a closer look https://example.test"),
                 mock.patch.object(runner, "model_pass", side_effect=["review", "simplifications", '{"comments":[]}']) as model,
@@ -60,6 +60,11 @@ class ReviewTest(unittest.TestCase):
                 "review", "simplification", "verification",
             ])
             build.assert_called_once_with("org/repo", 123, first[4])
+            target = first[3].parent / "target"
+            guidance.assert_called_once_with("org/repo", "release/1.x", target)
+            for call in model.call_args_list:
+                self.assertEqual(call.kwargs["target"], target)
+                self.assertIn("Follow relevant local links", call.args[2])
             self.assertEqual([first[:2], second[:2], final[:2]], [(runner.SOL, "max"), (runner.SOL, "max"), (runner.OPUS, "high")])
             self.assertTrue(first[2].startswith(f"review {metadata['html_url']}, including Needs a closer look"))
             self.assertTrue(second[2].startswith(f"are there any simplifications worth doing in {metadata['html_url']}?"))
@@ -76,11 +81,12 @@ class ReviewTest(unittest.TestCase):
 
     def test_verifier_retries_a_plain_text_answer(self):
         checkout, bundle = Path("source"), Path("input")
+        target = Path("target")
         metadata = {"number": 123, "base": {"sha": "base"}, "head": {"sha": "head"}}
         with mock.patch.object(
             runner, "model_pass", side_effect=["No findings.", '```json\n{"comments":[]}\n```']
         ) as model:
-            result = runner.verify_findings("Check both passes.", checkout, bundle, {}, metadata)
+            result = runner.verify_findings("Check both passes.", checkout, bundle, {}, metadata, target=target)
 
         self.assertEqual(result, {
             "pr": 123,
@@ -93,6 +99,7 @@ class ReviewTest(unittest.TestCase):
         self.assertTrue(retry[2].startswith(first[2]))
         self.assertIn("did not pass validation", retry[2])
         self.assertEqual(retry[3:], first[3:])
+        self.assertEqual([call.kwargs["target"] for call in model.call_args_list], [target, target])
         self.assertEqual([call.kwargs["phase"] for call in model.call_args_list], [
             "verification", "verification-retry",
         ])
@@ -106,7 +113,9 @@ class ReviewTest(unittest.TestCase):
         metadata = {"number": 123, "base": {"sha": "base"}, "head": {"sha": "head"}}
         scope = {"example.txt": {"hunks": [(1, 2)], "changed_lines": [2]}}
         with mock.patch.object(runner, "model_pass", side_effect=answers) as model:
-            result = runner.verify_findings("Check both passes.", Path("source"), Path("input"), scope, metadata)
+            result = runner.verify_findings(
+                "Check both passes.", Path("source"), Path("input"), scope, metadata, target=Path("target"),
+            )
 
         self.assertEqual(model.call_count, 2)
         self.assertIn("Invalid diff anchor for 'example.txt':1-1", model.call_args.args[2])
@@ -123,7 +132,9 @@ class ReviewTest(unittest.TestCase):
             mock.patch.object(runner, "model_pass", side_effect=answers) as model,
             self.assertRaisesRegex(RuntimeError, "after two attempts: .*must include a review summary"),
         ):
-            runner.verify_findings("Check both passes.", Path("source"), Path("input"), scope, metadata)
+            runner.verify_findings(
+                "Check both passes.", Path("source"), Path("input"), scope, metadata, target=Path("target"),
+            )
         self.assertEqual(model.call_count, 2)
 
     def test_model_pass_uses_the_final_answer_not_progress_or_tool_output(self):
@@ -140,7 +151,7 @@ class ReviewTest(unittest.TestCase):
         ):
             bundle = Path(directory)
             self.assertEqual(
-                runner.model_pass("model", "high", "prompt", bundle / "checkout", bundle, phase="review"),
+                runner.model_pass("model", "high", "prompt", bundle / "checkout", bundle, target=bundle / "target", phase="review"),
                 '{"comments":[]}',
             )
             self.assertEqual((bundle / "prompt.txt").read_text(encoding="utf-8"), "prompt")
@@ -195,7 +206,7 @@ class ReviewTest(unittest.TestCase):
         ):
             bundle = Path(directory)
             self.assertEqual(
-                runner.model_pass("model", "max", "prompt", bundle, bundle, phase="review"),
+                runner.model_pass("model", "max", "prompt", bundle, bundle, target=bundle / "target", phase="review"),
                 answer,
             )
         lines = [call.args[0] for call in log.call_args_list]
@@ -287,7 +298,7 @@ class ReviewTest(unittest.TestCase):
             self.assertRaisesRegex(RuntimeError, r"Model not available\."),
         ):
             bundle = Path(directory)
-            runner.model_pass("model", "max", "prompt", bundle / "checkout", bundle, phase="review")
+            runner.model_pass("model", "max", "prompt", bundle / "checkout", bundle, target=bundle / "target", phase="review")
 
     def test_model_pass_redacts_the_token_in_stderr_diagnostics(self):
         response = subprocess.CompletedProcess([], 1, stdout="", stderr="AWF failed with fixture-token\n")
@@ -298,7 +309,7 @@ class ReviewTest(unittest.TestCase):
             self.assertRaisesRegex(RuntimeError, r"AWF failed with \[redacted\]"),
         ):
             bundle = Path(directory)
-            runner.model_pass("model", "max", "prompt", bundle / "checkout", bundle, phase="review")
+            runner.model_pass("model", "max", "prompt", bundle / "checkout", bundle, target=bundle / "target", phase="review")
 
     def test_model_pass_rejects_partial_output_on_timeout(self):
         response = subprocess.CompletedProcess(
@@ -318,7 +329,7 @@ class ReviewTest(unittest.TestCase):
             self.assertRaisesRegex(RuntimeError, "exceeded its .* sandbox time limit"),
         ):
             bundle = Path(directory)
-            runner.model_pass("model", "max", "prompt", bundle / "checkout", bundle, phase="review")
+            runner.model_pass("model", "max", "prompt", bundle / "checkout", bundle, target=bundle / "target", phase="review")
         self.assertEqual(log.call_args_list[-3:], [
             mock.call("review: sandbox timeout after 3600.0s. Last recorded event: tool.execution_complete."),
             mock.call("review: tool #1 unknown has no recorded finish."),
@@ -339,7 +350,7 @@ class ReviewTest(unittest.TestCase):
             self.assertRaises(subprocess.TimeoutExpired),
         ):
             bundle = Path(directory)
-            runner.model_pass("model", "max", "prompt", bundle, bundle, phase="review")
+            runner.model_pass("model", "max", "prompt", bundle, bundle, target=bundle / "target", phase="review")
         log.assert_any_call("review: tool #1 shell started ./gradlew :api:test --offline")
         log.assert_any_call("review: tool #1 shell has no recorded finish.")
 
@@ -351,6 +362,16 @@ class ReviewTest(unittest.TestCase):
             self.assertEqual(git.call_count, 3)
             self.assertEqual(git.call_args.args[0][-2:], ["rev-parse", "FETCH_HEAD"])
 
+    def test_target_checkout_pins_the_tip_of_the_named_target_branch(self):
+        response = subprocess.CompletedProcess([], 0, stdout="e" * 40 + "\n")
+        with tempfile.TemporaryDirectory() as directory, mock.patch.object(sandbox, "run", return_value=response) as git:
+            target = Path(directory) / "target"
+            sandbox.checkout_target_branch("org/repo", "release/1.x", target)
+            self.assertEqual(
+                git.call_args_list[1].args[0][-2:], ["https://github.com/org/repo.git", "refs/heads/release/1.x"],
+            )
+            self.assertEqual(git.call_args.args[0][-4:], ["checkout", "--quiet", "--detach", "e" * 40])
+
     def test_sandbox_cannot_change_seed_checkout_or_receive_repository_tokens(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -359,6 +380,9 @@ class ReviewTest(unittest.TestCase):
             (seed / ".git").mkdir()
             (seed / ".git" / "HEAD").write_text("d" * 40 + "\n", encoding="utf-8")
             (seed / "code").write_text("PR contents", encoding="utf-8")
+            target = root / "target"
+            (target / ".git").mkdir(parents=True)
+            (target / ".git" / "HEAD").write_text("e" * 40 + "\n", encoding="utf-8")
             inputs = root / "input"
             inputs.mkdir()
             cli = root / "npm" / ".bin" / "copilot"
@@ -371,6 +395,8 @@ class ReviewTest(unittest.TestCase):
                 self.assertEqual(preserved, env.keys())
                 self.assertIn("COPILOT_GITHUB_TOKEN", preserved)
                 self.assertIn(f"{inputs}:{inputs}:ro", args)
+                self.assertIn(f"{target}:{target}:ro", args)
+                self.assertIn(str(target), args[args.index("--") + 1:])
                 logs = Path(args[args.index("--proxy-logs-dir") + 1])
                 self.assertEqual(logs.parent, root / "pr-review-usage")
                 self.assertTrue(logs.is_dir())
@@ -400,8 +426,8 @@ class ReviewTest(unittest.TestCase):
                 mock.patch.object(sandbox.shutil, "which", side_effect={"copilot": str(cli), "awf": str(awf)}.get),
                 mock.patch.object(sandbox, "run", side_effect=launch) as run,
             ):
-                sandbox.run_in_sandbox(seed, inputs, ["--help"], phase="review")
-                sandbox.run_in_sandbox(seed, inputs, ["--help"], phase="simplification")
+                sandbox.run_in_sandbox(seed, inputs, ["--help"], target=target, phase="review")
+                sandbox.run_in_sandbox(seed, inputs, ["--help"], target=target, phase="simplification")
                 self.assertNotEqual(run.call_args_list[0].kwargs["cwd"], run.call_args_list[1].kwargs["cwd"])
             self.assertEqual((seed / "code").read_text(encoding="utf-8"), "PR contents")
 

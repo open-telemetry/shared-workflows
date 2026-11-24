@@ -1,6 +1,7 @@
 """Exercise the real review sandbox on a disposable Linux runner without a model call."""
 
 import os
+import shlex
 import shutil
 import tempfile
 from pathlib import Path
@@ -21,6 +22,11 @@ def main() -> None:
         ], cwd=checkout)
         run(["git", "checkout", "--quiet", "--detach"], cwd=checkout)
 
+        target = root / "target"
+        shutil.copytree(checkout, target)
+        (target / "docs").mkdir()
+        (target / "docs" / "policy.md").write_text("Target branch guidance\n", encoding="utf-8")
+
         inputs = root / "input"
         inputs.mkdir()
         shutil.copyfile(Path(__file__).with_name("launch-copilot.sh"), inputs / "launch-copilot.sh")
@@ -29,7 +35,10 @@ def main() -> None:
         stub = root / "stub" / "bin" / "copilot"
         stub.parent.mkdir(parents=True)
         stub.write_text(
-            '#!/bin/bash\nset -eu\ntest -f .git/HEAD\ntouch smoke-write\necho "Copilot stub ran"\n',
+            '#!/bin/bash\nset -eu\ntest -f .git/HEAD\ntouch smoke-write\n'
+            f'grep -qx "Target branch guidance" {shlex.quote(str(target / "docs" / "policy.md"))}\n'
+            f'if touch {shlex.quote(str(target / "smoke-write"))} 2>/dev/null; then exit 1; fi\n'
+            'echo "Copilot stub ran"\n',
             encoding="utf-8",
             newline="\n",
         )
@@ -42,7 +51,7 @@ def main() -> None:
             ACTIONS_ID_TOKEN_REQUEST_TOKEN="fixture-oidc-token",
             COPILOT_GITHUB_TOKEN="fixture-copilot-token",
         )
-        result = run_in_sandbox(checkout, inputs, [], phase="smoke")
+        result = run_in_sandbox(checkout, inputs, [], target=target, phase="smoke")
         if result.returncode or "Copilot stub ran" not in result.stdout.splitlines():
             raise SystemExit(
                 f"Sandbox smoke test did not complete successfully (exit {result.returncode}).\n{result.stderr[-4000:]}"

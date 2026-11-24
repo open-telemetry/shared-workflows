@@ -19,6 +19,8 @@ gh workflow run pr-review.yml --repo open-telemetry/shared-workflows \
 
 The verifier drops unsupported findings. It posts a `[Question]` without a suggested patch only when the author can supply a missing fact that could change the code.
 
+The workflow reviews the PR head and diff. All passes get a separate, read-only checkout of the target branch tip so they can find applicable review instructions and follow links to other repository docs. PR changes to instruction files don't change the rules for their own review.
+
 The **Review, simplify, and double-check** step shows tool activity and each pass's final answer, including any verification retry. Compare the review and simplification answers with the verification answer to see which findings made it through. The log redacts known credential patterns and omits prompts, intermediate messages, and tool output.
 
 The **Report Copilot token usage** step breaks down input, output, and cache tokens per model request when available. The run's **Summary** totals token usage and estimated AI credits by pass. Use GitHub billing reports for actual charges.

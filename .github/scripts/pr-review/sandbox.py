@@ -9,16 +9,14 @@ import subprocess
 import tempfile
 from pathlib import Path
 
-from common import run, write_json
+from common import progress, run, write_json
 from usage import proxy_logs_dir
 
 
 AGENT_TIMEOUT_MINUTES = 60
 
 
-def checkout_pr(repo: str, pr: int, head: str, checkout: Path) -> None:
-    if not re.fullmatch(r"[a-f0-9]{40}", head):
-        raise ValueError("Invalid PR head SHA")
+def checkout_ref(repo: str, ref: str, checkout: Path, *, expected_head: str | None = None) -> str:
     checkout.mkdir()
     env = {
         **os.environ,
@@ -33,13 +31,28 @@ def checkout_pr(repo: str, pr: int, head: str, checkout: Path) -> None:
         ).stdout.strip()
 
     git("init", "--quiet", "--template=")
-    git("fetch", "--quiet", "--depth=1", "--no-tags", f"https://github.com/{repo}.git", f"refs/pull/{pr}/head")
-    if git("rev-parse", "FETCH_HEAD") != head:
+    git("fetch", "--quiet", "--depth=1", "--no-tags", f"https://github.com/{repo}.git", ref)
+    head = git("rev-parse", "FETCH_HEAD")
+    if expected_head is not None and head != expected_head:
         raise RuntimeError("The PR head changed before checkout; start a new run")
     git("checkout", "--quiet", "--detach", head)
+    return head
 
 
-def run_in_sandbox(checkout: Path, inputs: Path, args: list[str], *, phase: str) -> subprocess.CompletedProcess[str]:
+def checkout_pr(repo: str, pr: int, head: str, checkout: Path) -> None:
+    if not re.fullmatch(r"[a-f0-9]{40}", head):
+        raise ValueError("Invalid PR head SHA")
+    checkout_ref(repo, f"refs/pull/{pr}/head", checkout, expected_head=head)
+
+
+def checkout_target_branch(repo: str, branch: str, target: Path) -> None:
+    head = checkout_ref(repo, f"refs/heads/{branch}", target)
+    progress(f"Target branch {branch} checked out at {head}")
+
+
+def run_in_sandbox(
+    checkout: Path, inputs: Path, args: list[str], *, target: Path, phase: str
+) -> subprocess.CompletedProcess[str]:
     copilot = shutil.which("copilot")
     if copilot is None:
         raise RuntimeError("Copilot CLI is not installed")
@@ -80,6 +93,7 @@ def run_in_sandbox(checkout: Path, inputs: Path, args: list[str], *, phase: str)
             str(Path(awf).resolve()), "--config", str(config), "--work-dir", str(awf_work),
             "--image-tag", os.environ["AWF_IMAGE_TAG"], "--container-workdir", str(workspace),
             "--mount", f"{cli_dir}:{cli_dir}:ro", "--mount", f"{inputs}:{inputs}:ro",
+            "--mount", f"{target}:{target}:ro",
             "--env", "GITHUB_COPILOT_PROMPT_MODE_EXTENSIONS=false",
             "--capture-command-output", str(capture),
             "--proxy-logs-dir", str(logs),
@@ -87,6 +101,7 @@ def run_in_sandbox(checkout: Path, inputs: Path, args: list[str], *, phase: str)
             "--log-level", "info",
             "--", "/bin/bash", str(inputs / "launch-copilot.sh"),
             str(workspace), str(inputs), str(config), (checkout / ".git" / "HEAD").read_text().strip(),
+            str(target), (target / ".git" / "HEAD").read_text().strip(),
             copilot, *args,
         ]
         try:
