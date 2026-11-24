@@ -4,6 +4,7 @@ import os
 import tempfile
 import unittest
 from pathlib import Path
+from subprocess import CompletedProcess
 from unittest.mock import patch
 
 import audit
@@ -115,6 +116,75 @@ deleted file mode 100644
             model.response("", 1, "Sandbox check failed: Copilot proxy token not isolated\n" + unknown)
         with self.assertRaisesRegex(ValueError, r"did not complete successfully \(firewall exit 2\)"):
             model.response("", 2, model.STARTED + "\n" + unknown)
+
+    @patch.object(model.shutil, "which", side_effect=lambda name: f"/opt/tools/bin/{name}")
+    @patch.object(model.subprocess, "run")
+    def test_shell_tools_use_disposable_workspace_without_checkout_token(self, run, _which):
+        with tempfile.TemporaryDirectory() as folder, patch.dict(os.environ, {
+            "RUNNER_TEMP": folder, "AWF_IMAGE_TAG": "test", "GH_TOKEN": "checkout-token",
+            "COPILOT_GITHUB_TOKEN": "inference-token",
+        }):
+            checkout = Path(folder) / "original"
+            checkout.mkdir()
+            (checkout / "README").write_bytes(b"original")
+
+            def invoke(args, *, cwd, env, **_kwargs):
+                self.assertIn("--allow-all-tools", args)
+                self.assertNotIn("--available-tools", args)
+                self.assertNotIn("GH_TOKEN", env)
+                self.assertEqual(env["COPILOT_GITHUB_TOKEN"], "inference-token")
+                self.assertEqual(env["GITHUB_WORKSPACE"], str(cwd))
+                self.assertNotEqual(cwd, checkout)
+                config = json.loads(Path(args[args.index("--config") + 1]).read_text(encoding="utf-8"))
+                self.assertEqual(config["network"], {"isolation": True})
+                self.assertEqual(config["filesystem"]["allowWrite"], [str(cwd.parent)])
+                for option in ("--mount", "--container-workdir"):
+                    self.assertTrue(all(not value.startswith(str(checkout))
+                                        for key, value in zip(args, args[1:]) if key == option))
+                (cwd / "README").write_bytes(b"scratch")
+                capture = Path(args[args.index("--capture-command-output") + 1])
+                capture.mkdir()
+                (capture / "attempt-001.stdout.bin").write_text(
+                    '{"type":"assistant.message","data":{"content":"{\\"status\\":\\"clean\\"}"}}\n',
+                    encoding="utf-8",
+                )
+                return CompletedProcess(args, 0, b"", b"")
+
+            run.side_effect = invoke
+            self.assertEqual(model.ask(checkout, "Audit this rule."), {"status": "clean"})
+            self.assertEqual((checkout / "README").read_bytes(), b"original")
+            self.assertFalse(run.call_args.kwargs["cwd"].exists())
+
+    @patch.dict(os.environ, {"GITHUB_REPOSITORY": "Other-org/Private", "GH_TOKEN": "read-token"})
+    @patch.object(audit, "git")
+    @patch.object(audit, "api", return_value={
+        "full_name": "Other-org/Private", "default_branch": "main", "visibility": "private",
+    })
+    def test_private_snapshot_uses_caller_read_token_only_for_fetch(self, api, git):
+        repo = audit.target()
+        git.side_effect = [b"", b"", f"{'a' * 40} {'b' * 40}".encode(), b"", b""]
+        audit.snapshot(repo, "snapshot")
+        api.assert_called_once_with("other-org/private")
+        self.assertEqual([call.kwargs for call in git.call_args_list],
+                         [{}, {"http_token": "read-token"}, {}, {}, {}])
+        fetch = git.call_args_list[1]
+        self.assertIn("http.followRedirects=false", fetch.args)
+        self.assertIn("https://github.com/other-org/private.git", fetch.args)
+        self.assertNotIn("read-token", " ".join(fetch.args))
+
+    @patch.dict(os.environ, {"GH_TOKEN": "read-token", "GIT_TRACE_CURL": "1"})
+    @patch.object(audit.subprocess, "run", return_value=CompletedProcess([], 0, b"", b""))
+    def test_fetch_credentials_stay_in_process_local_git_config(self, run):
+        audit.git("snapshot", "fetch", "https://github.com/other-org/private.git", http_token="read-token")
+        fetch_env = run.call_args.kwargs["env"]
+        self.assertEqual(fetch_env["GIT_CONFIG_KEY_0"], "http.https://github.com/.extraHeader")
+        prefix, _, encoded = fetch_env["GIT_CONFIG_VALUE_0"].rpartition(" ")
+        self.assertEqual(prefix, "Authorization: Basic")
+        self.assertEqual(base64.b64decode(encoded), b"x-access-token:read-token")
+        self.assertNotIn("GH_TOKEN", fetch_env)
+        self.assertNotIn("GIT_TRACE_CURL", fetch_env)
+        audit.git("snapshot", "checkout", "--detach", "a" * 40)
+        self.assertNotIn("GIT_CONFIG_VALUE_0", run.call_args.kwargs["env"])
 
 
 class PassTest(unittest.TestCase):
@@ -262,6 +332,7 @@ class StateTest(unittest.TestCase):
                 self.assertEqual(body["sha"], result["cursor"])
                 self.assertEqual(json.loads(base64.b64decode(body["content"])), expected)
 
+    @patch.dict(os.environ, {"PR_TOKEN": "pull-token"})
     @patch.object(audit, "api")
     def test_five_open_audit_prs_across_pages_block_all_publication_writes(self, api):
         repo = "open-telemetry/example"
@@ -276,7 +347,7 @@ class StateTest(unittest.TestCase):
             (repo, "/pulls?state=open&per_page=100&page=2"),
         ])
 
-    @patch.dict(os.environ, {"GITHUB_RUN_ID": "42"})
+    @patch.dict(os.environ, {"GITHUB_RUN_ID": "42", "PR_TOKEN": "pull-token"})
     @patch.object(audit, "output")
     @patch.object(audit, "summary")
     @patch.object(audit, "api")
@@ -302,6 +373,8 @@ class StateTest(unittest.TestCase):
             (repo, "/pulls?state=open&per_page=100&page=1"),
             (repo, "/git/trees"), (repo, "/git/commits"), (repo, "/git/refs"),
         ])
+        self.assertEqual(api.call_args_list[0].kwargs, {"token": "pull-token"})
+        self.assertNotIn("token", api.call_args_list[1].kwargs)
         self.assertEqual(api.call_args_list[1].kwargs["body"]["tree"], result["fix"])
         self.assertEqual(api.call_args_list[2].kwargs["body"]["parents"], [result["sha"]])
         self.assertEqual(api.call_args.kwargs["body"]["ref"], "refs/heads/otelbot/instruction-audit-42")
@@ -339,7 +412,7 @@ class StateTest(unittest.TestCase):
             "> &#62; Keep the exception.",
         )
 
-    @patch.dict(os.environ, {"GITHUB_REPOSITORY": "other/example"})
-    def test_rejects_callers_outside_open_telemetry(self):
-        with self.assertRaisesRegex(ValueError, "Caller must be an OpenTelemetry repository"):
+    @patch.dict(os.environ, {"GITHUB_REPOSITORY": "other/../example"})
+    def test_rejects_malformed_caller_repository(self):
+        with self.assertRaisesRegex(ValueError, "Invalid caller repository"):
             audit.target()

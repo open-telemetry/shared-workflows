@@ -8,11 +8,11 @@ on:
         type: boolean
         default: false
       otelbot_client_id:
-        description: Client ID for the caller's otelbot installation
+        description: Client ID for the GitHub App installed on the caller repository
         type: string
     secrets:
       otelbot_private_key:
-        description: Private key for otelbot, needed only to publish a draft
+        description: GitHub App private key, needed only to publish a draft
 
 permissions: {}
 
@@ -25,7 +25,7 @@ env:
 
 jobs:
   audit:
-    if: github.repository_owner == 'open-telemetry' && github.event_name == 'workflow_dispatch' && github.run_attempt == 1
+    if: github.event_name == 'workflow_dispatch' && github.run_attempt == 1
     runs-on: ubuntu-latest
     timeout-minutes: 360
     permissions:
@@ -98,6 +98,7 @@ jobs:
       - name: Write the draft branch in the caller repository
         env:
           GH_TOKEN: ${{ github.token }}
+          PR_TOKEN: ${{ steps.otelbot.outputs.token }}
         run: python3 .github/scripts/instruction-audit/audit.py create-branch
       - name: Open at most one draft PR
         id: publish

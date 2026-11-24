@@ -1,4 +1,4 @@
-"""Run Copilot against a public snapshot with read-only tools."""
+"""Run Copilot in the firewall with a disposable checkout."""
 
 import json
 import os
@@ -16,6 +16,8 @@ ISOLATION_FAILURES = (
     "Copilot proxy token not isolated",
     "Host configuration is visible",
     "Expected checkout is not available",
+    "Audit checkout is not writable",
+    "Original snapshot is visible",
     "Audit inputs are not read-only",
     "Copilot home is not writable",
     "Copilot CLI version check failed",
@@ -78,6 +80,14 @@ def ask(checkout, prompt):
     awf = shutil.which("awf")
     if not copilot or not awf:
         raise ValueError("Copilot CLI or Agentic Workflow Firewall is unavailable")
+    with tempfile.TemporaryDirectory(prefix="instruction-audit-scratch-", dir=os.environ["RUNNER_TEMP"]) as folder:
+        runtime_home = Path(folder)
+        workspace = runtime_home / "checkout"
+        shutil.copytree(checkout, workspace, symlinks=True)
+        return run(checkout, prompt, copilot, awf, runtime_home, workspace)
+
+
+def run(checkout, prompt, copilot, awf, runtime_home, workspace):
     root = Path(tempfile.mkdtemp(prefix="instruction-audit-", dir=os.environ["RUNNER_TEMP"]))
     bundle = root / "input"
     bundle.mkdir()
@@ -85,36 +95,35 @@ def ask(checkout, prompt):
     shutil.copyfile(Path(__file__).with_name("launch-copilot.sh"), bundle / "launch-copilot.sh")
     home = root / "home"
     home.mkdir()
-    runtime_home = root / "runtime"
-    runtime_home.mkdir(mode=0o700)
     config = root / "awf.json"
     config.write_text(json.dumps({
-        "network": {"isolation": True, "allowDomains": ["github.com", "release-assets.githubusercontent.com"]},
+        "network": {"isolation": True},
         "apiProxy": {"enabled": True, "modelFallback": {"enabled": False}},
         "chroot": {"identity": {"home": str(home)}},
+        "filesystem": {"allowWrite": [str(runtime_home)]},
     }), encoding="utf-8")
     env = {key: os.environ[key] for key in ("LANG", "GITHUB_ACTIONS", "RUNNER_ENVIRONMENT",
                                           "COPILOT_GITHUB_TOKEN") if key in os.environ}
-    env.update(HOME=str(home), GITHUB_WORKSPACE=str(checkout))
+    env.update(HOME=str(home), GITHUB_WORKSPACE=str(workspace))
     cli_dir = Path(copilot).parent.parent
     awf_root = Path(tempfile.mkdtemp(prefix="instruction-audit-awf-", dir=os.environ["RUNNER_TEMP"]))
     capture = awf_root / "output"
     result = subprocess.run([
         "/usr/bin/sudo", "--non-interactive", f"--preserve-env={','.join(env)}",
         str(Path(awf).resolve()), "--config", str(config), "--work-dir", str(awf_root / "work"),
-        "--image-tag", os.environ["AWF_IMAGE_TAG"], "--container-workdir", str(checkout),
+        "--image-tag", os.environ["AWF_IMAGE_TAG"], "--container-workdir", str(workspace),
         "--mount", f"{cli_dir}:{cli_dir}:ro", "--mount", f"{bundle}:{bundle}:ro",
         "--mount", f"{runtime_home}:{runtime_home}:rw",
         "--env", "GITHUB_COPILOT_PROMPT_MODE_EXTENSIONS=false",
         "--capture-command-output", str(capture), "--proxy-logs-dir", str(awf_root / "proxy-logs"),
         "--agent-timeout", "18",
         "--log-level", "info", "--",
-        "/bin/bash", str(bundle / "launch-copilot.sh"), str(checkout), str(bundle), str(config),
+        "/bin/bash", str(bundle / "launch-copilot.sh"), str(workspace), str(bundle), str(config), str(checkout),
         str(runtime_home), copilot,
         "--model", "gpt-6.1-sol", "--reasoning-effort", "max", "--output-format", "json", "--no-ask-user",
         "--no-auto-update", "--no-custom-instructions", "--disable-builtin-mcps", "--allow-all-paths",
-        "--available-tools", "view", "glob", "grep", "--allow-tool", "view", "glob", "grep",
-    ], cwd=checkout, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=1200,
+        "--allow-all-tools",
+    ], cwd=workspace, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=1200,
        creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
     output = capture / "attempt-001.stdout.bin"
     stderr = capture / "attempt-001.stderr.bin"
