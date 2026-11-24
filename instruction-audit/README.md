@@ -37,7 +37,7 @@ Report-only runs stop at the first finding. With publication enabled, the workfl
 
 ## What the workflow can publish
 
-The audit applies the selected rule across the repository, honoring any `applyTo` or exceptions in the rule itself. Report-only runs do not request edits. With publication enabled, Copilot can propose replacing or deleting one small span in any existing regular UTF-8 file, regardless of its location or extension. The workflow checks that the original text occurs exactly once in the snapshot and preserves the file mode. The audit never runs target code. Findings without a publishable edit appear in the run summary.
+The audit applies the selected rule across the repository, honoring any `applyTo` or exceptions in the rule itself. Report-only runs do not request changes. With publication enabled, Copilot proposes a Git patch for the selected rule. The patch can change multiple parts of a file or multiple files, regardless of location or extension. Git checks the patch against the audited snapshot without modifying the checkout or running target code. Findings without a publishable patch appear in the run summary.
 
 Drafts can trigger the caller's PR workflows. Enable publication only if those workflows can safely handle unreviewed changes from a same-repository branch. GitHub's repository rules and token permissions still apply to the proposed changes.
 
