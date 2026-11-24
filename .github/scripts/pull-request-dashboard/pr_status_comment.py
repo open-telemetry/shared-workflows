@@ -330,8 +330,9 @@ def render_status_comment(
                     body.append("")
                 body.append(
                     "An explicit `/dashboard route:author` handoff is active. "
-                    "Address review feedback or push an update to resume normal "
-                    "routing. Use `/dashboard route:reviewers` to hand it back explicitly."
+                    "It returns to reviewers when the author addresses review "
+                    "feedback or pushes a new commit. Comment "
+                    "`/dashboard route:reviewers` to hand it back sooner."
                 )
         else:
             _, next_step = route_status_summary(route)

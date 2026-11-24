@@ -75,19 +75,6 @@ class DashboardOverrideInput:
         object.__setattr__(self, "issue_comments", tuple(self.issue_comments))
 
 
-def author_override_guidance(staleness_note: str = "") -> str:
-    guidance = (
-        "If you need reviewer or maintainer help, comment "
-        "`/dashboard route:reviewers` to request routing from waiting on the "
-        "author to waiting on reviewers. Top-level feedback through that command "
-        "is retired; unresolved review threads remain open. The handoff remains "
-        "active across pushes until newer actionable human feedback arrives."
-    )
-    if staleness_note:
-        guidance = f"{guidance} {staleness_note}"
-    return guidance
-
-
 def parse_dashboard_command(comment: IssueComment) -> str | None:
     """Return the subcommand of a `/dashboard` command, or None.
 
