@@ -1387,11 +1387,11 @@ class PullRequestEvaluationTest(unittest.IsolatedAsyncioTestCase):
             actor=reviewer_ack.actor,
             body=render_command_reply(reply),
         )
-        self.assertIn("when the author addresses review feedback", ack.body)
+        self.assertIn("until they address review feedback", ack.body)
         status = render_status_comment({"state": "open"}, stored_result(result))
         self.assertIn(
             "This pull request was handed to the author with "
-            "`/dashboard route:author`.",
+            "`/dashboard route:author` and stays with them",
             status,
         )
 

@@ -330,10 +330,10 @@ def render_status_comment(
                     body.append("")
                 body.append(
                     "This pull request was handed to the author with "
-                    "`/dashboard route:author`. It returns to reviewers when "
-                    "the author addresses review feedback or pushes a new "
-                    "commit. Comment "
-                    "`/dashboard route:reviewers` to hand it back sooner."
+                    "`/dashboard route:author` and stays with them until they "
+                    "address review feedback or push a new commit. Comment "
+                    "`/dashboard route:reviewers` to hand it to reviewers "
+                    "instead."
                 )
         else:
             _, next_step = route_status_summary(route)

@@ -437,7 +437,11 @@ def preserve_released_handoff_markers(body: str, comments: Sequence[IssueComment
     return "\n".join(lines)
 
 
-def render_command_reply(reply: DashboardCommandReply) -> str:
+def render_command_reply(
+    reply: DashboardCommandReply,
+    *,
+    author_can_act: bool = True,
+) -> str:
     # The command comment already shows who ran it, so replies mention no one.
     kind = reply.kind
     to_author = reply.subcommand == AUTHOR_OVERRIDE_SUBCOMMAND
@@ -451,9 +455,9 @@ def render_command_reply(reply: DashboardCommandReply) -> str:
         message = "This pull request has no human author the dashboard can route to."
     elif kind == "routed" and to_author:
         message = (
-            "This pull request is now waiting on the author. It returns to "
-            "reviewers when the author addresses review feedback or pushes a new "
-            "commit. Comment `/dashboard route:reviewers` to hand it back sooner."
+            "This pull request is now waiting on the author until they address "
+            "review feedback or push a new commit. Comment "
+            "`/dashboard route:reviewers` to hand it to reviewers instead."
         )
     elif kind == "routed":
         # DashboardCommandReply refuses a routed reply without a route.
@@ -504,7 +508,7 @@ def render_command_reply(reply: DashboardCommandReply) -> str:
                 "dashboard couldn't determine when this command was posted; "
                 "unresolved review threads stay open."
             )
-        if not legacy:
+        if not legacy and author_can_act:
             message = (
                 f"{message} Comment `/dashboard route:author` to hand it back to "
                 "the author."

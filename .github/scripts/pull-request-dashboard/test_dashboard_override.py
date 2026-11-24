@@ -384,6 +384,22 @@ class DashboardOverrideTest(unittest.TestCase):
             maintainer,
         )
 
+    def test_routed_reply_omits_author_handoff_when_author_cannot_act(self) -> None:
+        body = dashboard_override.render_command_reply(
+            DashboardCommandReply(
+                4,
+                "routed",
+                "reviewer",
+                route=DashboardRoute.APPROVER,
+                since="2026-08-16T08:00:00Z",
+                top_level_feedback_cutoff="2026-08-16T08:00:00Z",
+            ),
+            author_can_act=False,
+        )
+
+        self.assertIn("This pull request is now waiting on reviewers.", body)
+        self.assertNotIn("route:author", body)
+
     def test_renders_author_handoff_reply_without_mention(self) -> None:
         body = dashboard_override.render_command_reply(
             DashboardCommandReply(
@@ -397,9 +413,9 @@ class DashboardOverrideTest(unittest.TestCase):
         )
 
         self.assertEqual(
-            "This pull request is now waiting on the author. It returns to "
-            "reviewers when the author addresses review feedback or pushes a new "
-            "commit. Comment `/dashboard route:reviewers` to hand it back sooner.",
+            "This pull request is now waiting on the author until they address "
+            "review feedback or push a new commit. Comment "
+            "`/dashboard route:reviewers` to hand it to reviewers instead.",
             body.splitlines()[-1],
         )
 

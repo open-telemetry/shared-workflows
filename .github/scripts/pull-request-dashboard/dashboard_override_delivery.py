@@ -45,6 +45,10 @@ def deliver_dashboard_command_replies(
                     reply,
                 ):
                     continue
+                body = render_command_reply(
+                    reply,
+                    author_can_act=result.facts.author_can_act,
+                )
                 run_gh([
                     "gh",
                     "api",
@@ -52,7 +56,7 @@ def deliver_dashboard_command_replies(
                     "POST",
                     f"repos/{repo}/issues/{pr_number}/comments",
                     "-f",
-                    f"body={render_command_reply(reply)}",
+                    f"body={body}",
                 ])
             except Exception as error:
                 errors.append(f"PR #{pr_number}: {error}")
