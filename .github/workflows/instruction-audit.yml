@@ -7,6 +7,10 @@ on:
         description: Allow one draft PR for a publishable finding
         type: boolean
         default: false
+      continuation:
+        description: Internal continuation from the preceding audit run
+        type: string
+        default: ''
       otelbot_client_id:
         description: Client ID for the GitHub App installed on the caller repository
         type: string
@@ -24,40 +28,86 @@ env:
   PYTHONDONTWRITEBYTECODE: "1"
 
 jobs:
-  audit:
-    if: github.event_name == 'workflow_dispatch' && github.run_attempt == 1
+  prepare:
+    if: github.event_name == 'workflow_dispatch' && github.run_attempt == 1 && github.ref_type == 'branch'
     runs-on: ubuntu-latest
-    timeout-minutes: 360
+    timeout-minutes: 5
     permissions:
       contents: read
-      copilot-requests: write
     outputs:
-      digest: ${{ steps.audit.outputs.digest }}
-      repository: ${{ steps.audit.outputs.repository }}
-      fix: ${{ steps.audit.outputs.fix }}
-      save_cursor: ${{ steps.audit.outputs.save_cursor }}
+      snapshot: ${{ steps.plan.outputs.snapshot }}
+      work: ${{ steps.plan.outputs.work }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: ${{ job.workflow_repository }}
           ref: ${{ job.workflow_sha }}
           persist-credentials: false
-      - name: Install Copilot CLI
-        run: |
-          npm ci --ignore-scripts --prefix .github/scripts/instruction-audit
-          echo "$GITHUB_WORKSPACE/.github/scripts/instruction-audit/node_modules/.bin" >> "$GITHUB_PATH"
-      - uses: github/gh-aw-firewall@d9272015d8523b4c9cf3b00ce26b507046cbf1a3 # v0.29.11
-        id: firewall
+      - name: Select the next rule
+        id: plan
+        env:
+          GH_TOKEN: ${{ github.token }}
+          AUDIT_PUBLISH: ${{ inputs.publish }}
+          AUDIT_CONTINUATION: ${{ inputs.continuation }}
+        run: python3 .github/scripts/instruction-audit/audit.py prepare
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          version: v0.29.11
-      - name: Audit remaining instructions
+          name: instruction-audit-plan
+          path: audit-plan.json
+          if-no-files-found: error
+          retention-days: 1
+      - if: steps.plan.outputs.work == 'true'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: instruction-audit-prompt
+          path: audit-prompt.txt
+          if-no-files-found: error
+          retention-days: 1
+
+  worker:
+    needs: prepare
+    if: needs.prepare.outputs.work == 'true'
+    permissions:
+      actions: read
+      contents: read
+      copilot-requests: write
+    uses: ./.github/workflows/instruction-audit-worker.lock.yml
+    with:
+      snapshot: ${{ needs.prepare.outputs.snapshot }}
+
+  audit:
+    needs: [prepare, worker]
+    if: >-
+      !cancelled() && needs.prepare.result == 'success' &&
+      (needs.prepare.outputs.work == 'false' || needs.worker.result == 'success')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      digest: ${{ steps.audit.outputs.digest }}
+      repository: ${{ steps.audit.outputs.repository }}
+      fix: ${{ steps.audit.outputs.fix }}
+      save_cursor: ${{ steps.audit.outputs.save_cursor }}
+      next: ${{ steps.audit.outputs.next }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ job.workflow_sha }}
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: instruction-audit-plan
+      - if: needs.prepare.outputs.work == 'true'
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: instruction-audit-judgment
+      - name: Validate the rule outcome
         id: audit
         env:
           GH_TOKEN: ${{ github.token }}
-          COPILOT_GITHUB_TOKEN: ${{ github.token }}
-          AUDIT_PUBLISH: ${{ inputs.publish }}
-          AWF_IMAGE_TAG: ${{ steps.firewall.outputs.image-tag }}
-        run: python3 .github/scripts/instruction-audit/audit.py audit
+        run: python3 .github/scripts/instruction-audit/audit.py assess
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: instruction-audit
@@ -132,3 +182,23 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           AUDIT_PUBLISHED: ${{ needs.publish.result == 'success' && needs.publish.outputs.handled == 'true' }}
         run: python3 .github/scripts/instruction-audit/audit.py save
+
+  continue:
+    needs: audit
+    if: needs.audit.outputs.next != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      AUDIT_PUBLISH: ${{ inputs.publish }}
+      AUDIT_CONTINUATION: ${{ needs.audit.outputs.next }}
+    steps:
+      - name: Dispatch the next rule in the same pass
+        run: |
+          workflow="${GITHUB_WORKFLOW_REF%%@*}"
+          workflow="${workflow#"$GITHUB_REPOSITORY/.github/workflows/"}"
+          [[ "$workflow" =~ ^[A-Za-z0-9_.-]+\.ya?ml$ ]]
+          gh workflow run "$workflow" --repo "$GITHUB_REPOSITORY" --ref "$GITHUB_REF_NAME" \
+            -f publish="$AUDIT_PUBLISH" -f continuation="$AUDIT_CONTINUATION"

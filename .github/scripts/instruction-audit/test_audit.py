@@ -8,8 +8,7 @@ from subprocess import CompletedProcess
 from unittest.mock import patch
 
 import audit
-import model
-from rules import Rule, blocks, remaining_rules
+from rules import blocks, remaining_rules
 
 
 ROOT = ".github/copilot-instructions.md"
@@ -102,59 +101,6 @@ deleted file mode 100644
             self.assertFalse((checkout / "test_settings.py").exists())
             self.assertEqual(audit.git(checkout, "write-tree").decode().strip(), tree)
 
-    def test_model_error_does_not_accept_preceding_answer(self):
-        message = json.dumps({"type": "assistant.message", "data": {"content": '{"status":"clean"}'}})
-        self.assertEqual(model.response(message, 0), {"status": "clean"})
-        with self.assertRaises(ValueError):
-            model.response(message + '\n{"type":"session.error"}', 0)
-
-    def test_model_failure_reports_stage_without_echoing_diagnostics(self):
-        unknown = "arbitrary runner or model output"
-        with self.assertRaisesRegex(ValueError, r"startup was not confirmed \(firewall exit 2\)"):
-            model.response("", 2, unknown)
-        with self.assertRaisesRegex(ValueError, "Copilot was not started: Copilot proxy token not isolated"):
-            model.response("", 1, "Sandbox check failed: Copilot proxy token not isolated\n" + unknown)
-        with self.assertRaisesRegex(ValueError, r"did not complete successfully \(firewall exit 2\)"):
-            model.response("", 2, model.STARTED + "\n" + unknown)
-
-    @patch.object(model.shutil, "which", side_effect=lambda name: f"/opt/tools/bin/{name}")
-    @patch.object(model.subprocess, "run")
-    def test_shell_tools_use_disposable_workspace_without_checkout_token(self, run, _which):
-        with tempfile.TemporaryDirectory() as folder, patch.dict(os.environ, {
-            "RUNNER_TEMP": folder, "AWF_IMAGE_TAG": "test", "GH_TOKEN": "checkout-token",
-            "COPILOT_GITHUB_TOKEN": "inference-token",
-        }):
-            checkout = Path(folder) / "original"
-            checkout.mkdir()
-            (checkout / "README").write_bytes(b"original")
-
-            def invoke(args, *, cwd, env, **_kwargs):
-                self.assertIn("--allow-all-tools", args)
-                self.assertNotIn("--available-tools", args)
-                self.assertNotIn("GH_TOKEN", env)
-                self.assertEqual(env["COPILOT_GITHUB_TOKEN"], "inference-token")
-                self.assertEqual(env["GITHUB_WORKSPACE"], str(cwd))
-                self.assertNotEqual(cwd, checkout)
-                config = json.loads(Path(args[args.index("--config") + 1]).read_text(encoding="utf-8"))
-                self.assertEqual(config["network"], {"isolation": True})
-                self.assertEqual(config["filesystem"]["allowWrite"], [str(cwd.parent)])
-                for option in ("--mount", "--container-workdir"):
-                    self.assertTrue(all(not value.startswith(str(checkout))
-                                        for key, value in zip(args, args[1:]) if key == option))
-                (cwd / "README").write_bytes(b"scratch")
-                capture = Path(args[args.index("--capture-command-output") + 1])
-                capture.mkdir()
-                (capture / "attempt-001.stdout.bin").write_text(
-                    '{"type":"assistant.message","data":{"content":"{\\"status\\":\\"clean\\"}"}}\n',
-                    encoding="utf-8",
-                )
-                return CompletedProcess(args, 0, b"", b"")
-
-            run.side_effect = invoke
-            self.assertEqual(model.ask(checkout, "Audit this rule."), {"status": "clean"})
-            self.assertEqual((checkout / "README").read_bytes(), b"original")
-            self.assertFalse(run.call_args.kwargs["cwd"].exists())
-
     @patch.dict(os.environ, {"GITHUB_REPOSITORY": "Other-org/Private", "GH_TOKEN": "read-token"})
     @patch.object(audit, "git")
     @patch.object(audit, "api", return_value={
@@ -187,111 +133,72 @@ deleted file mode 100644
         self.assertNotIn("GIT_CONFIG_VALUE_0", run.call_args.kwargs["env"])
 
 
+@patch.dict(os.environ, {"GITHUB_REPOSITORY": "open-telemetry/example"})
+@patch.object(audit, "summary")
+@patch.object(audit, "read_blob")
+@patch.object(audit, "read_cursor")
+@patch.object(audit, "snapshot")
 class PassTest(unittest.TestCase):
-    @patch.object(audit, "patch_changes")
-    @patch.object(model, "ask")
-    def test_report_only_does_not_request_or_validate_a_patch(self, ask, patch_changes):
-        reason = "The timeout in `README.md` is wrong."
-        ask.return_value = {"status": "finding", "reason": reason, "patch": "unused"}
-        result = audit.audit_rule("snapshot", "a" * 40, Rule(ROOT, FIRST, 1, 2), FIRST, publish_fixes=False)
-        self.assertEqual(result, ("finding", reason, None))
-        ask.assert_called_once()
-        self.assertNotIn('"patch"', ask.call_args.args[1])
-        patch_changes.assert_not_called()
-
-    @patch.object(audit, "summary")
-    @patch.object(audit, "patch_changes", side_effect=audit.UnsupportedPatch("Git could not apply the patch"))
-    @patch.object(model, "ask")
-    def test_publish_keeps_finding_when_patch_does_not_apply(self, ask, patch_changes, summary):
-        reason = "Use the new value."
-        ask.return_value = {"status": "finding", "reason": reason, "patch": "bad patch"}
-        result = audit.audit_rule("snapshot", "a" * 40, Rule(ROOT, FIRST, 1, 2), FIRST, publish_fixes=True)
-        self.assertEqual(result, ("finding", reason, None))
-        patch_changes.assert_called_once_with("snapshot", "a" * 40, "bad patch")
-        summary.assert_called_once_with("Proposed patch not published: Git could not apply the patch.")
-
-    @patch.dict(os.environ, {"GITHUB_REPOSITORY": "open-telemetry/example"})
-    @patch("builtins.print")
-    @patch.object(audit, "summary")
-    @patch.object(audit, "read_blob")
-    @patch.object(audit, "read_cursor")
-    @patch.object(audit, "snapshot")
-    @patch.object(model, "ask")
-    def test_pass_resumes_on_one_snapshot_and_stops_at_finding_or_end(
-        self, ask, snapshot, read_cursor, read_blob, summary, _print
+    def test_chain_stays_on_pinned_snapshot_and_stops_at_reported_finding(
+        self, snapshot, read_cursor, read_blob, _summary
     ):
-        for outcome in ("finding", "complete"):
-            with self.subTest(outcome=outcome):
-                repo = audit.target()
-                snapshot.reset_mock()
-                snapshot.return_value = ("main", "a" * 40, "b" * 40, {
-                    ROOT: ("100644", "root"), NESTED: ("100644", "nested"),
-                })
-                read_cursor.return_value = ("c" * 40, "d" * 40, {"path": ROOT, "text": FIRST})
-                read_blob.side_effect = [
-                    f"{FIRST}\n- Clean rule.\n",
-                    "- Changed code only.\n- Finding rule.\n- Changed code only.\n- Final rule.\n",
-                ]
-                ask.reset_mock()
-                ask.side_effect = [
-                    {"status": status, "reason": "Audit reason."}
-                    for status in (["clean", "not_auditable", "finding"] if outcome == "finding"
-                                   else ["clean", "not_auditable", "clean", "not_auditable", "clean"])
-                ]
-                summary.reset_mock()
-                result = audit.prepare(repo, "snapshot")
-                snapshot.assert_called_once_with(repo, "snapshot")
-                self.assertEqual(result["status"], outcome)
-                self.assertEqual(
-                    [json.loads(call.args[1].split("encoded as data:\n")[1].splitlines()[0])["selected_rule"]
-                     for call in ask.call_args_list],
-                    ["- Clean rule.", "- Changed code only.", "- Finding rule."]
-                    + (["- Changed code only.", "- Final rule."] if outcome == "complete" else []),
-                )
-                if outcome == "finding":
-                    self.assertEqual(result["rule"], {"path": NESTED, "text": "- Finding rule."})
-                    self.assertEqual(result["completed"], {"path": ROOT, "text": "- Clean rule."})
-                    summary.assert_called_once_with("Rules checked before stopping: 1 clean, 1 not auditable.")
-                else:
-                    self.assertIsNone(result["rule"])
-                    self.assertEqual(result["completed"], {"path": NESTED, "text": "- Final rule."})
+        repo = audit.target()
+        snapshot.return_value = ("main", "a" * 40, "b" * 40, {
+            ROOT: ("100644", "root"), NESTED: ("100644", "nested"),
+        })
+        read_cursor.return_value = ("c" * 40, "d" * 40, {"path": ROOT, "text": FIRST})
+        read_blob.side_effect = lambda _checkout, oid: (
+            f"{FIRST}\n- Clean rule.\n" if oid == "root" else "- Finding rule.\n- Final rule.\n"
+        )
+        plan, prompt = audit.prepare(repo, "snapshot")
+        self.assertEqual(plan["rule"]["text"], "- Clean rule.")
+        self.assertNotIn('"patch"', prompt)
+        self.assertEqual(audit.assess(plan, {"status": "clean", "reason": "Looks good."}, "snapshot")["status"],
+                         "continue")
+        plan, _ = audit.prepare(repo, "snapshot", continuation=plan["next"])
+        snapshot.assert_called_with(repo, "snapshot", "a" * 40)
+        result = audit.assess(plan, {"status": "finding", "reason": "Use the new value."}, "snapshot")
+        self.assertEqual(result["status"], "finding")
+        self.assertEqual(result["rule"], {"path": NESTED, "text": "- Finding rule."})
+        self.assertEqual(result["completed"], {"path": ROOT, "text": "- Clean rule."})
 
-    @patch.dict(os.environ, {"GITHUB_REPOSITORY": "open-telemetry/example"})
-    @patch("builtins.print")
-    @patch.object(audit, "summary")
-    @patch.object(audit, "read_blob")
-    @patch.object(audit, "read_cursor", return_value=(None, None, None))
-    @patch.object(audit, "snapshot")
+    def test_stale_continuation_stops_before_checkout(self, snapshot, read_cursor, _read_blob, _summary):
+        read_cursor.return_value = ("c" * 40, "d" * 40, None)
+        with self.assertRaisesRegex(ValueError, "Cursor changed"):
+            audit.prepare(audit.target(), "snapshot", continuation=f"{'a' * 40}:{'b' * 40}:1")
+        snapshot.assert_not_called()
+
+    def test_last_rule_completes_the_pass_without_dispatching_again(self, snapshot, read_cursor, read_blob, _summary):
+        repo = audit.target()
+        snapshot.return_value = ("main", "a" * 40, "b" * 40, {ROOT: ("100644", "root")})
+        read_cursor.return_value = (None, None, None)
+        read_blob.return_value = "- Only rule.\n"
+        plan, _ = audit.prepare(repo, "snapshot")
+        self.assertEqual(plan["next"], "")
+        with self.assertRaisesRegex(ValueError, "Unexpected JSON fields"):
+            audit.assess(plan, {}, "snapshot")
+        result = audit.assess(plan, {"status": "not_auditable", "reason": "Only applies to changes."}, "snapshot")
+        self.assertEqual(result["status"], "complete")
+
     @patch.object(audit, "patch_changes")
-    @patch.object(model, "ask")
-    def test_publish_continues_past_unfixable_findings_until_fix_or_end(
-        self, ask, patch_changes, snapshot, _read_cursor, read_blob, summary, _print
+    def test_publish_continues_past_unfixable_finding_and_stops_at_valid_patch(
+        self, patch_changes, snapshot, read_cursor, read_blob, _summary
     ):
+        read_cursor.return_value = (None, None, None)
         snapshot.return_value = ("main", "a" * 40, "b" * 40, {ROOT: ("100644", "root")})
         read_blob.return_value = "- First rule.\n- Second rule.\n- Third rule.\n"
         patch_changes.return_value = [{"path": "src/Settings.java", "mode": "100644",
                                        "type": "blob", "content": "newValue();\n"}]
-        for candidate in (None, "applicable patch"):
-            with self.subTest(candidate=candidate):
-                summary.reset_mock()
-                ask.reset_mock()
-                ask.side_effect = [
-                    {"status": "finding", "reason": "First finding.", "patch": None},
-                    {"status": "finding", "reason": "Second finding.", "patch": candidate},
-                    {"status": "clean", "reason": "Third rule is clean.", "patch": None},
-                ]
-                result = audit.prepare(audit.target(), "snapshot", publish_fixes=True)
-                self.assertIn("First finding.", summary.call_args_list[0].args[0])
-                if candidate is None:
-                    self.assertEqual(ask.call_count, 3)
-                    self.assertEqual(result["status"], "complete")
-                    self.assertIsNone(result["fix"])
-                else:
-                    self.assertEqual(ask.call_count, 2)
-                    self.assertEqual(result["status"], "finding")
-                    self.assertEqual(result["rule"]["text"], "- Second rule.")
-                    self.assertEqual(result["completed"]["text"], "- First rule.")
-                    self.assertEqual(result["fix"], patch_changes.return_value)
+        plan, _ = audit.prepare(audit.target(), "snapshot", publish_fixes=True)
+        result = audit.assess(plan, {"status": "finding", "reason": "First finding.", "patch": None}, "snapshot")
+        self.assertEqual(result["status"], "continue")
+        plan, _ = audit.prepare(audit.target(), "snapshot", publish_fixes=True, continuation=plan["next"])
+        result = audit.assess(plan, {"status": "finding", "reason": "Second finding.", "patch": "diff"}, "snapshot")
+        self.assertEqual(result["status"], "finding")
+        self.assertEqual(result["rule"]["text"], "- Second rule.")
+        self.assertEqual(result["completed"]["text"], "- First rule.")
+        self.assertEqual(result["fix"], patch_changes.return_value)
+        patch_changes.assert_called_once_with("snapshot", "a" * 40, "diff")
 
 
 class StateTest(unittest.TestCase):
