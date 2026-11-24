@@ -410,7 +410,7 @@ def create_branch(result):
             if (head.get("repo") or {}).get("full_name", "").lower() == repo and head["ref"].startswith(FIX_PREFIX):
                 open_audit_prs += 1
                 if open_audit_prs == OPEN_AUDIT_PR_LIMIT:
-                    raise ValueError(f"Open audit PR limit reached ({OPEN_AUDIT_PR_LIMIT}). No draft opened.")
+                    raise ValueError(f"Open audit PR limit reached ({OPEN_AUDIT_PR_LIMIT}). No PR opened.")
         if len(prs) < 100:
             break
     else:
@@ -478,16 +478,16 @@ def publish(result):
         pr = api(repo, "/pulls", method="POST", body={
             "title": f"Instruction audit: {result['title']}",
             "body": body,
-            "base": result["base"], "head": branch, "draft": True,
+            "base": result["base"], "head": branch, "draft": False,
             "maintainer_can_modify": False,
         })
     except ValueError:
-        summary(f"Draft creation was not confirmed. Inspect `{branch}` in `{repo}` before another dispatch.")
+        summary(f"PR creation was not confirmed. Inspect `{branch}` in `{repo}` before another dispatch.")
         raise
-    if pr["draft"] is not True:
-        raise ValueError("GitHub did not confirm a draft pull request")
+    if pr["draft"] is not False:
+        raise ValueError("GitHub did not confirm a ready-for-review pull request")
     output("handled", "true")
-    summary(f"Draft PR: https://github.com/{repo}/pull/{int(pr['number'])}")
+    summary(f"PR: https://github.com/{repo}/pull/{int(pr['number'])}")
 
 
 def save_state(result, *, published=False):

@@ -4,7 +4,7 @@ on:
   workflow_call:
     inputs:
       publish:
-        description: Allow one draft PR for a publishable finding
+        description: Allow one ready-for-review PR for a publishable finding
         type: boolean
         default: false
       continuation:
@@ -16,7 +16,7 @@ on:
         type: string
     secrets:
       otelbot_private_key:
-        description: GitHub App private key, needed only to publish a draft
+        description: GitHub App private key, needed only to publish a PR
 
 permissions: {}
 
@@ -145,12 +145,12 @@ jobs:
           owner: ${{ github.repository_owner }}
           repositories: ${{ needs.audit.outputs.repository }}
           permission-pull-requests: write
-      - name: Write the draft branch in the caller repository
+      - name: Write the fix branch in the caller repository
         env:
           GH_TOKEN: ${{ github.token }}
           PR_TOKEN: ${{ steps.otelbot.outputs.token }}
         run: python3 .github/scripts/instruction-audit/audit.py create-branch
-      - name: Open at most one draft PR
+      - name: Open at most one ready-for-review PR
         id: publish
         env:
           GH_TOKEN: ${{ steps.otelbot.outputs.token }}

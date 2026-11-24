@@ -266,7 +266,7 @@ class StateTest(unittest.TestCase):
     @patch.object(audit, "output")
     @patch.object(audit, "summary")
     @patch.object(audit, "api")
-    def test_branch_and_draft_requests_are_separate(self, api, _summary, output):
+    def test_branch_and_ready_for_review_requests_are_separate(self, api, _summary, output):
         repo = "open-telemetry/example"
         result = {
             "repo": repo, "tree": "a" * 40, "sha": "b" * 40, "base": "main",
@@ -295,13 +295,13 @@ class StateTest(unittest.TestCase):
         self.assertEqual(api.call_args_list[2].kwargs["body"]["parents"], [result["sha"]])
         self.assertEqual(api.call_args.kwargs["body"]["ref"], "refs/heads/otelbot/instruction-audit-42")
         api.reset_mock(side_effect=True)
-        api.return_value = {"number": 123, "draft": True}
+        api.return_value = {"number": 123, "draft": False}
         audit.publish(result)
         self.assertEqual(api.call_count, 1)
         self.assertEqual(api.call_args.args, (repo, "/pulls"))
         body = api.call_args.kwargs["body"]
         self.assertEqual(body["title"], "Instruction audit: Document the ten-second timeout")
-        self.assertEqual((body["base"], body["head"], body["draft"]), ("main", "otelbot/instruction-audit-42", True))
+        self.assertEqual((body["base"], body["head"], body["draft"]), ("main", "otelbot/instruction-audit-42", False))
         self.assertEqual(body["body"],
                          f"This PR fixes a finding from an [instruction audit run](https://github.com/{repo}/actions/runs/42) "
                          f"that checked the following [repository rule](https://github.com/{repo}/blob/{result['sha']}/{ROOT}):\n\n"
@@ -310,6 +310,15 @@ class StateTest(unittest.TestCase):
                          "### Explanation\n\nCorrect the timeout in `README.md`. It is ten seconds.\n\n"
                          "The default stays the same.")
         output.assert_called_once_with("handled", "true")
+
+    @patch.dict(os.environ, {"GITHUB_RUN_ID": "42"})
+    @patch.object(audit, "pull_request_body", return_value="Fix the finding.")
+    @patch.object(audit, "output")
+    @patch.object(audit, "api", return_value={"number": 123, "draft": True})
+    def test_unexpected_draft_does_not_confirm_publication(self, _api, output, _body):
+        with self.assertRaisesRegex(ValueError, "ready-for-review pull request"):
+            audit.publish({"repo": "open-telemetry/example", "base": "main", "title": "Fix the finding"})
+        output.assert_not_called()
 
     def test_evidence_does_not_render_model_supplied_links_mentions_or_html(self):
         self.assertEqual(
