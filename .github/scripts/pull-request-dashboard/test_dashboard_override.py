@@ -351,7 +351,7 @@ class DashboardOverrideTest(unittest.TestCase):
 
         self.assertIn(dashboard_override.command_reply_marker(2), unauthorized)
         self.assertIn(
-            "@outsider, only the pull request author or a member of an approving "
+            "Only the pull request author or a member of an approving "
             "team can use `/dashboard route:reviewers`.",
             unauthorized,
         )
@@ -360,6 +360,8 @@ class DashboardOverrideTest(unittest.TestCase):
             "`/dashboard frobnicate` is not a recognized dashboard command.",
             unknown,
         )
+        for body in (unauthorized, unknown):
+            self.assertNotIn("@", body)
         self.assertIn(dashboard_override.command_reply_marker(4), routed)
         self.assertIn(dashboard_override.override_ack_marker(4), routed)
         self.assertIn(

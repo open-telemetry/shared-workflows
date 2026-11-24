@@ -451,29 +451,24 @@ def preserve_released_handoff_markers(body: str, comments: Sequence[IssueComment
 
 
 def render_command_reply(reply: DashboardCommandReply) -> str:
-    user = reply.user
-    mention = f"@{user}, " if user else ""
+    # The command comment already shows who ran it, so replies mention no one.
     kind = reply.kind
     to_author = reply.subcommand == AUTHOR_OVERRIDE_SUBCOMMAND
     has_top_level_feedback_cutoff = parse_ts(reply.top_level_feedback_cutoff) is not None
     if kind == "unauthorized":
         message = (
-            "only the pull request author or a member of an approving team can "
+            "Only the pull request author or a member of an approving team can "
             f"use `/dashboard {reply.subcommand}`."
         )
     elif kind == "author_unavailable":
-        message = "this pull request has no human author the dashboard can route to."
+        message = "This pull request has no human author the dashboard can route to."
     elif kind == "routed" and to_author:
-        # Routing replies are status updates for everyone following the pull
-        # request, so they do not mention anyone.
-        mention = ""
         message = (
             "This pull request is now waiting on the author. It returns to "
             "reviewers when the author addresses review feedback or pushes a new "
             "commit. Comment `/dashboard route:reviewers` to hand it back sooner."
         )
     elif kind == "routed":
-        mention = ""
         # DashboardCommandReply refuses a routed reply without a route.
         route = reply.route.value
         held_gates = reply.held_gates
@@ -562,7 +557,7 @@ def render_command_reply(reply: DashboardCommandReply) -> str:
             )
     return "\n".join([
         *markers,
-        f"{mention}{message}",
+        message,
         "",
     ])
 
