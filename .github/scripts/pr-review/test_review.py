@@ -79,12 +79,34 @@ class ReviewTest(unittest.TestCase):
                 "body": "No findings.", "comments": [], "commit_id": "head",
             })
 
-    def test_verifier_retries_a_plain_text_answer(self):
+    def test_verifier_preserves_a_trailing_no_findings_verdict_without_retry(self):
+        response = 'I checked both candidate files. None of the candidates is worth posting.\n\n{"comments":[]}'
+        metadata = {"number": 123, "base": {"sha": "base"}, "head": {"sha": "head"}}
+        with mock.patch.object(runner, "model_pass", return_value=response) as model:
+            result = runner.verify_findings(
+                "Check both passes.", Path("source"), Path("input"), {}, metadata, target=Path("target"),
+            )
+        self.assertEqual(result["review"], {"commit_id": "head", "body": "No findings.", "comments": []})
+        model.assert_called_once()
+
+    def test_verifier_output_does_not_guess_at_ambiguous_or_nonterminal_json(self):
+        for answer in (
+            '{"comments":[]}\n{"comments":[]}',
+            '{"comments":[]}\nMore prose.',
+            '[\n{"comments":[]}\n]',
+            '```json\n{"comments":[]}',
+            '{"comments":[]}\n```',
+        ):
+            with self.subTest(answer=answer), self.assertRaisesRegex(ValueError, "unambiguous JSON object"):
+                runner.parse_verifier_output(answer)
+
+    def test_verifier_requests_format_only_repair_for_ambiguous_output(self):
         checkout, bundle = Path("source"), Path("input")
         target = Path("target")
         metadata = {"number": 123, "base": {"sha": "base"}, "head": {"sha": "head"}}
+        answer = 'Draft:\n{"comments":[]}\nFinal verdict:\n{"comments":[]}'
         with mock.patch.object(
-            runner, "model_pass", side_effect=["No findings.", '```json\n{"comments":[]}\n```']
+            runner, "model_pass", side_effect=[answer, '```json\n{\n  "comments": []\n}\n```']
         ) as model:
             result = runner.verify_findings("Check both passes.", checkout, bundle, {}, metadata, target=target)
 
@@ -96,10 +118,12 @@ class ReviewTest(unittest.TestCase):
         first, retry = [call.args for call in model.call_args_list]
         self.assertEqual(first, (runner.OPUS, "high", "Check both passes.", checkout, bundle))
         self.assertEqual(retry[:2], first[:2])
-        self.assertTrue(retry[2].startswith(first[2]))
-        self.assertIn("did not pass validation", retry[2])
+        self.assertNotIn(first[2], retry[2])
+        self.assertIn("Do not review the PR again", retry[2])
+        self.assertIn(json.dumps(answer), retry[2])
         self.assertEqual(retry[3:], first[3:])
         self.assertEqual([call.kwargs["target"] for call in model.call_args_list], [target, target])
+        self.assertIs(model.call_args.kwargs["allow_tools"], False)
         self.assertEqual([call.kwargs["phase"] for call in model.call_args_list], [
             "verification", "verification-retry",
         ])
