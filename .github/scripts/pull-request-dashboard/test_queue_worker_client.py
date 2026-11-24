@@ -30,6 +30,14 @@ class Response(io.BytesIO):
         self.close()
 
 
+def make_http_error(
+    test_case: unittest.TestCase, url: str, code: int, message: str,
+) -> urllib.error.HTTPError:
+    error = urllib.error.HTTPError(url, code, message, {}, io.BytesIO())
+    test_case.addCleanup(error.close)
+    return error
+
+
 class QueueWorkerClientTest(unittest.TestCase):
     def test_maintenance_requests_include_the_lane(self) -> None:
         requests = []
@@ -101,12 +109,11 @@ class QueueWorkerClientTest(unittest.TestCase):
             with self.subTest(status=status):
                 self.assertTrue(
                     is_transient_error(
-                        urllib.error.HTTPError(
+                        make_http_error(
+                            self,
                             "https://example.test/worker",
                             status,
                             "transient",
-                            {},
-                            None,
                         )
                     )
                 )
@@ -114,12 +121,11 @@ class QueueWorkerClientTest(unittest.TestCase):
             with self.subTest(status=status):
                 self.assertFalse(
                     is_transient_error(
-                        urllib.error.HTTPError(
+                        make_http_error(
+                            self,
                             "https://example.test/worker",
                             status,
                             "not transient",
-                            {},
-                            None,
                         )
                     )
                 )
@@ -149,12 +155,11 @@ class QueueWorkerClientTest(unittest.TestCase):
                 return Response(json.dumps({"value": "oidc-token"}).encode())
             worker_attempts += 1
             if worker_attempts < MAX_ATTEMPTS:
-                raise urllib.error.HTTPError(
+                raise make_http_error(
+                    self,
                     request.full_url,
                     503,
                     "unavailable",
-                    {},
-                    None,
                 )
             return Response(json.dumps({"status": "removed"}).encode())
 
@@ -206,8 +211,11 @@ class QueueWorkerClientTest(unittest.TestCase):
                 requests = []
                 sleeps = []
                 failure = (
-                    urllib.error.HTTPError(
-                        "https://example.test/worker", status, "private-error" * 1000, {}, None,
+                    make_http_error(
+                        self,
+                        "https://example.test/worker",
+                        status,
+                        "private-error" * 1000,
                     )
                     if status is not None else TimeoutError("private-error" * 1000)
                 )
@@ -349,7 +357,7 @@ class QueueWorkerClientTest(unittest.TestCase):
             if "token.actions.test" in request.full_url:
                 return Response(json.dumps({"value": "oidc-token"}).encode())
             worker_attempts += 1
-            raise urllib.error.HTTPError(request.full_url, 500, "failed", {}, None)
+            raise make_http_error(self, request.full_url, 500, "failed")
 
         client = QueueWorkerClient(
             "https://example.test/worker",
