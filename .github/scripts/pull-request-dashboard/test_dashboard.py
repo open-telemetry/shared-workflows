@@ -3,7 +3,7 @@ from __future__ import annotations
 from argparse import Namespace
 from contextlib import nullcontext
 from copy import deepcopy
-from dataclasses import replace
+from dataclasses import asdict, replace
 from datetime import datetime, timezone
 from pathlib import Path
 import json
@@ -33,7 +33,7 @@ from dashboard_state_update import (
     prepare_dashboard_update,
 )
 from dashboard_contracts import (
-    CopilotReviewFallback,
+    CopilotReviewCycleUpdate,
     DashboardCommandReply,
     DashboardFacts,
     DashboardRoute,
@@ -54,6 +54,7 @@ from dashboard_override import (
 from dashboard_test_support import (
     actor,
     check_source,
+    copilot_review_cycle,
     dashboard_facts,
     dashboard_state,
     evaluation_success,
@@ -66,6 +67,7 @@ from dashboard_test_support import (
     review_thread_comment,
     stored_dashboard_result,
 )
+from delivery import initialize_delivery_state
 from classification_execution import (
     ClassificationExecutionRequest,
     ClassificationOperation,
@@ -111,7 +113,16 @@ from pr_status_comment import render_status_comment
 from render import render_pr_tables, reviewers_cell_text
 from reviewer_state import ReviewerInput, prepare_reviewers
 from routing_decision import resolve_routing
-from state import decode_dashboard_facts, encode_dashboard_facts, stored_result
+from state import (
+    COPILOT_REVIEW_DISPATCH_STATE_FILE,
+    COPILOT_REVIEW_FALLBACK_STATE_VERSION,
+    COPILOT_REVIEW_REQUEST_STATE_FILE,
+    decode_dashboard_facts,
+    encode_dashboard_facts,
+    load_copilot_review_cycles,
+    save_dashboard_state_cache,
+    stored_result,
+)
 
 
 FAILED_CLASSIFICATION = ClassificationFailure(
@@ -464,7 +475,7 @@ class DashboardEvaluationHandoffTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(evaluated_result, update.evaluated_result)
 
 
-class DashboardFallbackSnapshotTest(unittest.IsolatedAsyncioTestCase):
+class DashboardReviewCycleSnapshotTest(unittest.IsolatedAsyncioTestCase):
     async def test_both_update_paths_read_delivery_state_before_evaluation(self) -> None:
         for pr_number in (7, None):
             with self.subTest(pr_number=pr_number), tempfile.TemporaryDirectory() as directory:
@@ -501,8 +512,12 @@ class DashboardFallbackSnapshotTest(unittest.IsolatedAsyncioTestCase):
                     "otelbot/pull-request-dashboard-delivery/repo", required=False,
                 )
                 self.assertEqual({
-                    "7": CopilotReviewFallback((10,), "2026-08-16T11:59:00Z", True),
-                }, args.copilot_review_fallbacks)
+                    "7": copilot_review_cycle(
+                        "", requester="fallback", phase="unknown",
+                        started_at="2026-08-16T11:59:00+00:00", sent_at="",
+                        dispatch_id="legacy-2026-08-16T11:59:00+00:00",
+                    ),
+                }, args.copilot_review_cycles)
                 if pr_number is None:
                     backfill.assert_awaited_once()
                     targeted.assert_not_awaited()
@@ -510,18 +525,76 @@ class DashboardFallbackSnapshotTest(unittest.IsolatedAsyncioTestCase):
                     targeted.assert_awaited_once()
                     backfill.assert_not_awaited()
 
-    async def test_unconfigured_fallback_does_not_read_delivery_branch(self) -> None:
-        args = Namespace(pr_number=7)
-        with (
-            patch.dict(os.environ, {"COPILOT_REVIEW_FALLBACK_AVAILABLE": "false"}),
-            patch("dashboard.state_branch.accepted_state_dir") as snapshot,
-            patch("dashboard.CopilotSdkModelRunner"),
-            patch("dashboard.update_dashboard_for_pr_number", new_callable=AsyncMock) as update,
-        ):
-            update.return_value = 0
-            self.assertEqual(0, await update_dashboard_via_state_branch(args, Path("state")))
-        snapshot.assert_not_called()
-        self.assertEqual({}, args.copilot_review_fallbacks)
+    async def test_primary_cycles_are_read_without_a_fallback_token(self) -> None:
+        args = Namespace(
+            repo="owner/repo", pr_number=7,
+            state_branch="otelbot/pull-request-dashboard-state/repo",
+        )
+        cycle = copilot_review_cycle("current-head", phase="unknown")
+        with tempfile.TemporaryDirectory() as directory:
+            checkout = Path(directory)
+            (checkout / "repo").mkdir()
+            (checkout / "repo" / COPILOT_REVIEW_DISPATCH_STATE_FILE).write_text(json.dumps({
+                "version": COPILOT_REVIEW_FALLBACK_STATE_VERSION, "prs": {"7": asdict(cycle)},
+            }), encoding="utf-8")
+            with (
+                patch.dict(os.environ, {"COPILOT_REVIEW_FALLBACK_AVAILABLE": "false"}),
+                patch("dashboard.state_branch.configure_git"),
+                patch(
+                    "dashboard.state_branch.accepted_state_dir",
+                    return_value=nullcontext(checkout),
+                ) as snapshot,
+                patch("dashboard.CopilotSdkModelRunner"),
+                patch("dashboard.update_dashboard_for_pr_number", new_callable=AsyncMock) as update,
+            ):
+                update.return_value = 0
+                self.assertEqual(0, await update_dashboard_via_state_branch(args, checkout))
+            snapshot.assert_called_once()
+            self.assertEqual({"7": cycle}, args.copilot_review_cycles)
+
+    async def test_first_delivery_keeps_legacy_accepted_receipts_after_refresh(self) -> None:
+        args = Namespace(
+            repo="owner/repo", pr_number=7,
+            state_branch="otelbot/pull-request-dashboard-state/repo",
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            accepted = root / "accepted"
+            accepted_repo = accepted / "repo"
+            accepted_repo.mkdir(parents=True)
+            receipt = accepted_repo / COPILOT_REVIEW_REQUEST_STATE_FILE
+            legacy = json.dumps({"version": 11, "prs": {"7": {
+                "head_sha": "previous-head", "requested_at": "2026-08-16T11:59:00Z",
+            }}})
+            receipt.write_text(legacy, encoding="utf-8")
+            with (
+                patch("dashboard.state_branch.configure_git"),
+                patch(
+                    "dashboard.state_branch.accepted_state_dir",
+                    side_effect=[nullcontext(None), nullcontext(accepted)],
+                ) as snapshot,
+                patch("dashboard.CopilotSdkModelRunner"),
+                patch("dashboard.update_dashboard_for_pr_number", new_callable=AsyncMock) as update,
+            ):
+                update.return_value = 0
+                self.assertEqual(0, await update_dashboard_via_state_branch(args, accepted))
+            snapshot.assert_has_calls([
+                call("otelbot/pull-request-dashboard-delivery/repo", required=False),
+                call(args.state_branch, required=False),
+            ])
+            migrated = args.copilot_review_cycles["7"]
+            self.assertEqual("unknown", migrated.phase)
+            self.assertEqual("2026-08-16T11:59:00+00:00", migrated.started_at)
+
+            with patch("state._state_dir", accepted_repo), patch("state._using_delivery_state", False):
+                save_dashboard_state_cache(dashboard_state(stored_dashboard_result(
+                    7, facts=dashboard_facts(head_sha="next-head"),
+                )))
+            self.assertEqual(legacy, receipt.read_text(encoding="utf-8"))
+
+            with patch("state._state_dir", root / "delivery" / "repo"):
+                initialize_delivery_state(accepted_repo)
+                self.assertEqual({"7": migrated}, load_copilot_review_cycles())
 
 
 class PullRequestEvaluationTest(unittest.IsolatedAsyncioTestCase):
@@ -744,7 +817,7 @@ class PullRequestEvaluationTest(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(DashboardRoute.AUTHOR, result.route)
 
     @patch("pull_request_evaluation.fetch_pull_request_source")
-    async def test_quota_failure_disables_requests_and_gate_across_pushes(
+    async def test_old_quota_notices_and_cached_flags_do_not_disable_a_new_head(
         self, fetch_raw: Mock
     ) -> None:
         for reviews in (
@@ -788,78 +861,137 @@ class PullRequestEvaluationTest(unittest.IsolatedAsyncioTestCase):
 
                 self.assertIsInstance(result, EvaluationSuccess)
                 assert isinstance(result, EvaluationSuccess)
-                self.assertTrue(result.facts.copilot_review_quota_exhausted)
-                self.assertFalse(result.facts.copilot_review_request_needed)
-                self.assertFalse(result.facts.copilot_review_outstanding)
-                self.assertFalse(result.facts.copilot_review_unreported)
-                self.assertFalse(result.facts.route_held_for_gates)
-                self.assertIsNone(result.facts.route_held_since)
-                self.assertEqual(DashboardRoute.APPROVER, result.route)
+                self.assertFalse(result.facts.copilot_review_quota_exhausted)
+                self.assertTrue(result.facts.copilot_review_request_needed)
+                self.assertTrue(result.facts.copilot_review_outstanding)
+                self.assertTrue(result.facts.copilot_review_unreported)
+
+    @patch("routing_decision.utc_now", return_value=datetime(2026, 8, 16, 12, tzinfo=timezone.utc))
+    @patch("pull_request_evaluation.utc_now", return_value=datetime(2026, 8, 16, 12, tzinfo=timezone.utc))
+    @patch("pull_request_evaluation.fetch_pull_request_source")
+    async def test_unknown_acceptance_waits_despite_quota_and_no_pending_indicator(
+        self, fetch_raw, _cycle_clock, _routing_clock,
+    ) -> None:
+        fetch_raw.return_value = pull_request_source(
+            pull_request=pull_request_metadata(head_sha="new-head", base_branch="main"),
+            reviews=(review_source(
+                database_id=11, actor=actor("copilot"), commit_id="new-head",
+                body="Copilot was unable to review this pull request because the user who requested the review has insufficient remaining quota.",
+                submitted_at="2026-08-16T12:00:00Z",
+            ),),
+        )
+        result = await evaluate_pull_request(
+            replace(
+                evaluation_config(require_clean_copilot_review_branches=["main"]),
+                copilot_review_cycle=copilot_review_cycle(
+                    "new-head", phase="unknown", started_at="2026-08-16T11:59:00Z",
+                    sent_at="2026-08-16T11:59:00Z",
+                ),
+            ),
+            PullRequestEvaluationInput(pr_number=7),
+            FakeClassificationOperation(),
+        )
+        self.assertIsInstance(result, EvaluationSuccess)
+        self.assertTrue(result.facts.copilot_review_request_in_flight)
+        self.assertFalse(result.facts.copilot_review_request_needed)
+        self.assertTrue(result.facts.copilot_review_unreported)
+
+    @patch("routing_decision.utc_now", return_value=datetime(2026, 8, 16, 12, tzinfo=timezone.utc))
+    @patch("pull_request_evaluation.utc_now", return_value=datetime(2026, 8, 16, 12, tzinfo=timezone.utc))
+    @patch("pull_request_evaluation.fetch_pull_request_source")
+    async def test_cycle_timeout_preserves_gate_expiry_even_with_quota_and_no_token(
+        self, fetch_raw, _cycle_clock, _routing_clock,
+    ) -> None:
+        fetch_raw.return_value = pull_request_source(
+            pull_request=pull_request_metadata(head_sha="new-head", base_branch="main"),
+            reviews=(review_source(
+                actor=actor("copilot"), commit_id="new-head",
+                body="Copilot was unable to review this pull request because the user who requested the review has insufficient remaining quota.",
+            ),),
+        )
+        result = await evaluate_pull_request(
+            replace(
+                evaluation_config(require_clean_copilot_review_branches=["main"]),
+                copilot_review_cycle=copilot_review_cycle("new-head", phase="unknown"),
+            ),
+            PullRequestEvaluationInput(
+                pr_number=7,
+                previous_result=stored_dashboard_result(7, facts=dashboard_facts(
+                    head_sha="new-head", route_held_since="2026-08-16T08:00:00Z",
+                    route_held_for_gates=True,
+                )),
+            ),
+            FakeClassificationOperation(),
+        )
+        self.assertIsInstance(result, EvaluationSuccess)
+        self.assertEqual("timeout", result.facts.copilot_review_request_limit_reason)
+        self.assertTrue(result.facts.copilot_review_unreported)
+        self.assertTrue(result.facts.route_hold_expired)
+        self.assertFalse(result.facts.copilot_review_request_needed)
 
     @patch("pull_request_evaluation.fetch_pull_request_source")
-    async def test_fallback_quota_transitions_preserve_then_release_gate(
-        self, fetch_raw: Mock
-    ) -> None:
-        quota = review_source(
-            database_id=10,
-            actor=actor("copilot"),
-            commit_id="old-head",
-            body=(
-                "Copilot was unable to review this pull request because the user "
-                "who requested the review has reached their quota limit."
-            ),
+    async def test_current_coverage_exports_the_cycle_update_without_an_intent(self, fetch_raw) -> None:
+        fetch_raw.return_value = pull_request_source(
+            pull_request=pull_request_metadata(head_sha="new-head", base_branch="main"),
+            reviews=(review_source(
+                database_id=11, actor=actor("copilot"), commit_id="new-head", body="No issues found.",
+            ),),
         )
-        fallback = CopilotReviewFallback((10,), "2026-08-16T11:59:00Z")
-        for record, reviews, terminal, expected in (
-            (None, (quota,), False, False),
-            (fallback, (quota,), False, False),
-            (
-                fallback,
-                (quota, replace(quota, database_id=11, body=f"{quota.body} More guidance.")),
-                False,
-                False,
+        cycle = copilot_review_cycle(
+            "old-head", phase="unknown", dispatch_id="covered-dispatch", baseline_review_ids=(11,),
+        )
+        result = await evaluate_pull_request(
+            replace(
+                evaluation_config(require_clean_copilot_review_branches=["main"]),
+                copilot_review_cycle=cycle,
             ),
-            (
-                fallback,
-                (quota, replace(quota, database_id=11, submitted_at="2026-08-16T12:00:00Z")),
-                False,
-                True,
+            PullRequestEvaluationInput(pr_number=7),
+            FakeClassificationOperation(),
+        )
+        self.assertIsInstance(result, EvaluationSuccess)
+        update = result.facts.copilot_review_cycle_update
+        assert update is not None and update.after is not None
+        self.assertEqual(cycle, update.before)
+        self.assertEqual("complete", update.after.phase)
+        self.assertEqual("new-head", update.after.head_sha)
+        self.assertEqual(0, update.after.request_count)
+        self.assertFalse(result.facts.copilot_review_request_in_flight)
+        self.assertFalse(result.facts.copilot_review_request_needed)
+
+    @patch("routing_decision.utc_now", return_value=datetime(2026, 8, 16, 12, tzinfo=timezone.utc))
+    @patch("pull_request_evaluation.utc_now", return_value=datetime(2026, 8, 16, 12, tzinfo=timezone.utc))
+    @patch("pull_request_evaluation.fetch_pull_request_source")
+    async def test_quota_limit_exports_the_cycle_update_without_a_request_intent(
+        self, fetch_raw, _cycle_clock, _routing_clock,
+    ) -> None:
+        fetch_raw.return_value = pull_request_source(
+            pull_request=pull_request_metadata(head_sha="current-head", base_branch="main"),
+            reviews=(review_source(
+                database_id=11, actor=actor("copilot"), commit_id="current-head",
+                body="Copilot was unable to review this pull request because the user who requested the review has insufficient remaining quota.",
+                submitted_at="2026-08-16T11:59:00Z",
+            ),),
+        )
+        cycle = copilot_review_cycle(
+            "current-head", dispatch_id="quota-dispatch",
+            started_at="2026-08-16T11:58:00Z", sent_at="2026-08-16T11:58:00Z",
+        )
+        result = await evaluate_pull_request(
+            replace(
+                evaluation_config(require_clean_copilot_review_branches=["main"]),
+                copilot_review_cycle=cycle,
             ),
-            (fallback, (), True, True),
-            (replace(fallback, exhausted=True), (), False, True),
-        ):
-            with self.subTest(record=record, reviews=reviews, terminal=terminal):
-                fetch_raw.return_value = pull_request_source(
-                    pull_request=pull_request_metadata(
-                        head_sha="new-head", base_branch="main",
-                    ),
-                    reviews=reviews,
-                )
-                result = await evaluate_pull_request(
-                    replace(
-                        evaluation_config(require_clean_copilot_review_branches=["main"]),
-                        copilot_review_fallback_available=True,
-                        copilot_review_fallback=record,
-                    ),
-                    PullRequestEvaluationInput(
-                        pr_number=7,
-                        previous_result=stored_dashboard_result(
-                            7,
-                            facts=dashboard_facts(
-                                head_sha="old-head",
-                                copilot_review_quota_exhausted=True,
-                                copilot_review_fallback_exhausted=terminal,
-                            ),
-                        ),
-                    ),
-                    FakeClassificationOperation(),
-                )
-                self.assertIsInstance(result, EvaluationSuccess)
-                assert isinstance(result, EvaluationSuccess)
-                self.assertEqual(expected, result.facts.copilot_review_fallback_exhausted)
-                self.assertEqual(not expected, result.facts.copilot_review_request_needed)
-                self.assertEqual(not expected, result.facts.copilot_review_unreported)
-                self.assertEqual(not expected, result.facts.copilot_review_outstanding)
+            PullRequestEvaluationInput(pr_number=7),
+            FakeClassificationOperation(),
+        )
+        self.assertIsInstance(result, EvaluationSuccess)
+        self.assertEqual("quota", result.facts.copilot_review_request_limit_reason)
+        self.assertEqual(
+            CopilotReviewCycleUpdate(cycle, replace(cycle, phase="limited", limit_reason="quota")),
+            result.facts.copilot_review_cycle_update,
+        )
+        self.assertFalse(result.facts.copilot_review_request_in_flight)
+        self.assertFalse(result.facts.copilot_review_request_needed)
 
     def test_compute_facts_uses_prepared_approval_count(self) -> None:
         raw = self.raw_pr()
@@ -3111,8 +3243,6 @@ class PullRequestEvaluationTest(unittest.IsolatedAsyncioTestCase):
 
 
 class ReviewThreadDiscussionUrlTest(unittest.TestCase):
-
-
     def test_author_action_urls_use_thread_url_and_deduplicate(self) -> None:
         discussions = [
             {"discussion_id": "thread-1", "discussion_url": "https://example.test/discussion/1"},
@@ -3851,7 +3981,6 @@ class InitialBackfillCompletionTest(unittest.TestCase):
                     )
 
 class StatusCommentQueueTest(unittest.TestCase):
-    @patch("dashboard.record_copilot_review_observation")
     @patch("dashboard.record_author_nudge_observation")
     @patch("dashboard.save_dashboard_update_state", return_value=0)
     @patch("dashboard.enqueue_status_comment_update")
@@ -3869,7 +3998,6 @@ class StatusCommentQueueTest(unittest.TestCase):
         enqueue_update: Mock,
         save_state: Mock,
         record_nudge: Mock,
-        _record_copilot: Mock,
     ) -> None:
         args = Namespace(pr_number=None)
 
@@ -3890,7 +4018,6 @@ class StatusCommentQueueTest(unittest.TestCase):
             sorted(record_nudge.call_args_list, key=lambda value: value.args[0]),
         )
 
-    @patch("dashboard.record_copilot_review_observation")
     @patch("dashboard.record_author_nudge_observation")
     @patch("dashboard.clear_backfill_pr_failure")
     @patch("dashboard.save_dashboard_update_state", return_value=0)
@@ -3903,7 +4030,6 @@ class StatusCommentQueueTest(unittest.TestCase):
         _save_state: Mock,
         _clear_backfill_failure: Mock,
         record_nudge: Mock,
-        record_copilot: Mock,
     ) -> None:
         starting_result = stored_dashboard_result(12)
         evaluated_result = evaluation_success(
@@ -3937,13 +4063,7 @@ class StatusCommentQueueTest(unittest.TestCase):
             ANY,
             prepare_due=True,
         )
-        record_copilot.assert_called_once_with(
-            12,
-            accepted_result,
-            record_nudge.call_args.args[2],
-        )
 
-    @patch("dashboard.record_copilot_review_observation")
     @patch("dashboard.record_author_nudge_observation")
     @patch("dashboard.clear_backfill_pr_failure")
     @patch("dashboard.save_dashboard_update_state", return_value=0)
@@ -3956,7 +4076,6 @@ class StatusCommentQueueTest(unittest.TestCase):
         _save_state: Mock,
         _clear_backfill_failure: Mock,
         record_nudge: Mock,
-        _record_copilot: Mock,
     ) -> None:
         accepted_result = stored_dashboard_result(
             12,

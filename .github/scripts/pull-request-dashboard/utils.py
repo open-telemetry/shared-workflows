@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from dashboard_contracts import DashboardFacts
 
 
 DEFAULT_TRUNCATE_CHARS = 1200
+GATE_HOLD_LIMIT = timedelta(hours=4)
 
 
 def markdown_escape(s: str) -> str:

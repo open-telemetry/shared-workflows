@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Any
 
 from classification_policy import normalize_discussion_action
@@ -15,6 +15,7 @@ from copilot_review import (
 )
 from dashboard_contracts import DashboardFacts, DashboardRoute, HandoffTarget
 from utils import (
+    GATE_HOLD_LIMIT,
     format_ts,
     parse_ts,
     required_checks_settled,
@@ -49,7 +50,6 @@ _ROUTE_DISCUSSION_ACTIONS = {
 }
 _REVIEWER_ROUTES = ("approver", "maintainer")
 _ROUTE_PROGRESSION = ("author", "approver", "maintainer")
-_GATE_HOLD_LIMIT = timedelta(hours=4)
 
 
 def reviewer_handoff_active(facts: DashboardFacts) -> bool:
@@ -110,7 +110,7 @@ def _gate_hold_expired(facts: DashboardFacts, now: datetime) -> bool:
     held_since = parse_ts(facts.route_held_since)
     if held_since is None:
         return False
-    return now - held_since >= _GATE_HOLD_LIMIT
+    return now - held_since >= GATE_HOLD_LIMIT
 
 
 def _set_gate_hold_clock(

@@ -86,7 +86,6 @@ class BackfillRetryTest(unittest.IsolatedAsyncioTestCase):
             patch.object(dashboard, "evaluate_pull_request", return_value=evaluation) as evaluate,
             patch.object(dashboard, "enqueue_status_comment_update") as enqueue,
             patch.object(dashboard, "record_author_nudge_observation") as nudge,
-            patch.object(dashboard, "record_copilot_review_observation"),
             patch.object(dashboard.state_branch, "configure_git"),
             patch.object(dashboard.state_branch, "checkout_state"),
             patch.object(dashboard.state_branch, "remove_existing_state_dir"),
@@ -213,7 +212,6 @@ class BackfillRetryTest(unittest.IsolatedAsyncioTestCase):
             patch.object(dashboard, "evaluate_pull_request", side_effect=evaluate),
             patch.object(dashboard, "enqueue_status_comment_update"),
             patch.object(dashboard, "record_author_nudge_observation"),
-            patch.object(dashboard, "record_copilot_review_observation"),
             patch.object(dashboard.state_branch, "configure_git"),
             patch.object(dashboard.state_branch, "checkout_state"),
             patch.object(dashboard.state_branch, "remove_existing_state_dir"),
@@ -242,9 +240,16 @@ class DashboardClientScopeTest(unittest.IsolatedAsyncioTestCase):
                 with (
                     patch.object(dashboard, "CopilotSdkModelRunner", return_value=context),
                     patch.object(dashboard, operation, return_value=0) as update,
+                    patch.object(dashboard.state_branch, "configure_git"),
+                    patch.object(dashboard.state_branch, "accepted_state_dir") as checkout,
                 ):
+                    checkout.return_value.__enter__.return_value = None
                     status = await dashboard.update_dashboard_via_state_branch(
-                        Namespace(pr_number=pr_number), Path("state")
+                        Namespace(
+                            pr_number=pr_number,
+                            state_branch="otelbot/pull-request-dashboard-state/example",
+                        ),
+                        Path("state"),
                     )
                 self.assertEqual(0, status)
                 self.assertIs(runner, update.call_args.args[2].runner)

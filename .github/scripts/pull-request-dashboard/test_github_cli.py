@@ -6,7 +6,9 @@ import unittest
 from unittest.mock import ANY, call, patch
 
 from github_cli import (
+    CopilotReviewRequestRejected,
     GH_RETRY_ATTEMPTS,
+    GhCommandError,
     GhGraphQLNodeNotFoundError,
     GhNotFoundError,
     GhReadOnlyConversationError,
@@ -78,20 +80,25 @@ def _rollup_page(nodes):
 
 
 class RunGhJsonTest(unittest.TestCase):
-    @patch("github_cli.subprocess.run")
-    def test_explicit_token_is_scoped_to_a_hidden_subprocess(self, run) -> None:
-        run.return_value = subprocess.CompletedProcess(["gh"], 0, "{}", "")
+    @patch("github_cli.subprocess.Popen")
+    def test_explicit_token_is_scoped_to_a_hidden_subprocess(self, start) -> None:
+        process = start.return_value
+        process.__enter__.return_value = process
+        process.communicate.return_value = ("{}", "")
+        process.wait.return_value = 0
         with (
             patch("github_cli.os.name", "nt"),
             patch("github_cli.subprocess.CREATE_NO_WINDOW", 0x08000000, create=True),
         ):
-            run_gh_json(["gh", "api", "/test"], token="request-token")
-        self.assertEqual("request-token", run.call_args.kwargs["env"]["GH_TOKEN"])
-        self.assertEqual(0x08000000, run.call_args.kwargs["creationflags"])
-        self.assertNotIn("request-token", run.call_args.args[0])
+            run_gh_json(["gh", "api", "/test"], token="request-token", input_text='{"value": 1}')
+        self.assertEqual("request-token", start.call_args.kwargs["env"]["GH_TOKEN"])
+        self.assertEqual(0x08000000, start.call_args.kwargs["creationflags"])
+        self.assertEqual(subprocess.PIPE, start.call_args.kwargs["stdin"])
+        self.assertNotIn("request-token", start.call_args.args[0])
+        process.communicate.assert_called_once_with(input='{"value": 1}')
 
     @patch("github_cli.sleep_for_retry")
-    @patch("github_cli.subprocess.run")
+    @patch("github_cli._run_gh_process")
     def test_recovers_from_http_499(self, run, sleep) -> None:
         run.side_effect = [
             subprocess.CompletedProcess(["gh"], 1, "", "gh: HTTP 499"),
@@ -103,7 +110,7 @@ class RunGhJsonTest(unittest.TestCase):
         sleep.assert_called_once_with(0)
 
     @patch("github_cli.sleep_for_retry")
-    @patch("github_cli.subprocess.run")
+    @patch("github_cli._run_gh_process")
     def test_http_499_exhaustion_is_transient(self, run, sleep) -> None:
         run.return_value = subprocess.CompletedProcess(
             ["gh"], 1, "", "gh: HTTP 499"
@@ -116,7 +123,7 @@ class RunGhJsonTest(unittest.TestCase):
         self.assertEqual(GH_RETRY_ATTEMPTS - 1, sleep.call_count)
 
     @patch("github_cli.sleep_for_retry")
-    @patch("github_cli.subprocess.run")
+    @patch("github_cli._run_gh_process")
     def test_recovers_from_api_connection_error(self, run, sleep) -> None:
         run.side_effect = [
             subprocess.CompletedProcess(
@@ -132,7 +139,7 @@ class RunGhJsonTest(unittest.TestCase):
         sleep.assert_called_once_with(0)
 
     @patch("github_cli.sleep_for_retry")
-    @patch("github_cli.subprocess.run")
+    @patch("github_cli._run_gh_process")
     def test_api_connection_error_exhaustion_is_transient(self, run, sleep) -> None:
         run.return_value = subprocess.CompletedProcess(
             ["gh"], 1, "",
@@ -150,7 +157,7 @@ class RunGhJsonTest(unittest.TestCase):
         )
 
     @patch("github_cli.sleep_for_retry")
-    @patch("github_cli.subprocess.run")
+    @patch("github_cli._run_gh_process")
     def test_exact_not_found_raises_typed_error_without_retry(
         self, run, sleep
     ) -> None:
@@ -165,7 +172,7 @@ class RunGhJsonTest(unittest.TestCase):
         sleep.assert_not_called()
 
     @patch("github_cli.sleep_for_retry")
-    @patch("github_cli.subprocess.run")
+    @patch("github_cli._run_gh_process")
     def test_cleanup_error_classification(self, run, sleep) -> None:
         message = "Pull request is archived and its conversation is read-only."
         archived = {"type": "UNPROCESSABLE", "message": message}
@@ -177,26 +184,26 @@ class RunGhJsonTest(unittest.TestCase):
         stderr = f"gh: {message} (HTTP 403)"
         for endpoint, response, error_text, expected in (
             ("/test", {}, stderr, GhReadOnlyConversationError),
-            ("/test", {}, "gh: Resource not accessible (HTTP 403)", RuntimeError),
-            ("/test", {}, f"gh: {message} (HTTP 401)", RuntimeError),
-            ("/test", {}, f"{stderr}\nResource not accessible", RuntimeError),
-            ("/test", {}, f"gh: Permission denied: {message} (HTTP 403)", RuntimeError),
+            ("/test", {}, "gh: Resource not accessible (HTTP 403)", GhCommandError),
+            ("/test", {}, f"gh: {message} (HTTP 401)", GhCommandError),
+            ("/test", {}, f"{stderr}\nResource not accessible", GhCommandError),
+            ("/test", {}, f"gh: Permission denied: {message} (HTTP 403)", GhCommandError),
             ("graphql", {"errors": [archived]}, stderr, GhReadOnlyConversationError),
             ("graphql", {"errors": [missing]}, missing["message"], GhGraphQLNodeNotFoundError),
-            ("graphql", {"errors": [archived, forbidden]}, stderr, RuntimeError),
-            ("graphql", {"errors": [forbidden, archived]}, stderr, RuntimeError),
-            ("graphql", {"errors": [missing, forbidden]}, stderr, RuntimeError),
-            ("graphql", {"errors": [{**missing, "type": "FORBIDDEN"}]}, stderr, RuntimeError),
+            ("graphql", {"errors": [archived, forbidden]}, stderr, GhCommandError),
+            ("graphql", {"errors": [forbidden, archived]}, stderr, GhCommandError),
+            ("graphql", {"errors": [missing, forbidden]}, stderr, GhCommandError),
+            ("graphql", {"errors": [{**missing, "type": "FORBIDDEN"}]}, stderr, GhCommandError),
             (
                 "graphql", {"errors": [{**missing, "message": "Missing repository"}]},
-                stderr, RuntimeError,
+                stderr, GhCommandError,
             ),
             (
                 "graphql", {"errors": [{**archived, "message": f"{message} Forbidden"}]},
-                stderr, RuntimeError,
+                stderr, GhCommandError,
             ),
-            ("graphql", {"errors": []}, stderr, RuntimeError),
-            ("graphql", "{broken", stderr, RuntimeError),
+            ("graphql", {"errors": []}, stderr, GhCommandError),
+            ("graphql", "{broken", stderr, GhCommandError),
         ):
             with self.subTest(endpoint=endpoint, response=response, stderr=error_text):
                 run.reset_mock()
@@ -215,7 +222,7 @@ class RunGhJsonTest(unittest.TestCase):
                 sleep.assert_not_called()
 
     @patch("github_cli.sleep_for_retry")
-    @patch("github_cli.subprocess.run")
+    @patch("github_cli._run_gh_process")
     def test_recovers_from_malformed_json(self, run, sleep) -> None:
         run.side_effect = [
             subprocess.CompletedProcess(["gh"], 0, "{broken", ""),
@@ -227,7 +234,7 @@ class RunGhJsonTest(unittest.TestCase):
         sleep.assert_called_once_with(0)
 
     @patch("github_cli.sleep_for_retry")
-    @patch("github_cli.subprocess.run")
+    @patch("github_cli._run_gh_process")
     def test_malformed_json_exhaustion_preserves_decode_error(
         self, run, sleep
     ) -> None:
@@ -244,7 +251,7 @@ class RunGhJsonTest(unittest.TestCase):
         self.assertEqual(GH_RETRY_ATTEMPTS - 1, sleep.call_count)
 
     @patch("github_cli.sleep_for_retry")
-    @patch("github_cli.subprocess.run")
+    @patch("github_cli._run_gh_process")
     def test_process_and_decode_failures_share_attempt_budget(
         self, run, sleep
     ) -> None:
@@ -471,7 +478,13 @@ class GithubCliTest(unittest.TestCase):
         self,
         graphql,
     ) -> None:
-        request_copilot_review("PR_node_id")
+        graphql.return_value = {
+            "data": {"requestReviews": {"pullRequest": {
+                "id": "PR_node_id", "headRefOid": "actual-head",
+            }}},
+        }
+
+        self.assertEqual("actual-head", request_copilot_review("PR_node_id"))
 
         graphql.assert_called_once_with(
             ANY,
@@ -480,17 +493,92 @@ class GithubCliTest(unittest.TestCase):
                 "botId": "BOT_kgDOCnlnWA",
             },
             token=None,
+            retry=False,
         )
         mutation = graphql.call_args.args[0]
         self.assertIn("requestReviews", mutation)
         self.assertIn("botIds: [$botId]", mutation)
         self.assertIn("union: true", mutation)
+        self.assertIn("headRefOid", mutation)
 
     @patch("github_cli.gh_graphql")
     def test_request_copilot_review_uses_explicit_token(self, graphql) -> None:
+        graphql.return_value = {
+            "data": {"requestReviews": {"pullRequest": {
+                "id": "PR_node_id", "headRefOid": "actual-head",
+            }}},
+        }
         request_copilot_review("PR_node_id", token="request-token")
 
         self.assertEqual("request-token", graphql.call_args.kwargs["token"])
+
+    @patch("github_cli.sleep_for_retry")
+    @patch("github_cli._run_gh_process")
+    def test_request_rejections_are_distinct_from_ambiguous_failures(self, run, sleep) -> None:
+        cases = (
+            ("forbidden", "", "gh: Forbidden (HTTP 403)", CopilotReviewRequestRejected),
+            (
+                "graphql_permission",
+                '{"data":{"requestReviews":null},"errors":[{"type":"FORBIDDEN"}]}',
+                "gh: Resource not accessible by integration",
+                CopilotReviewRequestRejected,
+            ),
+            (
+                "graphql_missing_node",
+                json.dumps({"errors": [{
+                    "type": "NOT_FOUND",
+                    "message": "Could not resolve to a node with the global id of 'PR_node_id'.",
+                }]}),
+                "gh: Could not resolve to a node with the global id of 'PR_node_id'.",
+                CopilotReviewRequestRejected,
+            ),
+            ("timeout", "", "request timeout", TransientGhError),
+            (
+                "server_error",
+                '{"data":{"requestReviews":null},"errors":[{"type":"INTERNAL"}]}',
+                "gh: HTTP 502",
+                TransientGhError,
+            ),
+        )
+        for name, stdout, stderr, error_type in cases:
+            with self.subTest(name=name):
+                run.reset_mock()
+                sleep.reset_mock()
+                run.return_value = subprocess.CompletedProcess(["gh"], 1, stdout, stderr)
+
+                with self.assertRaises(error_type):
+                    request_copilot_review("PR_node_id")
+
+                run.assert_called_once()
+                sleep.assert_not_called()
+
+    @patch("github_cli._run_gh_process")
+    def test_missing_mutation_head_is_ambiguous_not_a_definite_rejection(self, run) -> None:
+        run.return_value = subprocess.CompletedProcess(
+            ["gh"], 0, '{"data":{"requestReviews":{"pullRequest":{"id":"PR_node_id"}}}}', "",
+        )
+
+        with self.assertRaisesRegex(TransientGhError, "requested pull request head"):
+            request_copilot_review("PR_node_id")
+
+        run.assert_called_once()
+
+    @patch("github_cli.sleep_for_retry")
+    def test_failed_process_starts_are_definitely_unsent(self, sleep) -> None:
+        for error in (
+            FileNotFoundError("gh is unavailable"),
+            OSError("process resources unavailable"),
+            ValueError("invalid process environment"),
+        ):
+            with self.subTest(error=error), patch(
+                "github_cli.subprocess.Popen", side_effect=error,
+            ) as start:
+                with self.assertRaises(CopilotReviewRequestRejected) as raised:
+                    request_copilot_review("PR_node_id")
+
+                self.assertIn(str(error), str(raised.exception))
+                start.assert_called_once()
+                sleep.assert_not_called()
 
     @patch("github_cli.gh_graphql")
     def test_fetch_pr_issue_comments_paginates(self, graphql) -> None:
