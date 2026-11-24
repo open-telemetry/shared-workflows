@@ -222,7 +222,10 @@ def job_result(results: list[dict[str, Any]]) -> JobResult:
     return JobResult(
         dead_letters=sum(result["outcome"] == "dead" for result in results),
         retry_item_keys=tuple(
-            sorted(result["itemKey"] for result in results if result["outcome"] == "retry")
+            sorted(
+                result["itemKey"] for result in results
+                if result["outcome"] in {"retry", "requeue"}
+            )
         ),
     )
 

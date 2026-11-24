@@ -728,14 +728,18 @@ class AuthorNudgeProcessingTest(unittest.TestCase):
         self,
         dashboard_state,
         _load_nudges,
-        _save_nudges,
+        save_nudges,
         ensure_completed,
         recover_episode,
     ) -> None:
-        errors = author_nudge.deliver_prepared_author_nudges(
-            "open-telemetry/example",
-            NOW,
-        )
+        _load_nudges.return_value["1"]["completions"].append({
+            "episode_id": "recovered-episode",
+            "completed_at": "2026-07-17T00:00:00+00:00",
+        })
+        with patch.object(author_nudge, "using_delivery_state", return_value=True):
+            errors = author_nudge.deliver_prepared_author_nudges(
+                "open-telemetry/example", NOW,
+            )
 
         self.assertEqual([], errors)
         recover_episode.assert_called_once_with(
@@ -751,6 +755,11 @@ class AuthorNudgeProcessingTest(unittest.TestCase):
             NOW,
             "left_author",
         )
+        save_nudges.assert_called_once_with({
+            "1": {"delivered_completion_ids": [
+                "legacy-nudge:2026-07-10T00:00:00+00:00", "recovered-episode",
+            ]},
+        })
 
     @patch.object(
         author_nudge,
@@ -787,10 +796,12 @@ class AuthorNudgeProcessingTest(unittest.TestCase):
         ensure_completed,
         _recover_episode,
     ) -> None:
-        with patch("sys.stderr") as stderr:
+        with (
+            patch.object(author_nudge, "using_delivery_state", return_value=True),
+            patch("sys.stderr") as stderr,
+        ):
             errors = author_nudge.deliver_prepared_author_nudges(
-                "open-telemetry/example",
-                NOW,
+                "open-telemetry/example", NOW,
             )
 
         self.assertEqual([], errors)
@@ -798,7 +809,11 @@ class AuthorNudgeProcessingTest(unittest.TestCase):
             "PR #1: legacy author nudge comment not found; discarding completion"
         )
         ensure_completed.assert_not_called()
-        save_nudges.assert_called_once_with({})
+        save_nudges.assert_called_once_with({
+            "1": {"delivered_completion_ids": [
+                "legacy-nudge:2026-07-10T00:00:00.403635+00:00",
+            ]},
+        })
 
     def test_failed_completion_survives_closed_pr_delivery(self) -> None:
         completion = {
@@ -845,7 +860,62 @@ class AuthorNudgeProcessingTest(unittest.TestCase):
         ensure_nudge.assert_not_called()
         save_nudges.assert_called_once_with({"1": {"completions": [completion]}})
 
-    def test_failed_completion_survives_successful_new_nudge(self) -> None:
+    def test_missing_node_cleanup_requires_a_recorded_note_and_matching_node(self) -> None:
+        missing = author_nudge.GhGraphQLNodeNotFoundError("missing", "IC_17")
+        for stage, note_recorded, error, handled in (
+            ("comment_minimization_reason", False, missing, True),
+            ("comment_minimization_reason", True, missing, True),
+            ("unminimize_comment", True, missing, True),
+            ("minimize_comment", True, missing, True),
+            ("run_gh", False, missing, False),
+            ("run_gh", False, RuntimeError("Not Found (HTTP 404)"), False),
+            ("run_gh", False, author_nudge.GhReadOnlyConversationError("archived"), False),
+            ("comment_minimization_reason", False, RuntimeError("Forbidden"), False),
+            (
+                "comment_minimization_reason", False,
+                author_nudge.GhGraphQLNodeNotFoundError("other node", "IC_18"), False,
+            ),
+        ):
+            with (
+                self.subTest(stage=stage, note_recorded=note_recorded, error=error),
+                patch.object(
+                    author_nudge, "existing_nudge_comment",
+                    return_value={
+                        "id": 17,
+                        "node_id": "IC_17",
+                        "body": author_nudge.completed_nudge_marker("episode-1")
+                        if note_recorded else "Reminder",
+                    },
+                ),
+                patch.object(
+                    author_nudge, "managed_status_comments",
+                    return_value=[{"html_url": "https://example.test/status"}],
+                ),
+                patch.object(author_nudge, "run_gh") as run_gh,
+                patch.object(
+                    author_nudge, "comment_minimization_reason",
+                    return_value="SPAM" if stage == "unminimize_comment" else "",
+                ),
+                patch.object(author_nudge, "unminimize_comment"),
+                patch.object(author_nudge, "minimize_comment"),
+                patch.object(author_nudge, stage, side_effect=error),
+                patch("sys.stderr"),
+            ):
+                if handled:
+                    author_nudge.ensure_nudge_completed(
+                        "open-telemetry/example", 1, "episode-1",
+                        build_dashboard_state(), NOW,
+                    )
+                    self.assertEqual(0 if note_recorded else 1, run_gh.call_count)
+                else:
+                    with self.assertRaises(type(error)) as raised:
+                        author_nudge.ensure_nudge_completed(
+                            "open-telemetry/example", 1, "episode-1",
+                            build_dashboard_state(), NOW,
+                        )
+                    self.assertIs(error, raised.exception)
+
+    def test_cleanup_state_survives_new_nudge_delivery(self) -> None:
         completion = {
             "episode_id": "previous-episode",
             "completed_at": "2026-07-17T00:00:00+00:00",
@@ -861,44 +931,78 @@ class AuthorNudgeProcessingTest(unittest.TestCase):
                 "completions": [completion],
             }
         }
-        with (
-            patch.object(author_nudge, "load_author_nudges", return_value=pending),
-            patch.object(author_nudge, "save_author_nudges") as save_nudges,
-            patch.object(
-                author_nudge,
-                "load_dashboard_state_cache",
-                return_value=build_dashboard_state(author_result()),
-            ),
-            patch.object(
-                author_nudge,
-                "ensure_nudge_completed",
-                side_effect=RuntimeError("retry"),
-            ),
-            patch.object(
-                author_nudge,
-                "fetch_routing_snapshot",
-                return_value=routing_snapshot(),
-            ),
-            patch.object(
-                author_nudge,
-                "ensure_nudge",
-                return_value="2026-07-17T00:00:00+00:00",
-            ),
+        archived = author_nudge.GhReadOnlyConversationError("archived")
+        for error, stage, expected_errors, retired in (
+            (None, "posted", [], True),
+            (archived, "posted", [], True),
+            (RuntimeError("retry"), "posted", ["PR #1: retry"], False),
+            (archived, "routing", ["PR #1: new reminder failed"], True),
+            (archived, "publication", ["PR #1: new reminder failed"], True),
+            (archived, "no-publication", [], True),
         ):
-            errors = author_nudge.deliver_prepared_author_nudges(
-                "open-telemetry/example",
-                NOW,
-            )
+            with (
+                self.subTest(error=error, stage=stage),
+                patch.object(author_nudge, "using_delivery_state", return_value=True),
+                patch.object(author_nudge, "load_author_nudges", return_value=pending),
+                patch.object(author_nudge, "save_author_nudges") as save_nudges,
+                patch.object(
+                    author_nudge, "load_dashboard_state_cache",
+                    return_value=build_dashboard_state(author_result()),
+                ),
+                patch.object(author_nudge, "ensure_nudge_completed", side_effect=error),
+                patch.object(
+                    author_nudge, "fetch_routing_snapshot",
+                    return_value=routing_snapshot(),
+                ) as routing,
+                patch.object(
+                    author_nudge, "ensure_nudge",
+                    return_value="2026-07-17T00:00:00+00:00" if stage == "posted" else None,
+                ) as publish,
+                patch("sys.stderr"),
+            ):
+                if stage in ("routing", "publication"):
+                    (routing if stage == "routing" else publish).side_effect = RuntimeError(
+                        "new reminder failed"
+                    )
 
-        self.assertEqual(["PR #1: retry"], errors)
-        save_nudges.assert_called_once_with({
-            "1": {
-                "waiting_since": "2026-07-10T00:00:00+00:00",
-                "nudged_at": "2026-07-17T00:00:00+00:00",
-                "episode_id": "episode-1",
-                "completions": [completion],
-            }
-        })
+                errors = author_nudge.deliver_prepared_author_nudges(
+                    "open-telemetry/example", NOW,
+                )
+
+                self.assertEqual(expected_errors, errors)
+                saved = save_nudges.call_args.args[0]["1"]
+                self.assertEqual(
+                    ["previous-episode"] if retired else [],
+                    saved.get("delivered_completion_ids", []),
+                )
+                self.assertEqual(
+                    [] if retired else [completion], saved.get("completions", []),
+                )
+                self.assertEqual(
+                    "2026-07-17T00:00:00+00:00" if stage == "posted" else "",
+                    saved.get("nudged_at", ""),
+                )
+                self.assertEqual("2026-07-10T00:00:00+00:00", saved["waiting_since"])
+                self.assertEqual("episode-1", saved["episode_id"])
+                if stage == "posted":
+                    self.assertNotIn("pending_at", saved)
+                else:
+                    self.assertEqual("2026-07-17T00:00:00+00:00", saved["pending_at"])
+
+    def test_planning_preserves_retired_completion_receipts(self) -> None:
+        for result, clock in (
+            (None, {"nudged_at": "2026-07-10T00:00:00Z"}),
+            (author_result("approver"), {"nudged_at": "2026-07-10T00:00:00Z"}),
+            (author_result(author_nudge_episode_id="episode-2"), {"episode_id": "episode-1"}),
+            (author_result(), {}),
+        ):
+            with self.subTest(result=result, clock=clock):
+                _due, entry = author_nudge.plan_nudge(
+                    result, {**clock, "delivered_completion_ids": ["old-episode"]}, NOW,
+                )
+
+                self.assertIsNotNone(entry)
+                self.assertEqual(["old-episode"], entry["delivered_completion_ids"])
 
     @patch.object(author_nudge, "ensure_nudge")
     @patch.object(author_nudge, "save_author_nudges")

@@ -8,7 +8,10 @@ from unittest.mock import ANY, call, patch
 from github_cli import (
     CopilotReviewRequestRejected,
     GH_RETRY_ATTEMPTS,
+    GhCommandError,
+    GhGraphQLNodeNotFoundError,
     GhNotFoundError,
+    GhReadOnlyConversationError,
     TransientGhError,
     check_bucket,
     code_scanning_tools,
@@ -167,6 +170,56 @@ class RunGhJsonTest(unittest.TestCase):
 
         self.assertEqual(1, run.call_count)
         sleep.assert_not_called()
+
+    @patch("github_cli.sleep_for_retry")
+    @patch("github_cli._run_gh_process")
+    def test_cleanup_error_classification(self, run, sleep) -> None:
+        message = "Pull request is archived and its conversation is read-only."
+        archived = {"type": "UNPROCESSABLE", "message": message}
+        missing = {
+            "type": "NOT_FOUND",
+            "message": "Could not resolve to a node with the global id of 'IC_17'.",
+        }
+        forbidden = {"type": "FORBIDDEN", "message": "Resource not accessible"}
+        stderr = f"gh: {message} (HTTP 403)"
+        for endpoint, response, error_text, expected in (
+            ("/test", {}, stderr, GhReadOnlyConversationError),
+            ("/test", {}, "gh: Resource not accessible (HTTP 403)", GhCommandError),
+            ("/test", {}, f"gh: {message} (HTTP 401)", GhCommandError),
+            ("/test", {}, f"{stderr}\nResource not accessible", GhCommandError),
+            ("/test", {}, f"gh: Permission denied: {message} (HTTP 403)", GhCommandError),
+            ("graphql", {"errors": [archived]}, stderr, GhReadOnlyConversationError),
+            ("graphql", {"errors": [missing]}, missing["message"], GhGraphQLNodeNotFoundError),
+            ("graphql", {"errors": [archived, forbidden]}, stderr, GhCommandError),
+            ("graphql", {"errors": [forbidden, archived]}, stderr, GhCommandError),
+            ("graphql", {"errors": [missing, forbidden]}, stderr, GhCommandError),
+            ("graphql", {"errors": [{**missing, "type": "FORBIDDEN"}]}, stderr, GhCommandError),
+            (
+                "graphql", {"errors": [{**missing, "message": "Missing repository"}]},
+                stderr, GhCommandError,
+            ),
+            (
+                "graphql", {"errors": [{**archived, "message": f"{message} Forbidden"}]},
+                stderr, GhCommandError,
+            ),
+            ("graphql", {"errors": []}, stderr, GhCommandError),
+            ("graphql", "{broken", stderr, GhCommandError),
+        ):
+            with self.subTest(endpoint=endpoint, response=response, stderr=error_text):
+                run.reset_mock()
+                run.return_value = subprocess.CompletedProcess(
+                    ["gh"], 1,
+                    response if isinstance(response, str) else json.dumps(response),
+                    error_text,
+                )
+                with self.assertRaises(expected) as raised:
+                    run_gh_json(["gh", "api", endpoint])
+
+                self.assertIs(expected, type(raised.exception))
+                if expected is GhGraphQLNodeNotFoundError:
+                    self.assertEqual("IC_17", raised.exception.node_id)
+                run.assert_called_once()
+                sleep.assert_not_called()
 
     @patch("github_cli.sleep_for_retry")
     @patch("github_cli._run_gh_process")
@@ -468,6 +521,15 @@ class GithubCliTest(unittest.TestCase):
                 "graphql_permission",
                 '{"data":{"requestReviews":null},"errors":[{"type":"FORBIDDEN"}]}',
                 "gh: Resource not accessible by integration",
+                CopilotReviewRequestRejected,
+            ),
+            (
+                "graphql_missing_node",
+                json.dumps({"errors": [{
+                    "type": "NOT_FOUND",
+                    "message": "Could not resolve to a node with the global id of 'PR_node_id'.",
+                }]}),
+                "gh: Could not resolve to a node with the global id of 'PR_node_id'.",
                 CopilotReviewRequestRejected,
             ),
             ("timeout", "", "request timeout", TransientGhError),

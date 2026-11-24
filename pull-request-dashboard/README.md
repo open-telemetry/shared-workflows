@@ -198,7 +198,9 @@ to inspect progress.
 
 Stable repositories still use promoted release code; canaries use main.
 Backfills retain their bounded cursor, closed-PR cleanup, initial-population
-rules, and full-publication bookkeeping. Queue leases recover interrupted work,
+rules, and full-publication bookkeeping. Live refreshes received during initial
+population or a state rebuild stay queued for a later drain, with at least a
+one-minute delay that does not consume failure retries. Queue leases recover interrupted work,
 and hourly backfills remain the backstop for missed events.
 
 The operator-controlled `PR_DASHBOARD_EXECUTION_MODE` must be `owned` or `paused`.

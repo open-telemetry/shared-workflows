@@ -55,7 +55,7 @@ class GhProcessStartError(RuntimeError):
 
 
 class GhCommandError(RuntimeError):
-    def __init__(self, message: str, *, stderr: str, stdout: str) -> None:
+    def __init__(self, message: str, *, stderr: str = "", stdout: str = "") -> None:
         super().__init__(message)
         self.stderr = stderr
         self.stdout = stdout
@@ -63,6 +63,18 @@ class GhCommandError(RuntimeError):
 
 class CopilotReviewRequestRejected(RuntimeError):
     pass
+
+
+class GhReadOnlyConversationError(GhCommandError):
+    pass
+
+
+class GhGraphQLNodeNotFoundError(GhCommandError):
+    def __init__(
+        self, message: str, node_id: str, *, stderr: str = "", stdout: str = "",
+    ) -> None:
+        super().__init__(message, stderr=stderr, stdout=stdout)
+        self.node_id = node_id
 
 
 _RETRYABLE_GH_ERROR_FRAGMENTS = (
@@ -154,6 +166,32 @@ def _run_gh(
         raise TransientGhError(message)
     if last_stderr.strip().lower() == "gh: not found (http 404)":
         raise GhNotFoundError(message)
+    read_only_message = "pull request is archived and its conversation is read-only."
+    if cmd[1:3] == ["api", "graphql"]:
+        try:
+            response = json.loads(proc.stdout)
+        except json.JSONDecodeError:
+            raise GhCommandError(message, stderr=last_stderr, stdout=proc.stdout) from None
+        errors = response.get("errors") if isinstance(response, dict) else None
+        if isinstance(errors, list) and len(errors) == 1:
+            error = errors[0]
+            if isinstance(error, dict):
+                error_message = error.get("message") or ""
+                if error_message.lower() == read_only_message:
+                    raise GhReadOnlyConversationError(
+                        message, stderr=last_stderr, stdout=proc.stdout,
+                    )
+                if error.get("type") == "NOT_FOUND":
+                    match = re.fullmatch(
+                        r"Could not resolve to a node with the global id of '([^']+)'\.",
+                        error_message,
+                    )
+                    if match:
+                        raise GhGraphQLNodeNotFoundError(
+                            message, match[1], stderr=last_stderr, stdout=proc.stdout,
+                        )
+    elif last_stderr.lower() == f"gh: {read_only_message} (http 403)":
+        raise GhReadOnlyConversationError(message, stderr=last_stderr, stdout=proc.stdout)
     raise GhCommandError(message, stderr=last_stderr, stdout=proc.stdout)
 
 

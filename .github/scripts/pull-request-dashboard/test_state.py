@@ -1422,7 +1422,7 @@ class StateTest(unittest.TestCase):
         self.assertEqual(DASHBOARD_STATE_COMPATIBLE_VERSIONS, (20, 21, 23))
         self.assertEqual(STATUS_COMMENT_ROLLOUT_STATE_VERSION, 3)
         self.assertEqual(STATUS_COMMENT_REVISION, 24)
-        self.assertEqual(AUTHOR_NUDGE_STATE_VERSION, 5)
+        self.assertEqual(AUTHOR_NUDGE_STATE_VERSION, 6)
         self.assertEqual(COPILOT_REVIEW_REQUEST_STATE_VERSION, 14)
 
     def test_version_fifteen_dashboard_state_is_regenerated(self) -> None:
@@ -1462,7 +1462,7 @@ class StateTest(unittest.TestCase):
             self.assertTrue(author_nudge_state_path().exists())
 
     def test_author_nudge_state_preserves_waits_and_reminders_for_migration(self) -> None:
-        for version in (2, 3, 4):
+        for version in (2, 3, 4, 5):
             with (
                 self.subTest(version=version),
                 tempfile.TemporaryDirectory() as temp_dir,
@@ -1490,6 +1490,38 @@ class StateTest(unittest.TestCase):
 
                 self.assertEqual(nudges, load_author_nudges())
 
+    def test_author_nudge_previous_versions_preserve_pending_cleanup_and_receipts(self) -> None:
+        entries = {
+            "123": {
+                "waiting_since": "2026-07-10T00:00:00Z",
+                "nudged_at": "2026-07-17T00:00:00Z",
+                "episode_id": "current-episode",
+                "completions": [{
+                    "episode_id": "pending-episode",
+                    "completed_at": "2026-07-17T00:00:00Z",
+                }],
+                "delivered_completion_ids": ["completed-episode"],
+            },
+        }
+        for version in (4, 5):
+            with (
+                self.subTest(version=version),
+                tempfile.TemporaryDirectory() as temp_dir,
+                patch("state._state_dir", Path(temp_dir)),
+            ):
+                author_nudge_state_path().write_text(
+                    json.dumps({"version": version, "prs": entries}),
+                    encoding="utf-8",
+                )
+
+                self.assertEqual(entries, load_author_nudges())
+                save_author_nudges(load_author_nudges())
+
+                self.assertEqual(
+                    {"version": 6, "prs": entries},
+                    json.loads(author_nudge_state_path().read_text(encoding="utf-8")),
+                )
+
     def test_retry_snapshot_preserves_posted_author_nudge(self) -> None:
         self.assertEqual(
             {
@@ -1497,6 +1529,7 @@ class StateTest(unittest.TestCase):
                     "waiting_since": "2026-07-10T02:00:00Z",
                     "nudged_at": "2026-07-20T02:00:00Z",
                     "episode_id": "episode-1",
+                    "delivered_completion_ids": ["earlier-episode", "old-episode"],
                 }
             },
             union_merge_author_nudges(
@@ -1507,6 +1540,7 @@ class StateTest(unittest.TestCase):
                         "pending_at": "2026-07-20T01:00:00Z",
                         "head_sha": "head",
                         "routing_input_fingerprint": "fingerprint",
+                        "delivered_completion_ids": ["earlier-episode"],
                     },
                 },
                 {
@@ -1514,6 +1548,7 @@ class StateTest(unittest.TestCase):
                         "waiting_since": "2026-07-10T02:00:00Z",
                         "nudged_at": "2026-07-20T02:00:00Z",
                         "episode_id": "episode-1",
+                        "delivered_completion_ids": ["old-episode", "earlier-episode"],
                     }
                 },
             ),
@@ -1526,6 +1561,7 @@ class StateTest(unittest.TestCase):
                     "waiting_since": "2026-07-10T02:00:00Z",
                     "nudged_at": "2026-07-20T02:00:00Z",
                     "episode_id": "episode-1",
+                    "delivered_completion_ids": ["old-episode"],
                     "completions": [{
                         "episode_id": "previous-episode",
                         "completed_at": "2026-07-21T02:00:00Z",
@@ -1538,9 +1574,13 @@ class StateTest(unittest.TestCase):
                         "waiting_since": "2026-07-10T02:00:00Z",
                         "nudged_at": "2026-07-20T02:00:00Z",
                         "episode_id": "episode-1",
+                        "delivered_completion_ids": ["old-episode"],
                         "completions": [{
                             "episode_id": "previous-episode",
                             "completed_at": "2026-07-21T02:00:00Z",
+                        }, {
+                            "episode_id": "old-episode",
+                            "completed_at": "2026-07-20T02:00:00Z",
                         }],
                     }
                 },
@@ -1562,6 +1602,7 @@ class StateTest(unittest.TestCase):
                     "waiting_since": "2026-07-20T02:00:00Z",
                     "nudged_at": "",
                     "episode_id": "episode-2",
+                    "delivered_completion_ids": ["old-episode"],
                     "completions": [{
                         "episode_id": "episode-1",
                         "completed_at": "2026-07-17T02:00:00Z",
@@ -1582,8 +1623,17 @@ class StateTest(unittest.TestCase):
                         "waiting_since": "2026-07-10T02:00:00Z",
                         "nudged_at": "2026-07-17T02:00:00Z",
                         "episode_id": "episode-1",
+                        "delivered_completion_ids": ["old-episode"],
                     }
                 },
+            ),
+        )
+
+    def test_retry_snapshot_retains_receipt_without_a_baseline_entry(self) -> None:
+        self.assertEqual(
+            {"7": {"delivered_completion_ids": ["old-episode"]}},
+            union_merge_author_nudges(
+                {}, {"7": {"delivered_completion_ids": ["old-episode"]}},
             ),
         )
 
@@ -1704,6 +1754,10 @@ class StateTest(unittest.TestCase):
                 "waiting_since": "2026-07-01T00:00:00Z",
                 "nudged_at": "2026-07-08T00:00:00Z",
                 "delivered_completion_ids": ["old-episode"],
+                "completions": [{
+                    "episode_id": "old-episode",
+                    "completed_at": "2026-07-08T00:00:00Z",
+                }],
             }
         }
 
