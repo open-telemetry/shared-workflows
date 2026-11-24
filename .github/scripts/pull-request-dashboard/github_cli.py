@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import subprocess
 import time
 from fnmatch import fnmatchcase
@@ -26,6 +27,7 @@ mutation($pullRequestId: ID!, $botId: ID!) {
     }) {
         pullRequest {
             id
+            headRefOid
         }
     }
 }
@@ -46,6 +48,33 @@ class TransientGhError(RuntimeError):
 
 class GhNotFoundError(RuntimeError):
     pass
+
+
+class GhProcessStartError(RuntimeError):
+    pass
+
+
+class GhCommandError(RuntimeError):
+    def __init__(self, message: str, *, stderr: str = "", stdout: str = "") -> None:
+        super().__init__(message)
+        self.stderr = stderr
+        self.stdout = stdout
+
+
+class CopilotReviewRequestRejected(RuntimeError):
+    pass
+
+
+class GhReadOnlyConversationError(GhCommandError):
+    pass
+
+
+class GhGraphQLNodeNotFoundError(GhCommandError):
+    def __init__(
+        self, message: str, node_id: str, *, stderr: str = "", stdout: str = "",
+    ) -> None:
+        super().__init__(message, stderr=stderr, stdout=stdout)
+        self.node_id = node_id
 
 
 _RETRYABLE_GH_ERROR_FRAGMENTS = (
@@ -74,41 +103,62 @@ def sleep_for_retry(attempt: int) -> None:
 _T = TypeVar("_T")
 
 
+def _run_gh_process(
+    cmd: list[str],
+    env: dict[str, str] | None,
+    input_text: str | None,
+) -> subprocess.CompletedProcess[str]:
+    try:
+        process = subprocess.Popen(
+            cmd,
+            stdin=subprocess.PIPE if input_text is not None else None,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            env=env,
+            creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0,
+        )
+    except (OSError, ValueError) as error:
+        raise GhProcessStartError(f"Could not start gh: {error}") from error
+    with process:
+        try:
+            stdout, stderr = process.communicate(input=input_text)
+        except BaseException:
+            process.kill()
+            raise
+        return subprocess.CompletedProcess(cmd, process.wait(), stdout, stderr)
+
+
 def _run_gh(
     cmd: list[str],
     token: str | None,
     input_text: str | None,
     allowed_exit_codes: frozenset[int] | set[int],
     parse_stdout: Callable[[str], _T],
+    *,
+    retry: bool = True,
 ) -> _T:
     env = {**os.environ, "GH_TOKEN": token} if token else None
     last_stderr = ""
-    for attempt in range(GH_RETRY_ATTEMPTS):
-        proc = subprocess.run(
-            cmd,
-            input=input_text,
-            capture_output=True,
-            text=True,
-            check=False,
-            encoding="utf-8",
-            errors="replace",
-            env=env,
-            creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0,
-        )
+    attempts = GH_RETRY_ATTEMPTS if retry else 1
+    for attempt in range(attempts):
+        proc = _run_gh_process(cmd, env, input_text)
         if proc.returncode in allowed_exit_codes:
             try:
                 return parse_stdout(proc.stdout)
             except json.JSONDecodeError as error:
-                if attempt == GH_RETRY_ATTEMPTS - 1:
+                if attempt == attempts - 1:
                     message = (
                         f"{' '.join(cmd)} returned invalid JSON after "
-                        f"{GH_RETRY_ATTEMPTS} attempts: {error}"
+                        f"{attempts} attempts: {error}"
                     )
                     raise TransientGhError(message) from error
                 sleep_for_retry(attempt)
                 continue
         last_stderr = proc.stderr.strip()
-        if attempt == GH_RETRY_ATTEMPTS - 1 or not is_retryable_gh_error(last_stderr):
+        if attempt == attempts - 1 or not is_retryable_gh_error(last_stderr):
             break
         sleep_for_retry(attempt)
     message = f"{' '.join(cmd)} failed: {last_stderr}"
@@ -116,7 +166,33 @@ def _run_gh(
         raise TransientGhError(message)
     if last_stderr.strip().lower() == "gh: not found (http 404)":
         raise GhNotFoundError(message)
-    raise RuntimeError(message)
+    read_only_message = "pull request is archived and its conversation is read-only."
+    if cmd[1:3] == ["api", "graphql"]:
+        try:
+            response = json.loads(proc.stdout)
+        except json.JSONDecodeError:
+            raise GhCommandError(message, stderr=last_stderr, stdout=proc.stdout) from None
+        errors = response.get("errors") if isinstance(response, dict) else None
+        if isinstance(errors, list) and len(errors) == 1:
+            error = errors[0]
+            if isinstance(error, dict):
+                error_message = error.get("message") or ""
+                if error_message.lower() == read_only_message:
+                    raise GhReadOnlyConversationError(
+                        message, stderr=last_stderr, stdout=proc.stdout,
+                    )
+                if error.get("type") == "NOT_FOUND":
+                    match = re.fullmatch(
+                        r"Could not resolve to a node with the global id of '([^']+)'\.",
+                        error_message,
+                    )
+                    if match:
+                        raise GhGraphQLNodeNotFoundError(
+                            message, match[1], stderr=last_stderr, stdout=proc.stdout,
+                        )
+    elif last_stderr.lower() == f"gh: {read_only_message} (http 403)":
+        raise GhReadOnlyConversationError(message, stderr=last_stderr, stdout=proc.stdout)
+    raise GhCommandError(message, stderr=last_stderr, stdout=proc.stdout)
 
 
 def run_gh(
@@ -128,13 +204,20 @@ def run_gh(
     return _run_gh(cmd, token, input_text, allowed_exit_codes, lambda stdout: stdout)
 
 
-def run_gh_json(cmd: list[str], token: str | None = None, input_text: str | None = None) -> Any:
+def run_gh_json(
+    cmd: list[str],
+    token: str | None = None,
+    input_text: str | None = None,
+    *,
+    retry: bool = True,
+) -> Any:
     return _run_gh(
         cmd,
         token,
         input_text,
         frozenset({0}),
         lambda stdout: json.loads(stdout or "null"),
+        retry=retry,
     )
 
 
@@ -155,27 +238,85 @@ def gh_api(path: str, paginate: bool = False, token: str | None = None) -> Any:
     return data
 
 
-def request_copilot_review(pull_request_id: str, token: str | None = None) -> None:
-    # Success here only means GitHub accepted the mutation. It does not mean
-    # GitHub recorded the reviewer, so callers have to read the pull request
-    # back to find out whether the request landed.
-    gh_graphql(
-        REQUEST_COPILOT_REVIEW_MUTATION,
-        {
-            "pullRequestId": pull_request_id,
-            "botId": COPILOT_REVIEWER_BOT_ID,
-        },
-        token=token,
+def _copilot_request_rejected_response(response: Any) -> bool:
+    if not isinstance(response, dict):
+        return False
+    data = response.get("data") or {}
+    if isinstance(data, dict) and data.get("requestReviews") is not None:
+        return False
+    errors = response.get("errors")
+    return (
+        isinstance(errors, list)
+        and bool(errors)
+        and all(
+            isinstance(error, dict)
+            and error.get("type") in (
+                "FORBIDDEN", "UNAUTHORIZED", "NOT_FOUND", "UNPROCESSABLE",
+                "GRAPHQL_VALIDATION_FAILED",
+            )
+            for error in errors
+        )
     )
 
 
-def gh_graphql(query: str, fields: dict[str, Any], token: str | None = None) -> dict[str, Any]:
+def request_copilot_review(pull_request_id: str, token: str | None = None) -> str:
+    # A transport failure can follow acceptance, so mutations are not retried
+    # internally. The caller persists an attempt before sending it.
+    try:
+        response = gh_graphql(
+            REQUEST_COPILOT_REVIEW_MUTATION,
+            {
+                "pullRequestId": pull_request_id,
+                "botId": COPILOT_REVIEWER_BOT_ID,
+            },
+            token=token,
+            retry=False,
+        )
+    except (GhNotFoundError, GhProcessStartError) as error:
+        raise CopilotReviewRequestRejected(str(error)) from error
+    except GhCommandError as error:
+        try:
+            response = json.loads(error.stdout)
+        except json.JSONDecodeError:
+            response = None
+        if (
+            re.search(r"\bhttp (400|401|403|404|405|422)\b", error.stderr, re.IGNORECASE)
+            or _copilot_request_rejected_response(response)
+        ):
+            raise CopilotReviewRequestRejected(str(error)) from error
+        raise
+    if _copilot_request_rejected_response(response):
+        raise CopilotReviewRequestRejected(
+            f"GitHub rejected the Copilot review request: {response['errors']}"
+        )
+    data = response.get("data") if isinstance(response, dict) else None
+    request = data.get("requestReviews") if isinstance(data, dict) else None
+    pr = request.get("pullRequest") if isinstance(request, dict) else None
+    head_sha = pr.get("headRefOid") if isinstance(pr, dict) else None
+    if (
+        not isinstance(pr, dict) or pr.get("id") != pull_request_id
+        or not isinstance(head_sha, str) or not head_sha
+    ):
+        raise TransientGhError("GitHub did not return the requested pull request head")
+    return head_sha
+
+
+def gh_graphql(
+    query: str,
+    fields: dict[str, Any],
+    token: str | None = None,
+    *,
+    retry: bool = True,
+) -> dict[str, Any]:
     cmd = ["gh", "api", "graphql", "-f", f"query={query}"]
     for name, value in fields.items():
         if value is None:
             continue
         cmd.extend(["-F", f"{name}={value}"])
-    return run_gh_json(cmd, token=token)
+    return (
+        run_gh_json(cmd, token=token)
+        if retry else run_gh_json(cmd, token=token, retry=False)
+    )
 
 
 def gh_pr_view(repo: str, number: int) -> dict[str, Any]:

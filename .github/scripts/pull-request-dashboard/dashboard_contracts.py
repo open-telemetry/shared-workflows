@@ -6,7 +6,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field, replace
 from enum import Enum
 from types import MappingProxyType
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal
 
 if TYPE_CHECKING:
     from classification_policy import ClassificationResult
@@ -83,11 +83,29 @@ class ReviewerSummary:
     top_level_feedback: bool = False
 
 
+CopilotReviewRequester = Literal["app", "fallback"]
+CopilotReviewPhase = Literal["ready", "sending", "accepted", "unknown", "complete", "limited"]
+CopilotReviewLimit = Literal["", "quota", "errors", "requests", "timeout"]
+
+
 @dataclass(frozen=True)
-class CopilotReviewFallback:
-    quota_failure_ids: tuple[int, ...]
-    attempted_at: str
-    exhausted: bool = False
+class CopilotReviewCycle:
+    head_sha: str
+    requester: CopilotReviewRequester = "app"
+    phase: CopilotReviewPhase = "ready"
+    request_count: int = 0
+    dispatch_id: str = ""
+    started_at: str = ""
+    reserved_at: str = ""
+    sent_at: str = ""
+    baseline_review_ids: tuple[int, ...] = ()
+    limit_reason: CopilotReviewLimit = ""
+
+
+@dataclass(frozen=True)
+class CopilotReviewCycleUpdate:
+    before: CopilotReviewCycle | None
+    after: CopilotReviewCycle | None
 
 
 class HandoffTarget(str, Enum):
@@ -133,7 +151,9 @@ class DashboardFacts:
     copilot_review_requested: bool = False
     copilot_review_quota_exhausted: bool = False
     copilot_review_fallback_available: bool = False
-    copilot_review_fallback_exhausted: bool = False
+    copilot_review_request_in_flight: bool = False
+    copilot_review_request_limit_reason: CopilotReviewLimit = ""
+    copilot_review_cycle_update: CopilotReviewCycleUpdate | None = None
     copilot_review_error_count: int = 0
     copilot_review_exists: bool = False
     copilot_review_stale: bool = False
