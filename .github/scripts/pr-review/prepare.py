@@ -89,13 +89,9 @@ def small_suggestion(
     return original != proposed and sum(j2 - j1 for op, _, _, j1, j2 in ops if op != "equal") < 15
 
 
-def prepare_review(
-    findings: object, checkout: Path, diff_scope: DiffScope, metadata: dict[str, Any]
-) -> dict[str, Any]:
+def validate_findings(findings: object) -> dict[str, Any]:
     if not isinstance(findings, dict) or not isinstance(findings.get("comments"), list):
         raise ValueError("Final findings must contain a comments array")
-    head = metadata["head"]["sha"]
-    comments: list[dict[str, Any]] = []
     for raw in findings["comments"]:
         if (
             not isinstance(raw, dict)
@@ -111,12 +107,31 @@ def prepare_review(
             raise ValueError("Invalid final review comment")
         if raw["kind"] == "question" and "suggestion" in raw:
             raise ValueError("Review questions must not include a suggestion")
+    body = findings.get("body")
+    if findings["comments"] and (not isinstance(body, str) or not body.strip()):
+        raise ValueError("Final findings with comments must include a review summary")
+    return findings
+
+
+def valid_diff_anchor(comment: dict[str, Any], diff_scope: DiffScope) -> bool:
+    scope = diff_scope.get(comment["path"])
+    line = comment["line"]
+    start = comment.get("start_line", line)
+    return scope is not None and line in scope["changed_lines"] and any(
+        first <= start <= line <= last for first, last in scope["hunks"]
+    )
+
+
+def prepare_review(
+    findings: object, checkout: Path, diff_scope: DiffScope, metadata: dict[str, Any]
+) -> dict[str, Any]:
+    validated = validate_findings(findings)
+    head = metadata["head"]["sha"]
+    comments: list[dict[str, Any]] = []
+    for raw in validated["comments"]:
         path, line, body = raw["path"], raw["line"], raw["body"].strip()
         start = raw.get("start_line", line)
-        scope = diff_scope.get(path)
-        if scope is None or line not in scope["changed_lines"] or not any(
-            first <= start <= line <= last for first, last in scope["hunks"]
-        ):
+        if not valid_diff_anchor(raw, diff_scope):
             raise ValueError(f"Invalid diff anchor for {path!r}:{start}-{line}")
         if raw["kind"] == "simplification" and not body.startswith("[Simplification] "):
             body = f"[Simplification] {body}"
@@ -133,11 +148,8 @@ def prepare_review(
         if start != line:
             comment.update(start_line=start, start_side="RIGHT")
         comments.append(comment)
-    body = findings.get("body")
-    if comments and (not isinstance(body, str) or not body.strip()):
-        raise ValueError("Final findings with comments must include a review summary")
     return {
         "pr": metadata["number"],
         "base_sha": metadata["base"]["sha"],
-        "review": {"commit_id": head, "body": body if comments else "No findings.", "comments": comments},
+        "review": {"commit_id": head, "body": validated["body"] if comments else "No findings.", "comments": comments},
     }

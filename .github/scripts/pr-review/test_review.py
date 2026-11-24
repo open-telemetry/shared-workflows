@@ -128,24 +128,61 @@ class ReviewTest(unittest.TestCase):
             "verification", "verification-retry",
         ])
 
-    def test_verifier_retries_when_json_anchors_a_comment_to_an_unchanged_line(self):
-        comment = {"kind": "review", "path": "example.txt", "line": 1, "body": "A finding"}
+    def test_verifier_repairs_an_unchanged_end_line_without_carrying_over_the_patch(self):
+        comment = {
+            "kind": "review", "path": "Example.java", "start_line": 23, "line": 28,
+            "body": "The inserted main method separates run from its Javadoc.", "suggestion": "replacement",
+        }
         answers = [
-            json.dumps({"body": "Review summary", "comments": [{**comment, "line": line}]})
-            for line in (1, 2)
+            json.dumps({"body": "Review summary", "comments": [comment]}),
+            '{"anchors":[{"index":0,"line":24}]}',
         ]
         metadata = {"number": 123, "base": {"sha": "base"}, "head": {"sha": "head"}}
-        scope = {"example.txt": {"hunks": [(1, 2)], "changed_lines": [2]}}
+        scope = {"Example.java": {"hunks": [(21, 30)], "changed_lines": [24, 25, 26, 27]}}
         with mock.patch.object(runner, "model_pass", side_effect=answers) as model:
             result = runner.verify_findings(
                 "Check both passes.", Path("source"), Path("input"), scope, metadata, target=Path("target"),
             )
 
         self.assertEqual(model.call_count, 2)
-        self.assertIn("Invalid diff anchor for 'example.txt':1-1", model.call_args.args[2])
+        self.assertEqual(model.call_args.kwargs["phase"], "anchor-repair")
+        self.assertIn('"changed_lines": [24, 25, 26, 27]', model.call_args.args[2])
+        self.assertNotIn('"suggestion": "replacement"', model.call_args.args[2])
         self.assertEqual(result["review"]["comments"], [
-            {"path": "example.txt", "line": 2, "side": "RIGHT", "body": "A finding"},
+            {"path": "Example.java", "line": 24, "side": "RIGHT", "body": comment["body"]},
         ])
+
+    def test_verifier_keeps_valid_comments_when_other_anchors_cannot_be_repaired(self):
+        comment = {"kind": "review", "path": "example.txt", "line": 2, "body": "Keep this finding."}
+        answers = [
+            json.dumps({"body": "Do not repeat the dropped finding.", "comments": [
+                comment, {**comment, "line": 1, "body": "Drop this finding."},
+            ]}),
+            '{"anchors":[{"index":0,"line":3},{"index":1,"line":1}]}',
+        ]
+        metadata = {"number": 123, "base": {"sha": "base"}, "head": {"sha": "head"}}
+        scope = {"example.txt": {"hunks": [(1, 3)], "changed_lines": [2, 3]}}
+        with mock.patch.object(runner, "model_pass", side_effect=answers):
+            result = runner.verify_findings(
+                "Check both passes.", Path("source"), Path("input"), scope, metadata, target=Path("target"),
+            )
+        self.assertEqual(result["review"]["comments"], [
+            {"path": "example.txt", "line": 2, "side": "RIGHT", "body": "Keep this finding."},
+        ])
+        self.assertNotIn("Do not repeat", result["review"]["body"])
+
+    def test_verifier_fails_if_every_finding_has_an_unrepairable_anchor(self):
+        comment = {"kind": "review", "path": "example.txt", "line": 1, "body": "A finding"}
+        answers = [json.dumps({"body": "Review summary", "comments": [comment]}), '{"anchors":[]}']
+        metadata = {"number": 123, "base": {"sha": "base"}, "head": {"sha": "head"}}
+        scope = {"example.txt": {"hunks": [(1, 2)], "changed_lines": [2]}}
+        with (
+            mock.patch.object(runner, "model_pass", side_effect=answers),
+            self.assertRaisesRegex(RuntimeError, "Review validation failed: none of the findings could be anchored"),
+        ):
+            runner.verify_findings(
+                "Check both passes.", Path("source"), Path("input"), scope, metadata, target=Path("target"),
+            )
 
     def test_verifier_fails_closed_after_two_invalid_answers(self):
         comment = {"kind": "review", "path": "example.txt", "line": 2, "body": "A finding"}
