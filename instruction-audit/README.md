@@ -49,7 +49,7 @@ The audit applies the selected rule across the repository, honoring any `applyTo
 
 Drafts can trigger the caller's PR workflows. Enable publication only if those workflows can safely handle unreviewed changes from a same-repository branch. GitHub's repository rules and token permissions still apply to the proposed changes.
 
-Draft descriptions link to the audit run and the source of the selected rule, quote the full rule, and then explain the proposed fix under **Explanation**.
+Draft titles start with `Instruction audit:` and describe what the proposed patch changes. Draft descriptions link to the audit run and the source of the selected rule, quote the full rule, and then explain the proposed fix under **Explanation**.
 
 Copilot cannot access the checkout or publication credentials. When a proposed fix passes validation and publishing is enabled, the publication job uses the caller's `GITHUB_TOKEN` to create a fix branch from the audited commit. It uses a caller-scoped GitHub App token with **Pull requests: write** to count existing audit PRs and open the draft, so eligible PR checks can start without the `GITHUB_TOKEN` approval gate. Each run can open at most one draft, and each repository can have up to five open audit PRs, including those marked ready for review. If GitHub denies the app token request or the limit is reached, no new fix branch is created.
 

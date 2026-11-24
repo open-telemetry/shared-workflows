@@ -30,6 +30,7 @@ LIMIT = 128 * 1024
 RESULT_LIMIT = 4 * 1024 * 1024
 PROPOSAL_LIMIT = RESULT_LIMIT // 2
 REASON_LIMIT = 4096
+TITLE_LIMIT = 100
 
 
 class UnsupportedPatch(ValueError):
@@ -231,8 +232,16 @@ def patch_changes(checkout, sha, patch):
     return changes
 
 
+def validate_title(value):
+    if (not isinstance(value, str) or not value or value != value.strip() or not value.isprintable()
+            or len(value.encode()) > TITLE_LIMIT
+            or re.search(r"[@#]|://|\b(?:GH-\d|www\.)", value, flags=re.IGNORECASE)):
+        raise ValueError("Expected a short, plain-text PR title without mentions, issue references, or links")
+
+
 def validate_result(result):
-    fields(result, "repo", "base", "sha", "tree", "head", "cursor", "completed", "rule", "status", "reason", "fix")
+    fields(result, "repo", "base", "sha", "tree", "head", "cursor", "completed", "rule", "status", "reason",
+           "fix", "title")
     if result["repo"] != target():
         raise ValueError("Result is for a different repository")
     text(result["base"], 180, REF)
@@ -255,6 +264,9 @@ def validate_result(result):
         if status != "finding":
             raise ValueError("Only a finding can supply a fix")
         validate_changes(fix)
+        validate_title(result["title"])
+    elif result["title"] is not None:
+        raise ValueError("Only a fix can supply a PR title")
     return result
 
 
@@ -277,7 +289,7 @@ def prepare(repo, checkout, *, publish_fixes=False, continuation=""):
     result = dict(repo=repo, base=base, sha=sha, tree=tree, head=head, cursor=cursor,
                   completed=None, rule=None, status="complete",
                   reason="No more rules. The next dispatch starts at the beginning.",
-                  fix=None)
+                  fix=None, title=None)
     rules = list(remaining_rules(documents, anchor))
     if continuation and offset >= len(rules):
         raise ValueError("Continuation does not select a remaining rule")
@@ -315,11 +327,15 @@ violates the selected rule and how to address it. Cite the relevant paths.
 Verify those claims against the snapshot. Use backticks for identifiers, but no other markup.
 """
     if publish_fixes:
-        response += """
-Include exactly the keys "status", "reason", and "patch". For a finding, propose the
+        response += f"""
+Include exactly the keys "status", "reason", "patch", and "title". For a finding, propose the
 changes needed to address the selected rule. Return them as a Git unified diff string
-against the audited snapshot, with a trailing newline and no Markdown fences. Set
-"patch" to null if there is no finding or you cannot propose a fix.
+against the audited snapshot, with a trailing newline and no Markdown fences. If you
+provide a patch, write a specific PR title in the imperative that describes what the
+patch changes, for example "Document the default timeout". Use one line of
+plain text, at most {TITLE_LIMIT} UTF-8 bytes, without mentions, issue references, or links.
+Do not include an audit prefix; the workflow adds it.
+Set both "patch" and "title" to null if there is no finding or you cannot propose a fix.
 """
     else:
         response += 'Include exactly the keys "status" and "reason".\n'
@@ -328,27 +344,32 @@ against the audited snapshot, with a trailing newline and no Markdown fences. Se
 
 def assess(plan, judgment, checkout):
     result = plan["result"]
-    fields(judgment, "status", "reason", *(("patch",) if plan["publish"] else ()))
+    fields(judgment, "status", "reason", *(("patch", "title") if plan["publish"] else ()))
     if judgment["status"] not in ("clean", "not_auditable", "finding"):
         raise ValueError("Invalid Copilot judgment")
     status = judgment["status"]
-    if plan["publish"] and status != "finding" and judgment["patch"] is not None:
-        raise ValueError("Only a finding can supply a patch")
+    proposal, title = (judgment["patch"], judgment["title"]) if plan["publish"] else (None, None)
+    if proposal is None and title is not None:
+        raise ValueError("Only a patch can supply a PR title")
+    if proposal is not None:
+        if status != "finding":
+            raise ValueError("Only a finding can supply a patch")
+        validate_title(title)
     try:
         reason = text(judgment.get("reason"), REASON_LIMIT)
     except ValueError:
         raise ValueError("Invalid Copilot judgment reason") from None
     fix = None
-    if plan["publish"] and status == "finding" and (patch := judgment["patch"]) is not None:
+    if proposal is not None:
         _, sha, tree, _ = snapshot(result["repo"], checkout, result["sha"])
         if tree != result["tree"]:
             raise ValueError("Validation snapshot does not match the audit plan")
         try:
-            fix = patch_changes(checkout, sha, patch)
+            fix = patch_changes(checkout, sha, proposal)
         except UnsupportedPatch as error:
             summary(f"Proposed patch not published: {error}.")
     if status == "finding" and (not plan["publish"] or fix is not None):
-        result.update(rule=plan["rule"], status="finding", reason=reason, fix=fix)
+        result.update(rule=plan["rule"], status="finding", reason=reason, fix=fix, title=title)
     else:
         summary(f"Rule outcome: `{status}`.\n\n<pre>{html.escape(reason)}</pre>")
         if plan["next"]:
@@ -369,7 +390,7 @@ def fix_branch():
     return FIX_PREFIX + str(int(os.environ["GITHUB_RUN_ID"]))
 
 
-def fix_title(result):
+def fix_commit_message(result):
     title = "Fix instruction audit finding"
     if len(result["fix"]) == 1:
         path = result["fix"][0]["path"]
@@ -399,7 +420,7 @@ def create_branch(result):
         "tree": result["fix"],
     })
     commit = api(repo, "/git/commits", method="POST", body={
-        "message": fix_title(result),
+        "message": fix_commit_message(result),
         "tree": text(tree["sha"], 40, SHA),
         "parents": [result["sha"]],
     })
@@ -455,7 +476,7 @@ def publish(result):
     body = pull_request_body(result)
     try:
         pr = api(repo, "/pulls", method="POST", body={
-            "title": fix_title(result),
+            "title": f"Instruction audit: {result['title']}",
             "body": body,
             "base": result["base"], "head": branch, "draft": True,
             "maintainer_can_modify": False,

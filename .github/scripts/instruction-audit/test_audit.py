@@ -190,14 +190,22 @@ class PassTest(unittest.TestCase):
         patch_changes.return_value = [{"path": "src/Settings.java", "mode": "100644",
                                        "type": "blob", "content": "newValue();\n"}]
         plan, _ = audit.prepare(audit.target(), "snapshot", publish_fixes=True)
-        result = audit.assess(plan, {"status": "finding", "reason": "First finding.", "patch": None}, "snapshot")
+        result = audit.assess(plan, {"status": "finding", "reason": "First finding.", "patch": None, "title": None},
+                              "snapshot")
         self.assertEqual(result["status"], "continue")
         plan, _ = audit.prepare(audit.target(), "snapshot", publish_fixes=True, continuation=plan["next"])
-        result = audit.assess(plan, {"status": "finding", "reason": "Second finding.", "patch": "diff"}, "snapshot")
+        title = "Default the timeout at the configuration read"
+        judgment = {"status": "finding", "reason": "Second finding.", "patch": "diff", "title": title}
+        for invalid in (None, "", "\u00e9" * 51, "Fix timeout\nNew line", "Fix timeout for @someone",
+                        "Fix timeout in #42", "Fix timeout in GH-42", "Fix timeout at https://example.com"):
+            with self.subTest(title=invalid), self.assertRaisesRegex(ValueError, "plain-text PR title"):
+                audit.assess(plan, judgment | {"title": invalid}, "snapshot")
+        result = audit.assess(plan, judgment, "snapshot")
         self.assertEqual(result["status"], "finding")
         self.assertEqual(result["rule"]["text"], "- Second rule.")
         self.assertEqual(result["completed"]["text"], "- First rule.")
         self.assertEqual(result["fix"], patch_changes.return_value)
+        self.assertEqual(result["title"], title)
         patch_changes.assert_called_once_with("snapshot", "a" * 40, "diff")
 
 
@@ -266,6 +274,7 @@ class StateTest(unittest.TestCase):
                                           "Include the compatibility exception.\n"
                                           + "Keep this guidance. " * 30 + "End of rule."},
             "reason": "Correct the timeout in `README.md`.\nIt is ten seconds.\n\nThe default stays the same.",
+            "title": "Document the ten-second timeout",
             "fix": [
                 {"path": "gradlew", "mode": "100755", "type": "blob", "content": "Ten seconds.\n"},
                 {"path": "README.md", "mode": "100644", "type": "blob", "content": "Timeout: ten seconds.\n"},
@@ -291,6 +300,7 @@ class StateTest(unittest.TestCase):
         self.assertEqual(api.call_count, 1)
         self.assertEqual(api.call_args.args, (repo, "/pulls"))
         body = api.call_args.kwargs["body"]
+        self.assertEqual(body["title"], "Instruction audit: Document the ten-second timeout")
         self.assertEqual((body["base"], body["head"], body["draft"]), ("main", "otelbot/instruction-audit-42", True))
         self.assertEqual(body["body"],
                          f"This PR fixes a finding from an [instruction audit run](https://github.com/{repo}/actions/runs/42) "
