@@ -7,7 +7,9 @@ from unittest.mock import ANY, call, patch
 
 from github_cli import (
     GH_RETRY_ATTEMPTS,
+    GhGraphQLNodeNotFoundError,
     GhNotFoundError,
+    GhReadOnlyConversationError,
     TransientGhError,
     check_bucket,
     code_scanning_tools,
@@ -161,6 +163,56 @@ class RunGhJsonTest(unittest.TestCase):
 
         self.assertEqual(1, run.call_count)
         sleep.assert_not_called()
+
+    @patch("github_cli.sleep_for_retry")
+    @patch("github_cli.subprocess.run")
+    def test_cleanup_error_classification(self, run, sleep) -> None:
+        message = "Pull request is archived and its conversation is read-only."
+        archived = {"type": "UNPROCESSABLE", "message": message}
+        missing = {
+            "type": "NOT_FOUND",
+            "message": "Could not resolve to a node with the global id of 'IC_17'.",
+        }
+        forbidden = {"type": "FORBIDDEN", "message": "Resource not accessible"}
+        stderr = f"gh: {message} (HTTP 403)"
+        for endpoint, response, error_text, expected in (
+            ("/test", {}, stderr, GhReadOnlyConversationError),
+            ("/test", {}, "gh: Resource not accessible (HTTP 403)", RuntimeError),
+            ("/test", {}, f"gh: {message} (HTTP 401)", RuntimeError),
+            ("/test", {}, f"{stderr}\nResource not accessible", RuntimeError),
+            ("/test", {}, f"gh: Permission denied: {message} (HTTP 403)", RuntimeError),
+            ("graphql", {"errors": [archived]}, stderr, GhReadOnlyConversationError),
+            ("graphql", {"errors": [missing]}, missing["message"], GhGraphQLNodeNotFoundError),
+            ("graphql", {"errors": [archived, forbidden]}, stderr, RuntimeError),
+            ("graphql", {"errors": [forbidden, archived]}, stderr, RuntimeError),
+            ("graphql", {"errors": [missing, forbidden]}, stderr, RuntimeError),
+            ("graphql", {"errors": [{**missing, "type": "FORBIDDEN"}]}, stderr, RuntimeError),
+            (
+                "graphql", {"errors": [{**missing, "message": "Missing repository"}]},
+                stderr, RuntimeError,
+            ),
+            (
+                "graphql", {"errors": [{**archived, "message": f"{message} Forbidden"}]},
+                stderr, RuntimeError,
+            ),
+            ("graphql", {"errors": []}, stderr, RuntimeError),
+            ("graphql", "{broken", stderr, RuntimeError),
+        ):
+            with self.subTest(endpoint=endpoint, response=response, stderr=error_text):
+                run.reset_mock()
+                run.return_value = subprocess.CompletedProcess(
+                    ["gh"], 1,
+                    response if isinstance(response, str) else json.dumps(response),
+                    error_text,
+                )
+                with self.assertRaises(expected) as raised:
+                    run_gh_json(["gh", "api", endpoint])
+
+                self.assertIs(expected, type(raised.exception))
+                if expected is GhGraphQLNodeNotFoundError:
+                    self.assertEqual("IC_17", raised.exception.node_id)
+                run.assert_called_once()
+                sleep.assert_not_called()
 
     @patch("github_cli.sleep_for_retry")
     @patch("github_cli.subprocess.run")
