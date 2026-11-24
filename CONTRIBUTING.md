@@ -60,7 +60,7 @@ The consumer-facing `README.md` lives in a root folder named after the workflow.
       <workflow scripts...>          # flat, no scripts/ subfolder
 ```
 
-Each centrally-executed workflow has its **own `repositories.json`**, so opting in is per workflow — a repository only appears in the workflows it chose to use.
+Each centrally-executed workflow has its **own `repositories.json`** for opt-in. Enrollment in one workflow does not enroll a repository in another.
 
 ### The workflow's README
 

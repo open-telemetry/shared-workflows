@@ -2,3 +2,6 @@ paths:
   .github/workflows/*.{yml,yaml}:
     ignore:
       - 'unknown permission scope "copilot-requests"'
+  .github/workflows/instruction-audit.yml:
+    ignore:
+      - 'property "workflow_(repository|sha)" is not defined'
