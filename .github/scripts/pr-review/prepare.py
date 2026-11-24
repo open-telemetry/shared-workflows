@@ -99,7 +99,7 @@ def prepare_review(
     for raw in findings["comments"]:
         if (
             not isinstance(raw, dict)
-            or raw.get("kind") not in ("review", "simplification")
+            or raw.get("kind") not in ("review", "simplification", "question")
             or not isinstance(raw.get("path"), str)
             or not isinstance(raw.get("body"), str)
             or not raw["body"].strip()
@@ -109,6 +109,8 @@ def prepare_review(
             or ("suggestion" in raw and not isinstance(raw["suggestion"], str))
         ):
             raise ValueError("Invalid final review comment")
+        if raw["kind"] == "question" and "suggestion" in raw:
+            raise ValueError("Review questions must not include a suggestion")
         path, line, body = raw["path"], raw["line"], raw["body"].strip()
         start = raw.get("start_line", line)
         scope = diff_scope.get(path)
@@ -118,6 +120,8 @@ def prepare_review(
             raise ValueError(f"Invalid diff anchor for {path!r}:{start}-{line}")
         if raw["kind"] == "simplification" and not body.startswith("[Simplification] "):
             body = f"[Simplification] {body}"
+        if raw["kind"] == "question" and not body.startswith("[Question] "):
+            body = f"[Question] {body}"
         if "suggestion" in raw:
             suggestion = raw["suggestion"]
             if small_suggestion(checkout, head, path, start, line, suggestion):

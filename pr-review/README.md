@@ -15,7 +15,9 @@ gh workflow run pr-review.yml --repo open-telemetry/shared-workflows \
 
 ## Check the result
 
-`otelbot[bot]` posts findings on the PR, or a **No findings** comment. Both start with a note that the review is experimental. If the PR closes or its base or head changes during the run, the workflow skips posting.
+`otelbot[bot]` posts a review on the PR, or a **No findings** comment if there's nothing worth posting. Both start with a note that the review is experimental. If the PR closes or its base or head changes during the run, the workflow skips posting.
+
+The verifier drops unsupported findings. It posts a `[Question]` without a suggested patch only when the author can supply a missing fact that could change the code.
 
 The **Review, simplify, and double-check** step shows tool activity and each pass's final answer, including any verification retry. Compare the review and simplification answers with the verification answer to see which findings made it through. The log redacts known credential patterns and omits prompts, intermediate messages, and tool output.
 

@@ -73,6 +73,27 @@ class ReviewBundleTest(unittest.TestCase):
                     }, Path("source"), scope, metadata)
                     self.assertEqual(result["review"]["comments"][0]["body"], expected)
 
+    def test_questions_are_labeled_and_cannot_include_a_patch(self):
+        body = "Can this endpoint receive requests from clients older than v2?"
+        question = {"kind": "question", "path": "example.txt", "line": 2, "body": body}
+        metadata = {"number": 123, "base": {"sha": "base"}, "head": {"sha": "head"}}
+        scope = {"example.txt": {"changed_lines": [2], "hunks": [(1, 2)]}}
+        findings = {"body": "One question about supported clients.", "comments": [question]}
+
+        for text in (body, f"[Question] {body}"):
+            with self.subTest(text=text):
+                result = prepare.prepare_review(
+                    {**findings, "comments": [{**question, "body": text}]}, Path("source"), scope, metadata,
+                )
+                self.assertEqual(result["review"]["comments"], [
+                    {"path": "example.txt", "line": 2, "side": "RIGHT", "body": f"[Question] {body}"},
+                ])
+
+        with self.assertRaisesRegex(ValueError, "Review questions must not include a suggestion"):
+            prepare.prepare_review(
+                {**findings, "comments": [{**question, "suggestion": "replacement"}]}, Path("source"), scope, metadata,
+            )
+
     def test_suggestions_preserve_trailing_blank_lines(self):
         blob = mock.Mock(returncode=0, stdout="old\n")
         metadata = {"number": 123, "base": {"sha": "base"}, "head": {"sha": "head"}}

@@ -412,15 +412,22 @@ Reporting nothing is a fine answer.
 
         result = verify_findings(f"""Double-check {bundle / 'review.txt'} and {bundle / 'simplifications.txt'} against {url}.
 Keep only findings worth posting, remove duplicates, and prefix simplifications with [Simplification].
+Keep a correctness finding only if you can explain what breaks, under what conditions, and what evidence supports it.
+A reproduction is not required if the code or an authoritative source establishes the failure.
+A similar pattern or comment elsewhere is a lead to investigate, not proof that it applies here.
+Drop unverified findings by default. Ask a focused question only if the author can supply a specific missing fact
+you cannot verify from the available evidence and the answer could change the code.
+Do not suggest a patch for a question or summarize it as a confirmed finding.
 Drop simplifications that only trade repetition for indirection, or that the author could reasonably reject as a matter of taste.
 {context}
 Your final message must be a single JSON object, with no text outside it. Format:
 {{"body":"review summary","comments":[{{"kind":"review","path":"file",
 "line":10,"body":"comment","start_line":8,"suggestion":"exact replacement text"}}]}}.
-Use kind "review" or "simplification". Omit start_line for single-line comments and omit suggestion if none.
+Use kind "review", "simplification", or "question". Omit start_line for single-line comments.
+Omit suggestion for questions or when there is no replacement to offer.
 Only include a suggestion if it fits one diff hunk and adds fewer than 15 green lines.
 Mention any separate edits, such as an import, in the comment body. Don't put a suggestion fence in the body.
-If there are no findings, return {{"comments":[]}}.
+If there is nothing worth posting, return {{"comments":[]}}.
 """, checkout, bundle, diff_scope, metadata)
         result["repository"] = repo
         write_json(result_path, result)
