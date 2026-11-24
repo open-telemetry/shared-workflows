@@ -464,8 +464,8 @@ def render_command_reply(reply: DashboardCommandReply) -> str:
     elif kind == "author_unavailable":
         message = "this pull request has no human author the dashboard can route to."
     elif kind == "routed" and to_author:
-        # The author is expected to follow their own pull request, so this
-        # status reply does not mention anyone.
+        # Routing replies are status updates for everyone following the pull
+        # request, so they do not mention anyone.
         mention = ""
         message = (
             "This pull request is now waiting on the author. It returns to "
@@ -473,52 +473,59 @@ def render_command_reply(reply: DashboardCommandReply) -> str:
             "commit. Comment `/dashboard route:reviewers` to hand it back sooner."
         )
     elif kind == "routed":
+        mention = ""
         # DashboardCommandReply refuses a routed reply without a route.
         route = reply.route.value
         held_gates = reply.held_gates
-        if route in PRE_REVIEW_ROUTES:
+        legacy = route in PRE_REVIEW_ROUTES
+        if legacy:
             # New handoffs persist across pushes. A pre-review route can remain
             # only for a legacy acknowledgement without the persistence marker.
             message = (
-                "your reviewer-routing request is not active for the current "
-                "pull request head; comment `/dashboard route:reviewers` again "
-                "to hand the current head to reviewers."
+                "This request applied to an earlier head and is no longer active. "
+                "Comment `/dashboard route:reviewers` again to hand the current "
+                "head to reviewers."
             )
         elif held_gates:
             message = (
-                "your reviewer-routing request was recorded; the reviewer handoff "
-                f"is waiting on {held_gates}."
+                "The reviewer handoff is recorded and is waiting on "
+                f"{held_gates}."
             )
         elif route == "maintainer":
             message = (
-                "your reviewer-routing request was recorded; this pull request has "
-                "the approvals it needs and is now waiting on maintainers."
+                "This pull request has the approvals it needs and is now waiting "
+                "on maintainers."
             )
         else:
-            message = "this pull request was routed to reviewers."
+            message = "This pull request is now waiting on reviewers."
         if reply.persistent_handoff:
             message = (
-                f"{message} The handoff remains active across pushes until newer "
-                "actionable human feedback arrives."
+                f"{message} The handoff stays active across pushes until a "
+                "reviewer leaves new actionable feedback."
             )
         has_handoff_timestamp = parse_ts(reply.since) is not None
         if has_top_level_feedback_cutoff and has_handoff_timestamp:
             message = (
-                f"{message} Top-level feedback through this request will not return; "
-                "unresolved review threads remain open."
+                f"{message} Top-level feedback posted before this request no "
+                "longer counts; unresolved review threads stay open."
             )
         elif has_top_level_feedback_cutoff:
             message = (
-                f"{message} The existing top-level feedback cutoff remains in effect, "
-                "but no additional top-level feedback was retired because the "
-                "dashboard could not determine a safe command time; unresolved review "
-                "threads remain open."
+                f"{message} Top-level feedback retired by an earlier request still "
+                "doesn't count, but no newer feedback was retired because the "
+                "dashboard couldn't determine when this command was posted; "
+                "unresolved review threads stay open."
             )
         else:
             message = (
-                f"{message} No top-level feedback was retired because the dashboard "
-                "could not determine a safe command time; unresolved review threads "
-                "remain open."
+                f"{message} No top-level feedback was retired because the "
+                "dashboard couldn't determine when this command was posted; "
+                "unresolved review threads stay open."
+            )
+        if not legacy:
+            message = (
+                f"{message} Comment `/dashboard route:author` to hand it back to "
+                "the author."
             )
     elif kind == "unknown_command":
         subcommand = reply.subcommand

@@ -362,27 +362,30 @@ class DashboardOverrideTest(unittest.TestCase):
         )
         self.assertIn(dashboard_override.command_reply_marker(4), routed)
         self.assertIn(dashboard_override.override_ack_marker(4), routed)
-        self.assertIn("@author, this pull request was routed to reviewers.", routed)
         self.assertIn(
-            "Top-level feedback through this request will not return; unresolved "
-            "review threads remain open.",
+            "This pull request is now waiting on reviewers. Top-level feedback "
+            "posted before this request no longer counts; unresolved review "
+            "threads stay open. Comment `/dashboard route:author` to hand it back "
+            "to the author.",
             routed,
         )
+        self.assertNotIn("@author", routed)
         self.assertIn(
-            "No top-level feedback was retired because the dashboard could not "
-            "determine a safe command time; unresolved review threads remain open.",
+            "No top-level feedback was retired because the dashboard couldn't "
+            "determine when this command was posted; unresolved review threads "
+            "stay open.",
             conservative,
         )
         self.assertIn(dashboard_override.command_reply_marker(5), gate_held)
         self.assertIn(
-            "@author, your reviewer-routing request was recorded; the reviewer "
-            "handoff is waiting on the required status checks.",
+            "The reviewer handoff is recorded and is waiting on the required "
+            "status checks.",
             gate_held,
         )
         self.assertIn(dashboard_override.command_reply_marker(6), maintainer)
         self.assertIn(
-            "@author, your reviewer-routing request was recorded; this pull request "
-            "has the approvals it needs and is now waiting on maintainers.",
+            "This pull request has the approvals it needs and is now waiting on "
+            "maintainers.",
             maintainer,
         )
 
@@ -420,11 +423,12 @@ class DashboardOverrideTest(unittest.TestCase):
 
                 self.assertIn(dashboard_override.override_ack_marker(7), body)
                 self.assertIn(
-                    "@author, your reviewer-routing request is not active for the "
-                    "current pull request head; comment `/dashboard route:reviewers` "
-                    "again to hand the current head to reviewers.",
+                    "This request applied to an earlier head and is no longer "
+                    "active. Comment `/dashboard route:reviewers` again to hand the "
+                    "current head to reviewers.",
                     body,
                 )
+                self.assertNotIn("route:author", body)
 
     def test_ack_marker_records_the_bound_head(self) -> None:
         body = dashboard_override.render_command_reply(
@@ -450,8 +454,8 @@ class DashboardOverrideTest(unittest.TestCase):
             body,
         )
         self.assertIn(
-            "The handoff remains active across pushes until newer actionable "
-            "human feedback arrives.",
+            "The handoff stays active across pushes until a reviewer leaves new "
+            "actionable feedback.",
             body,
         )
 
@@ -878,10 +882,10 @@ class DashboardOverrideTest(unittest.TestCase):
             body,
         )
         self.assertIn(
-            "The existing top-level feedback cutoff remains in effect, but no "
-            "additional top-level feedback was retired because the dashboard could "
-            "not determine a safe command time; unresolved review threads remain "
-            "open.",
+            "Top-level feedback retired by an earlier request still doesn't count, "
+            "but no newer feedback was retired because the dashboard couldn't "
+            "determine when this command was posted; unresolved review threads "
+            "stay open.",
             body,
         )
 
@@ -1760,8 +1764,8 @@ class DashboardOverrideTest(unittest.TestCase):
         reply = facts.dashboard_command_replies[0]
         self.assertEqual("the open Copilot review findings", reply.held_gates)
         self.assertIn(
-            "@author, your reviewer-routing request was recorded; the reviewer "
-            "handoff is waiting on the open Copilot review findings.",
+            "The reviewer handoff is recorded and is waiting on the open Copilot "
+            "review findings.",
             dashboard_override.render_command_reply(reply),
         )
 
@@ -1794,7 +1798,7 @@ class DashboardOverrideTest(unittest.TestCase):
                 call([
                     "gh", "api", "--method", "POST",
                     "repos/open-telemetry/example/issues/7/comments",
-                    "-f", "body=<!-- pull-request-dashboard-command-reply:3 -->\n<!-- pull-request-dashboard-override-ack:3 -->\n@author, your reviewer-routing request was recorded; the reviewer handoff is waiting on the Copilot review. No top-level feedback was retired because the dashboard could not determine a safe command time; unresolved review threads remain open.\n",
+                    "-f", "body=<!-- pull-request-dashboard-command-reply:3 -->\n<!-- pull-request-dashboard-override-ack:3 -->\nThe reviewer handoff is recorded and is waiting on the Copilot review. No top-level feedback was retired because the dashboard couldn't determine when this command was posted; unresolved review threads stay open. Comment `/dashboard route:author` to hand it back to the author.\n",
                 ]),
             ],
             run_gh.call_args_list,
