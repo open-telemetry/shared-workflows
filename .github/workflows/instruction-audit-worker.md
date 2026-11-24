@@ -1,6 +1,8 @@
 ---
 name: Instruction audit worker
 on:
+  # The caller authorizes dispatches, including continuations from GitHub Actions.
+  roles: all
   workflow_call:
     inputs:
       snapshot:
