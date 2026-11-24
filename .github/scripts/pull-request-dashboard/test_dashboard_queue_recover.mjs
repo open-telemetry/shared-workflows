@@ -32,14 +32,18 @@ test("paused recovery preserves both lanes without requesting or dispatching suc
   }
 });
 
-test("recovery dispatches both lanes independently", async () => {
+test("recovery dispatches both lanes independently", async (t) => {
+  const log = t.mock.method(console, "log", () => {});
   const dispatched = [];
   const recovered = [];
   await recoverQueueLanes({
     createQueue: (lane) => ({
       async recoverExpiredLeases() {
         recovered.push(lane);
-        return { requested: true, generation: lane === "live" ? 7 : 11 };
+        return {
+          requested: true, generation: lane === "live" ? 7 : 11,
+          recoveredItems: 2, abandonedItems: 1, recoveredDispatcher: true,
+        };
       },
       async stats() { return {}; },
     }),
@@ -47,6 +51,20 @@ test("recovery dispatches both lanes independently", async () => {
   });
   assert.deepEqual(recovered.sort(), ["live", "maintenance"]);
   assert.deepEqual(dispatched.sort((left, right) => left[0] - right[0]), [[7, "live"], [11, "maintenance"]]);
+  assert.deepEqual(
+    log.mock.calls.map(({ arguments: [line] }) => JSON.parse(line))
+      .sort((left, right) => left.generation - right.generation),
+    ["live", "maintenance"].map((lane) => ({
+      event: "dashboard_queue_recovery",
+      lane,
+      requested: true,
+      generation: lane === "live" ? 7 : 11,
+      recoveredItems: 2,
+      abandonedItems: 1,
+      recoveredDispatcher: true,
+      health: {},
+    })),
+  );
 });
 
 test("failure in one lane does not prevent recovery of the other", async () => {

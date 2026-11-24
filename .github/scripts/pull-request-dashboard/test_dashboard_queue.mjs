@@ -621,8 +621,9 @@ test("claim wave rejects invalid repository filters", async () => {
   }
 });
 
-test("replays an identical acknowledgment after its response is lost", async () => {
-  const { queue } = fixture();
+test("replays an identical acknowledgment after its response is lost", async (t) => {
+  const log = t.mock.method(console, "log", () => {});
+  const { queue, store } = fixture();
   await queue.enqueue({
     repository: "example",
     prNumber: 123,
@@ -648,11 +649,25 @@ test("replays an identical acknowledgment after its response is lost", async () 
   };
 
   assert.deepEqual(await queue.acknowledge(acknowledgment), { status: "removed" });
+  assert.equal(log.mock.callCount(), 0);
+  const persisted = structuredClone(store.entries);
   assert.deepEqual(await queue.acknowledge(acknowledgment), { status: "removed" });
+  assert.deepEqual(store.entries, persisted);
+  assert.deepEqual(log.mock.calls.map(({ arguments: [line] }) => JSON.parse(line)), [{
+    event: "dashboard_queue_acknowledgment_replayed",
+    lane: "live",
+    itemKey: claim.itemKey,
+    claimGeneration: claim.claimGeneration,
+    operationId: acknowledgment.operationId,
+    status: "removed",
+  }]);
   await assert.rejects(
     queue.acknowledge({ ...acknowledgment, outcome: "retry" }),
     /conflicting acknowledgment retry/,
   );
+  assert.equal(log.mock.callCount(), 1);
+  assert.equal((await queue.recoverExpiredLeases()).recoveredItems, 0);
+  assert.equal(log.mock.callCount(), 1);
 });
 
 test("replays a committed finish without reclaiming its dispatch", async () => {
@@ -824,7 +839,8 @@ test("expired item leases reject acknowledgments", async () => {
   );
 });
 
-test("expired leases are recovered and dispatch is requested", async () => {
+test("expired leases are recovered and dispatch is requested", async (t) => {
+  const log = t.mock.method(console, "log", () => {});
   const { queue, advance } = fixture();
   await queue.enqueue({
     repository: "example",
@@ -837,7 +853,7 @@ test("expired leases are recovered and dispatch is requested", async () => {
     generation: request.generation,
     workerId: "worker",
   });
-  await queue.claimWave({
+  const [claim] = await queue.claimWave({
     generation: request.generation,
     workerId: "worker",
   });
@@ -848,9 +864,19 @@ test("expired leases are recovered and dispatch is requested", async () => {
   assert.equal(recovery.recoveredDispatcher, true);
   assert.equal(recovery.requested, true);
   assert.equal((await queue.stats()).queued, 1);
+  assert.deepEqual(log.mock.calls.map(({ arguments: [line] }) => JSON.parse(line)), [{
+    event: "dashboard_queue_item_recovery",
+    lane: "live",
+    itemKey: claim.itemKey,
+    claimGeneration: claim.claimGeneration,
+    status: "requeued",
+  }]);
+  await queue.recoverExpiredLeases();
+  assert.equal(log.mock.callCount(), 1);
 });
 
-test("repeatedly abandoned items stop being recovered", async () => {
+test("repeatedly abandoned items stop being recovered", async (t) => {
+  const log = t.mock.method(console, "log", () => {});
   const { queue, advance } = fixture();
   await queue.enqueue({
     repository: "example",
@@ -879,6 +905,55 @@ test("repeatedly abandoned items stop being recovered", async () => {
   assert.equal(stats.queued, 0);
   assert.equal(stats.inflight, 0);
   assert.equal(stats.deadLetters, 1);
+  const events = log.mock.calls.map(({ arguments: [line] }) => JSON.parse(line));
+  assert.equal(events.length, queue.maxRecoveryAttempts);
+  assert.deepEqual(events.map((event) => event.status), [
+    "requeued", "requeued", "requeued", "requeued", "abandoned",
+  ]);
+  assert.deepEqual(events.at(-1), {
+    event: "dashboard_queue_item_recovery",
+    lane: "live",
+    itemKey: "example#pr:123",
+    claimGeneration: 1,
+    status: "abandoned",
+  });
+});
+
+test("maintenance recovery logs only committed claims after CAS retries", async (t) => {
+  const log = t.mock.method(console, "log", () => {});
+  const { queue, store, advance } = fixture("maintenance");
+  const item = await queue.enqueue({ repository: "example", kind: "backfill" });
+  const request = await queue.requestDispatcher();
+  await queue.activateDispatcher({ generation: request.generation, workerId: "worker" });
+  const [claim] = await queue.claimWave({ generation: request.generation, workerId: "worker" });
+  advance(1_001);
+
+  const set = store.set.bind(store);
+  let writes = 0;
+  const failedSet = t.mock.method(store, "set", async () => ({ modified: false }));
+  await assert.rejects(queue.recoverExpiredLeases(), /compare-and-swap retries exhausted/);
+  assert.equal(failedSet.mock.callCount(), queue.casAttempts);
+  assert.equal(log.mock.callCount(), 0);
+  assert.equal(store.entries.get(item.shardKey).value.items[item.itemKey].phase, "inflight");
+
+  failedSet.mock.mockImplementation(async (...args) => {
+    writes += 1;
+    return writes === 1 ? { modified: false } : set(...args);
+  });
+  const recovery = await queue.recoverExpiredLeases({ requestSuccessor: false });
+  assert.equal(recovery.recoveredItems, 1);
+  assert.equal(recovery.abandonedItems, 0);
+  assert.deepEqual(log.mock.calls.map(({ arguments: [line] }) => JSON.parse(line)), [{
+    event: "dashboard_queue_item_recovery",
+    lane: "maintenance",
+    itemKey: claim.itemKey,
+    claimGeneration: claim.claimGeneration,
+    status: "requeued",
+  }]);
+  const stored = store.entries.get(item.shardKey).value;
+  assert.equal(stored.items[item.itemKey].attempts, 1);
+  assert.equal(stored.items[item.itemKey].claimedGeneration, null);
+  assert.deepEqual(stored.acknowledgments, {});
 });
 
 test("dead letters remove active work and retain bounded diagnostics", async () => {
@@ -1253,7 +1328,8 @@ test("requeue acknowledgment is fenced by the active item lease", async () => {
   assert.equal((await queue.itemStatus(request)).status, "queued");
 });
 
-test("expired recovery preserves a dirty generation at the attempt ceiling", async () => {
+test("expired recovery preserves a dirty generation at the attempt ceiling", async (t) => {
+  const log = t.mock.method(console, "log", () => {});
   const { queue, advance } = fixture();
   await queue.enqueue({
     repository: "example",
@@ -1299,6 +1375,13 @@ test("expired recovery preserves a dirty generation at the attempt ceiling", asy
   const stats = await queue.stats();
   assert.equal(stats.queued, 1);
   assert.equal(stats.deadLetters, 0);
+  assert.deepEqual(JSON.parse(log.mock.calls.at(-1).arguments[0]), {
+    event: "dashboard_queue_item_recovery",
+    lane: "live",
+    itemKey: "example#pr:123",
+    claimGeneration: 1,
+    status: "requeued",
+  });
 });
 
 test("a stored entry without an ETag never becomes a blind overwrite", async () => {

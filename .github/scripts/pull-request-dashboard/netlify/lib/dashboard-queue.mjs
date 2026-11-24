@@ -672,6 +672,16 @@ export class DashboardQueue {
       }
       return { changed: true, result };
     });
+    if (receiptKey && !mutation.changed) {
+      console.log(JSON.stringify({
+        event: "dashboard_queue_acknowledgment_replayed",
+        lane: this.lane,
+        itemKey,
+        claimGeneration,
+        operationId,
+        status: mutation.result.status,
+      }));
+    }
     return mutation.result;
   }
 
@@ -832,6 +842,7 @@ export class DashboardQueue {
         validateShard(shard);
         let recovered = 0;
         let abandoned = 0;
+        const items = [];
         for (const [itemKey, item] of Object.entries(shard.items)) {
           validateItem(itemKey, item);
           if (
@@ -841,6 +852,12 @@ export class DashboardQueue {
           ) {
             continue;
           }
+          const recovery = {
+            itemKey,
+            claimGeneration: item.claimedGeneration,
+            status: "requeued",
+          };
+          items.push(recovery);
           if (item.dirty) {
             item.attempts = 0;
           } else {
@@ -855,6 +872,7 @@ export class DashboardQueue {
             trimDeadLetters(shard.deadLetters);
             delete shard.items[itemKey];
             abandoned += 1;
+            recovery.status = "abandoned";
             continue;
           }
           item.phase = "queued";
@@ -868,9 +886,16 @@ export class DashboardQueue {
         }
         return {
           changed: recovered + abandoned > 0,
-          result: { recovered, abandoned },
+          result: { recovered, abandoned, items },
         };
       });
+      for (const item of mutation.result.items) {
+        console.log(JSON.stringify({
+          event: "dashboard_queue_item_recovery",
+          lane: this.lane,
+          ...item,
+        }));
+      }
       return mutation.result;
     });
     for (const { recovered, abandoned } of recoveries) {

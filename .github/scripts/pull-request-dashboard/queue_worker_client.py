@@ -86,6 +86,18 @@ class QueueWorkerClient:
                     or attempt + 1 >= MAX_ATTEMPTS
                     or not is_transient_error(error)
                 ):
+                    if action == "acknowledge":
+                        print(json.dumps({
+                            "event": "dashboard_queue_acknowledgment_failed",
+                            "lane": request_payload["lane"],
+                            "itemKey": request_payload.get("itemKey"),
+                            "claimGeneration": request_payload.get("claimGeneration"),
+                            "operationId": request_payload["operationId"],
+                            "attempts": attempt + 1,
+                            "errorType": type(error).__name__,
+                            **({"httpStatus": error.code}
+                               if isinstance(error, urllib.error.HTTPError) else {}),
+                        }, sort_keys=True), file=sys.stderr)
                     raise
                 maximum = min(
                     INITIAL_BACKOFF_SECONDS * (2**attempt),

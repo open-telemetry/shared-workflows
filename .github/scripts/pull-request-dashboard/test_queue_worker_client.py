@@ -168,17 +168,19 @@ class QueueWorkerClientTest(unittest.TestCase):
             operation_id_factory=lambda: "operation-1",
         )
 
-        self.assertEqual(
-            client.call(
-                "acknowledge",
-                generation=1,
-                workerId="worker",
-                itemKey="example#pr:1",
-                claimGeneration=1,
-                outcome="success",
-            ),
-            {"status": "removed"},
-        )
+        with contextlib.redirect_stderr(io.StringIO()) as stderr:
+            self.assertEqual(
+                client.call(
+                    "acknowledge",
+                    generation=1,
+                    workerId="worker",
+                    itemKey="example#pr:1",
+                    claimGeneration=1,
+                    outcome="success",
+                ),
+                {"status": "removed"},
+            )
+        self.assertEqual(stderr.getvalue(), "")
         self.assertEqual(worker_attempts, MAX_ATTEMPTS)
         self.assertEqual(sleeps, [1.0, 2.0, 4.0])
         self.assertEqual(len(requests), MAX_ATTEMPTS * 2)
@@ -191,6 +193,72 @@ class QueueWorkerClientTest(unittest.TestCase):
             {body["operationId"] for body in worker_bodies if body["action"] == "acknowledge"},
             {"operation-1"},
         )
+        self.assertEqual({timeout for _request, timeout in requests}, {30})
+
+    def test_terminal_acknowledgment_diagnostics_use_the_actual_operation_id(self) -> None:
+        for lane, supplied_id, status in (
+            ("live", None, 504),
+            ("maintenance", "caller-supplied", 504),
+            ("live", "non-retryable", 409),
+            ("maintenance", None, None),
+        ):
+            with self.subTest(lane=lane, supplied_id=supplied_id, status=status):
+                requests = []
+                sleeps = []
+                failure = (
+                    urllib.error.HTTPError(
+                        "https://example.test/worker", status, "private-error" * 1000, {}, None,
+                    )
+                    if status is not None else TimeoutError("private-error" * 1000)
+                )
+
+                def opener(request, timeout):
+                    if "token.actions.test" in request.full_url:
+                        return Response(json.dumps({"value": "oidc-token"}).encode())
+                    requests.append((json.loads(request.data), timeout))
+                    raise failure
+
+                factory = mock.Mock(return_value="generated-operation")
+                client = QueueWorkerClient(
+                    "https://example.test/worker", lane=lane,
+                    oidc_request_url="https://token.actions.test/request",
+                    oidc_request_token="request-token", opener=opener,
+                    sleeper=sleeps.append,
+                    jitter=lambda _minimum, maximum: maximum,
+                    operation_id_factory=factory,
+                )
+                with (
+                    contextlib.redirect_stderr(io.StringIO()) as stderr,
+                    self.assertRaises(type(failure)) as raised,
+                ):
+                    client.call(
+                        "acknowledge", generation=3, workerId="worker",
+                        itemKey="example#pr:1", claimGeneration=7, outcome="retry",
+                        error="private-payload",
+                        **({"operationId": supplied_id} if supplied_id is not None else {}),
+                    )
+
+                self.assertIs(raised.exception, failure)
+                retryable = status in (504, None)
+                attempts = MAX_ATTEMPTS if retryable else 1
+                operation_id = supplied_id or "generated-operation"
+                self.assertEqual(len(requests), attempts)
+                self.assertEqual(sleeps, [1.0, 2.0, 4.0] if retryable else [])
+                self.assertEqual(
+                    {(body["operationId"], timeout) for body, timeout in requests},
+                    {(operation_id, 30)},
+                )
+                self.assertEqual(factory.call_count, 0 if supplied_id is not None else 1)
+                self.assertEqual(json.loads(stderr.getvalue()), {
+                    "event": "dashboard_queue_acknowledgment_failed",
+                    "lane": lane,
+                    "itemKey": "example#pr:1",
+                    "claimGeneration": 7,
+                    "operationId": operation_id,
+                    "attempts": attempts,
+                    "errorType": type(failure).__name__,
+                    **({"httpStatus": status} if status is not None else {}),
+                })
 
     def test_skips_operation_id_factory_when_caller_supplies_id(self) -> None:
         def fail_factory() -> str:
@@ -209,16 +277,18 @@ class QueueWorkerClientTest(unittest.TestCase):
             operation_id_factory=fail_factory,
         )
 
-        result = client.call(
-            "acknowledge",
-            generation=1,
-            workerId="worker",
-            itemKey="example#pr:1",
-            claimGeneration=1,
-            outcome="success",
-            operationId="caller-supplied",
-        )
+        with contextlib.redirect_stderr(io.StringIO()) as stderr:
+            result = client.call(
+                "acknowledge",
+                generation=1,
+                workerId="worker",
+                itemKey="example#pr:1",
+                claimGeneration=1,
+                outcome="success",
+                operationId="caller-supplied",
+            )
         self.assertEqual(result, {"status": "removed"})
+        self.assertEqual(stderr.getvalue(), "")
 
     def test_stops_after_the_bounded_attempt_count(self) -> None:
         worker_attempts = 0
