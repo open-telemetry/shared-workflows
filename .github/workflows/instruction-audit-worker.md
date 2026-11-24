@@ -21,7 +21,19 @@ network:
   allowed:
     - defaults
     - github
+    - bazel
+    - dart
+    - dotnet
+    - elixir
+    - go
     - java
+    - kotlin
+    - node
+    - php
+    - python
+    - ruby
+    - rust
+    - swift
     - https://opentelemetry.io
 checkout:
   ref: ${{ inputs.snapshot }}
