@@ -4,7 +4,7 @@ The collector assesses inline review findings on merged PRs in opted-in public O
 
 ## Collect review evidence
 
-Add an unqualified repository name to [the opt-in list](../.github/scripts/copilot-review-instructions/repositories.json). Collection starts at the configured UTC date, initially October 1, 2026, and runs daily at 05:43 UTC or by dispatching [Collect PR review evidence](https://github.com/open-telemetry/shared-workflows/actions/workflows/copilot-review-instructions-collector.yml). Removing a repository stops collection without deleting its existing evidence.
+Add an unqualified repository name to [the opt-in list](../.github/scripts/copilot-review-instructions/repositories.json). Collection starts at the configured UTC date, initially October 1, 2026, and runs daily at 05:43 UTC or by dispatching [Collect evidence for Copilot review instructions](https://github.com/open-telemetry/shared-workflows/actions/workflows/copilot-review-instructions-collector.yml). Removing a repository stops collection without deleting its existing evidence.
 
 Each run checks today and yesterday first, then fills the oldest unconfirmed days. It caps collection at three backfill days per repo, 180 GitHub API requests, ten new prepared evidence bundles and six new PR assessments. GitHub API calls, Git evidence commands and model requests during collection share a 25-minute deadline. This leaves time to save completed work before the 45-minute Actions job timeout.
 
