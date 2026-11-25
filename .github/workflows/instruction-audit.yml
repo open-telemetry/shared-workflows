@@ -1,0 +1,169 @@
+name: Central instruction audit
+
+on:
+  workflow_dispatch:
+    inputs:
+      repository:
+        description: Enrolled public OpenTelemetry repository name, without the owner
+        required: true
+        type: string
+
+permissions: {}
+
+concurrency:
+  group: instruction-audit-${{ inputs.repository }}
+  cancel-in-progress: false
+
+env:
+  PYTHONDONTWRITEBYTECODE: "1"
+  TARGET_REPOSITORY: ${{ inputs.repository }}
+
+jobs:
+  prepare:
+    if: github.repository == 'open-telemetry/shared-workflows' && github.ref == 'refs/heads/main' && github.run_attempt == 1
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    outputs:
+      snapshot: ${{ steps.plan.outputs.snapshot }}
+      repository: ${{ steps.plan.outputs.repository }}
+      work: ${{ steps.plan.outputs.work }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Resume or start the target pass
+        id: plan
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 .github/scripts/instruction-audit/hosted.py prepare
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: instruction-audit-plan
+          path: audit-plan.json
+          if-no-files-found: error
+          retention-days: 7
+      - if: steps.plan.outputs.work == 'true'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: instruction-audit-prompt
+          path: audit-prompt.txt
+          if-no-files-found: error
+          retention-days: 1
+
+  worker:
+    needs: prepare
+    if: needs.prepare.outputs.work == 'true'
+    permissions:
+      actions: read
+      contents: read
+      copilot-requests: write
+    uses: ./.github/workflows/instruction-audit-worker.lock.yml
+    with:
+      repository: ${{ needs.prepare.outputs.repository }}
+      snapshot: ${{ needs.prepare.outputs.snapshot }}
+
+  assess:
+    needs: [prepare, worker]
+    if: >-
+      !cancelled() && needs.prepare.result == 'success' &&
+      (needs.prepare.outputs.work == 'false' || needs.worker.result == 'success')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      digest: ${{ steps.audit.outputs.digest }}
+      fix: ${{ steps.audit.outputs.fix }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: instruction-audit-plan
+      - if: needs.prepare.outputs.work == 'true'
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: instruction-audit-judgment
+      - name: Validate the rule outcome against the pinned snapshot
+        id: audit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 .github/scripts/instruction-audit/hosted.py assess
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: instruction-audit
+          path: audit-result.json
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    needs: assess
+    if: needs.assess.outputs.fix == 'true'
+    runs-on: ubuntu-latest
+    environment: protected
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    outputs:
+      handled: ${{ steps.publish.outputs.handled }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: instruction-audit
+      - name: Publish one ready-for-review fix from the bot fork
+        id: publish
+        env:
+          GH_TOKEN: ${{ secrets.OPENTELEMETRYBOT_GITHUB_TOKEN }}
+          RESULT_DIGEST: ${{ needs.assess.outputs.digest }}
+        run: python3 .github/scripts/instruction-audit/hosted.py publish
+
+  cursor:
+    needs: [assess, publish]
+    if: >-
+      !cancelled() && needs.assess.result == 'success' &&
+      (needs.publish.result == 'skipped' ||
+       (needs.publish.result == 'success' && needs.publish.outputs.handled == 'true'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    outputs:
+      continue: ${{ steps.save.outputs.continue }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: instruction-audit-plan
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: instruction-audit
+      - name: Save progress before dispatching the next rule
+        id: save
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RESULT_DIGEST: ${{ needs.assess.outputs.digest }}
+          AUDIT_PUBLISHED: ${{ needs.publish.result == 'success' && needs.publish.outputs.handled == 'true' }}
+        run: python3 .github/scripts/instruction-audit/hosted.py save
+
+  continue:
+    needs: cursor
+    if: needs.cursor.outputs.continue == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: write
+    steps:
+      - name: Dispatch the next rule from saved central state
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh workflow run instruction-audit.yml --repo "$GITHUB_REPOSITORY" --ref main \
+            -f repository="$TARGET_REPOSITORY"
