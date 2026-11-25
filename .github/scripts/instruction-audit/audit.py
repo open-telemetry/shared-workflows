@@ -223,7 +223,7 @@ def validate_explanation(value):
 
 def validate_result(result):
     fields(result, "repo", "base", "sha", "tree", "head", "cursor", "completed", "rule", "status", "reason",
-           "fix", "title", "explanation")
+           "fix", "title", "explanation", "first_line", "last_line")
     if result["repo"] != target():
         raise ValueError("Result is for a different repository")
     text(result["base"], 180, REF)
@@ -238,10 +238,13 @@ def validate_result(result):
     if result["completed"] is not None:
         validate_anchor(result["completed"])
     if status == "complete":
-        if result["rule"] is not None:
-            raise ValueError("A completed pass has no rule")
+        if any(result[key] is not None for key in ("rule", "first_line", "last_line")):
+            raise ValueError("A completed pass has no rule or source line range")
     else:
         validate_anchor(result["rule"])
+        if (type(result["first_line"]) is not int or type(result["last_line"]) is not int
+                or not 1 <= result["first_line"] <= result["last_line"]):
+            raise ValueError("Invalid selected rule source line range")
     if (fix := result["fix"]) is not None:
         if status != "finding":
             raise ValueError("Only a finding can supply a fix")
@@ -270,18 +273,20 @@ def prepare(repo, checkout, *, publish_fixes=False, continuation="", cursor_reco
         if INSTRUCTIONS.fullmatch(path):
             documents[path] = read_blob(checkout, oid)
     result = dict(repo=repo, base=base, sha=sha, tree=tree, head=head, cursor=cursor,
-                  completed=None, rule=None, status="complete",
+                  completed=None, rule=None, first_line=None, last_line=None, status="complete",
                   reason="No more rules. The next dispatch starts at the beginning.",
                   fix=None, title=None, explanation=None)
     rules = list(remaining_rules(documents, anchor))
     if continuation and offset >= len(rules):
         raise ValueError("Continuation does not select a remaining rule")
-    plan = {"result": result, "rule": None, "next": "", "publish": publish_fixes, "resumable": False}
+    plan = {"result": result, "rule": None, "first_line": None, "last_line": None,
+            "next": "", "publish": publish_fixes, "resumable": False}
     if not rules:
         return plan, None
     rule, resumable = rules[offset]
     result["completed"] = next((previous.anchor for previous, unique in reversed(rules[:offset]) if unique), None)
     plan["rule"] = rule.anchor
+    plan["first_line"], plan["last_line"] = rule.first_line, rule.last_line
     plan["resumable"] = resumable
     if offset + 1 < len(rules):
         plan["next"] = f"{sha}:{head or 'none'}:{offset + 1}"
@@ -375,6 +380,8 @@ def assess(plan, judgment, checkout):
         summary(f"Rule outcome: `{status}`.\n\n<pre>{html.escape(reason)}</pre>")
         if plan["next"]:
             result.update(rule=plan["rule"], status="continue", reason=reason)
+    if result["status"] != "complete":
+        result.update(first_line=plan["first_line"], last_line=plan["last_line"])
     return validate_result(result)
 
 

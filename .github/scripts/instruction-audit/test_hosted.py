@@ -18,7 +18,8 @@ RULE = {"path": ".github/copilot-instructions.md", "text": "- Keep examples curr
 def finding():
     return {
         "repo": REPO, "sha": "a" * 40, "tree": "b" * 40, "base": "main",
-        "rule": RULE, "title": "Update the timeout example", "explanation": "Use the documented default.",
+        "rule": RULE, "first_line": 3, "last_line": 3,
+        "title": "Update the timeout example", "explanation": "Use the documented default.",
         "fix": [{"path": "README.md", "mode": "100644", "type": "blob", "content": "New example.\n"}],
     }
 
@@ -266,6 +267,63 @@ class PublicationTest(unittest.TestCase):
         pull["head"]["sha"] = "d" * 40
         with self.assertRaisesRegex(ValueError, "unmanaged or changed"):
             hosted.publish(REPO, result)
+
+    @patch.object(hosted, "ensure_fork", return_value=FORK)
+    @patch.object(hosted, "settings", return_value={"publish_audit_fixes": True, "max_open_audit_prs": 5})
+    @patch.object(audit, "pull_request_body", return_value="Fix the example.")
+    @patch.object(hosted, "check_cap")
+    @patch.object(hosted, "pulls")
+    @patch.object(audit, "api")
+    def test_identical_rules_at_distinct_lines_publish_separately_and_retries_reuse_each_pr(
+        self, api, pulls, cap, _body, _settings, _fork, output, _summary
+    ):
+        first = finding()
+        second = finding() | {
+            "first_line": 8, "last_line": 8,
+            "fix": [{"path": "internal/README.md", "mode": "100644", "type": "blob",
+                     "content": "Updated internal example.\n"}],
+        }
+        first_branch = hosted.fix_branch(first)
+        first_pull = {
+            "user": {"login": hosted.BOT}, "base": {"ref": "main"},
+            "head": {"sha": "c" * 40, "repo": {"full_name": FORK}},
+            "body": f"<!-- shared-workflows:instruction-audit {first_branch} {'c' * 40} -->",
+            "html_url": f"https://github.com/{REPO}/pull/1",
+        }
+        published = {f"{hosted.BOT}:{first_branch}": first_pull}
+        pulls.side_effect = lambda _repo, **params: iter(
+            [published[params["head"]]] if params["head"] in published else []
+        )
+        api.return_value = {"object": {"sha": "c" * 40}}
+        hosted.publish(REPO, first)
+        cap.assert_not_called()
+        api.reset_mock()
+        api.side_effect = [
+            {"visibility": "public", "archived": False, "disabled": False, "default_branch": "main"},
+            None, {"sha": "e" * 40}, {"sha": "d" * 40}, {},
+            {"draft": False, "html_url": f"https://github.com/{REPO}/pull/2"},
+        ]
+        hosted.publish(REPO, second)
+        second_head = api.call_args.kwargs["body"]["head"]
+        self.assertNotEqual(second_head, f"{hosted.BOT}:{first_branch}")
+        self.assertEqual(api.call_args_list[2].kwargs["body"]["tree"], second["fix"])
+        published[second_head] = {
+            "user": {"login": hosted.BOT}, "base": {"ref": "main"},
+            "head": {"sha": "d" * 40, "repo": {"full_name": FORK}},
+            "body": api.call_args.kwargs["body"]["body"],
+            "html_url": f"https://github.com/{REPO}/pull/2",
+        }
+        api.reset_mock(side_effect=True)
+        cap.reset_mock()
+        output.reset_mock()
+        for result, sha in ((first, "c" * 40), (second, "d" * 40)):
+            api.return_value = {"object": {"sha": sha}}
+            hosted.publish(REPO, json.loads(json.dumps(result)))
+        self.assertTrue(all("method" not in call.kwargs for call in api.call_args_list))
+        cap.assert_not_called()
+        self.assertEqual(output.call_args_list, [
+            unittest.mock.call("handled", "true"), unittest.mock.call("handled", "true"),
+        ])
 
     @patch.object(hosted, "settings", return_value={"publish_audit_fixes": False, "max_open_audit_prs": 5})
     @patch.object(hosted, "ensure_fork")

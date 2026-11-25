@@ -1,4 +1,5 @@
 import base64
+import json
 import os
 import tempfile
 import unittest
@@ -167,6 +168,38 @@ deleted file mode 100644
 @patch.object(audit, "read_blob")
 @patch.object(audit, "snapshot")
 class PassTest(unittest.TestCase):
+    def test_scoped_occurrences_keep_their_source_range_in_serialized_results(
+        self, snapshot, read_blob, _summary
+    ):
+        snapshot.return_value = ("main", "a" * 40, "b" * 40, {ROOT: ("100644", "root")})
+        read_blob.return_value = (
+            "# Examples\n\n## Public\n\n- Keep examples current.\n  Include the timeout.\n\n"
+            "## Internal\n\n- Keep examples current.\n  Include the timeout.\n"
+        )
+        continuation = ""
+        for expected in ((5, 6), (10, 11)):
+            with self.subTest(lines=expected):
+                plan, _ = audit.prepare(audit.target(), "snapshot", continuation=continuation)
+                result = audit.assess(plan, {"status": "finding", "reason": "Update scoped examples."}, "snapshot")
+                result = audit.validate_result(json.loads(json.dumps(result)))
+                self.assertEqual((result["first_line"], result["last_line"]), expected)
+                self.assertEqual(result["rule"],
+                                 {"path": ROOT, "text": "- Keep examples current.\n  Include the timeout."})
+                continuation = plan["next"]
+
+    def test_selected_rule_source_range_must_use_positive_ordered_integer_lines(
+        self, snapshot, read_blob, _summary
+    ):
+        snapshot.return_value = ("main", "a" * 40, "b" * 40, {ROOT: ("100644", "root")})
+        read_blob.return_value = "- Keep examples current.\n"
+        plan, _ = audit.prepare(audit.target(), "snapshot")
+        result = audit.assess(plan, {"status": "finding", "reason": "Update examples."}, "snapshot")
+        for first, last in ((None, 1), (True, 1), (0, 1), (2, 1), (1, "1"), (1, False)):
+            with self.subTest(lines=(first, last)), self.assertRaisesRegex(ValueError, "source line range"):
+                audit.validate_result(result | {"first_line": first, "last_line": last})
+        with self.assertRaisesRegex(ValueError, "source line range"):
+            audit.validate_result(result | {"status": "complete", "rule": None})
+
     def test_chain_stays_on_pinned_snapshot_and_stops_at_reported_finding(
         self, snapshot, read_blob, _summary
     ):

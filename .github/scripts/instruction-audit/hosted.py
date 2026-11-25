@@ -126,7 +126,8 @@ def save(repo, result, plan, *, published=False):
 
 
 def fix_branch(result):
-    key = json.dumps([result["sha"], result["rule"]], sort_keys=True).encode()
+    key = json.dumps([result["sha"], result["rule"], result["first_line"], result["last_line"]],
+                     sort_keys=True).encode()
     return audit.FIX_PREFIX + hashlib.sha256(key).hexdigest()[:32]
 
 

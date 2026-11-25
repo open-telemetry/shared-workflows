@@ -49,7 +49,9 @@ Publishing a unique rule saves it as the anchor for the next pass. Duplicate rul
 
 Worker, validation, publication, or cursor-write failures retain the active pass. Dispatch again to resume it, rather than rerunning a job, which is intentionally disabled. If automatic dispatch fails or a queued run is replaced, the saved state still resumes from the same commit and rule. To abandon a pass, stop its central runs first, then set `sha` to `null` and `offset` to `0`, retaining the anchor.
 
-Publication uses a deterministic branch per snapshot and rule, with an ownership marker containing the published commit. If PR creation succeeded but saving progress failed, the next dispatch recognizes the existing PR instead of duplicating it. A manually changed PR or an orphaned branch without a confirmed PR stops publication for operator inspection. Do not delete or overwrite such branches until you establish whether GitHub accepted the preceding creation request. Closed PRs are not recreated.
+Publication uses a deterministic branch per snapshot and rule occurrence, identified by its path, text, and source line range. Identical rules at different locations get separate PRs; retries of the same occurrence reuse its PR. Cursor anchors remain `{path, text}`.
+
+An ownership marker contains the published commit. If PR creation succeeded but saving progress failed, the next dispatch recognizes the existing PR instead of duplicating it. A manually changed PR or an orphaned branch without a confirmed PR stops publication for operator inspection. Do not delete or overwrite such branches until you establish whether GitHub accepted the preceding creation request. Closed PRs are not recreated.
 
 ## Publication boundary
 
