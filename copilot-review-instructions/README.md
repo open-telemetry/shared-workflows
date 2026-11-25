@@ -18,6 +18,8 @@ Collection starts at the configured UTC date, initially October 1, 2026, and run
 
 Each run checks today and yesterday first, then fills the oldest unconfirmed days. It caps collection at three backfill days per repo, 180 GitHub API requests, ten new prepared evidence bundles and six new PR assessments. GitHub API calls, Git evidence commands and model requests during collection share a 25-minute deadline. This leaves time to save completed work before the 45-minute Actions job timeout.
 
+A PR that hits the deadline during evidence preparation or assessment moves behind other work on the next run. Deferred PRs are retried oldest attempt first when the batch has room.
+
 The workflow owns the `otelbot/copilot-review-instructions-data` branch. Its first run loads a pinned snapshot of the previous archive as a seed. Subsequent runs read and replace the shared-workflows snapshot with a lease on its previous revision. Do not publish to the old archive or hand-edit the new branch. The archive stores public review text, code excerpts and validated outcomes so older assessments can still be used if the originals change. Newly published records go through the secret check; model explanations and intermediate judgments are not published.
 
 The collector logs and skips PR records and prepared evidence that fail the publication checks. It still saves the rest of the batch and retries skipped PR records without marking their merge days complete. If a repository's combined metadata cannot be published, the collector keeps its previous snapshot and publishes the other repositories' progress.

@@ -19,6 +19,7 @@ SHARED_REMOTE = "https://github.com/open-telemetry/shared-workflows.git"
 DATA_REF = "refs/heads/data"
 SNAPSHOT_REF = "refs/heads/otelbot/copilot-review-instructions-data"
 MANIFEST = "schema.json"
+COLLECTION_RETRIES = "collection-retries.json"
 FORMAT = {"format": 1}
 HASH = r"[0-9a-f]{64}"
 ASSESSMENT_FILE = rf"\.assessment\.({HASH})\.json"
@@ -231,7 +232,8 @@ class SharedData:
         name, _, record = rest.partition("/")
         return (owner == "open-telemetry" and re.fullmatch(r"[a-z0-9][a-z0-9._-]*", name)
                 and f"{owner}/{name}" not in self.repositories
-                and (record in {"coverage.json", "line-changes.json", "merge-timing.json", "pr-authors.json"}
+                and (record in {"coverage.json", "line-changes.json", "merge-timing.json",
+                                "pr-authors.json", COLLECTION_RETRIES}
                      or PR_FILE.fullmatch(record)))
 
     @staticmethod
@@ -304,6 +306,23 @@ class SharedData:
                 for number, author in records.items()
             ])
             return
+        if self.snapshot and relative == COLLECTION_RETRIES:
+            records = json.loads(blob)
+            if not isinstance(records, dict) or not records.keys() <= {"assessments"}:
+                raise DataError(f"Invalid collection retry queues: {path}")
+            numbers = {str(number) for (number,) in self.archive.db.execute(
+                "SELECT number FROM pulls WHERE repo = ?", (repo,),
+            )}
+            rows = []
+            for queue, attempts in records.items():
+                if not isinstance(attempts, dict) or not attempts.keys() <= numbers or any(
+                    type(at) is not int or not 0 < at < 2 ** 63 for at in attempts.values()
+                ):
+                    raise DataError(f"Invalid collection retry records: {path}")
+                rows.extend((repo, queue, item, at) for item, at in attempts.items())
+            self.archive.db.execute("DELETE FROM collection_retries WHERE repo = ?", (repo,))
+            self.archive.db.executemany("INSERT INTO collection_retries VALUES (?, ?, ?, ?)", rows)
+            return
         parsed = PR_FILE.fullmatch(relative)
         if not parsed:
             raise DataError(f"Unexpected shared data file: {path}")
@@ -363,6 +382,14 @@ class SharedData:
                                "SELECT number, login, kind FROM pull_authors WHERE repo = ?", (repo,))}
                 if authors:
                     yield f"{repo}/pr-authors.json", self.text_record(authors), authors
+                retries = {}
+                for queue, item, at in self.archive.db.execute(
+                    "SELECT queue, item, attempted_at FROM collection_retries WHERE repo = ?", (repo,),
+                ):
+                    retries.setdefault(queue, {})[item] = at
+                path = f"{repo}/{COLLECTION_RETRIES}"
+                if retries or path in self.imported:
+                    yield path, self.text_record(retries), retries
             rows = self.archive.db.execute("""
                 SELECT number, merged_day, payload FROM pulls
                 WHERE repo = ? ORDER BY merged_day, number

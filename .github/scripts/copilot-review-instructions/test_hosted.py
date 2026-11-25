@@ -9,13 +9,13 @@ from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
 from archive import Archive, encode
-from collect_hosted import capture_days, collect_batch
+from collect_hosted import capture_days, collect_batch, eligible_pulls
 from config import target_repository
 from github_data import BudgetExhausted, DataError, GitHubError
 from publish_instructions import BOT, BRANCH, PENDING, apply_draft, pr_body, publish, publishing_plan
 from review_instructions import git
 from scorecard import REPOS
-from shared_data import SharedData
+from shared_data import COLLECTION_RETRIES, SharedData
 from test_scorecard import git_at, shared_remote
 
 
@@ -94,7 +94,42 @@ class HostedCollectionTests(unittest.TestCase):
         self.assertEqual(result["assessment_attempts"], 2)
         self.assertEqual(result["failures"], 0)
         self.assertEqual([call.args[3]["number"] for call in assess.call_args_list], [1, 1, 2, 2])
+        archive.defer_retry.assert_called_once_with(REPOS[0], "assessments", 2)
         model.return_value.close.assert_called_once()
+
+    def test_timed_out_pull_moves_behind_other_work_after_snapshot_reload(self):
+        repo = REPOS[0]
+        day = date(2026, 10, 4)
+        stamp = f"{day}T08:00:00Z"
+        args = SimpleNamespace(max_requests=10, max_backfill_days=0, max_assessments=5,
+                               work=Path("work"))
+        with TemporaryDirectory() as work:
+            root = Path(work)
+            checkout, remote = shared_remote(root)
+            with closing(Archive(root / "first.sqlite3")) as archive:
+                shared = SharedData(archive, [repo], remote=str(remote), cwd=checkout, snapshot=True)
+                shared.load()
+                with archive.db:
+                    for number in (1, 2):
+                        pull = {"repo": repo, "number": number, "merged": stamp, "threads": ["review"]}
+                        archive.db.execute("INSERT INTO pulls VALUES (?, ?, ?, ?, ?)",
+                                           (repo, number, str(day), stamp, encode(pull)))
+                        archive.db.execute("INSERT INTO pull_authors VALUES (?, ?, 'person', 'User')",
+                                           (repo, number))
+                archive.defer_retry(repo, "assessments", 1)
+                first = shared.publish()
+            with closing(Archive(root / "next.sqlite3")) as archive:
+                shared = SharedData(archive, [repo], remote=str(remote), cwd=checkout, snapshot=True)
+                shared.load(first)
+                self.assertEqual([pull["number"] for pull in eligible_pulls(archive, day, day)], [2, 1])
+                with (patch("collect_hosted.capture_days", return_value=[]),
+                      patch.object(archive, "capture_authors"),
+                      patch.object(archive, "get_prepared", return_value={}),
+                      patch("collect_hosted.Copilot"),
+                      patch("collect_hosted.assess_cached", side_effect=[(None, False), ([], True)] * 2)):
+                    collect_batch(archive, args, day, day, args.work / "git", monotonic() + 10)
+                second = shared.publish()
+                self.assertEqual(json.loads(git_at(checkout, "show", f"{second}:{repo}/{COLLECTION_RETRIES}")), {})
 
     def test_live_windows_precede_bounded_backfill_for_every_repository(self):
         start, today = date(2026, 10, 1), date(2026, 10, 13)

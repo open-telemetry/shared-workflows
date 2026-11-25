@@ -55,6 +55,8 @@ def capture_days(archive, start, today, max_backfill):
 
 
 def eligible_pulls(archive, start, today):
+    deferred = archive.collection_retries("assessments")
+    retries = []
     recent = max(start, today - timedelta(days=LIVE_DAYS - 1))
     for first, last in ((recent, today), (start, recent - timedelta(days=1))):
         cohorts = [iter(archive.pulls(repo, first, last)) for repo in REPOS]
@@ -69,7 +71,13 @@ def eligible_pulls(archive, start, today):
                     (pull["repo"], pull["number"]),
                 ).fetchone()
                 if author is not None and pull["threads"] and not is_bot_pr_author(*author):
-                    yield pull
+                    key = pull["repo"], str(pull["number"])
+                    if key in deferred:
+                        retries.append((deferred[key], *key, pull))
+                    else:
+                        yield pull
+    for _, _, _, pull in sorted(retries):
+        yield pull
 
 
 def collect_batch(archive, args, start, today, git_root, deadline):
@@ -105,6 +113,7 @@ def collect_batch(archive, args, start, today, git_root, deadline):
             if assessed >= args.max_assessments:
                 break
             repo, number = pull["repo"], pull["number"]
+            attempting = False
             try:
                 time_remaining(deadline)
                 bundle = archive.get_prepared(pull)
@@ -115,13 +124,18 @@ def collect_batch(archive, args, start, today, git_root, deadline):
                     if prepared >= args.max_evidence:
                         continue
                     prepared += 1
+                    attempting = True
                     bundle = prepare(pull, Evidence(git_root, pull, deadline=deadline))
                     check_record(f"{repo}#{number} prepared evidence", json_bytes(bundle), bundle)
                     archive.put_prepared(repo, number, bundle)
                 assessed += 1
+                attempting = True
                 assess_cached(archive, bundle, model, pull, args.work / "audit", True,
                               RETRIEVAL_VERSION, git_root=git_root, deadline=deadline)
+                archive.clear_retry(repo, "assessments", number)
             except BudgetExhausted as error:
+                if attempting:
+                    archive.defer_retry(repo, "assessments", number)
                 log(f"Assessment paused: {error}")
                 break
             except AssessmentSetupError as error:

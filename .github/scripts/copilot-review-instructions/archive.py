@@ -3,6 +3,7 @@ import json
 import sqlite3
 from datetime import timedelta, timezone
 from pathlib import Path
+from time import time_ns
 
 from github_data import DataError, instant
 from prepared import PREPARED_VERSION, digest
@@ -66,6 +67,10 @@ class Archive:
             CREATE TABLE IF NOT EXISTS complete_days (
                 repo TEXT, day TEXT, PRIMARY KEY (repo, day)
             );
+            CREATE TABLE IF NOT EXISTS collection_retries (
+                repo TEXT, queue TEXT, item TEXT, attempted_at INTEGER NOT NULL,
+                PRIMARY KEY (repo, queue, item)
+            );
             CREATE TABLE IF NOT EXISTS prepared_evidence (
                 repo TEXT, number INTEGER, version INTEGER, input_digest TEXT, payload BLOB NOT NULL,
                 PRIMARY KEY (repo, number, version)
@@ -85,6 +90,21 @@ class Archive:
             (repo, start.isoformat(), end.isoformat()),
         )}
         return [day for day in days(start, end) if day.isoformat() not in complete]
+
+    def collection_retries(self, queue):
+        return {(repo, item): attempted_at for repo, item, attempted_at in self.db.execute(
+            "SELECT repo, item, attempted_at FROM collection_retries WHERE queue = ?", (queue,),
+        )}
+
+    def defer_retry(self, repo, queue, item):
+        with self.db:
+            self.db.execute("INSERT OR REPLACE INTO collection_retries VALUES (?, ?, ?, ?)",
+                            (repo, queue, str(item), time_ns()))
+
+    def clear_retry(self, repo, queue, item):
+        with self.db:
+            self.db.execute("DELETE FROM collection_retries WHERE repo = ? AND queue = ? AND item = ?",
+                            (repo, queue, str(item)))
 
     def pulls(self, repo, start, end):
         for (payload,) in self.db.execute(
