@@ -11,7 +11,7 @@ on:
 permissions: {}
 
 concurrency:
-  group: generate-copilot-review-instructions-${{ inputs.repository }}
+  group: copilot-review-instructions-${{ inputs.repository }}
   cancel-in-progress: false
 
 jobs:
@@ -34,7 +34,7 @@ jobs:
           python-version: "3.14"
 
       - name: Install Copilot SDK
-        run: python -m pip install -r .github/scripts/pr-review-metrics/requirements.txt
+        run: python -m pip install -r .github/scripts/copilot-review-instructions/requirements.txt
 
       - name: Draft replacement instructions
         id: draft
@@ -43,8 +43,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           COPILOT_GITHUB_TOKEN: ${{ github.token }}
         run: |
-          python -u .github/scripts/pr-review-metrics/draft_hosted.py \
-            --repository "$TARGET_REPOSITORY" --work "$RUNNER_TEMP/pr-review-metrics" \
+          python -u .github/scripts/copilot-review-instructions/draft_hosted.py \
+            --repository "$TARGET_REPOSITORY" --work "$RUNNER_TEMP/copilot-review-instructions-work" \
             --artifact "$RUNNER_TEMP/pr-review-instructions"
 
       - name: Preview the publishing decision
@@ -54,7 +54,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          python .github/scripts/pr-review-metrics/publish_instructions.py \
+          python .github/scripts/copilot-review-instructions/publish_instructions.py \
             --repository "$TARGET_REPOSITORY" \
             --artifact "$RUNNER_TEMP/pr-review-instructions" --dry-run | tee -a "$GITHUB_STEP_SUMMARY"
 
@@ -89,6 +89,6 @@ jobs:
           GH_TOKEN: ${{ secrets.OPENTELEMETRYBOT_GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          python3 .github/scripts/pr-review-metrics/publish_instructions.py \
+          python3 .github/scripts/copilot-review-instructions/publish_instructions.py \
             --repository "$TARGET_REPOSITORY" --artifact "$RUNNER_TEMP/pr-review-instructions" \
             | tee -a "$GITHUB_STEP_SUMMARY"

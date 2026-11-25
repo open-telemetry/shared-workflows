@@ -9,6 +9,7 @@ See [`CONTRIBUTING.md`](./CONTRIBUTING.md) for how to propose a new shared workf
 | Name | Description | How to use |
 | ---- | ----------- | ---------- |
 | [Changelog](./chloggen/) | Reusable workflow that enforces the chloggen-style changelog process: blocks direct `CHANGELOG*.md` edits, requires a `.chloggen/*.yaml` entry, validates it, and link-checks its rendered preview. | Call via `uses:` from your repo's `pull_request` workflow. See the [Changelog README](./chloggen/README.md) for the snippet. |
+| [Copilot review instructions](./copilot-review-instructions/) | Collects PR review evidence for opted-in public repositories and drafts replacement Copilot instructions on demand. | Add your repository to [`repositories.json`](./.github/scripts/copilot-review-instructions/repositories.json) and follow the [workflow README](./copilot-review-instructions/README.md). |
 | [First-time contributor](./first-time-pr/) | Reusable workflow that welcomes first-time contributors on `pull_request_target: opened`: applies a label and posts a customizable welcome comment. | Call via `uses:` from your repo's `pull_request_target` workflow. See the [First-time contributor README](./first-time-pr/README.md) for the snippet. |
 | [FOSSA](./fossa/) | Reusable workflow that runs [FOSSA](https://fossa.com/) license and dependency scanning for the OpenTelemetry team. | Call via `uses:` from your repo's workflow. See the [FOSSA README](./fossa/README.md) for the snippet. |
 | [GitHub Actions queue data](./github-actions-queue/) | Centrally collects per-job queue timing data for active public repositories in the OpenTelemetry organization. | Configure the read-only GitHub App described in the [GitHub Actions queue data README](./github-actions-queue/README.md). |
@@ -17,8 +18,6 @@ See [`CONTRIBUTING.md`](./CONTRIBUTING.md) for how to propose a new shared workf
 | [Survey on merged PR](./survey-on-merged-pr/) | Reusable workflow that posts a survey link to a merged PR when the author is a new contributor. | Call via `uses:` from your repo's `pull_request_target: closed` workflow. See the [Survey on merged PR README](./survey-on-merged-pr/README.md) for the snippet. |
 | [Workflow failure issue](./workflow-failure-issue/) | Reusable workflow that tracks a workflow's pass/fail state by opening, commenting on, and closing a GitHub issue in the calling repository — useful for scheduled workflows whose failure notifications otherwise reach only a single user. | Call via `uses:` from a final `if: always()` job in the workflow you want to monitor. See the [Workflow failure issue README](./workflow-failure-issue/README.md) for the snippet. |
 | [Zizmor](./zizmor/) | Static analysis of GitHub Actions workflows for security issues using [zizmor](https://github.com/zizmorcore/zizmor). | Call via `uses:` from your repo's workflow. See the [Zizmor README](./zizmor/README.md) for the snippet. |
-
-The [PR review metrics workflow](./pr-review-metrics/) collects review outcomes for opted-in public repositories and drafts Copilot review instructions on demand.
 
 ## Maintainers
 

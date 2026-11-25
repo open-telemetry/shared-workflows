@@ -23,7 +23,7 @@ def load_config(path=CONFIG):
                         or entry.keys() != {"publish_instructions"}
                         or type(entry["publish_instructions"]) is not bool
                         for name, entry in repos.items()):
-        raise DataError("Invalid PR review metrics opt-in configuration")
+        raise DataError("Invalid Copilot review instructions opt-in configuration")
     return date.fromisoformat(settings["start"]), repos
 
 
@@ -31,5 +31,5 @@ def target_repository(value):
     name = repository_name(value)
     _, repos = load_config()
     if name not in repos:
-        raise DataError(f"{OWNER}/{name} has not opted in to review metrics")
+        raise DataError(f"{OWNER}/{name} has not opted in to review evidence collection")
     return f"{OWNER}/{name}", repos[name]["publish_instructions"]

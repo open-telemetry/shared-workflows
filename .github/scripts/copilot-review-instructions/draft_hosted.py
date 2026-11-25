@@ -26,7 +26,7 @@ def main():
         through = datetime.now(timezone.utc).date()
         expected = remote_tip()
         if not expected:
-            raise DataError("Run the review metrics collector before generating instructions")
+            raise DataError("Run the review evidence collector before generating instructions")
         archive_path = args.work / "archive.sqlite3"
         with closing(Archive(archive_path)) as archive:
             open_snapshot(archive, expected, None)

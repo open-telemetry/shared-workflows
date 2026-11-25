@@ -1,14 +1,14 @@
-# PR review metrics and instructions
+# Copilot review instructions
 
 The collector assesses inline review findings on merged PRs in opted-in public OpenTelemetry repositories. A finding is addressed if the issue shown in the reviewed revision is gone at merge. The instruction generator uses addressed human findings as examples. The collector skips assessments for bot-authored PRs.
 
 ## Collect review evidence
 
-Add an unqualified repository name to [the opt-in list](../.github/scripts/pr-review-metrics/repositories.json). Collection starts at the configured UTC date, initially October 1, 2026, and runs daily at 05:43 UTC or by dispatching [Collect PR review metrics](https://github.com/open-telemetry/shared-workflows/actions/workflows/pr-review-metrics-collector.yml). Removing a repository stops collection without deleting its existing evidence.
+Add an unqualified repository name to [the opt-in list](../.github/scripts/copilot-review-instructions/repositories.json). Collection starts at the configured UTC date, initially October 1, 2026, and runs daily at 05:43 UTC or by dispatching [Collect PR review evidence](https://github.com/open-telemetry/shared-workflows/actions/workflows/copilot-review-instructions-collector.yml). Removing a repository stops collection without deleting its existing evidence.
 
 Each run checks today and yesterday first, then fills the oldest unconfirmed days. It caps collection at three backfill days per repo, 180 GitHub API requests, ten new prepared evidence bundles and six new PR assessments. GitHub API calls, Git evidence commands and model requests during collection share a 25-minute deadline. This leaves time to save completed work before the 45-minute Actions job timeout.
 
-The workflow owns the `otelbot/pr-review-metrics-data` branch. Its first run loads a pinned snapshot of the previous archive as a seed. Subsequent runs read and replace the shared-workflows snapshot with a lease on its previous revision. Do not publish to the old archive or hand-edit the new branch. The archive stores public review text, code excerpts and validated outcomes so older assessments can still be used if the originals change. Newly published records go through the secret check; model explanations and intermediate judgments are not published.
+The workflow owns the `otelbot/copilot-review-instructions-data` branch. Its first run loads a pinned snapshot of the previous archive as a seed. Subsequent runs read and replace the shared-workflows snapshot with a lease on its previous revision. Do not publish to the old archive or hand-edit the new branch. The archive stores public review text, code excerpts and validated outcomes so older assessments can still be used if the originals change. Newly published records go through the secret check; model explanations and intermediate judgments are not published.
 
 The collector logs and skips PR records and prepared evidence that fail the publication checks. It still saves the rest of the batch and retries skipped PR records without marking their merge days complete. If a repository's combined metadata cannot be published, the collector keeps its previous snapshot and publishes the other repositories' progress.
 
@@ -16,10 +16,10 @@ The collector logs and skips PR records and prepared evidence that fail the publ
 
 Use this workflow when you want to start fresh with a repository's Copilot instructions. The patch replaces the full set: `.github/copilot-instructions.md` and any `*.instructions.md` files under `.github/instructions/`. It deletes any of those files that the draft doesn't recreate, including hand-written ones. It leaves `AGENTS.md` unchanged. Review the deletions and carry over any rules you want to keep before applying or merging the patch.
 
-Dispatch [Generate Copilot review instructions](https://github.com/open-telemetry/shared-workflows/actions/workflows/generate-copilot-review-instructions.yml) with one input:
+Dispatch [Generate Copilot review instructions](https://github.com/open-telemetry/shared-workflows/actions/workflows/copilot-review-instructions.yml) with one input:
 
 ```sh
-gh workflow run generate-copilot-review-instructions.yml \
+gh workflow run copilot-review-instructions.yml \
   --repo open-telemetry/shared-workflows -f repository=semantic-conventions-conformance
 ```
 
@@ -35,7 +35,7 @@ If the bot pushes the draft branch but the PR write fails, retry the publish job
 - Allow the `protected` environment to write the snapshot branch from `main`. Keep `main` protected from direct workflow pushes.
 - Before enabling bot publishing, make `OPENTELEMETRYBOT_GITHUB_TOKEN` available to the `protected` environment. The token only goes to the publish step. The bot needs fork and PR permissions, not write access to target repositories. Confirm the review request with the bot on an opted-in pilot before expanding.
 
-Run the scanner and generator tests locally from `.github/scripts/pr-review-metrics`:
+Run the scanner and generator tests locally from `.github/scripts/copilot-review-instructions`:
 
 ```sh
 python -m unittest discover -p 'test_*.py'

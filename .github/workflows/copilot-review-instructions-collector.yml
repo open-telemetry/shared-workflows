@@ -1,4 +1,4 @@
-name: Collect PR review metrics
+name: Collect PR review evidence
 
 on:
   schedule:
@@ -8,7 +8,7 @@ on:
 permissions: {}
 
 concurrency:
-  group: pr-review-metrics-collector
+  group: copilot-review-instructions-collector
   cancel-in-progress: false
 
 jobs:
@@ -31,7 +31,7 @@ jobs:
           python-version: "3.14"
 
       - name: Install Copilot SDK
-        run: python -m pip install -r .github/scripts/pr-review-metrics/requirements.txt
+        run: python -m pip install -r .github/scripts/copilot-review-instructions/requirements.txt
 
       - name: Capture and assess one bounded batch
         id: collect
@@ -43,20 +43,20 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           status=0
-          python -u .github/scripts/pr-review-metrics/collect_hosted.py collect \
-            --work "$RUNNER_TEMP/pr-review-metrics" \
-            --artifact "$RUNNER_TEMP/pr-review-metrics-artifact" \
-            > "$RUNNER_TEMP/pr-review-metrics-summary.json" || status=$?
-          if [[ -s "$RUNNER_TEMP/pr-review-metrics-summary.json" ]]; then
+          python -u .github/scripts/copilot-review-instructions/collect_hosted.py collect \
+            --work "$RUNNER_TEMP/copilot-review-instructions-work" \
+            --artifact "$RUNNER_TEMP/copilot-review-instructions-snapshot" \
+            > "$RUNNER_TEMP/copilot-review-instructions-summary.json" || status=$?
+          if [[ -s "$RUNNER_TEMP/copilot-review-instructions-summary.json" ]]; then
             {
-              echo '### PR review metrics'
+              echo '### PR review evidence'
               echo
               echo '```json'
-              jq . "$RUNNER_TEMP/pr-review-metrics-summary.json"
+              jq . "$RUNNER_TEMP/copilot-review-instructions-summary.json"
               echo '```'
             } >> "$GITHUB_STEP_SUMMARY"
           fi
-          if [[ -s "$RUNNER_TEMP/pr-review-metrics-artifact/snapshot.json" ]]; then
+          if [[ -s "$RUNNER_TEMP/copilot-review-instructions-snapshot/snapshot.json" ]]; then
             echo 'snapshot=true' >> "$GITHUB_OUTPUT"
           fi
           exit "$status"
@@ -65,8 +65,8 @@ jobs:
         id: upload
         if: ${{ !cancelled() && steps.collect.outputs.snapshot == 'true' }}
         with:
-          name: pr-review-metrics-snapshot-${{ github.run_attempt }}
-          path: ${{ runner.temp }}/pr-review-metrics-artifact
+          name: copilot-review-instructions-snapshot-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/copilot-review-instructions-snapshot
           if-no-files-found: error
           retention-days: 1
 
@@ -86,11 +86,11 @@ jobs:
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           artifact-ids: ${{ needs.collect.outputs.snapshot_artifact_id }}
-          path: ${{ runner.temp }}/pr-review-metrics-artifact
+          path: ${{ runner.temp }}/copilot-review-instructions-snapshot
 
       - name: Publish snapshot
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          python3 .github/scripts/pr-review-metrics/collect_hosted.py publish \
-            --artifact "$RUNNER_TEMP/pr-review-metrics-artifact"
+          python3 .github/scripts/copilot-review-instructions/collect_hosted.py publish \
+            --artifact "$RUNNER_TEMP/copilot-review-instructions-snapshot"

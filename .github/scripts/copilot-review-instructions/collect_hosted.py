@@ -19,8 +19,8 @@ from shared_data import SHARED_REMOTE, SNAPSHOT_REF, RecordRejected, SharedData,
 
 SEED_REMOTE = "https://github.com/trask/otel-pr-review-metrics.git"
 SEED_SHA = "a1e882d35cd3ef2a8c0dd9ec1a085b51363bf7c2"
-BUNDLE_REF = "refs/heads/pr-review-metrics-snapshot"
-STAGING_REF = "refs/pr-review-metrics/staged-data"
+BUNDLE_REF = "refs/heads/copilot-review-instructions-snapshot"
+STAGING_REF = "refs/copilot-review-instructions/staged-data"
 ASSESSOR = "gpt-6.2-sol"
 LIVE_DAYS = 2
 
@@ -30,7 +30,7 @@ def remote_tip(remote=SHARED_REMOTE):
     if result.returncode == 2:
         return ""
     if result.returncode or not object_id(result.stdout.partition("\t")[0]):
-        raise DataError(f"Could not read the review metrics data ref: {result.stderr.strip()}")
+        raise DataError(f"Could not read the review evidence data ref: {result.stderr.strip()}")
     return result.stdout.partition("\t")[0]
 
 
@@ -162,7 +162,7 @@ def export_snapshot(args):
         if expected and tree == git("rev-parse", f"{expected}^{{tree}}").strip():
             print(json.dumps({**details, "updated": False}))
             return int(bool(details["failures"]))
-        commit = git("commit-tree", tree, "-m", "Snapshot public PR review metrics").strip()
+        commit = git("commit-tree", tree, "-m", "Snapshot public PR review evidence").strip()
         git("update-ref", BUNDLE_REF, commit)
         git("bundle", "create", str(args.artifact / "data.bundle"), BUNDLE_REF)
         (args.artifact / "snapshot.json").write_text(
@@ -175,7 +175,7 @@ def publish_snapshot(artifact):
     metadata = json.loads((artifact / "snapshot.json").read_text(encoding="utf-8"))
     expected, revision = metadata["expected"], metadata["revision"]
     if (expected != "" and not object_id(expected)) or not object_id(revision):
-        raise DataError("Invalid review metrics snapshot identity")
+        raise DataError("Invalid review evidence snapshot identity")
     bundle = str(artifact / "data.bundle")
     git("bundle", "verify", bundle)
     git("fetch", "--quiet", "--no-tags", bundle, f"{BUNDLE_REF}:{STAGING_REF}")
@@ -213,7 +213,7 @@ def main():
             return export_snapshot(args)
         publish_snapshot(args.artifact)
     except COMMAND_ERRORS as error:
-        log(f"Review metrics {args.command} stopped: {error}")
+        log(f"Review evidence {args.command} stopped: {error}")
         return 1
     return 0
 

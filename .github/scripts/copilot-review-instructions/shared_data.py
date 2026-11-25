@@ -17,7 +17,7 @@ from prepared import SUPPORTED_PREPARED_VERSIONS, digest, json_bytes
 
 SHARED_REMOTE = "https://github.com/open-telemetry/shared-workflows.git"
 DATA_REF = "refs/heads/data"
-SNAPSHOT_REF = "refs/heads/otelbot/pr-review-metrics-data"
+SNAPSHOT_REF = "refs/heads/otelbot/copilot-review-instructions-data"
 MANIFEST = "schema.json"
 FORMAT = {"format": 1}
 HASH = r"[0-9a-f]{64}"
