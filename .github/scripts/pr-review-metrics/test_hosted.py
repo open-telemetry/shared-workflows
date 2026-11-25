@@ -6,7 +6,7 @@ from tempfile import TemporaryDirectory
 from unittest.mock import Mock
 
 from archive import Archive, encode
-from collect_hosted import aggregate_report, capture_days
+from collect_hosted import capture_days
 from config import target_repository
 from github_data import DataError
 from publish_instructions import BOT, BRANCH, pr_body, publishing_plan
@@ -16,21 +16,6 @@ from test_scorecard import git_at, shared_remote
 
 
 class HostedCollectionTests(unittest.TestCase):
-    def test_pages_report_shows_confirmed_capture_without_contacting_the_model(self):
-        start, today = date(2026, 10, 1), date(2026, 10, 3)
-        with TemporaryDirectory() as work, closing(Archive(Path(work) / "data.sqlite3")) as archive:
-            with archive.db:
-                archive.db.execute("INSERT INTO complete_days VALUES (?, ?)", (REPOS[0], str(start)))
-                pull = {"repo": REPOS[0], "number": 1, "missing_roots": 0,
-                        "threads": [{"id": "T1", "author": {"login": "person", "__typename": "User"}}]}
-                archive.db.execute("INSERT INTO pulls VALUES (?, 1, ?, '2026-10-01T12:00:00Z', ?)",
-                                   (REPOS[0], str(start), encode(pull)))
-                archive.db.execute("INSERT INTO pull_authors VALUES (?, 1, 'person', 'User')", (REPOS[0],))
-            report = aggregate_report(archive, start, today)
-        self.assertIn("Collection progress", report)
-        self.assertIn(f"<td>{REPOS[0]}</td><td>1</td><td>2026-10-01</td><td>0 of 1</td>", report)
-        self.assertIn(f"<td>{REPOS[1]}</td><td>0</td><td>None</td>", report)
-
     def test_live_windows_precede_bounded_backfill_for_every_repository(self):
         start, today = date(2026, 10, 1), date(2026, 10, 13)
         with TemporaryDirectory() as work, closing(Archive(Path(work) / "data.sqlite3")) as archive:
@@ -65,11 +50,12 @@ class HostedCollectionTests(unittest.TestCase):
                 with archive.db:
                     archive.db.execute("INSERT INTO pull_authors VALUES (?, 1, 'opentelemetrybot', 'User')",
                                        (active,))
-                current.prepare_commit("refs/heads/candidate", include_assessments=True, report="<main>Stats</main>")
+                current.prepare_commit("refs/heads/candidate", include_assessments=True)
+                self.assertEqual(git_at(checkout, "ls-tree", "--name-only", "candidate").splitlines(),
+                                 ["open-telemetry", "schema.json"])
                 tree = git_at(checkout, "ls-tree", "-r", "--name-only", "candidate")
                 self.assertIn(f"{inactive}/2026-10/1.json", tree)
                 self.assertIn(f"{active}/pr-authors.json", tree)
-                self.assertEqual(git_at(checkout, "show", "candidate:report.html"), "<main>Stats</main>")
             git_at(checkout, "push", str(remote), "refs/heads/candidate:refs/heads/data")
             with closing(Archive(root / "next.sqlite3")) as archive:
                 SharedData(archive, [active], remote=str(remote), cwd=checkout, snapshot=True).load()

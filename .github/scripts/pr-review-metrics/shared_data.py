@@ -18,7 +18,6 @@ from prepared import SUPPORTED_PREPARED_VERSIONS, digest, json_bytes
 SHARED_REMOTE = "https://github.com/open-telemetry/shared-workflows.git"
 DATA_REF = "refs/heads/data"
 SNAPSHOT_REF = "refs/heads/otelbot/pr-review-metrics-data"
-REPORT = "report.html"
 MANIFEST = "schema.json"
 FORMAT = {"format": 1}
 HASH = r"[0-9a-f]{64}"
@@ -210,7 +209,7 @@ class SharedData:
             path != MANIFEST, ".assessment." in path, path.endswith(".gz"), path))
         with self.archive.db:
             for path, blob in self.blobs([(path, entries[path][0]) for path in ordered]):
-                if self.snapshot and (path == REPORT or self.inactive_record(path)):
+                if self.snapshot and self.inactive_record(path):
                     continue
                 self.load_record(path, blob)
                 self.imported[path] = sha256(blob).digest()
@@ -406,12 +405,9 @@ class SharedData:
             record = public_assessment(pull, result, key, bundle=evidence, lookup=lookup)
             yield path, self.text_record(record), record
 
-    def prepare_commit(self, ref, *, include_assessments=False, report=None):
+    def prepare_commit(self, ref, *, include_assessments=False):
         if self.tip is None:
             raise DataError("Load the current data branch before publishing")
-        report_blob = report.encode("utf-8") if report is not None else None
-        if report_blob is not None and len(report_blob) > MAX_RECORD_BYTES:
-            raise DataError("The aggregate report is too large")
         identity = self.git("var", "GIT_COMMITTER_IDENT")
         message = (b"Update public PR review data\n\n"
                    b"Co-authored-by: Copilot App <223556219+Copilot@users.noreply.github.com>\n")
@@ -436,10 +432,6 @@ class SharedData:
                 return None
             for path in sorted(self.imported.keys() - seen.keys()):
                 stream.extend(f"D {path}\n".encode())
-        if report_blob is not None:
-            stream.extend(f"M 100644 inline {REPORT}\ndata {len(report_blob)}\n".encode())
-            stream.extend(report_blob)
-            stream.extend(b"\n")
         stream.extend(b"\ndone\n")
         self.git("fast-import", "--quiet", "--done", binary=True, input=bytes(stream))
         return seen

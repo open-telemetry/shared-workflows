@@ -1,12 +1,9 @@
 import argparse
-import io
 import json
 from contextlib import closing
 from datetime import datetime, timedelta, timezone
-from html import escape
 from pathlib import Path
 from time import monotonic
-from types import SimpleNamespace
 
 from archive import Archive
 from assessment import RETRIEVAL_VERSION
@@ -16,8 +13,7 @@ from github_data import BudgetExhausted, DataError, GitHub, RateLimitError, run_
 from git_evidence import object_id
 from prepared import Evidence, prepare
 from review_instructions import git
-from scorecard import (COMMAND_ERRORS, REPOS, assess_cached, collect, is_bot_pr_author,
-                       log, render)
+from scorecard import COMMAND_ERRORS, REPOS, assess_cached, is_bot_pr_author, log
 from shared_data import SHARED_REMOTE, SNAPSHOT_REF, SharedData
 
 
@@ -130,30 +126,6 @@ def collect_batch(archive, args, start, today, git_root, deadline):
             "assessment_attempts": assessed, "failures": failures}
 
 
-def aggregate_report(archive, start, today):
-    args = SimpleNamespace(command="report", custom_reviewer=set(), other_bot=set(),
-                           assessment_version=RETRIEVAL_VERSION, prioritize_oversized=False,
-                           audit_dir=None, retrieve_evidence=False)
-    with closing(Copilot(ASSESSOR)) as model:
-        cohorts, _ = collect(archive, args, model, [("Review metrics", (start, today))], REPOS)
-    status = io.StringIO()
-    status.write("<section><h2>Collection progress</h2>"
-                 "<p>Capture is confirmed after GitHub search has had time to index new merges.</p>"
-                 "<table><thead><tr><th>Repository</th><th>Confirmed UTC days</th>"
-                 "<th>Latest confirmed day</th><th>Visible threads assessed</th></tr></thead><tbody>")
-    for repo, stats in cohorts[0].repos.items():
-        missing = set(archive.pending_days(repo, start, today))
-        latest = next((today - timedelta(days=offset) for offset in range((today - start).days + 1)
-                       if today - timedelta(days=offset) not in missing), None)
-        threads = sum(stats.threads.values())
-        status.write(f"<tr><td>{escape(repo)}</td><td>{(today - start).days + 1 - len(missing)}</td>"
-                     f"<td>{latest or 'None'}</td><td>{threads - sum(stats.pending.values())}"
-                     f" of {threads}</td></tr>")
-    status.write("</tbody></table></section>")
-    return render(cohorts, set(), ASSESSOR, RETRIEVAL_VERSION).replace(
-        "</main>", status.getvalue() + "</main>", 1)
-
-
 def export_snapshot(args):
     start, _ = load_config()
     today = datetime.now(timezone.utc).date()
@@ -164,13 +136,7 @@ def export_snapshot(args):
     with closing(Archive(args.work / "archive.sqlite3")) as archive:
         shared = open_snapshot(archive, expected, git_root)
         details = collect_batch(archive, args, start, today, git_root, monotonic() + args.work_seconds)
-        try:
-            report = aggregate_report(archive, start, today)
-        except COMMAND_ERRORS as error:
-            log(f"Leaving the last complete scorecard intact: {error}")
-            details["failures"] += 1
-            report = None
-        shared.prepare_commit(STAGING_REF, include_assessments=True, report=report)
+        shared.prepare_commit(STAGING_REF, include_assessments=True)
         tree = git("rev-parse", f"{STAGING_REF}^{{tree}}").strip()
         if expected and tree == git("rev-parse", f"{expected}^{{tree}}").strip():
             print(json.dumps({**details, "updated": False}))

@@ -1,14 +1,14 @@
 # PR review metrics and instructions
 
-The [scorecard](https://open-telemetry.github.io/shared-workflows/pr-review-metrics/) summarizes inline review findings on merged PRs in opted-in public OpenTelemetry repositories. It distinguishes assessed findings from pending or unavailable evidence and shows collection progress per repository. A finding is addressed if the issue shown in the reviewed revision is gone at merge. Automated and human reviews are reported separately; bot-authored PRs are excluded.
+The collector assesses inline review findings on merged PRs in opted-in public OpenTelemetry repositories. A finding is addressed if the issue shown in the reviewed revision is gone at merge. The instruction generator uses addressed human findings as examples. The collector skips assessments for bot-authored PRs.
 
 ## Collect review evidence
 
-Add an unqualified repository name to [the opt-in list](../.github/scripts/pr-review-metrics/repositories.json). Collection starts at the configured UTC date, initially October 1, 2026, and runs daily at 05:43 UTC or by dispatching [Collect PR review metrics](https://github.com/open-telemetry/shared-workflows/actions/workflows/pr-review-metrics-collector.yml). Removing a repository stops collection and excludes it from new scorecards without deleting its existing evidence.
+Add an unqualified repository name to [the opt-in list](../.github/scripts/pr-review-metrics/repositories.json). Collection starts at the configured UTC date, initially October 1, 2026, and runs daily at 05:43 UTC or by dispatching [Collect PR review metrics](https://github.com/open-telemetry/shared-workflows/actions/workflows/pr-review-metrics-collector.yml). Removing a repository stops collection without deleting its existing evidence.
 
 Each run checks today and yesterday first, then fills the oldest unconfirmed days. It caps collection at three backfill days per repo, 180 GitHub API requests, ten new prepared evidence bundles and six new PR assessments. It saves completed work as a batch; unprocessed work is available for the next run. The work loop stops starting new work after 25 minutes, and Actions enforces a 45-minute collection-job timeout.
 
-The workflow owns the `otelbot/pr-review-metrics-data` branch. Its first run loads a pinned snapshot of the previous archive as a seed. Subsequent runs read and replace the shared-workflows snapshot with a lease on its previous revision. Do not publish to the old archive or hand-edit the new branch. The archive stores public review text, code excerpts and validated outcomes so older assessments can still be used if the originals change. Newly published records go through the secret check; model explanations and intermediate judgments are not published. Only the aggregate HTML is copied into the hourly queue dashboard Pages deployment.
+The workflow owns the `otelbot/pr-review-metrics-data` branch. Its first run loads a pinned snapshot of the previous archive as a seed. Subsequent runs read and replace the shared-workflows snapshot with a lease on its previous revision. Do not publish to the old archive or hand-edit the new branch. The archive stores public review text, code excerpts and validated outcomes so older assessments can still be used if the originals change. Newly published records go through the secret check; model explanations and intermediate judgments are not published.
 
 ## Generate Copilot instructions
 
