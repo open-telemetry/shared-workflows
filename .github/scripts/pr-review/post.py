@@ -14,10 +14,6 @@ EXPERIMENT_NOTICE = (
 )
 
 
-def with_notice(body: str | None) -> str:
-    return f"{EXPERIMENT_NOTICE}\n\n{body}" if body else EXPERIMENT_NOTICE
-
-
 def publish_result(repo: str, pr: int, result_path: Path) -> None:
     result = json.loads(result_path.read_text(encoding="utf-8"))
     if result["pr"] != pr or result["repository"] != repo:
@@ -25,7 +21,7 @@ def publish_result(repo: str, pr: int, result_path: Path) -> None:
     review = result["review"]
     check_snapshot(repo, pr, result["base_sha"], review["commit_id"])
     if not review["comments"]:
-        body = with_notice("No findings.")
+        body = f"{EXPERIMENT_NOTICE}\n\nNo findings."
         comment = gh_json(
             ["api", "-X", "POST", f"repos/{repo}/issues/{pr}/comments", "-f", f"body={body}"]
         )
