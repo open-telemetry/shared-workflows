@@ -139,15 +139,36 @@ class ReviewTest(unittest.TestCase):
             '{"anchors":[{"index":0,"line":24}]}',
         ]
         metadata = {"number": 123, "base": {"sha": "base"}, "head": {"sha": "head"}}
-        scope = {"Example.java": {"hunks": [(21, 30)], "changed_lines": [24, 25, 26, 27]}}
-        with mock.patch.object(runner, "model_pass", side_effect=answers) as model:
+        diff = (
+            'diff --git a/Example.java b/Example.java\n'
+            '--- a/Example.java\n+++ "b/Example.java"\n'
+            '@@ -21,6 +21,10 @@\n'
+            ' /**\n  * Runs.\n  */\n'
+            '+public static void main(String[] args) {\n+    run();\n+}\n+\n'
+            ' public void run() {\n }\n \n'
+            '@@ -50 +54,2 @@\n // Other behavior.\n+int count = 1;\n'
+        )
+        with (
+            tempfile.TemporaryDirectory() as directory,
+            mock.patch.object(runner, "model_pass", side_effect=answers) as model,
+        ):
+            bundle = Path(directory)
+            (bundle / "pr.diff").write_text(
+                diff + 'diff --git a/Other.java b/Other.java\n'
+                '--- a/Other.java\n+++ b/Other.java\n@@ -1 +1 @@\n-before\n+unrelated change\n',
+                encoding="utf-8",
+            )
             result = runner.verify_findings(
-                "Check both passes.", Path("source"), Path("input"), scope, metadata, target=Path("target"),
+                "Check both passes.", Path("source"), bundle, prepare.parse_diff(diff), metadata, target=Path("target"),
             )
 
         self.assertEqual(model.call_count, 2)
         self.assertEqual(model.call_args.kwargs["phase"], "anchor-repair")
-        self.assertIn('"changed_lines": [24, 25, 26, 27]', model.call_args.args[2])
+        self.assertIs(model.call_args.kwargs["allow_tools"], False)
+        self.assertIn('"changed_lines": [24, 25, 26, 27, 55]', model.call_args.args[2])
+        self.assertIn(json.dumps(comment["why"]), model.call_args.args[2])
+        self.assertIn(json.dumps(diff), model.call_args.args[2])
+        self.assertNotIn("unrelated change", model.call_args.args[2])
         self.assertNotIn('"suggestion": "replacement"', model.call_args.args[2])
         self.assertEqual(result["review"]["comments"], [
             {"path": "Example.java", "line": 24, "side": "RIGHT", "body": (
@@ -165,9 +186,18 @@ class ReviewTest(unittest.TestCase):
         ]
         metadata = {"number": 123, "base": {"sha": "base"}, "head": {"sha": "head"}}
         scope = {"example.txt": {"hunks": [(1, 3)], "changed_lines": [2, 3]}}
-        with mock.patch.object(runner, "model_pass", side_effect=answers):
+        with (
+            tempfile.TemporaryDirectory() as directory,
+            mock.patch.object(runner, "model_pass", side_effect=answers),
+        ):
+            bundle = Path(directory)
+            (bundle / "pr.diff").write_text(
+                "diff --git a/example.txt b/example.txt\n"
+                "--- a/example.txt\n+++ b/example.txt\n@@ -1 +1,3 @@\n context\n+first\n+second\n",
+                encoding="utf-8",
+            )
             result = runner.verify_findings(
-                "Check both passes.", Path("source"), Path("input"), scope, metadata, target=Path("target"),
+                "Check both passes.", Path("source"), bundle, scope, metadata, target=Path("target"),
             )
         self.assertEqual(result["review"]["comments"], [
             {"path": "example.txt", "line": 2, "side": "RIGHT", "body": "**Finding:** Keep this finding.\n\n**Why:** Evidence."},
@@ -180,12 +210,19 @@ class ReviewTest(unittest.TestCase):
         metadata = {"number": 123, "base": {"sha": "base"}, "head": {"sha": "head"}}
         scope = {"example.txt": {"hunks": [(1, 2)], "changed_lines": [2]}}
         with (
+            tempfile.TemporaryDirectory() as directory,
             mock.patch.object(runner, "model_pass", side_effect=answers),
-            self.assertRaisesRegex(RuntimeError, "Review validation failed: none of the findings could be anchored"),
         ):
-            runner.verify_findings(
-                "Check both passes.", Path("source"), Path("input"), scope, metadata, target=Path("target"),
+            bundle = Path(directory)
+            (bundle / "pr.diff").write_text(
+                "diff --git a/example.txt b/example.txt\n"
+                "--- a/example.txt\n+++ b/example.txt\n@@ -1 +1,2 @@\n context\n+added\n",
+                encoding="utf-8",
             )
+            with self.assertRaisesRegex(RuntimeError, "Review validation failed: none of the findings could be anchored"):
+                runner.verify_findings(
+                    "Check both passes.", Path("source"), bundle, scope, metadata, target=Path("target"),
+                )
 
     def test_verifier_fails_closed_after_two_invalid_answers(self):
         comment = {"kind": "review", "path": "example.txt", "line": 2, "finding": "A finding", "why": "Evidence"}
