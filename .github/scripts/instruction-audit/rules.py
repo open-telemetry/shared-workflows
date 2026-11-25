@@ -10,8 +10,10 @@ INSTRUCTIONS = re.compile(
     re.ASCII,
 )
 HEADING = re.compile(r" {0,3}#{1,6}(?:[ \t]+|$)")
+TITLE = re.compile(r" {0,3}#[ \t]+\S")
 ITEM = re.compile(r" {0,3}(?:[-+*]|\d{1,9}[.)])[ \t]+")
 FENCE = re.compile(r" {0,3}(`{3,}|~{3,})")
+NON_PROSE = re.compile(r" {4}| {0,3}(?:[\t>|<]|\[[^\]]+\]:|:?-+:?[ \t]*\|)")
 
 
 @dataclass(frozen=True)
@@ -20,13 +22,14 @@ class Rule:
     text: str
     first_line: int
     last_line: int
+    is_scope: bool = False
 
     @property
     def anchor(self):
         return {"path": self.path, "text": self.text}
 
 
-def blocks(path, document):
+def _blocks(path, document):
     lines = document.splitlines(keepends=True)
     start = 0
     if lines and lines[0].strip() == "---":
@@ -35,6 +38,14 @@ def blocks(path, document):
             raise ValueError("Unclosed instruction front matter")
         start = end + 1
     i = start
+    while i < len(lines) and not lines[i].strip():
+        i += 1
+    scope_start = None
+    if i < len(lines) and TITLE.match(lines[i]):
+        i += 1
+        while i < len(lines) and not lines[i].strip():
+            i += 1
+        scope_start = i
     while i < len(lines):
         line = lines[i]
         if not line.strip() or HEADING.match(line) or re.fullmatch(r" {0,3}([-*_])\1{2,}\s*", line):
@@ -69,14 +80,20 @@ def blocks(path, document):
             if HEADING.match(next_line) or ITEM.match(next_line) or FENCE.match(next_line):
                 break
             i += 1
-        yield Rule(path, "".join(lines[start:i]).rstrip("\r\n"), start + 1, i)
+        is_scope = start == scope_start and not item and not any(NON_PROSE.match(line) for line in lines[start:i])
+        yield Rule(path, "".join(lines[start:i]).rstrip("\r\n"), start + 1, i, is_scope)
+
+
+def blocks(path, document):
+    return (rule for rule in _blocks(path, document) if not rule.is_scope)
 
 
 def remaining_rules(documents, anchor):
     for path in sorted(documents):
         if anchor and path < anchor["path"]:
             continue
-        candidates = list(blocks(path, documents[path]))
+        # Scope blocks are still eligible to match a cursor written by an older parser.
+        candidates = list(_blocks(path, documents[path]))
         counts = Counter(rule.text for rule in candidates)
         if anchor and path == anchor["path"]:
             if counts[anchor["text"]] != 1:
@@ -84,4 +101,5 @@ def remaining_rules(documents, anchor):
             start = next(i for i, rule in enumerate(candidates) if rule.text == anchor["text"])
             candidates = candidates[start + 1:]
         for rule in candidates:
-            yield rule, counts[rule.text] == 1
+            if not rule.is_scope:
+                yield rule, counts[rule.text] == 1

@@ -23,6 +23,7 @@ class RulesTest(unittest.TestCase):
 applyTo: "**/*.md"
 ---
 # Documentation
+## Examples
 Keep public examples current.
 
 ```shell
@@ -52,6 +53,33 @@ Keep public examples current.
         source = "- Check the setting.\r\n\r\n  - Except for tests.\r\n- Check docs.\r\n"
         self.assertEqual([rule.text for rule in blocks(ROOT, source)],
                          ["- Check the setting.\r\n\r\n  - Except for tests.", "- Check docs."])
+
+    def test_opening_scope_is_not_selected_but_still_anchors_a_saved_cursor(self):
+        scope = "Check only public examples.\r\nInternal examples are out of scope."
+        source = f'---\r\napplyTo: "**/*.md"\r\n---\r\n\r\n# Docs\r\n\r\n{scope}\r\n\r\n{FIRST}\r\n'
+        documents = {ROOT: source, NESTED: "- Check later docs.\n"}
+        cursor = {"path": ROOT, "text": scope}
+        expected = [(ROOT, FIRST, 10), (NESTED, "- Check later docs.", 1)]
+        self.assertEqual([(rule.text, rule.first_line) for rule in blocks(ROOT, source)], [(FIRST, 10)])
+        for anchor in (None, cursor):
+            with self.subTest(anchor=anchor):
+                self.assertEqual([(rule.path, rule.text, rule.first_line)
+                                  for rule, _ in remaining_rules(documents, anchor)], expected)
+
+    def test_legacy_openers_and_later_prose_are_still_rules(self):
+        for source, expected in (
+            ("Check docs.\n\n# Rules\n\nCheck links.\n", ["Check docs.", "Check links."]),
+            ("## Rules\n\nCheck docs.\n", ["Check docs."]),
+            ("# Rules\n\n## Docs\n\nCheck docs.\n", ["Check docs."]),
+            ("# Rules\n\n- Check docs.\n\nCheck links.\n", ["- Check docs.", "Check links."]),
+            ("# Rules\n\n> Check docs.\n\nCheck links.\n", ["> Check docs.", "Check links."]),
+            ("# Rules\n\n    Example\n\nCheck docs.\n", ["    Example", "Check docs."]),
+            ("# Rules\n\nName | Value\n--- | ---\n", ["Name | Value\n--- | ---"]),
+            ("# Rules\n\n```text\nExample\n```\n\nCheck docs.\n", ["Check docs."]),
+            ("# Rules\n\n  Scope goes here.\n\nCheck docs.\n", ["Check docs."]),
+        ):
+            with self.subTest(source=source):
+                self.assertEqual([rule.text for rule in blocks(ROOT, source)], expected)
 
 
 class ValidationTest(unittest.TestCase):
@@ -148,10 +176,12 @@ class PassTest(unittest.TestCase):
         })
         read_cursor.return_value = ("c" * 40, "d" * 40, {"path": ROOT, "text": FIRST})
         read_blob.side_effect = lambda _checkout, oid: (
-            f"{FIRST}\n- Clean rule.\n" if oid == "root" else "- Finding rule.\n- Final rule.\n"
+            f"# Rules\n\nApply only to public settings.\n\n{FIRST}\n- Clean rule.\n" if oid == "root"
+            else "- Finding rule.\n- Final rule.\n"
         )
         plan, prompt = audit.prepare(repo, "snapshot")
         self.assertEqual(plan["rule"]["text"], "- Clean rule.")
+        self.assertIn("Apply only to public settings.", prompt)
         self.assertNotIn('"patch"', prompt)
         self.assertEqual(audit.assess(plan, {"status": "clean", "reason": "Looks good."}, "snapshot")["status"],
                          "continue")
