@@ -4,7 +4,7 @@ import os
 import re
 from tempfile import TemporaryDirectory
 
-from github_data import DataError
+from github_data import BudgetExhausted, DataError, time_remaining
 
 
 DEFAULT_REASONING_EFFORT = "high"
@@ -31,9 +31,10 @@ def input_size(instructions, data):
 
 
 class Copilot:
-    def __init__(self, model, reasoning_effort=DEFAULT_REASONING_EFFORT):
+    def __init__(self, model, reasoning_effort=DEFAULT_REASONING_EFFORT, *, deadline=None):
         self.model = model
         self.reasoning_effort = reasoning_effort
+        self.deadline = deadline
         self._request_timeout = MAX_REASONING_REQUEST_TIMEOUT if reasoning_effort == "max" else REQUEST_TIMEOUT
         self._runner = None
 
@@ -69,15 +70,15 @@ class Copilot:
             raise AssessmentSetupError(f"Could not initialize Copilot SDK: {error}") from error
         self._runner = asyncio.Runner()
 
-    async def _ask(self, instructions, prompt):
+    async def _ask(self, instructions, prompt, timeout):
         session = None
         try:
-            async with asyncio.timeout(self._request_timeout):
+            async with asyncio.timeout(timeout):
                 session = await self._client.create_session(
                     model=self.model, reasoning_effort=self.reasoning_effort, available_tools=[],
                     system_message={"mode": "replace", "content": instructions.strip()},
                 )
-                response = await session.send_and_wait(prompt, timeout=self._request_timeout)
+                response = await session.send_and_wait(prompt, timeout=timeout)
         except (TimeoutError, asyncio.CancelledError):
             if session is not None:
                 await asyncio.wait_for(session.abort(), CLEANUP_TIMEOUT)
@@ -110,17 +111,22 @@ class Copilot:
     def ask(self, instructions, data):
         from shared_data import safe_payload
 
+        time_remaining(self.deadline)
         if input_size(instructions, data) > MAX_INPUT:
             raise AssessmentError("Evidence exceeds the model input budget")
         if not safe_payload(data):
             raise AssessmentError("The evidence failed the public-data check")
         self.start()
+        timeout = min(self._request_timeout, time_remaining(self.deadline))
         try:
-            text = self._runner.run(self._ask(instructions, evidence_prompt(data)))
+            text = self._runner.run(self._ask(instructions, evidence_prompt(data), timeout))
         except TimeoutError as error:
+            if timeout < self._request_timeout:
+                raise BudgetExhausted("Collection time budget exhausted") from error
             raise AssessmentError(f"{self.model} ({self.reasoning_effort}) timed out after "
                                   f"{self._request_timeout} seconds") from error
         except self._sdk_errors as error:
+            time_remaining(self.deadline)
             raise AssessmentError(f"Copilot SDK request failed: {error}") from error
         try:
             fence = re.fullmatch(r"```(?:json)?\s*\n(.*?)\n```", text, re.DOTALL)

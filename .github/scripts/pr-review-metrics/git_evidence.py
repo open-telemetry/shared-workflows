@@ -14,10 +14,11 @@ class GitUnavailable(DataError):
 
 
 class GitEvidence:
-    def __init__(self, root, repo, number):
+    def __init__(self, root, repo, number, *, deadline=None):
         self.path = root.joinpath(*repo.split("/")).with_suffix(".git")
         self.url = f"https://github.com/{repo}.git"
         self.number = number
+        self.deadline = deadline
         self.checked = set()
         self.unavailable = set()
         self.ready = False
@@ -30,7 +31,7 @@ class GitEvidence:
             env["GIT_NO_LAZY_FETCH"] = "1"
         command = ["git", "--no-pager", "--literal-pathspecs", "-c", "core.quotePath=false",
                    "--git-dir", str(self.path), *args]
-        result = run_command(command, binary=binary, env=env, input=input)
+        result = run_command(command, binary=binary, deadline=self.deadline, env=env, input=input)
         if result.returncode:
             error = result.stderr.decode("utf-8", errors="replace") if binary else result.stderr
             raise GitUnavailable(f"Git {args[0]} failed: {error.strip()}")

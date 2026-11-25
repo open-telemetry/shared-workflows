@@ -1,7 +1,7 @@
 import re
 from subprocess import TimeoutExpired
 
-from github_data import DataError, blob_url, instant
+from github_data import BudgetExhausted, DataError, blob_url, instant
 from git_evidence import object_id
 from prepared import Evidence, bounded, change_record, json_bytes, pack_changes, path_score
 
@@ -40,8 +40,8 @@ def excerpt(state, query):
 
 
 class OutcomeEvidence:
-    def __init__(self, git_root, pull):
-        self.source = Evidence(git_root, pull)
+    def __init__(self, git_root, pull, *, deadline=None):
+        self.source = Evidence(git_root, pull, deadline=deadline)
         self.paths = None
 
     def snapshots(self, thread, path, query, suffix):
@@ -115,6 +115,8 @@ class OutcomeEvidence:
             else:
                 records = self.snapshots(thread, path, query, suffix)
                 note = "Read the requested file in the archived reviewed and merged revisions."
+        except BudgetExhausted:
+            raise
         except (DataError, OSError, TimeoutExpired, UnicodeError):
             return {}, "Git could not complete this lookup."
         if len(json_bytes(records)) > LOOKUP_BYTES:

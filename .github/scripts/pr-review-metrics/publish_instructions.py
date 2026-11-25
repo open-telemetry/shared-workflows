@@ -170,7 +170,8 @@ def publish(name, directory, *, dry_run):
     if (managed and previous != last) or (previous and previous != last):
         raise DataError("The bot branch is missing, unmanaged, or changed since the last generated commit")
     with TemporaryDirectory() as work:
-        path, commit = apply_draft(repo, base, patch, data["revision"], url, previous, Path(work))
+        path, commit = apply_draft(repo, base, patch, data["revision"], url,
+                                   previous if managed else None, Path(work))
         if commit is None:
             print("The bot branch already contains the generated instructions.")
             return

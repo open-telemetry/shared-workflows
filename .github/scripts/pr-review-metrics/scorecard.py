@@ -18,7 +18,7 @@ from config import OWNER, load_config
 from assessment import (ASSESSMENT_VERSION, KINDS, REASONING_EFFORTS, RETRIEVAL_VERSION, assess,
                         needs_classification_batches)
 from copilot_model import DEFAULT_REASONING_EFFORT, AssessmentSetupError, Copilot
-from github_data import DataError, GitHub, merge_timing, timing_instant
+from github_data import DataError, GitHub, merge_timing, time_remaining, timing_instant
 from outcome_evidence import OutcomeEvidence
 from prepared import Evidence, SUPPORTED_PREPARED_VERSIONS, digest, prepare
 from review_instructions import Snapshot, archived_examples, draft_rules, render_rules
@@ -28,7 +28,7 @@ from shared_data import SNAPSHOT_REF, SharedData, judgment_key
 REPOS = tuple(f"{OWNER}/{name}" for name in load_config()[1])
 BASELINE = (date(2026, 10, 1), date(2026, 11, 15))
 COPILOT = {"copilot-pull-request-reviewer", "copilot-pull-request-reviewer[bot]"}
-BOT_PR_AUTHORS = {"opentelemetrybot"}
+KNOWN_AUTOMATION_LOGINS = {"opentelemetrybot"}
 AUTOMATED = ("copilot", "custom")
 FINDING_GROUPS = (("Automated", AUTOMATED), ("Human", ("human",)))
 NO_DENOMINATOR = object()
@@ -44,14 +44,15 @@ def identity(author, custom, outside):
         return "copilot"
     if login in custom:
         return "custom"
-    if (login in outside or author["__typename"] != "User" or login.endswith("[bot]")):
+    if (login in outside or login in KNOWN_AUTOMATION_LOGINS
+            or author["__typename"] != "User" or login.endswith("[bot]")):
         return "outside"
     return "human"
 
 
 def is_bot_pr_author(login, kind):
     login = (login or "").lower()
-    return kind == "Bot" or login.endswith("[bot]") or login in BOT_PR_AUTHORS
+    return kind == "Bot" or login.endswith("[bot]") or login in KNOWN_AUTOMATION_LOGINS
 
 
 @dataclass(frozen=True)
@@ -341,7 +342,7 @@ def write_atomic(path, text):
     temp.replace(path)
 
 
-def assess_cached(archive, bundle, model, pull, audit, allow_model, version, *, git_root=None):
+def assess_cached(archive, bundle, model, pull, audit, allow_model, version, *, git_root=None, deadline=None):
     repo, number = pull["repo"], pull["number"]
 
     def fingerprint(inputs):
@@ -364,6 +365,7 @@ def assess_cached(archive, bundle, model, pull, audit, allow_model, version, *, 
         stage_key = fingerprint(inputs)
         result = archive.get_judgment(repo, number, stage, stage_key)
         if result is None:
+            time_remaining(deadline)
             result = evaluate()
             archive.put_judgment(repo, number, stage, stage_key, result)
         return result
@@ -371,7 +373,8 @@ def assess_cached(archive, bundle, model, pull, audit, allow_model, version, *, 
     if git_root is None:
         rows = assess(bundle, model, pull, checkpoint)
     else:
-        rows = assess(bundle, model, pull, checkpoint, retrieval=OutcomeEvidence(git_root, pull))
+        retrieval = OutcomeEvidence(git_root, pull, deadline=deadline)
+        rows = assess(bundle, model, pull, checkpoint, retrieval=retrieval)
     result = {
         "input_digest": key, "assessment_version": version,
         "model": model.model, "reasoning_effort": model.reasoning_effort,
@@ -607,7 +610,7 @@ def draft_instructions(args, parser):
         if not args.archive.is_file():
             raise DataError("Archive does not exist. Run `python scorecard.py load-data` first.")
         with closing(Archive(args.archive, readonly=True)) as archive:
-            logins = BOT_PR_AUTHORS | {login.lower() for login in args.other_bot}
+            logins = {login.lower() for login in args.other_bot}
             examples, addressed = archived_examples(
                 archive, repo, dates, human=lambda author: identity(author, set(), logins) == "human",
                 bot_pr=is_bot_pr_author,

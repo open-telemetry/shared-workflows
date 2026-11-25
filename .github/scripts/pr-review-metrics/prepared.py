@@ -4,7 +4,7 @@ from functools import lru_cache
 from hashlib import sha256
 from pathlib import PurePosixPath
 
-from github_data import blob_url, instant
+from github_data import blob_url, instant, time_remaining
 from git_evidence import GitEvidence, GitUnavailable, object_id
 
 
@@ -40,12 +40,13 @@ def pack_changes(candidates, byte_limit):
 
 
 class Evidence:
-    def __init__(self, git_root, pull):
+    def __init__(self, git_root, pull, *, deadline=None):
         self.pull = pull
         self.repo = pull["repo"]
         self.merge = object_id(pull["merge"])
         self.head = object_id(pull["head"])
-        self.git = GitEvidence(git_root, self.repo, pull["number"])
+        self.deadline = deadline
+        self.git = GitEvidence(git_root, self.repo, pull["number"], deadline=deadline)
         self.commit = lru_cache(maxsize=None)(self._commit)
         self.compare = lru_cache(maxsize=24)(self._compare)
         self.file = lru_cache(maxsize=128)(self._file)
@@ -310,9 +311,11 @@ def evidence_paths(thread, changed, votes=None):
 
 
 def prepare(pull, evidence):
+    time_remaining(evidence.deadline)
     changed = evidence.changed_paths()
     records, indexes, threads = [], {}, {}
     for thread in pull["threads"]:
+        time_remaining(evidence.deadline)
         refs = {}
         paths, records_for_thread = evidence.for_thread(thread, changed)
         omitted = max(0, len(changed - set(paths)))

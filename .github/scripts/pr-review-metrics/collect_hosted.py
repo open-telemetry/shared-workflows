@@ -8,8 +8,8 @@ from time import monotonic
 from archive import Archive
 from assessment import RETRIEVAL_VERSION
 from config import load_config
-from copilot_model import AssessmentSetupError, Copilot
-from github_data import BudgetExhausted, DataError, GitHub, RateLimitError, run_command
+from copilot_model import AssessmentError, AssessmentSetupError, Copilot
+from github_data import BudgetExhausted, DataError, GitHub, RateLimitError, run_command, time_remaining
 from git_evidence import object_id
 from prepared import Evidence, prepare
 from review_instructions import git
@@ -72,11 +72,6 @@ def eligible_pulls(archive, start, today):
                     yield pull
 
 
-def time_remaining(deadline):
-    if monotonic() >= deadline:
-        raise BudgetExhausted("Collection time budget exhausted")
-
-
 def collect_batch(archive, args, start, today, git_root, deadline):
     github = GitHub(max_rate_wait=0, max_requests=args.max_requests, deadline=deadline)
     failures, prepared, assessed = 0, 0, 0
@@ -92,7 +87,8 @@ def collect_batch(archive, args, start, today, git_root, deadline):
         log(f"Capture failed: {error}")
         failures += 1
 
-    with closing(Copilot(ASSESSOR)) as model:
+    model = Copilot(ASSESSOR, deadline=deadline)
+    try:
         for pull in eligible_pulls(archive, start, today):
             if assessed >= args.max_assessments:
                 break
@@ -107,11 +103,11 @@ def collect_batch(archive, args, start, today, git_root, deadline):
                     if prepared >= args.max_evidence:
                         continue
                     prepared += 1
-                    bundle = prepare(pull, Evidence(git_root, pull))
+                    bundle = prepare(pull, Evidence(git_root, pull, deadline=deadline))
                     archive.put_prepared(repo, number, bundle)
                 assessed += 1
                 assess_cached(archive, bundle, model, pull, args.work / "audit", True,
-                              RETRIEVAL_VERSION, git_root=git_root)
+                              RETRIEVAL_VERSION, git_root=git_root, deadline=deadline)
             except BudgetExhausted as error:
                 log(f"Assessment paused: {error}")
                 break
@@ -122,11 +118,18 @@ def collect_batch(archive, args, start, today, git_root, deadline):
             except COMMAND_ERRORS as error:
                 log(f"{repo}#{number}: evidence or assessment failed: {error}")
                 failures += 1
+    finally:
+        try:
+            model.close()
+        except AssessmentError as error:
+            log(f"Assessment shutdown failed: {error}")
+            failures += 1
     return {"api_requests": github.requests, "prepared_attempts": prepared,
             "assessment_attempts": assessed, "failures": failures}
 
 
 def export_snapshot(args):
+    deadline = monotonic() + args.work_seconds
     start, _ = load_config()
     today = datetime.now(timezone.utc).date()
     expected = remote_tip()
@@ -135,7 +138,7 @@ def export_snapshot(args):
     git_root = args.work / "git"
     with closing(Archive(args.work / "archive.sqlite3")) as archive:
         shared = open_snapshot(archive, expected, git_root)
-        details = collect_batch(archive, args, start, today, git_root, monotonic() + args.work_seconds)
+        details = collect_batch(archive, args, start, today, git_root, deadline)
         shared.prepare_commit(STAGING_REF, include_assessments=True)
         tree = git("rev-parse", f"{STAGING_REF}^{{tree}}").strip()
         if expected and tree == git("rev-parse", f"{expected}^{{tree}}").strip():

@@ -1,21 +1,42 @@
+import json
 import unittest
 from contextlib import closing
 from datetime import date
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from unittest.mock import Mock
+from time import monotonic
+from types import SimpleNamespace
+from unittest.mock import Mock, patch
 
 from archive import Archive, encode
-from collect_hosted import capture_days
+from collect_hosted import capture_days, collect_batch
 from config import target_repository
-from github_data import DataError
-from publish_instructions import BOT, BRANCH, pr_body, publishing_plan
+from github_data import BudgetExhausted, DataError
+from publish_instructions import BOT, BRANCH, pr_body, publish, publishing_plan
 from scorecard import REPOS
 from shared_data import SharedData
 from test_scorecard import git_at, shared_remote
 
 
 class HostedCollectionTests(unittest.TestCase):
+    def test_assessment_budget_pause_stops_the_batch_without_marking_it_failed(self):
+        day = date(2026, 10, 4)
+        pulls = [{"repo": REPOS[0], "number": number} for number in (1, 2, 3)]
+        archive = Mock()
+        args = SimpleNamespace(max_requests=10, max_backfill_days=0, max_assessments=5,
+                               work=Path("work"))
+        with (patch("collect_hosted.capture_days", return_value=[]),
+              patch("collect_hosted.eligible_pulls", return_value=pulls),
+              patch("collect_hosted.Copilot") as model,
+              patch("collect_hosted.assess_cached", side_effect=[
+                  (None, False), ([], True), (None, False), BudgetExhausted("expired"),
+              ]) as assess):
+            result = collect_batch(archive, args, day, day, args.work / "git", monotonic() + 10)
+        self.assertEqual(result["assessment_attempts"], 2)
+        self.assertEqual(result["failures"], 0)
+        self.assertEqual([call.args[3]["number"] for call in assess.call_args_list], [1, 1, 2, 2])
+        model.return_value.close.assert_called_once()
+
     def test_live_windows_precede_bounded_backfill_for_every_repository(self):
         start, today = date(2026, 10, 1), date(2026, 10, 13)
         with TemporaryDirectory() as work, closing(Archive(Path(work) / "data.sqlite3")) as archive:
@@ -64,6 +85,33 @@ class HostedCollectionTests(unittest.TestCase):
 
 
 class InstructionPublishingTests(unittest.TestCase):
+    def test_replacement_draft_uses_current_base_but_keeps_existing_fork_lease(self):
+        repo = REPOS[0]
+        base, previous, commit = "a" * 40, "b" * 40, "c" * 40
+        fork = f"https://github.com/{BOT}/{repo.split('/')[1]}.git"
+        with (TemporaryDirectory() as work,
+              patch("publish_instructions.target_repository", return_value=(repo, True)),
+              patch("publish_instructions.GitHub") as github_type,
+              patch("publish_instructions.publishing_plan", return_value=(None, previous)),
+              patch("publish_instructions.push_fork", return_value=fork),
+              patch("publish_instructions.fork_head", side_effect=[previous, commit]),
+              patch("publish_instructions.apply_draft", return_value=(Path("draft.git"), commit)) as apply,
+              patch("publish_instructions.git") as git,
+              patch("publish_instructions.request_review")):
+            path = Path(work)
+            (path / "copilot-instructions.patch").write_bytes(b"nonempty patch")
+            (path / "copilot-instructions.evidence.json").write_text(
+                json.dumps({"repo": repo, "revision": base}), encoding="utf-8")
+            github = github_type.return_value
+            github.public.return_value = {"archived": False, "disabled": False, "default_branch": "main"}
+            github.get.return_value = {"object": {"sha": base}}
+            github.write.return_value = {"number": 1, "html_url": f"https://github.com/{repo}/pull/1"}
+            publish(repo.split("/")[1], path, dry_run=False)
+        self.assertEqual(apply.call_args.args[3:6], (base, fork, None))
+        self.assertIn(f"--force-with-lease=refs/heads/{BRANCH}:{previous}", git.call_args.args)
+        self.assertEqual(github.write.call_args.args[:2], ("POST", f"repos/{repo}/pulls"))
+        self.assertTrue(github.write.call_args.args[2]["draft"])
+
     def test_dispatch_accepts_only_opted_in_repository_names(self):
         self.assertEqual(target_repository("SEMANTIC-CONVENTIONS-CONFORMANCE"),
                          ("open-telemetry/semantic-conventions-conformance", False))

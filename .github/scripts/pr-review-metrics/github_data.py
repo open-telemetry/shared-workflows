@@ -7,6 +7,9 @@ from time import monotonic, sleep, time
 from urllib.parse import quote, urlencode
 
 
+COMMAND_TIMEOUT = 180
+
+
 class DataError(RuntimeError):
     pass
 
@@ -23,11 +26,24 @@ class BudgetExhausted(DataError):
     pass
 
 
-def run_command(args, *, binary=False, **kwargs):
-    return subprocess.run(
-        args, encoding=None if binary else "utf-8", capture_output=True, timeout=180,
-        creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0), **kwargs,
-    )
+def time_remaining(deadline):
+    remaining = float("inf") if deadline is None else deadline - monotonic()
+    if remaining <= 0:
+        raise BudgetExhausted("Collection time budget exhausted")
+    return remaining
+
+
+def run_command(args, *, binary=False, deadline=None, **kwargs):
+    timeout = min(COMMAND_TIMEOUT, time_remaining(deadline))
+    try:
+        return subprocess.run(
+            args, encoding=None if binary else "utf-8", capture_output=True, timeout=timeout,
+            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0), **kwargs,
+        )
+    except subprocess.TimeoutExpired as error:
+        if timeout < COMMAND_TIMEOUT:
+            raise BudgetExhausted("Collection time budget exhausted") from error
+        raise
 
 
 def instant(value):
@@ -114,10 +130,10 @@ class GitHub:
         for attempt in range(attempts):
             if self.max_requests is not None and self.requests >= self.max_requests:
                 raise BudgetExhausted("GitHub request budget exhausted")
-            if self.deadline is not None and monotonic() >= self.deadline:
-                raise BudgetExhausted("Collection time budget exhausted")
+            time_remaining(self.deadline)
             self.requests += 1
-            result = run_command(args, input=json.dumps(payload) if payload is not None else None)
+            result = run_command(args, deadline=self.deadline,
+                                 input=json.dumps(payload) if payload is not None else None)
             header, _, body = result.stdout.partition("\n\n")
             headers = dict(
                 (key.lower(), value.strip()) for line in header.splitlines()[1:] if ":" in line

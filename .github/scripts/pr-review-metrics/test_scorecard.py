@@ -6,6 +6,7 @@ from collections import Counter
 from contextlib import closing
 from datetime import date
 from pathlib import Path
+from subprocess import TimeoutExpired
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock, patch
@@ -14,7 +15,7 @@ from archive import Archive, encode
 from assessment import (ASSESSMENT_VERSION, CLASSIFY, CLASSIFY_BATCH, DEDUPLICATE, JUDGE, LOOKUP_JUDGE,
                         LOCAL_ASSESSMENT_VERSIONS, RETRIEVAL_VERSION, assess, classify, judge)
 from copilot_model import AssessmentError, Copilot, input_size
-from github_data import DataError, GitHub, RateLimitError, run_command
+from github_data import BudgetExhausted, DataError, GitHub, RateLimitError, run_command
 from git_evidence import GitEvidence
 from outcome_evidence import OutcomeEvidence
 from prepared import PREPARED_VERSION, Evidence, PreparedEvidence, digest, pack_changes, prepare
@@ -439,6 +440,17 @@ class CollectionTests(unittest.TestCase):
 
 
 class AssessmentTests(unittest.TestCase):
+    def test_evidence_lookup_stops_at_collection_deadline_instead_of_returning_missing_git(self):
+        pull = {"repo": REPOS[0], "number": 1, "head": None, "merge": "a" * 40}
+        thread = {"reviewed": None}
+        with (TemporaryDirectory() as work,
+              patch("github_data.monotonic", return_value=10),
+              patch("github_data.subprocess.run", side_effect=TimeoutExpired("git", 2)) as command):
+            retrieval = OutcomeEvidence(Path(work), pull, deadline=12)
+            with self.assertRaisesRegex(BudgetExhausted, "Collection time budget exhausted"):
+                retrieval.lookup(thread, {"action": "read", "path": "README.md", "query": ""}, "0")
+            self.assertEqual(command.call_args.kwargs["timeout"], 2)
+
     def test_assess_runs_from_prepared_data_without_git_or_github(self):
         with TemporaryDirectory() as work:
             root = Path(work)
@@ -857,6 +869,24 @@ class AssessmentTests(unittest.TestCase):
         self.assertGreater(session.send_and_wait.await_args.kwargs["timeout"], 180)
         session.abort.assert_awaited_once()
         session.disconnect.assert_awaited_once()
+
+    def test_sdk_request_respects_collection_deadline(self):
+        session = AsyncMock()
+        session.send_and_wait.side_effect = TimeoutError
+        client = Mock(create_session=AsyncMock(return_value=session), stop=AsyncMock())
+        sdk = SimpleNamespace(CopilotClient=Mock(return_value=client), JsonRpcError=RuntimeError)
+        with (patch.dict("sys.modules", {"copilot": sdk}),
+              patch.dict(os.environ, {"COPILOT_GITHUB_TOKEN": "test"}),
+              patch("github_data.monotonic", return_value=10) as clock,
+              closing(Copilot("model", deadline=12)) as model):
+            with self.assertRaises(BudgetExhausted):
+                model.ask(CLASSIFY, {})
+            self.assertEqual(session.send_and_wait.await_args.kwargs["timeout"], 2)
+            session.abort.assert_awaited_once()
+            clock.return_value = 12
+            with self.assertRaises(BudgetExhausted):
+                model.ask(JUDGE, {})
+        client.create_session.assert_awaited_once()
 
     def test_judge_preserves_core_evidence_when_dropping_optional_context(self):
         records = {
@@ -1420,6 +1450,9 @@ class ReportTests(unittest.TestCase):
                                   {"lookshuman"}, set()), "custom")
         self.assertEqual(identity({"login": "LooksHuman", "__typename": "User"},
                                   set(), {"lookshuman"}), "outside")
+        bot = {"login": "OpenTelemetryBot", "__typename": "User"}
+        self.assertEqual(identity(bot, set(), set()), "outside")
+        self.assertEqual(identity(bot, {"opentelemetrybot"}, set()), "custom")
         self.assertEqual(identity(None, set(), set()), "outside")
 
     def test_summed_rates_by_repo_and_type_preserve_missing_followup(self):
