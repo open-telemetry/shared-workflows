@@ -59,7 +59,7 @@ jobs:
       actions: read
       contents: read
       copilot-requests: write
-    uses: ./.github/workflows/instruction-audit-worker.lock.yml
+    uses: $/.github/workflows/instruction-audit-worker.lock.yml
     with:
       repository: ${{ needs.prepare.outputs.repository }}
       snapshot: ${{ needs.prepare.outputs.snapshot }}

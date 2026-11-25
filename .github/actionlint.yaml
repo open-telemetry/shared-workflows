@@ -2,6 +2,10 @@ paths:
   .github/workflows/*.{yml,yaml}:
     ignore:
       - 'unknown permission scope "copilot-requests"'
+  .github/workflows/instruction-audit.yml:
+    # actionlint does not yet recognize GitHub's dedicated self-repository syntax.
+    ignore:
+      - 'reusable workflow call "\$/\.github/workflows/instruction-audit-worker\.lock\.yml" .*not following the format'
   .github/workflows/instruction-audit-worker.lock.yml:
     # gh-aw v1.2.2 emits GitHub syntax not yet recognized by actionlint v1.7.12.
     ignore:

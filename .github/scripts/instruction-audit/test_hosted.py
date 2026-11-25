@@ -118,7 +118,8 @@ class StateTest(unittest.TestCase):
             ("complete", False, {"anchor": None, "sha": None, "offset": 0}),
         ):
             with self.subTest(status=status, published=published):
-                plan = {"state_head": "b" * 40, "state": {"anchor": None, "sha": "a" * 40, "offset": 1}}
+                plan = {"state_head": "b" * 40, "state": {"anchor": None, "sha": "a" * 40, "offset": 1},
+                        "resumable": True}
                 result = finding() | {"status": status, "completed": None}
                 hosted.save(REPO, result, plan, published=published)
                 write.assert_called_with(REPO, "b" * 40, expected)
@@ -128,6 +129,46 @@ class StateTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             hosted.save(REPO, finding() | {"status": "continue"}, plan)
         output.assert_not_called()
+
+    @patch.object(hosted, "write_state")
+    @patch.object(audit, "snapshot")
+    @patch.object(audit, "read_blob", return_value=RULE["text"] + "\n- Duplicate rule.\n- Duplicate rule.\n- Later rule.\n")
+    def test_published_duplicates_resume_by_pinned_offset_without_skipping_later_rules(
+        self, _blob, snapshot, write, output, _summary
+    ):
+        snapshot.return_value = ("main", "a" * 40, "b" * 40, {
+            RULE["path"]: ("100644", "blob"),
+        })
+        state = {"anchor": RULE, "sha": "a" * 40, "offset": 0}
+        for offset in range(2):
+            with self.subTest(offset=offset):
+                continuation = f"{state['sha']}:none:{state['offset']}" if state["offset"] else ""
+                plan, _ = audit.prepare(REPO, "snapshot", publish_fixes=True, pinned=state["sha"],
+                                        cursor_record=(None, None, state["anchor"]), continuation=continuation)
+                self.assertEqual(plan["rule"]["text"], "- Duplicate rule.")
+                self.assertFalse(plan["resumable"])
+                plan.update(state_head="c" * 40, state=state)
+                result = finding() | {"rule": plan["rule"], "status": "finding", "completed": None}
+                hosted.save(REPO, result, plan, published=True)
+                state = write.call_args.args[2]
+                self.assertEqual(state, {"anchor": RULE, "sha": "a" * 40, "offset": offset + 1})
+                output.assert_called_with("continue", "false")
+        plan, _ = audit.prepare(REPO, "snapshot", pinned=state["sha"],
+                                cursor_record=(None, None, state["anchor"]),
+                                continuation=f"{state['sha']}:none:{state['offset']}")
+        self.assertEqual(plan["rule"]["text"], "- Later rule.")
+        self.assertTrue(plan["resumable"])
+        snapshot.assert_called_with(REPO, "snapshot", "a" * 40)
+
+    @patch.object(hosted, "write_state")
+    def test_publishing_final_duplicate_finishes_the_pass_without_saving_ambiguous_anchor(
+        self, write, output, _summary
+    ):
+        plan = {"state_head": "b" * 40, "state": {"anchor": RULE, "sha": "a" * 40, "offset": 1},
+                "resumable": False, "next": ""}
+        hosted.save(REPO, finding() | {"status": "finding", "completed": RULE}, plan, published=True)
+        write.assert_called_with(REPO, "b" * 40, {"anchor": None, "sha": None, "offset": 0})
+        output.assert_called_with("continue", "false")
 
 
 @patch.object(audit, "summary")

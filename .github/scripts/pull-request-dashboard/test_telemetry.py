@@ -611,6 +611,15 @@ def workflow_jobs(text: str) -> dict[str, str]:
     return {job: "\n".join(lines) for job, lines in jobs.items()}
 
 
+def dashboard_env_scopes(text: str) -> dict[str, str]:
+    jobs = {
+        job: block for job, block in workflow_jobs(text).items()
+        if any(first_entry_point_call(step_sections(lines).get("run", "")) is not None
+               for lines in workflow_steps(block))
+    }
+    return {"<workflow>": text, **jobs} if jobs else {}
+
+
 OTLP_EXPORT_ENV = {
     "PR_DASHBOARD_OTEL_ENABLED": "true",
     "OTEL_EXPORTER_OTLP_ENDPOINT": "${{ secrets.GHA_OTLP_ENDPOINT }}",
@@ -683,10 +692,41 @@ class WorkflowOtlpExportWiringTest(unittest.TestCase):
     def test_workflow_and_job_env_do_not_set_export_settings(self) -> None:
         for path in sorted(WORKFLOWS.glob("*.yml")):
             text = path.read_text(encoding="utf-8")
-            blocks = {"<workflow>": text, **workflow_jobs(text)}
-            for scope, block in blocks.items():
+            for scope, block in dashboard_env_scopes(text).items():
                 with self.subTest(workflow=path.name, scope=scope):
                     self.assertFalse(set(OTLP_EXPORT_ENV) & set(scope_env(block)))
+
+    def test_other_workflows_can_configure_their_own_exporter(self) -> None:
+        text = """env:
+  OTEL_EXPORTER_OTLP_ENDPOINT: ${{ vars.GH_AW_DEFAULT_OTLP_ENDPOINT }}
+jobs:
+  worker:
+    steps:
+      - run: echo "Run the audit"
+"""
+        self.assertFalse(dashboard_env_scopes(text))
+
+    def test_dashboard_scopes_still_detect_inherited_export_settings(self) -> None:
+        text = """env:
+  OTEL_EXPORTER_OTLP_ENDPOINT: https://example.com
+jobs:
+  dashboard:
+    env:
+      OTEL_EXPORTER_OTLP_HEADERS: Authorization=example
+    steps:
+      - run: python3 drain_queue.py
+  other:
+    env:
+      OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+    steps:
+      - run: echo "Run something else"
+"""
+        scopes = dashboard_env_scopes(text)
+        self.assertEqual({"<workflow>", "dashboard"}, set(scopes))
+        self.assertEqual({"OTEL_EXPORTER_OTLP_ENDPOINT"},
+                         set(OTLP_EXPORT_ENV) & set(scope_env(scopes["<workflow>"])))
+        self.assertEqual({"OTEL_EXPORTER_OTLP_HEADERS"},
+                         set(OTLP_EXPORT_ENV) & set(scope_env(scopes["dashboard"])))
 
 
 class TelemetryRequirementsTest(unittest.TestCase):

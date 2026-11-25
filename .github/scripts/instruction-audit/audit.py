@@ -276,12 +276,13 @@ def prepare(repo, checkout, *, publish_fixes=False, continuation="", cursor_reco
     rules = list(remaining_rules(documents, anchor))
     if continuation and offset >= len(rules):
         raise ValueError("Continuation does not select a remaining rule")
-    plan = {"result": result, "rule": None, "next": "", "publish": publish_fixes}
+    plan = {"result": result, "rule": None, "next": "", "publish": publish_fixes, "resumable": False}
     if not rules:
         return plan, None
-    rule, _ = rules[offset]
+    rule, resumable = rules[offset]
     result["completed"] = next((previous.anchor for previous, unique in reversed(rules[:offset]) if unique), None)
     plan["rule"] = rule.anchor
+    plan["resumable"] = resumable
     if offset + 1 < len(rules):
         plan["next"] = f"{sha}:{head or 'none'}:{offset + 1}"
     summary(f"Checking `{rule.path}:{rule.first_line}-{rule.last_line}` on `{sha}`.")

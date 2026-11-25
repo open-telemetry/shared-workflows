@@ -112,10 +112,11 @@ def save(repo, result, plan, *, published=False):
     state = plan["state"]
     if state["sha"] != result["sha"] or repo != result["repo"]:
         raise ValueError("Audit outcome does not match the active pass")
-    if result["status"] == "continue":
+    duplicate = published and not plan["resumable"]
+    if result["status"] == "continue" or (duplicate and plan["next"]):
         state["offset"] += 1
     else:
-        anchor = None if result["status"] == "complete" else (
+        anchor = None if result["status"] == "complete" or duplicate else (
             result["rule"] if published else result["completed"] or state["anchor"]
         )
         state = {"anchor": anchor, "sha": None, "offset": 0}

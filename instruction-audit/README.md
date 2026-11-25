@@ -43,7 +43,9 @@ Each target has a state branch in **shared-workflows**, named `otelbot/instructi
 }
 ```
 
-`anchor` is the saved position between passes. `sha` and `offset` identify an active pinned pass. Continuations save the next offset before dispatching another run from central `main`. A complete pass resets the anchor. A reported finding stops the pass, retaining the preceding completed rule unless publication succeeds.
+`anchor` is the saved position between passes. `sha` and `offset` identify an active pinned pass. Continuations save the next offset before dispatching another run from central `main`. A complete pass resets the anchor. A reported finding stops automatic continuation, retaining the preceding completed rule unless publication succeeds.
+
+Publishing a unique rule saves it as the anchor for the next pass. Duplicate rule text cannot identify a safe anchor. After publishing a duplicate, the workflow retains the pinned pass and advances its offset; the next manual dispatch checks the following rule instead of skipping the file or retrying the same duplicate. Publishing a duplicate at the end of the pass resets the cursor.
 
 Worker, validation, publication, or cursor-write failures retain the active pass. Dispatch again to resume it, rather than rerunning a job, which is intentionally disabled. If automatic dispatch fails or a queued run is replaced, the saved state still resumes from the same commit and rule. To abandon a pass, stop its central runs first, then set `sha` to `null` and `offset` to `0`, retaining the anchor.
 
