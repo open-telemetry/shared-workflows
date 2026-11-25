@@ -12,7 +12,8 @@ from archive import Archive, encode
 from collect_hosted import capture_days, collect_batch
 from config import target_repository
 from github_data import BudgetExhausted, DataError, GitHubError
-from publish_instructions import BOT, BRANCH, PENDING, pr_body, publish, publishing_plan
+from publish_instructions import BOT, BRANCH, PENDING, apply_draft, pr_body, publish, publishing_plan
+from review_instructions import git
 from scorecard import REPOS
 from shared_data import SharedData
 from test_scorecard import git_at, shared_remote
@@ -143,6 +144,34 @@ class HostedCollectionTests(unittest.TestCase):
 
 
 class InstructionPublishingTests(unittest.TestCase):
+    def test_draft_rejects_renames_from_outside_instruction_paths(self):
+        repo = REPOS[0]
+        url = f"https://github.com/{repo}.git"
+        with TemporaryDirectory() as work:
+            root = Path(work)
+            checkout, remote = shared_remote(root)
+            revision = git_at(checkout, "rev-parse", "HEAD")
+            instruction = ".github/copilot-instructions.md"
+            (checkout / instruction).parent.mkdir()
+            (checkout / instruction).write_text("Review rules\n", encoding="utf-8")
+            git_at(checkout, "add", "--", instruction)
+
+            def local_git(*args, **kwargs):
+                return git(*(remote.as_uri() if arg == url else arg for arg in args), **kwargs)
+
+            with patch("publish_instructions.git", side_effect=local_git):
+                artifact = git("diff", "--cached", "--binary", git_dir=checkout / ".git", binary=True)
+                git_dir, commit = apply_draft(repo, "data", artifact, revision, None, None, root)
+                self.assertEqual(git("show", f"{commit}:{instruction}", git_dir=git_dir), "Review rules\n")
+
+                scoped = ".github/instructions/schema.instructions.md"
+                (checkout / scoped).parent.mkdir()
+                git_at(checkout, "mv", "--", "schema.json", scoped)
+                artifact = git("diff", "--cached", "--binary", "--find-renames",
+                               git_dir=checkout / ".git", binary=True)
+                with self.assertRaisesRegex(DataError, r"non-instruction path: 'schema\.json'"):
+                    apply_draft(repo, "data", artifact, revision, None, None, root)
+
     def test_replacement_draft_uses_current_base_but_keeps_existing_fork_lease(self):
         repo = REPOS[0]
         base, previous, commit = "a" * 40, "b" * 40, "c" * 40

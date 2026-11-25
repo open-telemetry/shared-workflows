@@ -135,6 +135,11 @@ def apply_draft(repo, base, artifact, revision, upstream, previous, directory):
     git("read-tree", actual, git_dir=path)
     git("apply", "--cached", "--check", "-", git_dir=path, binary=True, input=artifact)
     git("apply", "--cached", "-", git_dir=path, binary=True, input=artifact)
+    changed = git("diff", "--cached", "--name-only", "--no-renames", "--ignore-submodules=none",
+                  "-z", actual, "--", git_dir=path, binary=True)
+    for name in changed.decode("utf-8", errors="surrogateescape").split("\0")[:-1]:
+        if not is_instruction(name):
+            raise DataError(f"Draft patch changes a non-instruction path: {name!r}")
     tree = git("write-tree", git_dir=path).strip()
     if previous:
         git("fetch", "--quiet", "--no-tags", "--depth=1", upstream,
