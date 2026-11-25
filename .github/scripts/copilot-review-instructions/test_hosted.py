@@ -78,6 +78,35 @@ class HostedCollectionTests(unittest.TestCase):
             rejected.assert_called_once()
             self.assertEqual(rejected.call_args.args[0], repo)
 
+    def test_capture_and_author_errors_do_not_skip_other_repositories(self):
+        day = date(2026, 10, 4)
+        repos = REPOS[:3]
+        archive = Mock()
+        archive.capture.side_effect = [1, DataError("repository unavailable"), 2]
+        archive.capture_authors.side_effect = [DataError("authors unavailable"), 0, 2]
+        args = SimpleNamespace(max_requests=10, max_backfill_days=0, max_assessments=5)
+        with (patch("collect_hosted.REPOS", repos),
+              patch("collect_hosted.capture_days", return_value=[(repo, day, day) for repo in repos]),
+              patch("collect_hosted.eligible_pulls", return_value=[]),
+              patch("collect_hosted.Copilot")):
+            result = collect_batch(archive, args, day, day, Path("git"), monotonic() + 10)
+        self.assertEqual(result["failures"], 2)
+        self.assertEqual([call.args[1] for call in archive.capture.call_args_list], list(repos))
+        self.assertEqual([call.args[1] for call in archive.capture_authors.call_args_list], list(repos))
+
+    def test_capture_budget_exhaustion_still_pauses_capture_and_author_lookups(self):
+        day = date(2026, 10, 4)
+        archive = Mock()
+        archive.capture.side_effect = BudgetExhausted("request budget reached")
+        args = SimpleNamespace(max_requests=10, max_backfill_days=0, max_assessments=5)
+        with (patch("collect_hosted.capture_days", return_value=[(repo, day, day) for repo in REPOS]),
+              patch("collect_hosted.eligible_pulls", return_value=[]),
+              patch("collect_hosted.Copilot")):
+            result = collect_batch(archive, args, day, day, Path("git"), monotonic() + 10)
+        self.assertEqual(result["failures"], 0)
+        archive.capture.assert_called_once()
+        archive.capture_authors.assert_not_called()
+
     def test_assessment_budget_pause_stops_the_batch_without_marking_it_failed(self):
         day = date(2026, 10, 4)
         pulls = [{"repo": REPOS[0], "number": number} for number in (1, 2, 3)]

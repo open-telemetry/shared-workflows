@@ -95,17 +95,27 @@ def collect_batch(archive, args, start, today, git_root, deadline):
             return False
         return True
 
+    def capture_for(repo, label, operation, *params, **kwargs):
+        nonlocal failures
+        try:
+            return operation(github, repo, *params, **kwargs)
+        except (BudgetExhausted, RateLimitError):
+            raise
+        except COMMAND_ERRORS as error:
+            log(f"{repo}: {label} failed: {error}")
+            failures += 1
+            return None
+
     try:
         for repo, first, last in capture_days(archive, start, today, args.max_backfill_days):
-            before = archive.capture(github, repo, first, last, today, accept_pull=accept_pull)
-            log(f"{repo}: {first} to {last}, {before} new merged PRs")
+            added = capture_for(repo, f"capture for {first} to {last}", archive.capture,
+                                first, last, today, accept_pull=accept_pull)
+            if added is not None:
+                log(f"{repo}: {first} to {last}, {added} new merged PRs")
         for repo in REPOS:
-            archive.capture_authors(github, repo, start, today)
+            capture_for(repo, "author capture", archive.capture_authors, start, today)
     except (BudgetExhausted, RateLimitError) as error:
         log(f"Capture paused: {error}")
-    except COMMAND_ERRORS as error:
-        log(f"Capture failed: {error}")
-        failures += 1
 
     model = Copilot(ASSESSOR, deadline=deadline)
     try:
