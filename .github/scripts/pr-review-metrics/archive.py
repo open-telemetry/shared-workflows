@@ -143,7 +143,7 @@ class Archive:
             raise DataError(f"{repo}: GitHub did not return authors for {len(remaining):,} PRs")
         return len(pending)
 
-    def capture(self, github, repo, start, end, today):
+    def capture(self, github, repo, start, end, today, *, accept_pull=None):
         added = 0
         for first, last in windows(self.pending_days(repo, start, end)):
             expected = github.merged(repo, first, last)
@@ -156,28 +156,33 @@ class Archive:
                 raise DataError(f"Search disagrees with archived merges in {repo} for {first} to {last}; retry later")
             pending = {n: merged for n, merged in expected.items() if n not in saved}
             remaining = set(pending)
+            incomplete = set()
             for pull, (additions, deletions), timing in github.pulls(repo, pending):
                 n, merged = pull["number"], pull["merged"]
                 if n not in remaining or instant(merged) != instant(pending[n]):
                     raise DataError(f"Unexpected archive record for {repo}#{n}")
+                remaining.remove(n)
+                day = instant(merged).astimezone(timezone.utc).date()
+                if accept_pull is not None and not accept_pull(pull, day):
+                    incomplete.add(day)
+                    continue
                 with self.db:
                     self.db.execute("INSERT OR IGNORE INTO pulls VALUES (?, ?, ?, ?, ?)",
-                                    (repo, n, instant(merged).astimezone(timezone.utc).date().isoformat(),
-                                     merged, encode(pull)))
+                                    (repo, n, day.isoformat(), merged, encode(pull)))
                     self.db.execute("INSERT OR IGNORE INTO pull_line_counts VALUES (?, ?, ?, ?)",
                                     (repo, n, additions, deletions))
                     if timing is not None:
                         self.db.execute("INSERT OR IGNORE INTO pull_merge_timings VALUES (?, ?, ?, ?)",
                                         (repo, n, *timing))
                 added += 1
-                remaining.remove(n)
             if remaining:
                 raise DataError(f"Missing pull request records in {repo} for {first} to {last}")
             # Search indexing can lag. Recheck today and yesterday on the next capture.
             with self.db:
                 self.db.executemany(
                     "INSERT OR IGNORE INTO complete_days VALUES (?, ?)",
-                    ((repo, day.isoformat()) for day in days(first, min(last, today - 2 * DAY))),
+                    ((repo, day.isoformat()) for day in days(first, min(last, today - 2 * DAY))
+                     if day not in incomplete),
                 )
         return added
 

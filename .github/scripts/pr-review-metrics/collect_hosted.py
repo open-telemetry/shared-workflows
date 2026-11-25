@@ -11,10 +11,10 @@ from config import load_config
 from copilot_model import AssessmentError, AssessmentSetupError, Copilot
 from github_data import BudgetExhausted, DataError, GitHub, RateLimitError, run_command, time_remaining
 from git_evidence import object_id
-from prepared import Evidence, prepare
+from prepared import Evidence, json_bytes, prepare
 from review_instructions import git
 from scorecard import COMMAND_ERRORS, REPOS, assess_cached, is_bot_pr_author, log
-from shared_data import SHARED_REMOTE, SNAPSHOT_REF, SharedData
+from shared_data import SHARED_REMOTE, SNAPSHOT_REF, RecordRejected, SharedData, check_record
 
 
 SEED_REMOTE = "https://github.com/trask/otel-pr-review-metrics.git"
@@ -75,9 +75,21 @@ def eligible_pulls(archive, start, today):
 def collect_batch(archive, args, start, today, git_root, deadline):
     github = GitHub(max_rate_wait=0, max_requests=args.max_requests, deadline=deadline)
     failures, prepared, assessed = 0, 0, 0
+
+    def accept_pull(pull, day):
+        nonlocal failures
+        path = SharedData.pull_file(pull["repo"], day.isoformat(), pull["number"])
+        try:
+            check_record(path, SharedData.text_record(pull), pull)
+        except RecordRejected as error:
+            log(f"Skipping PR record: {error}")
+            failures += 1
+            return False
+        return True
+
     try:
         for repo, first, last in capture_days(archive, start, today, args.max_backfill_days):
-            before = archive.capture(github, repo, first, last, today)
+            before = archive.capture(github, repo, first, last, today, accept_pull=accept_pull)
             log(f"{repo}: {first} to {last}, {before} new merged PRs")
         for repo in REPOS:
             archive.capture_authors(github, repo, start, today)
@@ -104,6 +116,7 @@ def collect_batch(archive, args, start, today, git_root, deadline):
                         continue
                     prepared += 1
                     bundle = prepare(pull, Evidence(git_root, pull, deadline=deadline))
+                    check_record(f"{repo}#{number} prepared evidence", json_bytes(bundle), bundle)
                     archive.put_prepared(repo, number, bundle)
                 assessed += 1
                 assess_cached(archive, bundle, model, pull, args.work / "audit", True,
@@ -139,7 +152,12 @@ def export_snapshot(args):
     with closing(Archive(args.work / "archive.sqlite3")) as archive:
         shared = open_snapshot(archive, expected, git_root)
         details = collect_batch(archive, args, start, today, git_root, deadline)
-        shared.prepare_commit(STAGING_REF, include_assessments=True)
+
+        def reject_repository(repo, error):
+            log(f"Keeping the previous snapshot for {repo}: {error}")
+            details["failures"] += 1
+
+        shared.prepare_commit(STAGING_REF, include_assessments=True, on_rejected_repository=reject_repository)
         tree = git("rev-parse", f"{STAGING_REF}^{{tree}}").strip()
         if expected and tree == git("rev-parse", f"{expected}^{{tree}}").strip():
             print(json.dumps({**details, "updated": False}))

@@ -54,6 +54,17 @@ def safe_payload(value):
     return all(map(safe, strings(value)))
 
 
+class RecordRejected(DataError):
+    pass
+
+
+def check_record(path, blob, value):
+    if len(blob) > MAX_RECORD_BYTES:
+        raise RecordRejected(f"Shared record is too large: {path}")
+    if value is not None and not safe_payload(value):
+        raise RecordRejected(f"Shared publication withheld: {path} did not pass the public-data check.")
+
+
 def judgment_key(model, inputs, reasoning_effort):
     return sha256(json.dumps([model, reasoning_effort, inputs], sort_keys=True).encode()).hexdigest()
 
@@ -329,9 +340,8 @@ class SharedData:
         self.archive.db.execute("INSERT OR REPLACE INTO prepared_evidence VALUES (?, ?, ?, ?, ?)",
                                 (repo, number, bundle["version"], bundle["input"], encode(bundle)))
 
-    def local_records(self, include_assessments):
-        yield MANIFEST, self.text_record(FORMAT), None
-        for repo in sorted(self.repositories):
+    def local_records(self, include_assessments, repositories):
+        for repo in repositories:
             complete = self.archive.db.execute("SELECT day FROM complete_days WHERE repo = ? ORDER BY day",
                                               (repo,))
             yield f"{repo}/coverage.json", self.text_record([day for (day,) in complete]), None
@@ -369,7 +379,7 @@ class SharedData:
                         continue
                     data = json_bytes(evidence)
                     if len(data) > MAX_RECORD_BYTES:
-                        raise DataError(f"Prepared evidence is too large for {repo}#{number}")
+                        raise RecordRejected(f"Prepared evidence is too large for {repo}#{number}")
                     suffix = "" if version == 1 else f".v{version}"
                     yield (name.removesuffix(".json") + f".evidence{suffix}.json.gz",
                            gzip.compress(data, mtime=0), evidence)
@@ -405,7 +415,7 @@ class SharedData:
             record = public_assessment(pull, result, key, bundle=evidence, lookup=lookup)
             yield path, self.text_record(record), record
 
-    def prepare_commit(self, ref, *, include_assessments=False):
+    def prepare_commit(self, ref, *, include_assessments=False, on_rejected_repository=None):
         if self.tip is None:
             raise DataError("Load the current data branch before publishing")
         identity = self.git("var", "GIT_COMMITTER_IDENT")
@@ -416,17 +426,32 @@ class SharedData:
         stream.extend(f"\nfrom {self.tip}\n".encode())
         seen = {path: value for path, value in self.imported.items()
                 if re.search(ASSESSMENT_FILE + "$", path)}
-        for path, blob, value in self.local_records(include_assessments):
-            seen[path] = sha256(blob).digest()
-            if len(blob) > MAX_RECORD_BYTES:
-                raise DataError(f"Shared record is too large: {path}")
-            if seen[path] == self.imported.get(path):
-                continue
-            if value is not None and not safe_payload(value):
-                raise DataError(f"Shared publication withheld: {path} did not pass the public-data check.")
-            stream.extend(f"M 100644 inline {path}\ndata {len(blob)}\n".encode())
-            stream.extend(blob)
-            stream.extend(b"\n")
+
+        def append_records(records):
+            start = len(stream)
+            hashes = {}
+            try:
+                for path, blob, value in records:
+                    hashes[path] = sha256(blob).digest()
+                    if hashes[path] == self.imported.get(path):
+                        continue
+                    check_record(path, blob, value)
+                    stream.extend(f"M 100644 inline {path}\ndata {len(blob)}\n".encode())
+                    stream.extend(blob)
+                    stream.extend(b"\n")
+            except RecordRejected:
+                del stream[start:]
+                raise
+            seen.update(hashes)
+
+        append_records([(MANIFEST, self.text_record(FORMAT), None)])
+        for repo in sorted(self.repositories):
+            try:
+                append_records(self.local_records(include_assessments, [repo]))
+            except RecordRejected as error:
+                if not self.snapshot or on_rejected_repository is None:
+                    raise
+                on_rejected_repository(repo, error)
         if not self.snapshot:
             if seen == self.imported:
                 return None

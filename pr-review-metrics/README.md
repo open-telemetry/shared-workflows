@@ -10,6 +10,8 @@ Each run checks today and yesterday first, then fills the oldest unconfirmed day
 
 The workflow owns the `otelbot/pr-review-metrics-data` branch. Its first run loads a pinned snapshot of the previous archive as a seed. Subsequent runs read and replace the shared-workflows snapshot with a lease on its previous revision. Do not publish to the old archive or hand-edit the new branch. The archive stores public review text, code excerpts and validated outcomes so older assessments can still be used if the originals change. Newly published records go through the secret check; model explanations and intermediate judgments are not published.
 
+The collector logs and skips PR records and prepared evidence that fail the publication checks. It still saves the rest of the batch and retries skipped PR records without marking their merge days complete. If a repository's combined metadata cannot be published, the collector keeps its previous snapshot and publishes the other repositories' progress.
+
 ## Generate Copilot instructions
 
 Dispatch [Generate Copilot review instructions](https://github.com/open-telemetry/shared-workflows/actions/workflows/generate-copilot-review-instructions.yml) with one input:

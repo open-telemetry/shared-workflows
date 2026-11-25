@@ -1,7 +1,7 @@
 import json
 import unittest
 from contextlib import closing
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from time import monotonic
@@ -19,6 +19,64 @@ from test_scorecard import git_at, shared_remote
 
 
 class HostedCollectionTests(unittest.TestCase):
+    def test_rejected_pr_and_evidence_do_not_block_other_records(self):
+        day = date(2026, 10, 4)
+        stamp = f"{day}T08:00:00Z"
+        repo, other = REPOS[:2]
+        pulls = [
+            {"repo": repo, "number": 1, "merged": stamp, "threads": ["blocked review"]},
+            {"repo": repo, "number": 2, "merged": stamp, "threads": ["accepted review"]},
+            {"repo": other, "number": 3, "merged": stamp, "threads": []},
+        ]
+        args = SimpleNamespace(max_requests=20, max_backfill_days=1, max_assessments=5,
+                               max_evidence=5, work=Path("work"))
+        with (TemporaryDirectory() as work, closing(Archive(Path(work) / "data.sqlite3")) as archive,
+              patch("collect_hosted.capture_days", return_value=[(repo, day, day), (other, day, day)]),
+              patch("collect_hosted.GitHub") as github_type, patch("collect_hosted.Copilot"),
+              patch("collect_hosted.assess_cached", return_value=(None, False)) as assess,
+              patch("collect_hosted.Evidence"),
+              patch("collect_hosted.prepare", return_value={"text": "x" * 1001}),
+              patch("shared_data.MAX_RECORD_BYTES", 1000),
+              patch("shared_data.safe_payload", side_effect=lambda value: value.get("number") != 1)):
+            github = github_type.return_value
+            github.merged.side_effect = lambda name, *_: {p["number"]: stamp for p in pulls if p["repo"] == name}
+            github.pulls.side_effect = lambda _, pending: [(p, (1, 0), None)
+                                                          for p in pulls if p["number"] in pending]
+            github.pull_authors.side_effect = lambda _, pending: [
+                (n, {"login": "person", "__typename": "User"}) for n in pending
+            ]
+            result = collect_batch(archive, args, day, day + timedelta(days=2),
+                                   args.work / "git", monotonic() + 10)
+            self.assertEqual(result["failures"], 2)
+            self.assertEqual(list(archive.pulls(repo, day, day)), [pulls[1]])
+            self.assertEqual(list(archive.pulls(other, day, day)), [pulls[2]])
+            self.assertEqual(archive.pending_days(repo, day, day), [day])
+            self.assertEqual(archive.pending_days(other, day, day), [])
+            self.assertIsNone(archive.get_prepared(pulls[1]))
+            self.assertEqual(list(archive.pull_authors(repo, day, day)), [2])
+            self.assertEqual(assess.call_count, 1)
+
+    def test_rejected_repository_update_keeps_previous_tree_and_publishes_other_repos(self):
+        repo, other = sorted(REPOS[:2])
+        rejected = Mock()
+        with TemporaryDirectory() as work, closing(Archive(Path(work) / "data.sqlite3")) as archive:
+            checkout, remote = shared_remote(Path(work))
+            shared = SharedData(archive, [repo, other], remote=str(remote), cwd=checkout, snapshot=True)
+            shared.load()
+            with archive.db:
+                archive.db.executemany("INSERT INTO complete_days VALUES (?, '2026-10-04')", [(repo,), (other,)])
+            old = shared.publish()
+            with archive.db:
+                archive.db.executemany("INSERT INTO complete_days VALUES (?, '2026-10-05')", [(repo,), (other,)])
+                archive.db.execute("INSERT INTO pull_line_counts VALUES (?, 1, 5, 0)", (repo,))
+            with patch("shared_data.MAX_RECORD_BYTES", 40):
+                shared.prepare_commit("refs/heads/candidate", on_rejected_repository=rejected)
+            self.assertEqual(git_at(checkout, "show", f"candidate:{repo}/coverage.json"),
+                             git_at(checkout, "show", f"{old}:{repo}/coverage.json"))
+            self.assertIn("2026-10-05", git_at(checkout, "show", f"candidate:{other}/coverage.json"))
+            rejected.assert_called_once()
+            self.assertEqual(rejected.call_args.args[0], repo)
+
     def test_assessment_budget_pause_stops_the_batch_without_marking_it_failed(self):
         day = date(2026, 10, 4)
         pulls = [{"repo": REPOS[0], "number": number} for number in (1, 2, 3)]
