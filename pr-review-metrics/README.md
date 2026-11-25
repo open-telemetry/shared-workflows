@@ -25,6 +25,8 @@ The target must be public and opted in to collection. The generator requires at 
 
 Collection does not opt a repository in to bot PRs. Until `publish_instructions` is `true`, the run previews the publishing decision and makes no target writes. After enabling it, a nonempty patch against the current default-branch revision can open a draft from `opentelemetrybot`'s fork. An existing managed draft can be updated if its head still matches the last generated commit. Another open instruction PR, manual changes to the bot branch, or a closed unmerged managed PR blocks publishing. The workflow requests Copilot review and reports a warning if the request cannot be confirmed. It does not merge.
 
+If the bot pushes the draft branch but the PR write fails, retry the publish job. The bot uses a temporary ref on its fork to finish that exact update. Do not edit the recovery ref or the ownership marker in the PR body.
+
 ## Administrator setup
 
 - Allow Actions to make [Copilot SDK requests billed to the organization](https://docs.github.com/en/copilot/how-tos/copilot-sdk/auth/server-to-server-tokens). No personal Copilot token is needed.

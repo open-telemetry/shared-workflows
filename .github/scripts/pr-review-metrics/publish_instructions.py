@@ -4,6 +4,7 @@ import re
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from time import sleep
+from typing import NamedTuple
 
 from config import target_repository
 from github_data import DataError, GitHub, GitHubError, run_command
@@ -13,18 +14,51 @@ from review_instructions import git, is_instruction
 
 BOT = "opentelemetrybot"
 BRANCH = "otelbot/copilot-review-instructions"
+PENDING = f"refs/heads/{BRANCH}-pending"
 OWNERSHIP = re.compile(r"(?m)^<!-- shared-workflows:copilot-review-instructions ([0-9a-f]{40}) -->$")
 
 
-def publishing_plan(github, repo, base):
+class PendingPublication(NamedTuple):
+    ref: str
+    commit: str
+    number: int
+    marker: str | None
+
+
+def pending_publication(github, repo):
+    fork = f"{BOT}/{repo.split('/')[1]}"
+    try:
+        refs = github.get(f"repos/{fork}/git/matching-refs/{PENDING.removeprefix('refs/')}/")
+    except GitHubError as error:
+        if "HTTP 404" not in str(error):
+            raise
+        return None
+    if not refs:
+        return None
+    if len(refs) != 1:
+        raise DataError("Multiple pending instruction publications on the bot fork")
+    ref, commit = refs[0]["ref"], refs[0]["object"]["sha"]
+    match = re.fullmatch(re.escape(PENDING) + r"/(0|[1-9]\d*)/(none|[0-9a-f]{40})", ref)
+    if not match or not object_id(commit) or (match[1] != "0" and match[2] == "none"):
+        raise DataError("Invalid pending instruction publication on the bot fork")
+    return PendingPublication(ref, commit, int(match[1]), object_id(match[2]))
+
+
+def publishing_plan(github, repo, base, *, pending=None):
     expected_fork = f"{BOT}/{repo.split('/')[1]}"
     managed = None
     for pull in github.rest_pages(f"repos/{repo}/pulls", state="open", base=base):
         head = pull["head"]
         if head["ref"] == BRANCH and (head["repo"] or {}).get("full_name", "").lower() == expected_fork:
             marker = OWNERSHIP.search(pull.get("body") or "")
-            if not marker or marker[1] != head["sha"] or pull["user"]["login"].lower() != BOT:
+            resuming = (
+                pending and pending.number == pull["number"] and pending.commit == head["sha"]
+                and marker and pending.marker == marker[1]
+            )
+            if not marker or (marker[1] != head["sha"] and not resuming) or pull["user"]["login"].lower() != BOT:
                 raise DataError(f"Not overwriting an unmanaged or manually changed bot PR: {pull['html_url']}")
+            if pending and (pending.commit != head["sha"] or pending.number not in (0, pull["number"])):
+                raise DataError(f"The managed PR does not match the pending publication: {pull['html_url']}")
             if managed is not None:
                 raise DataError("Multiple managed PRs found for the bot branch")
             managed = pull
@@ -137,6 +171,39 @@ def request_review(github, repo, number, commit):
     raise DataError("GitHub did not confirm the Copilot review request")
 
 
+def finish_publication(github, repo, base, managed, pending, url, directory):
+    commit = pending.commit
+    if fork_head(url) != commit:
+        raise DataError("The bot branch changed after the pending publication was pushed")
+    if managed:
+        path = f"repos/{repo}/pulls/{managed['number']}"
+        live = github.get(path)
+        body = live.get("body") or ""
+        marker = OWNERSHIP.search(body)
+        if (live["state"] != "open" or live["base"]["ref"] != base or not marker
+                or marker[1] not in {pending.marker if pending.number else None, commit}):
+            raise DataError(f"The managed PR changed while publishing: {managed['html_url']}")
+        if marker[1] != commit:
+            updated = body[:marker.start(1)] + commit + body[marker.end(1):]
+            pull = github.write("PATCH", path, {"body": updated})
+        else:
+            pull = live
+    else:
+        pull = github.write("POST", f"repos/{repo}/pulls", {
+            "title": "Generate Copilot review instructions", "body": pr_body(commit),
+            "head": f"{BOT}:{BRANCH}", "base": base, "draft": True,
+        })
+    print(pull["html_url"], flush=True)
+    if fork_head(url) != commit:
+        raise DataError("The generated commit could not be confirmed on the bot branch")
+    git("-c", "credential.helper=", "-c", "credential.helper=!gh auth git-credential",
+        "push", f"--force-with-lease={pending.ref}:{commit}", url, f":{pending.ref}", git_dir=directory)
+    try:
+        request_review(github, repo, pull["number"], commit)
+    except DataError as error:
+        print(f"::warning::{error}")
+
+
 def publish(name, directory, *, dry_run):
     repo, enabled = target_repository(name)
     github = GitHub(max_rate_wait=10, max_requests=250)
@@ -162,7 +229,17 @@ def publish(name, directory, *, dry_run):
         return
     if not enabled:
         raise DataError(f"{repo} has not opted in to bot PRs")
-    managed, last = publishing_plan(github, repo, base)
+    pending = pending_publication(github, repo)
+    managed, last = publishing_plan(github, repo, base, pending=pending)
+    if pending:
+        if managed is None and (pending.number or last != pending.marker):
+            raise DataError("The target PR changed after the pending publication was pushed")
+        url = push_fork(repo, github)
+        with TemporaryDirectory() as work:
+            path = Path(work) / "draft.git"
+            git("init", "--bare", "--quiet", str(path))
+            finish_publication(github, repo, base, managed, pending, url, path)
+        return
     if github.get(f"repos/{repo}/git/ref/heads/{base}")["object"]["sha"] != data["revision"]:
         raise DataError("The target default branch advanced during generation; dispatch again")
     url = push_fork(repo, github)
@@ -175,31 +252,13 @@ def publish(name, directory, *, dry_run):
         if commit is None:
             print("The bot branch already contains the generated instructions.")
             return
-        # The lease also protects branch creation against a concurrent push.
+        number = managed["number"] if managed else 0
+        pending = PendingPublication(f"{PENDING}/{number}/{last or 'none'}", commit, number, last)
         git("-c", "credential.helper=", "-c", "credential.helper=!gh auth git-credential",
-            "push", f"--force-with-lease=refs/heads/{BRANCH}:{previous or ''}",
-            url, f"{commit}:refs/heads/{BRANCH}", git_dir=path)
-    if managed:
-        path = f"repos/{repo}/pulls/{managed['number']}"
-        live = github.get(path)
-        body = live.get("body") or ""
-        marker = OWNERSHIP.search(body)
-        if live["state"] != "open" or not marker or marker[1] != last:
-            raise DataError(f"The managed PR changed while publishing: {managed['html_url']}")
-        updated = body[:marker.start(1)] + commit + body[marker.end(1):]
-        pull = github.write("PATCH", path, {"body": updated})
-    else:
-        pull = github.write("POST", f"repos/{repo}/pulls", {
-            "title": "Generate Copilot review instructions", "body": pr_body(commit),
-            "head": f"{BOT}:{BRANCH}", "base": base, "draft": True,
-        })
-    print(pull["html_url"], flush=True)
-    if fork_head(url) != commit:
-        raise DataError("The generated commit could not be confirmed on the bot branch")
-    try:
-        request_review(github, repo, pull["number"], commit)
-    except DataError as error:
-        print(f"::warning::{error}")
+            "push", "--atomic", f"--force-with-lease=refs/heads/{BRANCH}:{previous or ''}",
+            f"--force-with-lease={pending.ref}:", url, f"{commit}:refs/heads/{BRANCH}",
+            f"{commit}:{pending.ref}", git_dir=path)
+        finish_publication(github, repo, base, managed, pending, url, path)
 
 
 def main():
