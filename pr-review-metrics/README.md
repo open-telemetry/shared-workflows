@@ -14,6 +14,8 @@ The collector logs and skips PR records and prepared evidence that fail the publ
 
 ## Generate Copilot instructions
 
+Use this workflow when you want to start fresh with a repository's Copilot instructions. The patch replaces the full set: `.github/copilot-instructions.md` and any `*.instructions.md` files under `.github/instructions/`. It deletes any of those files that the draft doesn't recreate, including hand-written ones. It leaves `AGENTS.md` unchanged. Review the deletions and carry over any rules you want to keep before applying or merging the patch.
+
 Dispatch [Generate Copilot review instructions](https://github.com/open-telemetry/shared-workflows/actions/workflows/generate-copilot-review-instructions.yml) with one input:
 
 ```sh
@@ -21,7 +23,7 @@ gh workflow run generate-copilot-review-instructions.yml \
   --repo open-telemetry/shared-workflows -f repository=semantic-conventions-conformance
 ```
 
-The target must be public and opted in to collection. The generator requires at least two paired examples from addressed human findings. GPT-6.2 Sol Max drafts and judges edits from Claude Opus 5.5 High. The result replaces only Copilot instruction files, includes the path-scoped authoring guide, and leaves `AGENTS.md` alone. The run retains the patch and its citations for seven days.
+The target must be public and opted in to collection. The generator requires at least two paired examples from addressed human findings. GPT-6.2 Sol Max drafts and judges edits from Claude Opus 5.5 High. The draft includes the path-scoped authoring guide. The run retains the patch and its citations for seven days.
 
 Collection does not opt a repository in to bot PRs. Until `publish_instructions` is `true`, the run previews the publishing decision and makes no target writes. After enabling it, a nonempty patch against the current default-branch revision can open a draft from `opentelemetrybot`'s fork. An existing managed draft can be updated if its head still matches the last generated commit. Another open instruction PR, manual changes to the bot branch, or a closed unmerged managed PR blocks publishing. The workflow requests Copilot review and reports a warning if the request cannot be confirmed. It does not merge.
 

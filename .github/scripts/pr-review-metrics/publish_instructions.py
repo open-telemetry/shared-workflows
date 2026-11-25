@@ -116,8 +116,10 @@ def fork_head(url):
 
 def pr_body(commit):
     return (
-        "Replace the Copilot review instructions with rules drawn from current repository guides "
-        "and addressed human reviews. Include the shared authoring guide for instruction files.\n\n"
+        "This draft proposes a full reset of the repository's Copilot instructions. The new rules draw "
+        "on current repository guides and addressed human reviews and include the shared authoring guide.\n\n"
+        "Instruction files not recreated here are deleted, including hand-written ones. `AGENTS.md` is "
+        "unchanged. Review the deletions and carry over any rules you want to keep before merging.\n\n"
         f"<!-- shared-workflows:copilot-review-instructions {commit} -->"
     )
 

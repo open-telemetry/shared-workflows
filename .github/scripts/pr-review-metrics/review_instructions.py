@@ -276,6 +276,7 @@ class Snapshot:
         return [path.removeprefix(prefix) for path in result.stdout.split("\0") if path]
 
     def replacement(self, files, index):
+        """Build a patch treating files as the complete set of Copilot instructions."""
         existing = {path for path in self.entries if is_instruction(path)}
         removed = sorted(existing - files.keys())
         self.git("read-tree", self.revision, index=index)
