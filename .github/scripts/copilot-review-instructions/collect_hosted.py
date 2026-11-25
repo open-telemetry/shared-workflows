@@ -2,6 +2,7 @@ import argparse
 import json
 from contextlib import closing
 from datetime import datetime, timedelta, timezone
+from itertools import zip_longest
 from pathlib import Path
 from time import monotonic
 
@@ -66,12 +67,9 @@ def eligible_pulls(archive, start, today):
     retries = []
     recent = max(start, today - timedelta(days=LIVE_DAYS - 1))
     for first, last in ((recent, today), (start, recent - timedelta(days=1))):
-        cohorts = [iter(archive.pulls(repo, first, last)) for repo in REPOS]
-        while cohorts:
-            for cohort in tuple(cohorts):
-                pull = next(cohort, None)
+        for cohort in zip_longest(*(archive.pulls(repo, first, last) for repo in REPOS)):
+            for pull in cohort:
                 if pull is None:
-                    cohorts.remove(cohort)
                     continue
                 author = archive.db.execute(
                     "SELECT login, kind FROM pull_authors WHERE repo = ? AND number = ?",
@@ -160,6 +158,8 @@ def collect_batch(archive, args, start, today, git_root, deadline):
                 failures += 1
                 break
             except COMMAND_ERRORS as error:
+                if attempting:
+                    archive.defer_retry(repo, "assessments", number)
                 log(f"{repo}#{number}: evidence or assessment failed: {error}")
                 failures += 1
     finally:

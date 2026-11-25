@@ -11,6 +11,7 @@ from unittest.mock import Mock, patch
 from archive import Archive, encode
 from collect_hosted import capture_days, collect_batch, eligible_pulls
 from config import target_repository
+from copilot_model import AssessmentError
 from github_data import BudgetExhausted, DataError, GitHubError
 from publish_instructions import BOT, BRANCH, PENDING, apply_draft, pr_body, publish, publishing_plan
 from review_instructions import git
@@ -54,6 +55,7 @@ class HostedCollectionTests(unittest.TestCase):
             self.assertEqual(archive.pending_days(repo, day, day), [day])
             self.assertEqual(archive.pending_days(other, day, day), [])
             self.assertIsNone(archive.get_prepared(pulls[1]))
+            self.assertIn((repo, "2"), archive.collection_retries("assessments"))
             self.assertEqual(list(archive.pull_authors(repo, day, day)), [2])
             self.assertEqual(assess.call_count, 1)
 
@@ -125,6 +127,34 @@ class HostedCollectionTests(unittest.TestCase):
         self.assertEqual([call.args[3]["number"] for call in assess.call_args_list], [1, 1, 2, 2])
         archive.defer_retry.assert_called_once_with(REPOS[0], "assessments", 2)
         model.return_value.close.assert_called_once()
+
+    def test_failed_assessment_does_not_take_the_next_batch_slot_from_an_untried_pull(self):
+        repo = REPOS[0]
+        day = date(2026, 10, 4)
+        today = day + timedelta(days=2)
+        stamp = f"{day}T08:00:00Z"
+        args = SimpleNamespace(max_requests=10, max_backfill_days=0, max_assessments=1, work=Path("work"))
+        with (TemporaryDirectory() as work, closing(Archive(Path(work) / "data.sqlite3")) as archive,
+              patch("collect_hosted.capture_days", return_value=[]),
+              patch.object(archive, "capture_authors"),
+              patch.object(archive, "get_prepared", return_value={}),
+              patch("collect_hosted.Copilot"),
+              patch("collect_hosted.assess_cached", side_effect=[
+                  (None, False), AssessmentError("classification input too large"),
+                  (None, False), ([], True),
+              ]) as assess):
+            with archive.db:
+                for number in (1, 2):
+                    pull = {"repo": repo, "number": number, "merged": stamp, "threads": ["review"]}
+                    archive.db.execute("INSERT INTO pulls VALUES (?, ?, ?, ?, ?)",
+                                       (repo, number, str(day), stamp, encode(pull)))
+                    archive.db.execute("INSERT INTO pull_authors VALUES (?, ?, 'person', 'User')", (repo, number))
+
+            first = collect_batch(archive, args, day, today, args.work / "git", monotonic() + 10)
+            second = collect_batch(archive, args, day, today, args.work / "git", monotonic() + 10)
+            self.assertEqual((first["failures"], second["failures"]), (1, 0))
+            self.assertEqual([call.args[3]["number"] for call in assess.call_args_list if call.args[5]], [1, 2])
+            self.assertEqual(set(archive.collection_retries("assessments")), {(repo, "1")})
 
     def test_timed_out_pull_moves_behind_other_work_after_snapshot_reload(self):
         repo = REPOS[0]
