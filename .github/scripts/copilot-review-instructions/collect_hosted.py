@@ -46,7 +46,14 @@ def capture_days(archive, start, today, max_backfill):
     for repo in REPOS:
         yield repo, live_start, today
     historical_end = live_start - timedelta(days=1)
-    pending = {repo: sorted(archive.pending_days(repo, start, historical_end)) for repo in REPOS}
+    deferred = archive.collection_retries("backfill")
+
+    def priority(repo, day):
+        attempted_at = deferred.get((repo, day.isoformat()))
+        return attempted_at is not None, attempted_at or 0, day
+
+    pending = {repo: sorted(archive.pending_days(repo, start, historical_end),
+                            key=lambda day: priority(repo, day)) for repo in REPOS}
     for offset in range(max_backfill):
         for repo, days in pending.items():
             if offset < len(days):

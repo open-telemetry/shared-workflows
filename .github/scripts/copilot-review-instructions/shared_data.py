@@ -308,17 +308,25 @@ class SharedData:
             return
         if self.snapshot and relative == COLLECTION_RETRIES:
             records = json.loads(blob)
-            if not isinstance(records, dict) or not records.keys() <= {"assessments"}:
+            if not isinstance(records, dict) or not records.keys() <= {"assessments", "backfill"}:
                 raise DataError(f"Invalid collection retry queues: {path}")
             numbers = {str(number) for (number,) in self.archive.db.execute(
                 "SELECT number FROM pulls WHERE repo = ?", (repo,),
             )}
             rows = []
             for queue, attempts in records.items():
-                if not isinstance(attempts, dict) or not attempts.keys() <= numbers or any(
+                if not isinstance(attempts, dict) or any(
                     type(at) is not int or not 0 < at < 2 ** 63 for at in attempts.values()
                 ):
                     raise DataError(f"Invalid collection retry records: {path}")
+                if queue == "assessments" and not attempts.keys() <= numbers:
+                    raise DataError(f"Invalid assessment retry PR numbers: {path}")
+                if queue == "backfill":
+                    try:
+                        if any(date.fromisoformat(day).isoformat() != day for day in attempts):
+                            raise ValueError("Noncanonical date")
+                    except ValueError as error:
+                        raise DataError(f"Invalid backfill retry dates: {path}") from error
                 rows.extend((repo, queue, item, at) for item, at in attempts.items())
             self.archive.db.execute("DELETE FROM collection_retries WHERE repo = ?", (repo,))
             self.archive.db.executemany("INSERT INTO collection_retries VALUES (?, ?, ?, ?)", rows)

@@ -172,6 +172,34 @@ class HostedCollectionTests(unittest.TestCase):
             *((repo, start, start) for repo in REPOS[1:]),
         ])
 
+    def test_rejected_backfill_days_do_not_block_untested_days_after_snapshot_reload(self):
+        repo = REPOS[0]
+        start, today = date(2026, 10, 1), date(2026, 10, 7)
+        github = Mock()
+        with TemporaryDirectory() as work:
+            root = Path(work)
+            checkout, remote = shared_remote(root)
+            with closing(Archive(root / "first.sqlite3")) as archive:
+                shared = SharedData(archive, [repo], remote=str(remote), cwd=checkout, snapshot=True)
+                shared.load()
+                for offset in range(3):
+                    day, number = start + timedelta(days=offset), offset + 1
+                    stamp = f"{day}T08:00:00Z"
+                    github.merged.return_value = {number: stamp}
+                    github.pulls.return_value = [({"number": number, "merged": stamp}, (1, 0), None)]
+                    archive.capture(github, repo, day, day, today, accept_pull=lambda *_: False)
+                revision = shared.publish()
+            with closing(Archive(root / "next.sqlite3")) as archive:
+                SharedData(archive, [repo], remote=str(remote), cwd=checkout, snapshot=True).load(revision)
+                backfill = [day for name, first, day in capture_days(archive, start, today, 3)
+                            if name == repo and first == day]
+                self.assertEqual(backfill, [date(2026, 10, 4), date(2026, 10, 5), start])
+                self.assertEqual(archive.pending_days(repo, start, start), [start])
+                github.merged.return_value, github.pulls.return_value = {}, []
+                archive.capture(github, repo, start, start, today)
+                self.assertNotIn((repo, str(start)), archive.collection_retries("backfill"))
+                self.assertEqual(archive.pending_days(repo, start, start), [])
+
     def test_snapshot_keeps_evidence_for_opted_out_repo_and_imports_authors(self):
         active, inactive = REPOS[:2]
         with TemporaryDirectory() as work:

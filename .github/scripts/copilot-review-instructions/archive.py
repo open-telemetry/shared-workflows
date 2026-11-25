@@ -184,6 +184,8 @@ class Archive:
                 remaining.remove(n)
                 day = instant(merged).astimezone(timezone.utc).date()
                 if accept_pull is not None and not accept_pull(pull, day):
+                    if day not in incomplete:
+                        self.defer_retry(repo, "backfill", day)
                     incomplete.add(day)
                     continue
                 with self.db:
@@ -198,11 +200,13 @@ class Archive:
             if remaining:
                 raise DataError(f"Missing pull request records in {repo} for {first} to {last}")
             # Search indexing can lag. Recheck today and yesterday on the next capture.
+            complete = [(repo, day.isoformat()) for day in days(first, min(last, today - 2 * DAY))
+                        if day not in incomplete]
             with self.db:
+                self.db.executemany("INSERT OR IGNORE INTO complete_days VALUES (?, ?)", complete)
                 self.db.executemany(
-                    "INSERT OR IGNORE INTO complete_days VALUES (?, ?)",
-                    ((repo, day.isoformat()) for day in days(first, min(last, today - 2 * DAY))
-                     if day not in incomplete),
+                    "DELETE FROM collection_retries WHERE repo = ? AND queue = 'backfill' AND item = ?",
+                    complete,
                 )
         return added
 

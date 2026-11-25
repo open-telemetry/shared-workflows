@@ -16,7 +16,7 @@ Each entry requires a boolean `publish_instructions`. Use `false` to collect evi
 
 Collection starts at the configured UTC date, initially October 1, 2026, and runs daily at 05:43 UTC or by dispatching [Collect evidence for Copilot review instructions](https://github.com/open-telemetry/shared-workflows/actions/workflows/copilot-review-instructions-collector.yml). Removing a repository stops collection without deleting its existing evidence.
 
-Each run checks today and yesterday first, then fills the oldest unconfirmed days. It caps collection at three backfill days per repo, 180 GitHub API requests, ten new prepared evidence bundles and six new PR assessments. GitHub API calls, Git evidence commands and model requests during collection share a 25-minute deadline. This leaves time to save completed work before the 45-minute Actions job timeout.
+Each run checks today and yesterday first, then fills the oldest unconfirmed days that have no rejected records. It uses any remaining backfill slots to retry days with rejected records, oldest attempt first. It caps collection at three backfill days per repo, 180 GitHub API requests, ten new prepared evidence bundles and six new PR assessments. GitHub API calls, Git evidence commands and model requests during collection share a 25-minute deadline. This leaves time to save completed work before the 45-minute Actions job timeout.
 
 A PR that hits the deadline during evidence preparation or assessment moves behind other work on the next run. Deferred PRs are retried oldest attempt first when the batch has room.
 
