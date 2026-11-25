@@ -320,7 +320,8 @@ def model_pass(
                 "--model", model, "--reasoning-effort", effort, "--output-format", "json", "--no-ask-user",
                 "--no-auto-update", "--no-custom-instructions", "--disable-builtin-mcps", "--allow-all-paths",
                 "--available-tools", *TOOL_NAMES,
-                *(["--allow-tool", "view", "glob", "grep", "shell"] if allow_tools else ["--deny-tool", *TOOL_NAMES]),
+                *(["--allow-all-urls", "--allow-tool", "view", "glob", "grep", "shell"]
+                  if allow_tools else ["--deny-tool", *TOOL_NAMES]),
             ],
             target=target, phase=phase,
         )

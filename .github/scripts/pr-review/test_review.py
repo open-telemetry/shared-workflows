@@ -222,6 +222,28 @@ class ReviewTest(unittest.TestCase):
             self.assertIn("shell", launch.call_args.args[2])
             self.assertEqual(launch.call_args.kwargs["phase"], "review")
 
+    def test_model_pass_allows_urls_only_when_tools_are_enabled(self):
+        response = subprocess.CompletedProcess(
+            [], 0, stdout='{"type":"assistant.message","data":{"content":"Done."}}\n',
+        )
+        for allow_tools in (True, False):
+            with (
+                self.subTest(allow_tools=allow_tools),
+                tempfile.TemporaryDirectory() as directory,
+                mock.patch.object(runner, "run_in_sandbox", return_value=response) as launch,
+                mock.patch.object(runner, "progress"),
+            ):
+                bundle = Path(directory)
+                runner.model_pass(
+                    "model", "high", "prompt", bundle / "checkout", bundle,
+                    target=bundle / "target", phase="review", allow_tools=allow_tools,
+                )
+                args = launch.call_args.args[2]
+                self.assertEqual("--allow-all-urls" in args, allow_tools)
+                self.assertEqual("--allow-tool" in args, allow_tools)
+                self.assertEqual("--deny-tool" in args, not allow_tools)
+                self.assertNotIn("--allow-all-tools", args)
+
     def test_model_pass_logs_tool_activity_in_order_without_publishing_drafts(self):
         answer = (
             "A finding to verify.\n\n"
