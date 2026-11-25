@@ -17,7 +17,9 @@ gh workflow run pr-review.yml --repo open-telemetry/shared-workflows \
 
 `otelbot[bot]` posts findings as inline review comments, with only an experimental-review disclaimer in the review body. Review summaries stay in the workflow logs. If there's nothing worth posting, it posts a **No findings** comment with the same disclaimer. If the PR closes or its base or head changes during the run, the workflow skips posting.
 
-The verifier drops unsupported findings. It posts a `[Question]` without a suggested patch only when the author can supply a missing fact that could change the code.
+Each inline comment starts with a **Finding**, **Simplification**, or **Question** line that you can read on its own. A **Why** section follows with the supporting evidence, including permalinks to any code outside the diff. Comments leave the choice of fix to the author, except for small GitHub suggestions that you can apply directly.
+
+The verifier drops unsupported findings. It posts a **Question** without a suggested patch only when the author can supply a missing fact that could change the code.
 
 The workflow reviews the PR head and diff. All passes get a separate, read-only checkout of the target branch tip so they can find applicable review instructions and follow links to other repository docs. PR changes to instruction files don't change the rules for their own review.
 

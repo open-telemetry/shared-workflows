@@ -60,39 +60,49 @@ class ReviewBundleTest(unittest.TestCase):
         scope = {"example.txt": {"changed_lines": [1], "hunks": [(1, 1)]}}
         with mock.patch.object(prepare, "run", return_value=blob):
             for suggestion, expected in (
-                ("", "Remove this text.\n\n```suggestion\n```"),
-                ("\n", "Remove this text.\n\n```suggestion\n\n```"),
+                ("", "**Finding:** Remove this text.\n\n**Why:** Nothing reads it.\n\n```suggestion\n```"),
+                ("\n", "**Finding:** Remove this text.\n\n**Why:** Nothing reads it.\n\n```suggestion\n\n```"),
             ):
                 with self.subTest(suggestion=suggestion):
                     result = prepare.prepare_review({
                         "body": "Review summary",
                         "comments": [{
                             "kind": "review", "path": "example.txt", "line": 1,
-                            "body": "Remove this text.", "suggestion": suggestion,
+                            "finding": "Remove this text.", "why": "Nothing reads it.", "suggestion": suggestion,
                         }],
                     }, Path("source"), scope, metadata)
                     self.assertEqual(result["review"]["comments"][0]["body"], expected)
 
     def test_questions_are_labeled_and_cannot_include_a_patch(self):
-        body = "Can this endpoint receive requests from clients older than v2?"
-        question = {"kind": "question", "path": "example.txt", "line": 2, "body": body}
+        question = {
+            "kind": "question", "path": "example.txt", "line": 2,
+            "finding": "Can this endpoint receive requests from clients older than v2?",
+            "why": "The handler drops the v1 fallback.",
+        }
         metadata = {"number": 123, "base": {"sha": "base"}, "head": {"sha": "head"}}
         scope = {"example.txt": {"changed_lines": [2], "hunks": [(1, 2)]}}
         findings = {"body": "One question about supported clients.", "comments": [question]}
 
-        for text in (body, f"[Question] {body}"):
-            with self.subTest(text=text):
-                result = prepare.prepare_review(
-                    {**findings, "comments": [{**question, "body": text}]}, Path("source"), scope, metadata,
-                )
-                self.assertEqual(result["review"]["comments"], [
-                    {"path": "example.txt", "line": 2, "side": "RIGHT", "body": f"[Question] {body}"},
-                ])
+        result = prepare.prepare_review(findings, Path("source"), scope, metadata)
+        self.assertEqual(result["review"]["comments"], [{
+            "path": "example.txt", "line": 2, "side": "RIGHT",
+            "body": "**Question:** Can this endpoint receive requests from clients older than v2?\n\n"
+            "**Why:** The handler drops the v1 fallback.",
+        }])
 
         with self.assertRaisesRegex(ValueError, "Review questions must not include a suggestion"):
             prepare.prepare_review(
                 {**findings, "comments": [{**question, "suggestion": "replacement"}]}, Path("source"), scope, metadata,
             )
+
+    def test_comments_require_a_finding_and_evidence(self):
+        comment = {"kind": "review", "path": "example.txt", "line": 1, "finding": "A finding", "why": "Evidence"}
+        for missing in ("finding", "why"):
+            with self.subTest(missing=missing), self.assertRaisesRegex(ValueError, "Invalid final review comment"):
+                prepare.validate_findings({
+                    "body": "Review summary",
+                    "comments": [{key: value for key, value in comment.items() if key != missing}],
+                })
 
     def test_suggestions_preserve_trailing_blank_lines(self):
         blob = mock.Mock(returncode=0, stdout="old\n")
@@ -105,12 +115,13 @@ class ReviewBundleTest(unittest.TestCase):
                         "body": "Review summary",
                         "comments": [{
                             "kind": "review", "path": "example.txt", "line": 1,
-                            "body": "Keep the blank line.", "suggestion": f"{text}\n\n",
+                            "finding": "Keep the blank line.", "why": "The file ends with one.", "suggestion": f"{text}\n\n",
                         }],
                     }, Path("source"), scope, metadata)
                     self.assertEqual(
                         result["review"]["comments"][0]["body"],
-                        f"Keep the blank line.\n\n```suggestion\n{text}\n\n```",
+                        f"**Finding:** Keep the blank line.\n\n**Why:** The file ends with one.\n\n"
+                        f"```suggestion\n{text}\n\n```",
                     )
 
     def test_metadata_uses_explicit_target_and_checks_resolved_url(self):

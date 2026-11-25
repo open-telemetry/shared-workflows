@@ -131,7 +131,8 @@ class ReviewTest(unittest.TestCase):
     def test_verifier_repairs_an_unchanged_end_line_without_carrying_over_the_patch(self):
         comment = {
             "kind": "review", "path": "Example.java", "start_line": 23, "line": 28,
-            "body": "The inserted main method separates run from its Javadoc.", "suggestion": "replacement",
+            "finding": "The inserted main method separates run from its Javadoc.", "why": "Javadoc binds to main.",
+            "suggestion": "replacement",
         }
         answers = [
             json.dumps({"body": "Review summary", "comments": [comment]}),
@@ -149,14 +150,16 @@ class ReviewTest(unittest.TestCase):
         self.assertIn('"changed_lines": [24, 25, 26, 27]', model.call_args.args[2])
         self.assertNotIn('"suggestion": "replacement"', model.call_args.args[2])
         self.assertEqual(result["review"]["comments"], [
-            {"path": "Example.java", "line": 24, "side": "RIGHT", "body": comment["body"]},
+            {"path": "Example.java", "line": 24, "side": "RIGHT", "body": (
+                "**Finding:** The inserted main method separates run from its Javadoc.\n\n**Why:** Javadoc binds to main."
+            )},
         ])
 
     def test_verifier_keeps_valid_comments_when_other_anchors_cannot_be_repaired(self):
-        comment = {"kind": "review", "path": "example.txt", "line": 2, "body": "Keep this finding."}
+        comment = {"kind": "review", "path": "example.txt", "line": 2, "finding": "Keep this finding.", "why": "Evidence."}
         answers = [
             json.dumps({"body": "Do not repeat the dropped finding.", "comments": [
-                comment, {**comment, "line": 1, "body": "Drop this finding."},
+                comment, {**comment, "line": 1, "finding": "Drop this finding."},
             ]}),
             '{"anchors":[{"index":0,"line":3},{"index":1,"line":1}]}',
         ]
@@ -167,12 +170,12 @@ class ReviewTest(unittest.TestCase):
                 "Check both passes.", Path("source"), Path("input"), scope, metadata, target=Path("target"),
             )
         self.assertEqual(result["review"]["comments"], [
-            {"path": "example.txt", "line": 2, "side": "RIGHT", "body": "Keep this finding."},
+            {"path": "example.txt", "line": 2, "side": "RIGHT", "body": "**Finding:** Keep this finding.\n\n**Why:** Evidence."},
         ])
         self.assertNotIn("Do not repeat", result["review"]["body"])
 
     def test_verifier_fails_if_every_finding_has_an_unrepairable_anchor(self):
-        comment = {"kind": "review", "path": "example.txt", "line": 1, "body": "A finding"}
+        comment = {"kind": "review", "path": "example.txt", "line": 1, "finding": "A finding", "why": "Evidence"}
         answers = [json.dumps({"body": "Review summary", "comments": [comment]}), '{"anchors":[]}']
         metadata = {"number": 123, "base": {"sha": "base"}, "head": {"sha": "head"}}
         scope = {"example.txt": {"hunks": [(1, 2)], "changed_lines": [2]}}
@@ -185,7 +188,7 @@ class ReviewTest(unittest.TestCase):
             )
 
     def test_verifier_fails_closed_after_two_invalid_answers(self):
-        comment = {"kind": "review", "path": "example.txt", "line": 2, "body": "A finding"}
+        comment = {"kind": "review", "path": "example.txt", "line": 2, "finding": "A finding", "why": "Evidence"}
         answers = ["No findings.", json.dumps({"comments": [comment]})]
         metadata = {"number": 123, "base": {"sha": "base"}, "head": {"sha": "head"}}
         scope = {"example.txt": {"hunks": [(1, 2)], "changed_lines": [2]}}
@@ -614,14 +617,14 @@ class ReviewTest(unittest.TestCase):
                         "body": "Review summary",
                         "comments": [{
                             "kind": "simplification", "path": "example.txt",
-                            "start_line": 1, "line": 2, "body": "Simpler code. Update the import.",
-                            "suggestion": replacement,
+                            "start_line": 1, "line": 2, "finding": "Simpler code. Update the import.",
+                            "why": "One branch is enough.", "suggestion": replacement,
                         }],
                     }, checkout, scope, metadata)
                     review = result["review"]
                     self.assertNotIn("event", review)
                     self.assertEqual(review["commit_id"], head)
-                    body = "[Simplification] Simpler code. Update the import."
+                    body = "**Simplification:** Simpler code. Update the import.\n\n**Why:** One branch is enough."
                     if added == 14:
                         body += "\n\n```suggestion\n" + replacement + "```"
                     self.assertEqual(review["comments"][0]["body"], body)
@@ -630,7 +633,7 @@ class ReviewTest(unittest.TestCase):
         with mock.patch.object(prepare, "run") as git:
             result = prepare.prepare_review(
                 {"body": "Review summary", "comments": [{
-                    "kind": "review", "path": "example.txt", "line": 2, "body": "A finding",
+                    "kind": "review", "path": "example.txt", "line": 2, "finding": "A finding", "why": "Evidence",
                 }]},
                 Path("source"),
                 {"example.txt": {"hunks": [(1, 2)], "changed_lines": [2]}},
@@ -638,7 +641,7 @@ class ReviewTest(unittest.TestCase):
             )
         git.assert_not_called()
         self.assertEqual(result["review"]["comments"], [
-            {"path": "example.txt", "line": 2, "side": "RIGHT", "body": "A finding"},
+            {"path": "example.txt", "line": 2, "side": "RIGHT", "body": "**Finding:** A finding\n\n**Why:** Evidence"},
         ])
 
     def test_findings_publish_as_a_comment_review_with_only_the_notice(self):

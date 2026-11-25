@@ -413,7 +413,7 @@ def repair_invalid_anchors(
         scope = diff_scope.get(path)
         if scope and scope["changed_lines"]:
             candidates[index] = {
-                "path": path, "body": comment["body"], "start_line": start, "line": line,
+                "path": path, "finding": comment["finding"], "start_line": start, "line": line,
                 "changed_lines": scope["changed_lines"],
             }
 
@@ -498,6 +498,7 @@ def prepare_result(repo: str, pr: int, result_path: Path) -> None:
         checkout = root / "source"
         checkout_pr(repo, pr, metadata["head"]["sha"], checkout)
         url = metadata["html_url"]
+        permalink = f"https://github.com/{repo}/blob/{metadata['head']['sha']}/PATH#L10-L12"
         hint = closer_look_context(repo, pr, bundle)
         context = f"""
 Read {bundle / 'pr.diff'} and use the PR checkout for source and tests. Do not run code from the target checkout.
@@ -530,7 +531,7 @@ Reporting nothing is a fine answer.
         (bundle / "simplifications.txt").write_text(simplifications, encoding="utf-8")
 
         result = verify_findings(f"""Double-check {bundle / 'review.txt'} and {bundle / 'simplifications.txt'} against {url}.
-Keep only findings worth posting, remove duplicates, and prefix simplifications with [Simplification].
+Keep only findings worth posting and remove duplicates.
 Keep a correctness finding only if you can explain what breaks, under what conditions, and what evidence supports it.
 A reproduction is not required if the code or an authoritative source establishes the failure.
 A similar pattern or comment elsewhere is a lead to investigate, not proof that it applies here.
@@ -541,11 +542,19 @@ Drop simplifications that only trade repetition for indirection, or that the aut
 {context}
 Your final message must be a single JSON object, with no text outside it. Format:
 {{"body":"review summary","comments":[{{"kind":"review","path":"file",
-"line":10,"body":"comment","start_line":8,"suggestion":"exact replacement text"}}]}}.
+"line":10,"finding":"what is wrong","why":"evidence","start_line":8,"suggestion":"exact replacement text"}}]}}.
 Use kind "review", "simplification", or "question". Omit start_line for single-line comments.
+Write finding so a reader who stops there knows what is wrong and what it affects, in one or two sentences.
+For a simplification, finding is the simpler alternative. For a question, finding is the question.
+Don't describe how to fix a review finding; the author decides.
+Put the supporting evidence in why: the code path, the conditions, and any authoritative source.
+For a question, why says what prompted it and how the answer could change the code.
+For a simplification, why says what makes the result simpler.
+Link code outside the diff instead of citing approximate line numbers. Use permalinks such as {permalink}
+for the PR checkout, and link dependency source at the pinned version's tag.
 Omit suggestion for questions or when there is no replacement to offer.
 Only include a suggestion if it fits one diff hunk and adds fewer than 15 green lines.
-Mention any separate edits, such as an import, in the comment body. Don't put a suggestion fence in the body.
+Mention any separate edits the suggestion needs, such as an import, in finding. Don't put a suggestion fence in finding or why.
 If there is nothing worth posting, return {{"comments":[]}}.
 """, checkout, bundle, diff_scope, metadata, target=target)
         result["repository"] = repo

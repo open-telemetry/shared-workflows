@@ -12,6 +12,7 @@ from common import gh, pr_metadata, progress, run
 
 
 HUNK_RE = re.compile(r"^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@")
+COMMENT_LABELS = {"review": "Finding", "simplification": "Simplification", "question": "Question"}
 
 
 class FileScope(TypedDict):
@@ -95,11 +96,14 @@ def validate_findings(findings: object) -> dict[str, Any]:
     for raw in findings["comments"]:
         if (
             not isinstance(raw, dict)
-            or raw.get("kind") not in ("review", "simplification", "question")
+            or raw.get("kind") not in COMMENT_LABELS
             or not isinstance(raw.get("path"), str)
-            or not isinstance(raw.get("body"), str)
-            or not raw["body"].strip()
-            or re.search(r"(?im)^\s*(?:`{3,}|~{3,})\s*suggestion\b", raw["body"])
+            or any(
+                not isinstance(raw.get(key), str)
+                or not raw[key].strip()
+                or re.search(r"(?im)^\s*(?:`{3,}|~{3,})\s*suggestion\b", raw[key])
+                for key in ("finding", "why")
+            )
             or type(raw.get("line")) is not int
             or ("start_line" in raw and type(raw["start_line"]) is not int)
             or ("suggestion" in raw and not isinstance(raw["suggestion"], str))
@@ -129,14 +133,11 @@ def prepare_review(
     head = metadata["head"]["sha"]
     comments: list[dict[str, Any]] = []
     for raw in validated["comments"]:
-        path, line, body = raw["path"], raw["line"], raw["body"].strip()
+        path, line = raw["path"], raw["line"]
         start = raw.get("start_line", line)
         if not valid_diff_anchor(raw, diff_scope):
             raise ValueError(f"Invalid diff anchor for {path!r}:{start}-{line}")
-        if raw["kind"] == "simplification" and not body.startswith("[Simplification] "):
-            body = f"[Simplification] {body}"
-        if raw["kind"] == "question" and not body.startswith("[Question] "):
-            body = f"[Question] {body}"
+        body = f"**{COMMENT_LABELS[raw['kind']]}:** {raw['finding'].strip()}\n\n**Why:** {raw['why'].strip()}"
         if "suggestion" in raw:
             suggestion = raw["suggestion"]
             if small_suggestion(checkout, head, path, start, line, suggestion):
