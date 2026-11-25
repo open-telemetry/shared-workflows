@@ -452,14 +452,18 @@ def create_branch(result):
                                                "sha": text(commit["sha"], 40, SHA)})
 
 
-def inline_markdown(value):
+def inline_markdown(value, *, table_cell=False):
     # Render inline code, but keep model-supplied links, mentions, and other markup inert.
     escapes = {ord(char): f"&#{ord(char)};" for char in r"\`*_{}[]()<>#+!~|@$&:-="}
     # GitHub links issue references and mentions even after decoding HTML entities.
     escapes.update({ord("#"): "&#35;&#8203;", ord("@"): "&#64;&#8203;"})
 
     def prose(part):
-        part = part.translate(escapes)
+        if table_cell:
+            parts = re.split(r"(\\+\|)", part)
+            part = "".join(piece if i % 2 else piece.translate(escapes) for i, piece in enumerate(parts))
+        else:
+            part = part.translate(escapes)
         part = re.sub(r"\bwww\.", lambda m: m[0][:-1] + "&#46;", part, flags=re.IGNORECASE)
         return re.sub(r"\b(GH&#45;)(?=\d)", r"\1&#8203;", part, flags=re.IGNORECASE)
 
@@ -470,6 +474,38 @@ def inline_markdown(value):
 def explanation_markdown(explanation):
     paragraphs = re.split(r"\n[ \t]*\n", explanation.replace("\r\n", "\n").replace("\r", "\n"))
     return "\n\n".join(inline_markdown(" ".join(paragraph.split())) for paragraph in paragraphs if paragraph.strip())
+
+
+def table_cells(line):
+    if line.startswith("    ") or line.lstrip(" ").startswith("\t"):
+        return []
+    cells = re.split(r"(?<!\\)\|", line.strip(" \t"))
+    if len(cells) < 2:
+        return []
+    start = int(not cells[0])
+    end = len(cells) - int(not cells[-1])
+    return [cell.strip(" \t") for cell in cells[start:end]]
+
+
+def rule_table(lines, start):
+    if start + 1 >= len(lines) or not (header := table_cells(lines[start])):
+        return []
+    delimiter = table_cells(lines[start + 1])
+    if len(header) != len(delimiter) or not all(re.fullmatch(r":?-+:?", cell) for cell in delimiter):
+        return []
+
+    def row(cells):
+        return "| " + " | ".join(cells) + " |"
+
+    def content_row(cells):
+        return row(inline_markdown(cell, table_cell=True) for cell in cells)
+
+    rows = [content_row(header), row(delimiter)]
+    for i in range(start + 2, len(lines)):
+        if not (cells := table_cells(lines[i])):
+            break
+        rows.append(content_row(cells))
+    return rows
 
 
 def rule_quote(rule):
@@ -505,6 +541,10 @@ def rule_quote(rule):
                 continue
             quoted.extend(quote_line(inline_markdown(line)) for line in lines[i:])
             break
+        if table := rule_table(lines, i):
+            quoted.extend(quote_line(row) for row in table)
+            i += len(table)
+            continue
         content = line.lstrip(" \t")
         indent = line[:len(line) - len(content)].translate({ord(" "): "&#32;", ord("\t"): "&#9;"})
         quoted.append(quote_line(indent + inline_markdown(content)))

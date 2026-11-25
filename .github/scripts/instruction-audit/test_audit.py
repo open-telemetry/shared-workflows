@@ -385,6 +385,29 @@ class StateTest(unittest.TestCase):
             "> &#62; Keep the exception.",
         )
 
+    def test_rule_quote_renders_table_without_activating_cell_markup(self):
+        self.assertEqual(
+            audit.rule_quote(
+                "- Use these fields:\n\n"
+                "  Field | Meaning\n"
+                "  :--- | ---:\n"
+                r"  `a\|b` | Literal \|, @team, [docs](https://example.com), <img>" "\n\n"
+                "  A | B"
+            ),
+            "> Use these fields&#58;\n>\n"
+            "> | Field | Meaning |\n"
+            "> | :--- | ---: |\n"
+            r"> | `a\|b` | Literal \|, &#64;&#8203;team, &#91;docs&#93;&#40;https&#58;//example.com&#41;, "
+            "&#60;img&#62; |\n>\n"
+            "> A &#124; B",
+        )
+
+    def test_rule_quote_leaves_malformed_table_inert(self):
+        self.assertEqual(
+            audit.rule_quote("| A | B |\n| --- |\n| C | D |"),
+            "> &#124; A &#124; B &#124;\n> &#124; &#45;&#45;&#45; &#124;\n> &#124; C &#124; D &#124;",
+        )
+
     def test_rule_quote_renders_fenced_example_without_activating_surrounding_markup(self):
         self.assertEqual(
             audit.rule_quote(
