@@ -370,18 +370,45 @@ class StateTest(unittest.TestCase):
         self.assertEqual(
             audit.inline_markdown(
                 "# Review: fixes #42 GH-42 @team at www.example.com or https://example.com. "
-                "![click](https://example.com) <img> `setting.name`"
+                "![click](https://example.com) <img> `builder(...).build()` `@CanIgnoreReturnValue`"
             ),
             "&#35;&#8203; Review&#58; fixes &#35;&#8203;42 GH&#45;&#8203;42 &#64;&#8203;team "
             "at www&#46;example.com or https&#58;//example.com. "
-            "&#33;&#91;click&#93;&#40;https&#58;//example.com&#41; &#60;img&#62; `setting.name`",
+            "&#33;&#91;click&#93;&#40;https&#58;//example.com&#41; &#60;img&#62; "
+            "`builder(...).build()` `@CanIgnoreReturnValue`",
         )
 
     def test_rule_quote_keeps_continuations_inside_the_quote(self):
         self.assertEqual(
             audit.rule_quote("- Use `timeout`.\r\n    Except @team.\r\n\r\n> Keep the exception."),
-            "> &#45; Use `timeout`.\n> &#32;&#32;&#32;&#32;Except &#64;&#8203;team.\n>\n"
+            "> Use `timeout`.\n> &#32;&#32;Except &#64;&#8203;team.\n>\n"
             "> &#62; Keep the exception.",
+        )
+
+    def test_rule_quote_renders_fenced_example_without_activating_surrounding_markup(self):
+        self.assertEqual(
+            audit.rule_quote(
+                "- Use `create(OpenTelemetry)`.\n\n"
+                "    ```java\n"
+                "      @Example\n"
+                "      ```\n"
+                "      return builder(openTelemetry).build();\n"
+                "    ```\n\n"
+                "  See [docs](https://example.com) and @team."
+            ),
+            "> Use `create(OpenTelemetry)`.\n>\n"
+            ">   ````java\n"
+            ">     @Example\n"
+            ">     ```\n"
+            ">     return builder(openTelemetry).build();\n"
+            "> ````\n>\n"
+            "> See &#91;docs&#93;&#40;https&#58;//example.com&#41; and &#64;&#8203;team.",
+        )
+
+    def test_rule_quote_leaves_unclosed_fence_inert(self):
+        self.assertEqual(
+            audit.rule_quote("- Example:\n\n  ```java\n  @Example"),
+            "> Example&#58;\n>\n> &#96;&#96;&#96;java\n> &#64;&#8203;Example",
         )
 
     @patch.dict(os.environ, {"GITHUB_REPOSITORY": "other/../example"})

@@ -12,7 +12,7 @@ from urllib.error import HTTPError
 from urllib.parse import quote, urlencode
 from urllib.request import HTTPRedirectHandler, Request, build_opener
 
-from rules import INSTRUCTIONS, remaining_rules
+from rules import INSTRUCTIONS, ITEM, remaining_rules
 
 
 STATE = "otelbot/instruction-audit-state"
@@ -459,7 +459,7 @@ def inline_markdown(value):
         part = re.sub(r"\bwww\.", lambda m: m[0][:-1] + "&#46;", part, flags=re.IGNORECASE)
         return re.sub(r"\b(GH&#45;)(?=\d)", r"\1&#8203;", part, flags=re.IGNORECASE)
 
-    parts = re.split(r"(`[\w./:$-]+`)", value, flags=re.ASCII)
+    parts = re.split(r"((?<!`)`[^`\r\n]+`(?!`))", value)
     return "".join(part if i % 2 else prose(part) for i, part in enumerate(parts))
 
 
@@ -469,11 +469,42 @@ def explanation_markdown(explanation):
 
 
 def rule_quote(rule):
+    lines = rule.splitlines()
+    if lines and (item := ITEM.match(lines[0])):
+        # A selected list item is quoted as a standalone rule.
+        lines[0] = lines[0][item.end():]
+        indent = " " * item.end()
+        lines[1:] = [line.removeprefix(indent) for line in lines[1:]]
     quoted = []
-    for line in rule.splitlines():
+
+    def quote_line(line):
+        return f"> {line}" if line else ">"
+
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        if fence := re.fullmatch(r" {0,3}(`{3,}|~{3,})[ \t]*[A-Za-z0-9_+-]*[ \t]*", line):
+            marker = fence[1]
+            close = re.compile(r" {0,3}" + marker[0] + r"{" + str(len(marker)) + r",}[ \t]*")
+            end = i + 1
+            while end < len(lines) and not close.fullmatch(lines[end]):
+                end += 1
+            if end < len(lines):
+                code = lines[i + 1:end]
+                # The output fence must not close on any line of the quoted code.
+                longest = max((len(run) for part in code for run in re.findall(marker[0] + "+", part)), default=0)
+                delimiter = marker[0] * max(len(marker), longest + 1)
+                quoted.append(quote_line(line.replace(marker, delimiter, 1)))
+                quoted.extend(quote_line(part) for part in code)
+                quoted.append(quote_line(delimiter))
+                i = end + 1
+                continue
+            quoted.extend(quote_line(inline_markdown(line)) for line in lines[i:])
+            break
         content = line.lstrip(" \t")
         indent = line[:len(line) - len(content)].translate({ord(" "): "&#32;", ord("\t"): "&#9;"})
-        quoted.append(f"> {indent}{inline_markdown(content)}" if line else ">")
+        quoted.append(quote_line(indent + inline_markdown(content)))
+        i += 1
     return "\n".join(quoted)
 
 
