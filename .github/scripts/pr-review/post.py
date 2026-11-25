@@ -34,7 +34,7 @@ def publish_result(repo: str, pr: int, result_path: Path) -> None:
 
     with tempfile.TemporaryDirectory() as directory:
         payload = Path(directory) / "review.json"
-        write_json(payload, {**review, "body": with_notice(review.get("body")), "event": "COMMENT"})
+        write_json(payload, {**review, "body": EXPERIMENT_NOTICE, "event": "COMMENT"})
         response = gh_json(
             ["api", f"repos/{repo}/pulls/{pr}/reviews", "--method", "POST", "--input", str(payload)]
         )

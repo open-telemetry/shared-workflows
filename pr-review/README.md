@@ -15,7 +15,7 @@ gh workflow run pr-review.yml --repo open-telemetry/shared-workflows \
 
 ## Check the result
 
-`otelbot[bot]` posts a review on the PR, or a **No findings** comment if there's nothing worth posting. Both start with a note that the review is experimental. If the PR closes or its base or head changes during the run, the workflow skips posting.
+`otelbot[bot]` posts findings as inline review comments, with only an experimental-review disclaimer in the review body. Review summaries stay in the workflow logs. If there's nothing worth posting, it posts a **No findings** comment with the same disclaimer. If the PR closes or its base or head changes during the run, the workflow skips posting.
 
 The verifier drops unsupported findings. It posts a `[Question]` without a suggested patch only when the author can supply a missing fact that could change the code.
 

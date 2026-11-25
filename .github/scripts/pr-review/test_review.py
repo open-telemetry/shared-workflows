@@ -641,7 +641,7 @@ class ReviewTest(unittest.TestCase):
             {"path": "example.txt", "line": 2, "side": "RIGHT", "body": "A finding"},
         ])
 
-    def test_findings_publish_as_a_comment_review(self):
+    def test_findings_publish_as_a_comment_review_with_only_the_notice(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "review-result.json"
             review = {
@@ -654,7 +654,7 @@ class ReviewTest(unittest.TestCase):
             def submit(args):
                 self.assertEqual(args[:5], ["api", "repos/org/repo/pulls/123/reviews", "--method", "POST", "--input"])
                 self.assertEqual(json.loads(Path(args[5]).read_text(encoding="utf-8")), {
-                    **review, "body": f"{post.EXPERIMENT_NOTICE}\n\nOne finding.", "event": "COMMENT",
+                    **review, "body": post.EXPERIMENT_NOTICE, "event": "COMMENT",
                 })
                 return {"html_url": "https://example.test/review"}
 
