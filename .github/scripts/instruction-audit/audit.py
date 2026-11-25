@@ -339,12 +339,16 @@ Use backticks for identifiers, but no other markup.
     if publish_fixes:
         response += f"""
 Include exactly the keys "status", "reason", "patch", "title", and "explanation". For a finding,
-include fixes for all verified violations of the selected rule that you can safely address in
-one patch, even across files.
-If any verified violations remain unfixed, say which ones and why in "reason".
-Return the patch as a Git unified diff string against the audited snapshot, with a trailing
-newline and no Markdown fences. If you provide a patch, write a specific PR title in the
-imperative that describes what the patch changes, for example "Document the default timeout".
+implement the fix in the local checkout. Address all verified violations of the selected rule
+that you can safely fix in one patch, even across files. Use the repository's normal tooling
+to format the changed code and run the narrowest relevant build and tests locally. Fix
+failures caused by your changes before returning a patch. In "reason", report the checks and
+their results, explain why any relevant checks could not run, and say which verified
+violations remain unfixed and why.
+Generate the patch from the final edits against the audited snapshot. Return it as a Git
+unified diff string with a trailing newline and no Markdown fences. If you provide a patch,
+write a specific PR title in the imperative that describes what the patch changes, for example
+"Document the default timeout".
 Use one line of plain text, at most {TITLE_LIMIT} UTF-8 bytes, without mentions, issue references, or links.
 Do not include an audit prefix; the workflow adds it.
 If you provide a patch, write the public PR "explanation" for a reviewer. Lead with what

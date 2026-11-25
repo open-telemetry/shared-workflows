@@ -45,7 +45,9 @@ Each run checks one rule with a fresh GHAW agent. A separate job uses the caller
 
 ## What the workflow can publish
 
-The audit asks Copilot to search the selected rule's applicable scope, keep looking after the first verified violation, and report what it checked and any coverage limits. In publish mode, Copilot proposes one Git patch for all verified violations it can safely fix and explains any it leaves unfixed. Git checks the patch against the original snapshot in a separate job. Findings without a publishable patch appear in the run summary.
+The audit asks Copilot to search the selected rule's applicable scope, keep looking after the first verified violation, and report what it checked and any coverage limits.
+
+In publish mode, Copilot fixes what it can in the checkout, formats the changed code, and runs the narrowest relevant build and tests before generating one Git patch. The run summary records which checks ran, their results, and why any relevant checks could not run or violations remain unfixed. A separate job checks that the patch applies to the original snapshot. Findings without a publishable patch also appear in the run summary.
 
 GitHub Agentic Workflows runs Copilot in the firewall with shell access. Network access includes `defaults`, `github`, `opentelemetry.io`, and the ecosystem bundles for OpenTelemetry projects: `bazel` for C++, `dart`, `dotnet`, `elixir`, `go`, `java`, `kotlin`, `node`, `php`, `python`, `ruby`, `rust`, and `swift`.
 
