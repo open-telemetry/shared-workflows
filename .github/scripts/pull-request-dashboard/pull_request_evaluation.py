@@ -5,7 +5,7 @@ from __future__ import annotations
 import sys
 import traceback
 import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Any
 
 from classification_execution import (
@@ -21,14 +21,16 @@ from classification_policy import (
     normalize_discussion_action,
 )
 from copilot_review import (
-    copilot_fallback_exhausted,
+    copilot_quota_issue,
     copilot_review_error_count,
+    copilot_review_in_flight,
     copilot_review_status,
-    is_copilot_quota_failure,
     is_copilot_reviewer,
+    refresh_copilot_review_cycle,
 )
 from dashboard_contracts import (
-    CopilotReviewFallback,
+    CopilotReviewCycle,
+    CopilotReviewCycleUpdate,
     DashboardFacts,
     DashboardRoute,
     EvaluationDiagnostics,
@@ -52,6 +54,8 @@ from discussion_lifecycle import (
     DiscussionLifecycleOutcome,
     LifecycleMode,
     PreparedDiscussions,
+    latest_completed_inline_reply_at,
+    prepare_author_handoff_reply_threads,
     prepare_discussions,
     prepare_reviewer_handoff_feedback,
     resolve_discussions,
@@ -78,6 +82,7 @@ from reviewer_state import (
 )
 from routing_decision import (
     RoutingInput,
+    author_handoff_active,
     resolve_routing,
     reviewer_handoff_active,
 )
@@ -87,6 +92,7 @@ from utils import (
     is_unattended_author_login,
     normalize_author_identity,
     parse_ts,
+    utc_now,
 )
 
 
@@ -126,7 +132,7 @@ class PullRequestEvaluationConfig:
     non_blocking_check_patterns: tuple[str, ...] = ()
     require_clean_copilot_review_branches: frozenset[str] = frozenset()
     copilot_review_fallback_available: bool = False
-    copilot_review_fallback: CopilotReviewFallback | None = None
+    copilot_review_cycle: CopilotReviewCycle | None = None
 
 
 @dataclass(frozen=True)
@@ -147,7 +153,7 @@ def _compute_facts(
     approver_logins: frozenset[str],
     previous_facts: DashboardFacts,
     fallback_available: bool = False,
-    fallback: CopilotReviewFallback | None = None,
+    cycle: CopilotReviewCycle | None = None,
 ) -> DashboardFacts:
     pr = source.pull_request
     snapshot = build_routing_snapshot(source)
@@ -187,12 +193,19 @@ def _compute_facts(
         source.reviews,
         head_sha,
     )
+    observed_cycle = cycle
+    cycle = refresh_copilot_review_cycle(
+        cycle, source.reviews, head_sha, utc_now(),
+        fallback_available=fallback_available,
+    )
+    author_can_act = _author_can_act(pr.author, author)
     override = dashboard_override_facts(
         DashboardOverrideInput(source.issue_comments),
         author,
         set(approver_logins),
         head_sha,
         previous_facts,
+        author_can_act=author_can_act,
     )
     non_blocking_check_failures = tuple(sorted(
         {
@@ -210,33 +223,29 @@ def _compute_facts(
         copilot_request_fingerprint=snapshot.copilot_request_fingerprint,
         dashboard_override_command_id=override.command_id,
         dashboard_override_command_user=override.command_user,
-        dashboard_override_bound_command_id=override.bound_command_id,
-        dashboard_override_head_sha=override.head_sha,
-        dashboard_override_since=override.since,
+        handoff=override.handoff,
         dashboard_top_level_feedback_cutoff=override.top_level_feedback_cutoff,
-        dashboard_override_persistent=override.persistent_handoff,
-        dashboard_override_cleared_by_feedback=override.cleared_by_feedback,
         dashboard_command_replies=override.command_replies,
         copilot_review_requested=any(
             is_copilot_reviewer(request)
             for request in snapshot.review_requests
         ),
-        copilot_review_quota_exhausted=(
-            previous_facts.copilot_review_quota_exhausted
-            or fallback is not None
-            or any(is_copilot_quota_failure(review) for review in source.reviews)
-        ),
+        copilot_review_quota_exhausted=copilot_quota_issue(source.reviews, head_sha),
         copilot_review_fallback_available=fallback_available,
-        copilot_review_fallback_exhausted=(
-            previous_facts.copilot_review_fallback_exhausted
-            or copilot_fallback_exhausted(fallback, source.reviews)
+        copilot_review_request_in_flight=copilot_review_in_flight(cycle),
+        copilot_review_request_limit_reason=(
+            cycle.limit_reason if cycle is not None and cycle.head_sha == head_sha else ""
+        ),
+        copilot_review_cycle_update=(
+            CopilotReviewCycleUpdate(observed_cycle, cycle)
+            if observed_cycle is not None else None
         ),
         copilot_review_error_count=copilot_review_error_count(source.reviews, head_sha),
         copilot_review_exists=copilot_review_exists,
         copilot_review_stale=copilot_review_stale,
         copilot_review_needed=copilot_review_stale,
         is_maintenance_bot=_is_maintenance_bot_author(api_author),
-        author_can_act=_author_can_act(pr.author, author),
+        author_can_act=author_can_act,
         is_draft=pr.is_draft,
         approval_count=prepared_reviewers.approval_count,
         conflicts=pr.conflicts,
@@ -371,6 +380,8 @@ async def _classify_discussions(
     classifier_model: str,
     previous_top_level_history: dict[str, dict[str, Any]],
     classification_service: ClassificationOperation,
+    *,
+    preserve_cache: bool,
 ) -> DiscussionLifecycleOutcome:
     classifications = await classification_service.classify(
         ClassificationExecutionRequest(
@@ -388,6 +399,7 @@ async def _classify_discussions(
                 ClassificationDiscussion.from_record(discussion)
                 for discussion in prepared.top_level_author_comment_items
             ),
+            preserve_cache=preserve_cache,
         )
     )
     return resolve_discussions(
@@ -466,9 +478,8 @@ async def evaluate_pull_request(
             config.approver_logins,
             previous_facts,
             config.copilot_review_fallback_available,
-            config.copilot_review_fallback,
+            config.copilot_review_cycle,
         )
-        manual_reviewer_handoff = reviewer_handoff_active(facts)
         discussion_input = DiscussionInput(
             pr_source.review_threads,
             activity.events,
@@ -480,13 +491,13 @@ async def evaluate_pull_request(
             discussion_input,
             top_level_feedback_cutoff=facts.dashboard_top_level_feedback_cutoff,
         )
-        if manual_reviewer_handoff:
+        if reviewer_handoff_active(facts):
             # Old discussions cannot block a break-glass handoff. Only newer
             # human feedback is classified to decide whether the reviewer has
             # handed the pull request back to its author.
             handoff_feedback = prepare_reviewer_handoff_feedback(
                 discussion_input,
-                facts.dashboard_override_since,
+                facts.handoff.since,
                 author,
             )
             has_handoff_feedback = bool(
@@ -510,28 +521,24 @@ async def evaluate_pull_request(
                 if has_handoff_feedback
                 else ()
             )
-            feedback_routes_to_author = _handoff_feedback_routes_to_author(
-                feedback_classifications
+            if _handoff_feedback_routes_to_author(feedback_classifications):
+                facts = facts.with_changes(handoff=facts.handoff.release())
+
+        handoff_since = (
+            parse_ts(facts.handoff.since) if author_handoff_active(facts) else None
+        )
+        release_threads = (
+            prepare_author_handoff_reply_threads(discussion_input, handoff_since)
+            if handoff_since is not None
+            else ()
+        )
+        if reviewer_handoff_active(facts):
+            lifecycle = resolve_discussions(
+                prepared_discussions,
+                None,
+                previous_top_level_history,
+                mode=LifecycleMode.REVIEWER_HANDOFF,
             )
-            if feedback_routes_to_author:
-                facts = facts.with_changes(
-                    dashboard_override_cleared_by_feedback=True
-                )
-                manual_reviewer_handoff = False
-                lifecycle = await _classify_discussions(
-                    number,
-                    prepared_discussions,
-                    config.classifier_model,
-                    previous_top_level_history,
-                    classification_service,
-                )
-            else:
-                lifecycle = resolve_discussions(
-                    prepared_discussions,
-                    None,
-                    previous_top_level_history,
-                    mode=LifecycleMode.REVIEWER_HANDOFF,
-                )
         else:
             lifecycle = await _classify_discussions(
                 number,
@@ -539,6 +546,7 @@ async def evaluate_pull_request(
                 config.classifier_model,
                 previous_top_level_history,
                 classification_service,
+                preserve_cache=bool(release_threads),
             )
         diagnostics = _evaluation_diagnostics(lifecycle)
         if lifecycle.failed_classifications:
@@ -554,6 +562,31 @@ async def evaluate_pull_request(
                     "discussion classification(s) failed"
                 ),
             )
+        if handoff_since is not None:
+            reply_at = lifecycle.latest_completed_author_reply_at
+            if release_threads and (reply_at is None or reply_at <= handoff_since):
+                # Resolved threads can release a handoff but cannot block routing.
+                extra = await classification_service.classify(
+                    ClassificationExecutionRequest(
+                        pr_number=number,
+                        model=config.classifier_model,
+                        review_threads=tuple(
+                            ClassificationDiscussion.from_record(thread)
+                            for thread in release_threads
+                        ),
+                        preserve_cache=True,
+                    )
+                )
+                diagnostics = replace(
+                    diagnostics,
+                    review_threads=diagnostics.review_threads + release_threads,
+                    review_thread_classifications=(
+                        diagnostics.review_thread_classifications + extra.review_threads
+                    ),
+                )
+                reply_at = latest_completed_inline_reply_at(extra.review_threads)
+            if reply_at is not None and reply_at > handoff_since:
+                facts = facts.with_changes(handoff=facts.handoff.release())
         pending_actions = lifecycle.pending_actions
         review_threads = list(prepared_discussions.review_threads)
         top_level_items = list(prepared_discussions.top_level_items)
@@ -572,7 +605,6 @@ async def evaluate_pull_request(
                     pr.base_branch
                     in config.require_clean_copilot_review_branches
                 ),
-                manual_reviewer_handoff=manual_reviewer_handoff,
                 pending_human_reviewer_logins=(
                     prepared_reviewers.pending_human_reviewer_logins
                 ),

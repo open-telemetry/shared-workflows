@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import unittest
+from datetime import datetime, timezone
 
 from classification_policy import (
     ActionDecision,
@@ -597,10 +598,6 @@ class ResolveDiscussionsTest(unittest.TestCase):
                     "action": "author",
                     "since": ROOT_TIMESTAMP,
                 },
-                "thread-unclear": {
-                    "action": "author",
-                    "since": ROOT_TIMESTAMP,
-                },
                 "feedback-author": {
                     "action": "author",
                     "since": ROOT_TIMESTAMP,
@@ -612,22 +609,32 @@ class ResolveDiscussionsTest(unittest.TestCase):
             },
         )
 
-    def test_completed_author_reply_records_history(self) -> None:
+    def test_earliest_reply_records_history_and_latest_reply_can_end_handoff(self) -> None:
         prepared = PreparedDiscussions(
             (),
             (top_level_item("question"),),
-            (author_reply(102, "2026-07-14T03:00:00Z", "question"),),
+            (
+                author_reply(102, "2026-07-14T03:00:00Z", "question"),
+                author_reply(103, "2026-07-14T04:00:00Z", "question"),
+            ),
         )
         outcome = resolve_discussions(
             prepared,
             DiscussionClassifications(
                 (),
                 (classification("question", "author"),),
-                (author_reply_classification(102, ("question", "none")),),
+                (
+                    author_reply_classification(102, ("question", "none")),
+                    author_reply_classification(103, ("question", "none")),
+                ),
             ),
         )
 
         self.assertEqual(outcome.pending_actions, {})
+        self.assertEqual(
+            outcome.latest_completed_author_reply_at,
+            datetime(2026, 7, 14, 4, tzinfo=timezone.utc),
+        )
         self.assertEqual(
             outcome.top_level_history,
             {
@@ -833,6 +840,7 @@ class ResolveDiscussionsTest(unittest.TestCase):
             },
         )
         self.assertEqual(outcome.top_level_history, {})
+        self.assertIsNone(outcome.latest_completed_author_reply_at)
 
     def test_unclear_reply_preserves_the_earlier_author_handoff(self) -> None:
         prepared = PreparedDiscussions(
@@ -919,6 +927,7 @@ class HistoryRestorationTest(unittest.TestCase):
 
         self.assertEqual(outcome.pending_actions, {})
         self.assertEqual(outcome.top_level_history, self.history)
+        self.assertIsNone(outcome.latest_completed_author_reply_at)
 
     def test_restores_cached_reply_after_deferred_classification(self) -> None:
         outcome = resolve_discussions(

@@ -27,13 +27,19 @@ ROUTE_PRESENTATION = {
         "dashboard_label": "Transient GitHub failure retrieving PR data",
         "status_headline": "Waiting on the pull request dashboard maintainers",
         "status_waiting_on": "Pull request dashboard maintainers",
-        "status_next_step": "Determine the next action.",
+        "status_next_step": (
+            "The dashboard couldn't evaluate this pull request. If this "
+            "persists, report it below."
+        ),
     },
     "unknown": {
         "dashboard_label": "Unknown",
         "status_headline": "Waiting on the pull request dashboard maintainers",
         "status_waiting_on": "Pull request dashboard maintainers",
-        "status_next_step": "Determine the next action.",
+        "status_next_step": (
+            "The dashboard couldn't evaluate this pull request. If this "
+            "persists, report it below."
+        ),
     },
 }
 ROUTE_ORDER = list(ROUTE_PRESENTATION)

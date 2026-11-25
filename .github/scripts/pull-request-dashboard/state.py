@@ -4,12 +4,17 @@ import argparse
 import hashlib
 import json
 import sys
-from collections.abc import Iterable, Mapping
+from collections.abc import Collection, Iterable, Mapping
+from datetime import timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from dashboard_contracts import (
-    CopilotReviewFallback,
+    CopilotReviewCycle,
+    CopilotReviewCycleUpdate,
+    CopilotReviewLimit,
+    CopilotReviewPhase,
+    CopilotReviewRequester,
     DashboardCommandReply,
     DashboardFacts,
     DashboardRoute,
@@ -17,20 +22,24 @@ from dashboard_contracts import (
     EvaluationSuccess,
     ReviewerSummary,
     StoredDashboardResult,
+    HandoffTarget,
+    RoutingHandoff,
     freeze_json_object,
     thaw_json,
 )
 from github_cli import detect_repo, normalize_repo, repo_state_key
 import state_branch
-from utils import is_unattended_author_login
+from utils import is_unattended_author_login, parse_ts
 from telemetry import session as telemetry_session
 
 
 DASHBOARD_MARKDOWN_FILE = "pull-request-dashboard.md"
 BACKFILL_STATE_FILE = "backfill-state.json"
 AUTHOR_NUDGE_STATE_FILE = "author-nudge-state.json"
+# Legacy request receipts used to seed the dispatch journal.
 COPILOT_REVIEW_REQUEST_STATE_FILE = "copilot-review-request-state.json"
 COPILOT_REVIEW_FALLBACK_STATE_FILE = "copilot-review-fallback-state.json"
+COPILOT_REVIEW_DISPATCH_STATE_FILE = "copilot-review-dispatch-state.json"
 STATUS_COMMENT_ROLLOUT_STATE_FILE = "status-comment-rollout-state.json"
 DELIVERY_VERSIONS_FILE = "delivery-versions.json"
 DELIVERY_STATE_FILE = "delivery-state.json"
@@ -42,24 +51,26 @@ FULL_PUBLISH_DELIVERED_FILE = "full-publish-delivered.json"
 # changes. A worker lower in any component skips delivery; after claiming the
 # current vector, ordinary state loaders may regenerate mismatched disposable
 # caches. Every constant ending in _STATE_VERSION or _REVISION is included.
-# dashboard-state.json: accepted PR routing results and backfill readiness.
-# Routing facts include current-head Copilot error counts for bounded retries.
-DASHBOARD_STATE_VERSION = 21
-DASHBOARD_STATE_COMPATIBLE_VERSIONS: tuple[int, ...] = ()
+# dashboard-routing-state.json: accepted PR routing results and backfill readiness.
+# Routing facts carry conditional before/after Copilot cycle updates.
+DASHBOARD_STATE_VERSION = 29
+DASHBOARD_STATE_COMPATIBLE_VERSIONS = (20, 21, 23)
 # backfill-state.json: round-robin cursor used by full dashboard refreshes.
 BACKFILL_STATE_VERSION = 3
 # notification-state.json: pending and delivered Slack notification records.
 NOTIFICATION_STATE_VERSION = 3
 # author-nudge-state.json: waiting episodes and delivered author reminders.
-AUTHOR_NUDGE_STATE_VERSION = 5
-# copilot-review-request-state.json: pending and delivered review requests.
-COPILOT_REVIEW_REQUEST_STATE_VERSION = 9
-COPILOT_REVIEW_FALLBACK_STATE_VERSION = 1
+AUTHOR_NUDGE_STATE_VERSION = 6
+# Delivery version for Copilot request intents in the accepted routing snapshot.
+COPILOT_REVIEW_REQUEST_STATE_VERSION = 14
+# copilot-review-dispatch-state.json: dispatch journal, with a shared delivery
+# version key for both the journal and the legacy fallback state.
+COPILOT_REVIEW_FALLBACK_STATE_VERSION = 11
 # status-comment-rollout-state.json: target/completed renderer revisions and queue.
 STATUS_COMMENT_ROLLOUT_STATE_VERSION = 3
 # Rendered status-comment behavior. Increment when existing comments need to
 # adopt a change; hourly runs durably roll it out to all open PRs.
-STATUS_COMMENT_REVISION = 22
+STATUS_COMMENT_REVISION = 24
 FULL_PUBLISH_STATE_VERSION = 1
 INITIAL_BACKFILL_COMPLETE_KEY = "initial_backfill_complete"
 _state_dir: Path | None = None
@@ -100,7 +111,7 @@ def using_delivery_state() -> bool:
 
 
 def dashboard_state_path() -> Path:
-    return accepted_state_dir() / "dashboard-state.json"
+    return accepted_state_dir() / "dashboard-routing-state.json"
 
 
 def notification_state_path() -> Path:
@@ -111,12 +122,8 @@ def author_nudge_state_path() -> Path:
     return state_dir() / AUTHOR_NUDGE_STATE_FILE
 
 
-def copilot_review_request_state_path() -> Path:
-    return state_dir() / COPILOT_REVIEW_REQUEST_STATE_FILE
-
-
-def copilot_review_fallback_state_path() -> Path:
-    return state_dir() / COPILOT_REVIEW_FALLBACK_STATE_FILE
+def copilot_review_dispatch_state_path() -> Path:
+    return state_dir() / COPILOT_REVIEW_DISPATCH_STATE_FILE
 
 
 def backfill_state_path() -> Path:
@@ -623,6 +630,8 @@ def _encode_command_reply(reply: DashboardCommandReply) -> dict[str, Any]:
             # DashboardCommandReply refuses a routed reply without a route.
             stored["route"] = reply.route.value
             stored["held_gates"] = reply.held_gates
+            if reply.subcommand:
+                stored["subcommand"] = reply.subcommand
         return stored
     return {
         "comment_id": reply.comment_id,
@@ -630,6 +639,62 @@ def _encode_command_reply(reply: DashboardCommandReply) -> dict[str, Any]:
         "user": reply.user,
         "subcommand": reply.subcommand,
     }
+
+
+def _copilot_review_limit(value: Any) -> CopilotReviewLimit:
+    reason = _string(value, "facts.copilot_review_request_limit_reason")
+    if reason not in ("", "quota", "errors", "requests", "timeout"):
+        raise ValueError("invalid Copilot review request limit")
+    return cast(CopilotReviewLimit, reason)
+
+
+def _decode_handoff(value: Any) -> RoutingHandoff:
+    if not isinstance(value, dict):
+        raise ValueError("handoff must be an object")
+    return RoutingHandoff(
+        command_id=_integer(value.get("command_id", _MISSING), "handoff.command_id"),
+        head_sha=_string(value.get("head_sha", _MISSING), "handoff.head_sha"),
+        since=_string(value.get("since", _MISSING), "handoff.since"),
+        target=HandoffTarget(value.get("target", HandoffTarget.REVIEWERS.value)),
+        released=_boolean(value.get("released", _MISSING), "handoff.released"),
+        persistent=_boolean(value.get("persistent", _MISSING), "handoff.persistent"),
+    )
+
+
+def _encode_handoff(handoff: RoutingHandoff) -> dict[str, Any]:
+    return {
+        "command_id": handoff.command_id,
+        "head_sha": handoff.head_sha,
+        "since": handoff.since,
+        "target": handoff.target.value,
+        "released": handoff.released,
+        "persistent": handoff.persistent,
+    }
+
+
+def _decode_facts_handoff(value: dict[str, Any]) -> RoutingHandoff:
+    if "handoff" in value:
+        return _decode_handoff(value["handoff"])
+    return RoutingHandoff(
+        command_id=(
+            _integer(value.get("dashboard_override_bound_command_id", _MISSING),
+                     "facts.dashboard_override_bound_command_id")
+            or _integer(value.get("dashboard_override_command_id", _MISSING),
+                        "facts.dashboard_override_command_id")
+        ),
+        head_sha=_string(value.get("dashboard_override_head_sha", _MISSING),
+                         "facts.dashboard_override_head_sha"),
+        since=_string(value.get("dashboard_override_since", _MISSING),
+                      "facts.dashboard_override_since"),
+        released=_boolean(
+            value.get("dashboard_override_cleared_by_feedback", _MISSING),
+            "facts.dashboard_override_cleared_by_feedback",
+        ),
+        persistent=_boolean(
+            value.get("dashboard_override_persistent", _MISSING),
+            "facts.dashboard_override_persistent",
+        ),
+    )
 
 
 def decode_dashboard_facts(value: Any) -> DashboardFacts:
@@ -645,6 +710,7 @@ def decode_dashboard_facts(value: Any) -> DashboardFacts:
         raw_reviewers = []
     if not isinstance(raw_reviewers, list):
         raise ValueError("facts.reviewers must be an array")
+    raw_cycle_update = value.get("copilot_review_cycle_update")
     author = _string(value.get("author", _MISSING), "facts.author")
     return DashboardFacts(
         author=author,
@@ -669,29 +735,10 @@ def decode_dashboard_facts(value: Any) -> DashboardFacts:
             value.get("dashboard_override_command_user", _MISSING),
             "facts.dashboard_override_command_user",
         ),
-        dashboard_override_bound_command_id=_integer(
-            value.get("dashboard_override_bound_command_id", _MISSING),
-            "facts.dashboard_override_bound_command_id",
-        ),
-        dashboard_override_head_sha=_string(
-            value.get("dashboard_override_head_sha", _MISSING),
-            "facts.dashboard_override_head_sha",
-        ),
-        dashboard_override_since=_string(
-            value.get("dashboard_override_since", _MISSING),
-            "facts.dashboard_override_since",
-        ),
+        handoff=_decode_facts_handoff(value),
         dashboard_top_level_feedback_cutoff=_string(
             value.get("dashboard_top_level_feedback_cutoff", _MISSING),
             "facts.dashboard_top_level_feedback_cutoff",
-        ),
-        dashboard_override_persistent=_boolean(
-            value.get("dashboard_override_persistent", _MISSING),
-            "facts.dashboard_override_persistent",
-        ),
-        dashboard_override_cleared_by_feedback=_boolean(
-            value.get("dashboard_override_cleared_by_feedback", _MISSING),
-            "facts.dashboard_override_cleared_by_feedback",
         ),
         dashboard_command_replies=tuple(
             _decode_command_reply(reply)
@@ -709,9 +756,16 @@ def decode_dashboard_facts(value: Any) -> DashboardFacts:
             value.get("copilot_review_fallback_available", _MISSING),
             "facts.copilot_review_fallback_available",
         ),
-        copilot_review_fallback_exhausted=_boolean(
-            value.get("copilot_review_fallback_exhausted", _MISSING),
-            "facts.copilot_review_fallback_exhausted",
+        copilot_review_request_in_flight=_boolean(
+            value.get("copilot_review_request_in_flight", _MISSING),
+            "facts.copilot_review_request_in_flight",
+        ),
+        copilot_review_request_limit_reason=_copilot_review_limit(
+            value.get("copilot_review_request_limit_reason", _MISSING),
+        ),
+        copilot_review_cycle_update=(
+            _decode_copilot_review_cycle_update(raw_cycle_update)
+            if raw_cycle_update is not None else None
         ),
         copilot_review_error_count=_integer(
             value.get("copilot_review_error_count", _MISSING),
@@ -853,7 +907,6 @@ def encode_dashboard_facts(facts: DashboardFacts) -> dict[str, Any]:
         "copilot_request_fingerprint": facts.copilot_request_fingerprint,
         "dashboard_override_command_id": facts.dashboard_override_command_id,
         "dashboard_override_command_user": facts.dashboard_override_command_user,
-        "dashboard_override_head_sha": facts.dashboard_override_head_sha,
         "dashboard_command_replies": [
             _encode_command_reply(reply)
             for reply in facts.dashboard_command_replies
@@ -895,24 +948,22 @@ def encode_dashboard_facts(facts: DashboardFacts) -> dict[str, Any]:
         stored["copilot_review_quota_exhausted"] = True
     if facts.copilot_review_fallback_available:
         stored["copilot_review_fallback_available"] = True
-    if facts.copilot_review_fallback_exhausted:
-        stored["copilot_review_fallback_exhausted"] = True
+    if facts.copilot_review_request_in_flight:
+        stored["copilot_review_request_in_flight"] = True
+    if facts.copilot_review_request_limit_reason:
+        stored["copilot_review_request_limit_reason"] = facts.copilot_review_request_limit_reason
+    if facts.copilot_review_cycle_update is not None:
+        stored["copilot_review_cycle_update"] = _encode_copilot_review_cycle_update(
+            facts.copilot_review_cycle_update,
+        )
     if facts.copilot_review_error_count:
         stored["copilot_review_error_count"] = facts.copilot_review_error_count
-    if facts.dashboard_override_bound_command_id:
-        stored["dashboard_override_bound_command_id"] = (
-            facts.dashboard_override_bound_command_id
-        )
-    if facts.dashboard_override_since:
-        stored["dashboard_override_since"] = facts.dashboard_override_since
+    if facts.handoff != RoutingHandoff():
+        stored["handoff"] = _encode_handoff(facts.handoff)
     if facts.dashboard_top_level_feedback_cutoff:
         stored["dashboard_top_level_feedback_cutoff"] = (
             facts.dashboard_top_level_feedback_cutoff
         )
-    if facts.dashboard_override_persistent:
-        stored["dashboard_override_persistent"] = True
-    if facts.dashboard_override_cleared_by_feedback:
-        stored["dashboard_override_cleared_by_feedback"] = True
     if facts.ci_failing_count is not None:
         stored["ci_failing_count"] = facts.ci_failing_count
     if facts.ci_failing_since is not None:
@@ -1051,11 +1102,15 @@ def encode_dashboard_state(state: DashboardState) -> dict[str, Any]:
 
 
 def load_dashboard_state_cache() -> DashboardState | None:
-    state = load_state_file(
-        dashboard_state_path(),
-        DASHBOARD_STATE_VERSION,
-        compatible_versions=DASHBOARD_STATE_COMPATIBLE_VERSIONS,
-    )
+    path = dashboard_state_path()
+    if path.exists():
+        state = load_state_file(path, DASHBOARD_STATE_VERSION, compatible_versions=(27, 28))
+    else:
+        state = load_state_file(
+            path.with_name("dashboard-state.json"),
+            DASHBOARD_STATE_VERSION,
+            compatible_versions=DASHBOARD_STATE_COMPATIBLE_VERSIONS,
+        )
     if state is None:
         return None
     return decode_dashboard_state(state)
@@ -1108,7 +1163,7 @@ def load_author_nudge_state_file(path: Path) -> dict[str, Any]:
     state = load_state_file(
         path,
         AUTHOR_NUDGE_STATE_VERSION,
-        compatible_versions=(2, 3, 4),
+        compatible_versions=(2, 3, 4, 5),
     )
     if state is None or not isinstance(state.get("prs"), dict):
         return {}
@@ -1157,6 +1212,23 @@ def union_merge_author_nudges(
                 })
             baseline_entry["completions"] = completions
             merged[key] = baseline_entry
+        delivered_completion_ids = list(dict.fromkeys([
+            *((baseline_nudges.get(key) or {}).get("delivered_completion_ids") or []),
+            *((retry_entry or {}).get("delivered_completion_ids") or []),
+        ]))
+        if delivered_completion_ids:
+            entry = dict(merged.get(key) or {})
+            entry["delivered_completion_ids"] = delivered_completion_ids
+            completions = [
+                completion
+                for completion in entry.get("completions") or []
+                if completion.get("episode_id") not in delivered_completion_ids
+            ]
+            if completions:
+                entry["completions"] = completions
+            else:
+                entry.pop("completions", None)
+            merged[key] = entry
     return merged
 
 
@@ -1174,7 +1246,9 @@ def reconcile_author_nudges(
         pending_completions = {
             completion.get("episode_id"): completion
             for completion in receipt.get("completions") or []
-            if isinstance(completion, dict) and completion.get("episode_id")
+            if isinstance(completion, dict)
+            and completion.get("episode_id")
+            and completion["episode_id"] not in delivered_completion_ids
         }
         for completion in intent.get("completions") or []:
             if not isinstance(completion, dict):
@@ -1251,142 +1325,241 @@ def save_author_nudges(nudges: dict[str, Any]) -> None:
     )
 
 
-def load_copilot_review_request_state_file(path: Path) -> dict[str, Any]:
-    state = load_state_file(
-        path,
-        COPILOT_REVIEW_REQUEST_STATE_VERSION,
-        compatible_versions=(6,),
-    )
-    if state is None or not isinstance(state.get("prs"), dict):
-        return {}
-    return state["prs"]
-
-
-def union_merge_copilot_review_requests(
-    baseline_requests: dict[str, Any],
-    retry_snapshot_requests: dict[str, Any],
-) -> dict[str, Any]:
-    merged = dict(baseline_requests)
-    for key, retry_entry in retry_snapshot_requests.items():
-        baseline_entry = merged.get(key) or {}
-        if (
-            (retry_entry or {}).get("requested_at")
-            and retry_entry.get("head_sha") == baseline_entry.get("head_sha")
-            and retry_entry.get("observed_at")
-            and retry_entry.get("observed_at") == baseline_entry.get("observed_at")
-        ):
-            merged[key] = retry_entry
-    return merged
-
-
-def reconcile_copilot_review_requests(
-    intents: dict[str, Any],
-    receipts: dict[str, Any],
-) -> dict[str, Any]:
-    reconciled = {
-        key: dict(entry or {})
-        for key, entry in intents.items()
-    }
-    for key, receipt in receipts.items():
-        intent = reconciled.get(key)
-        receipt = dict(receipt or {})
-        if (
-            intent is not None
-            and receipt.get("requested_at")
-            and receipt.get("head_sha") == intent.get("head_sha")
-            and receipt.get("copilot_request_fingerprint")
-            == intent.get("copilot_request_fingerprint")
-        ):
-            intent["requested_at"] = receipt["requested_at"]
-    return reconciled
-
-
-def load_copilot_review_requests(retry_snapshot_path: Path | None = None) -> dict[str, Any]:
-    requests = load_copilot_review_request_state_file(copilot_review_request_state_path())
-    if retry_snapshot_path and retry_snapshot_path.exists():
-        requests = union_merge_copilot_review_requests(
-            requests,
-            load_copilot_review_request_state_file(retry_snapshot_path),
-        )
-    if using_delivery_state():
-        requests = reconcile_copilot_review_requests(
-            load_copilot_review_request_state_file(
-                accepted_state_dir() / COPILOT_REVIEW_REQUEST_STATE_FILE
-            ),
-            requests,
-        )
-    return requests
-
-
-def save_copilot_review_requests(requests: dict[str, Any]) -> None:
-    save_state_file(
-        copilot_review_request_state_path(),
-        {"prs": requests},
-        COPILOT_REVIEW_REQUEST_STATE_VERSION,
-    )
-
-
-def load_copilot_review_fallbacks_file(path: Path) -> dict[str, CopilotReviewFallback]:
-    if not path.exists():
-        return {}
-    data = json.loads(path.read_text(encoding="utf-8"))
+def _decode_copilot_review_cycle(entry: Any) -> CopilotReviewCycle:
+    if not isinstance(entry, dict):
+        raise ValueError("invalid Copilot review cycle")
+    head = entry.get("head_sha")
+    requester = entry.get("requester")
+    phase = entry.get("phase")
+    count = entry.get("request_count")
+    dispatch_id = entry.get("dispatch_id")
+    started_at = entry.get("started_at")
+    reserved_at = entry.get("reserved_at", "")
+    sent_at = entry.get("sent_at")
+    ids = entry.get("baseline_review_ids")
+    reason = entry.get("limit_reason")
     if (
-        not isinstance(data, dict)
-        or data.get("version") != COPILOT_REVIEW_FALLBACK_STATE_VERSION
-        or not isinstance(data.get("prs"), dict)
+        not isinstance(head, str)
+        or requester not in ("app", "fallback")
+        or phase not in ("ready", "sending", "accepted", "unknown", "complete", "limited")
+        or type(count) is not int or count < 0
+        or not isinstance(dispatch_id, str)
+        or not isinstance(started_at, str) or not isinstance(reserved_at, str)
+        or not isinstance(sent_at, str)
+        or not isinstance(ids, list)
+        or any(type(value) is not int or value <= 0 for value in ids)
+        or reason not in ("", "quota", "errors", "requests", "timeout")
+        or (phase == "limited") != bool(reason)
+        or (count > 0 and not started_at)
+        or (phase in ("sending", "accepted", "unknown") and (not dispatch_id or count < 1))
+        or (phase == "accepted" and (not head or not sent_at))
+        or (phase == "sending" and bool(sent_at))
     ):
-        raise ValueError(f"incompatible Copilot request state: {path}")
-    fallbacks: dict[str, CopilotReviewFallback] = {}
-    for key, entry in data["prs"].items():
-        if not isinstance(entry, dict):
-            raise ValueError(f"invalid Copilot request record for PR {key}")
-        ids = entry.get("quota_failure_ids")
-        attempted_at = entry.get("attempted_at")
-        exhausted = entry.get("exhausted", False)
+        raise ValueError("invalid Copilot review cycle")
+    for value in (started_at, reserved_at, sent_at):
+        if value:
+            timestamp = parse_ts(value)
+            if timestamp is None or timestamp.tzinfo is None:
+                raise ValueError("invalid Copilot review cycle timestamp")
+    return CopilotReviewCycle(
+        head_sha=head,
+        requester=cast(CopilotReviewRequester, requester),
+        phase=cast(CopilotReviewPhase, phase),
+        request_count=count,
+        dispatch_id=dispatch_id,
+        started_at=started_at,
+        reserved_at=reserved_at,
+        sent_at=sent_at,
+        baseline_review_ids=tuple(ids),
+        limit_reason=cast(CopilotReviewLimit, reason),
+    )
+
+
+def _encode_copilot_review_cycle(cycle: CopilotReviewCycle) -> dict[str, Any]:
+    return {
+        "head_sha": cycle.head_sha,
+        "requester": cycle.requester,
+        "phase": cycle.phase,
+        "request_count": cycle.request_count,
+        "dispatch_id": cycle.dispatch_id,
+        "started_at": cycle.started_at,
+        "reserved_at": cycle.reserved_at,
+        "sent_at": cycle.sent_at,
+        "baseline_review_ids": list(cycle.baseline_review_ids),
+        "limit_reason": cycle.limit_reason,
+    }
+
+
+def _decode_copilot_review_cycle_update(entry: Any) -> CopilotReviewCycleUpdate:
+    if not isinstance(entry, dict) or "before" not in entry or "after" not in entry:
+        raise ValueError("invalid Copilot review cycle update")
+    return CopilotReviewCycleUpdate(
+        before=_decode_copilot_review_cycle(entry["before"]) if entry["before"] is not None else None,
+        after=_decode_copilot_review_cycle(entry["after"]) if entry["after"] is not None else None,
+    )
+
+
+def _encode_copilot_review_cycle_update(update: CopilotReviewCycleUpdate) -> dict[str, Any]:
+    return {
+        "before": _encode_copilot_review_cycle(update.before) if update.before is not None else None,
+        "after": _encode_copilot_review_cycle(update.after) if update.after is not None else None,
+    }
+
+
+def _legacy_copilot_review_cycle(entry: Any, version: int) -> CopilotReviewCycle:
+    if not isinstance(entry, dict) or not isinstance(entry.get("exhausted", False), bool):
+        raise ValueError("invalid legacy Copilot review record")
+    attempts = [entry] if version < 3 else entry.get("attempts")
+    if not isinstance(attempts, list):
+        raise ValueError("invalid legacy Copilot review attempts")
+    timestamps = []
+    for attempt in attempts:
+        if not isinstance(attempt, dict):
+            raise ValueError("invalid legacy Copilot review attempt")
+        ids = attempt.get("quota_failure_ids")
+        value = attempt.get("attempted_at")
+        timestamp = parse_ts(value) if isinstance(value, str) else None
         if (
             not isinstance(ids, list)
-            or any(type(value) is not int or value <= 0 for value in ids)
-            or not isinstance(attempted_at, str)
-            or not attempted_at
-            or not isinstance(exhausted, bool)
+            or any(type(review_id) is not int or review_id <= 0 for review_id in ids)
+            or timestamp is None or timestamp.tzinfo is None
         ):
-            raise ValueError(f"invalid Copilot request record for PR {key}")
-        fallbacks[key] = CopilotReviewFallback(tuple(ids), attempted_at, exhausted)
-    return fallbacks
+            raise ValueError("invalid legacy Copilot review attempt")
+        timestamps.append(timestamp)
+    if not timestamps:
+        return CopilotReviewCycle("", requester="fallback")
+    return CopilotReviewCycle(
+        "", requester="fallback", phase="unknown", request_count=1,
+        dispatch_id=f"legacy-{max(timestamps).astimezone(timezone.utc).isoformat()}",
+        started_at=max(timestamps).isoformat(),
+    )
 
 
-def load_copilot_review_fallbacks(
-    retry_snapshot_path: Path | None = None,
-) -> dict[str, CopilotReviewFallback]:
-    fallbacks = load_copilot_review_fallbacks_file(copilot_review_fallback_state_path())
-    if retry_snapshot_path is not None:
-        for key, retry in load_copilot_review_fallbacks_file(retry_snapshot_path).items():
-            current = fallbacks.get(key)
-            if current is None:
-                fallbacks[key] = retry
-            else:
-                latest = max((current, retry), key=lambda entry: entry.attempted_at)
-                fallbacks[key] = CopilotReviewFallback(
-                    latest.quota_failure_ids,
-                    latest.attempted_at,
-                    current.exhausted or retry.exhausted,
-                )
-    return fallbacks
+def _read_copilot_review_records(
+    path: Path, versions: Collection[int],
+) -> tuple[int, dict[str, Any]] | None:
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        return None
+    if (
+        not isinstance(data, dict)
+        or type(data.get("version")) is not int
+        or data["version"] not in versions
+        or not isinstance(data.get("prs"), dict)
+    ):
+        raise ValueError(f"incompatible Copilot review state: {path}")
+    return data["version"], data["prs"]
 
 
-def save_copilot_review_fallbacks(fallbacks: dict[str, CopilotReviewFallback]) -> None:
+def load_copilot_review_cycles_from(repo_dir: Path) -> dict[str, CopilotReviewCycle]:
+    journal = _read_copilot_review_records(
+        repo_dir / COPILOT_REVIEW_DISPATCH_STATE_FILE,
+        (COPILOT_REVIEW_FALLBACK_STATE_VERSION,),
+    )
+    if journal is not None:
+        _, entries = journal
+        return {key: _decode_copilot_review_cycle(entry) for key, entry in entries.items()}
+    return _load_legacy_copilot_review_cycles(repo_dir)
+
+
+def _load_legacy_copilot_review_cycles(repo_dir: Path) -> dict[str, CopilotReviewCycle]:
+    fallback = _read_copilot_review_records(
+        repo_dir / COPILOT_REVIEW_FALLBACK_STATE_FILE, range(1, 11),
+    )
+    cycles: dict[str, CopilotReviewCycle] = {}
+    if fallback is not None:
+        version, entries = fallback
+        if version >= 4:
+            return {key: _decode_copilot_review_cycle(entry) for key, entry in entries.items()}
+        cycles = {
+            key: _legacy_copilot_review_cycle(entry, version)
+            for key, entry in entries.items()
+        }
+    receipts = _read_copilot_review_records(
+        repo_dir / COPILOT_REVIEW_REQUEST_STATE_FILE, range(6, 13),
+    )
+    if receipts is None:
+        return cycles
+    version, entries = receipts
+    if version == 12:
+        # These receipts mirror the dispatch journal, not independent sends.
+        return cycles
+    for key, entry in entries.items():
+        if not isinstance(entry, dict):
+            raise ValueError("invalid legacy Copilot review receipt")
+        value = entry.get("requested_at")
+        if value is None or value == "":
+            continue
+        timestamp = parse_ts(value) if isinstance(value, str) else None
+        if timestamp is None or timestamp.tzinfo is None:
+            raise ValueError("invalid legacy Copilot review receipt timestamp")
+        prior = cycles.get(key)
+        prior_time = parse_ts(prior.started_at) if prior else None
+        if prior_time is None or timestamp > prior_time:
+            cycles[key] = CopilotReviewCycle(
+                "", requester=prior.requester if prior else "app",
+                phase="unknown", request_count=1,
+                dispatch_id=f"legacy-{timestamp.astimezone(timezone.utc).isoformat()}",
+                started_at=timestamp.isoformat(),
+            )
+    return cycles
+
+
+def load_copilot_review_cycles() -> dict[str, CopilotReviewCycle]:
+    return load_copilot_review_cycles_from(state_dir())
+
+
+def save_copilot_review_cycles(cycles: dict[str, CopilotReviewCycle]) -> None:
     save_state_file(
-        copilot_review_fallback_state_path(),
+        copilot_review_dispatch_state_path(),
         {"prs": {
-            key: {
-                "quota_failure_ids": list(entry.quota_failure_ids),
-                "attempted_at": entry.attempted_at,
-                "exhausted": entry.exhausted,
-            }
-            for key, entry in fallbacks.items()
+            key: _encode_copilot_review_cycle(cycle)
+            for key, cycle in cycles.items()
         }},
         COPILOT_REVIEW_FALLBACK_STATE_VERSION,
     )
+
+
+def apply_copilot_review_cycle_update(
+    cycles: dict[str, CopilotReviewCycle],
+    key: str,
+    update: CopilotReviewCycleUpdate,
+) -> bool:
+    current = cycles.get(key)
+    # CAS replay can observe the already-applied after-state.
+    if current == update.after:
+        return True
+    if current != update.before:
+        return False
+    if update.after is None:
+        cycles.pop(key, None)
+    else:
+        cycles[key] = update.after
+    return True
+
+
+def record_copilot_review_cycle_observations() -> None:
+    cycles = load_copilot_review_cycles()
+    accepted = load_dashboard_state_cache()
+    for result in (accepted.results if accepted is not None else ()):
+        key = str(result.pr_number)
+        facts = result.facts
+        update = facts.copilot_review_cycle_update
+        if update is None or update.after is None or not facts.head_sha:
+            continue
+        before, after = update.before, update.after
+        # The dispatcher owns sending reservations and unreviewed head or window resets.
+        if (
+            before is not None and (
+                before.phase == "sending"
+                or (before.head_sha != after.head_sha and after.phase != "complete")
+                or (after.phase == "ready" and before.started_at != after.started_at)
+            )
+        ):
+            continue
+        apply_copilot_review_cycle_update(cycles, key, update)
+    save_copilot_review_cycles(cycles)
 
 
 def union_merge_notifications(

@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from dashboard_contracts import (
+    CopilotReviewCycle,
     DashboardFacts,
     DashboardRoute,
     DashboardState,
@@ -35,6 +36,23 @@ from pull_request_source import (
 
 def actor(login: str = "", **changes: Any) -> Actor:
     return Actor(login=login, **changes)
+
+
+def copilot_review_cycle(
+    head_sha: str = "abcdef123456",
+    **changes: Any,
+) -> CopilotReviewCycle:
+    values = {
+        "head_sha": head_sha,
+        "requester": "app",
+        "phase": "accepted",
+        "request_count": 1,
+        "dispatch_id": "test-dispatch",
+        "started_at": "2026-08-16T08:00:00Z",
+        "sent_at": "2026-08-16T08:00:00Z",
+    }
+    values.update(changes)
+    return CopilotReviewCycle(**values)
 
 
 def pull_request_metadata(**changes: Any) -> PullRequestMetadata:

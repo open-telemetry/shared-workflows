@@ -9,7 +9,7 @@ from unittest.mock import call, patch
 import dashboard_override
 import dashboard_override_delivery
 import state
-from dashboard_contracts import DashboardCommandReply, DashboardRoute
+from dashboard_contracts import DashboardCommandReply, DashboardRoute, RoutingHandoff
 from dashboard_test_support import (
     actor,
     dashboard_facts,
@@ -34,14 +34,10 @@ def result_facts(
     values = {
         "dashboard_override_command_id": override.command_id,
         "dashboard_override_command_user": override.command_user,
-        "dashboard_override_bound_command_id": override.bound_command_id,
-        "dashboard_override_head_sha": override.head_sha,
-        "dashboard_override_since": override.since,
+        "handoff": override.handoff,
         "dashboard_top_level_feedback_cutoff": (
             override.top_level_feedback_cutoff
         ),
-        "dashboard_override_persistent": override.persistent_handoff,
-        "dashboard_override_cleared_by_feedback": override.cleared_by_feedback,
         "dashboard_command_replies": override.command_replies,
     }
     values.update(changes)
@@ -49,13 +45,6 @@ def result_facts(
 
 
 class DashboardOverrideTest(unittest.TestCase):
-    def test_override_guidance_matches_pre_review_route(self) -> None:
-        guidance = dashboard_override.author_override_guidance()
-
-        self.assertIn("waiting on the author to waiting on reviewers", guidance)
-        self.assertIn("remains active across pushes", guidance)
-        self.assertNotIn("immediately", guidance)
-
     def test_dashboard_command_body_remainder(self) -> None:
         self.assertIsNone(
             dashboard_override.dashboard_command_body_remainder(
@@ -114,10 +103,10 @@ class DashboardOverrideTest(unittest.TestCase):
         )
 
         self.assertEqual(
-            (4, "Approver", "2026-08-16T07:00:00Z"),
-            dashboard_override.latest_authorized_command(
+            4,
+            dashboard_override.dashboard_override_facts(
                 source, "author", {"approver"}
-            ),
+            ).command_id,
         )
 
     def test_latest_authorized_command_uses_content_update_time(self) -> None:
@@ -128,10 +117,8 @@ class DashboardOverrideTest(unittest.TestCase):
             content_updated_at="2026-08-16T09:00:00Z",
         ))
 
-        self.assertEqual(
-            (4, "author", "2026-08-16T09:00:00Z"),
-            dashboard_override.latest_authorized_command(source, "author", set()),
-        )
+        facts = dashboard_override.dashboard_override_facts(source, "author")
+        self.assertEqual("2026-08-16T09:00:00Z", facts.top_level_feedback_cutoff)
 
     def test_latest_authorized_command_cutoff_never_predates_creation(self) -> None:
         source = override_input(issue_comment(
@@ -141,10 +128,8 @@ class DashboardOverrideTest(unittest.TestCase):
             content_updated_at="2026-08-16T07:00:00Z",
         ))
 
-        self.assertEqual(
-            (4, "author", "2026-08-16T09:00:00Z"),
-            dashboard_override.latest_authorized_command(source, "author", set()),
-        )
+        facts = dashboard_override.dashboard_override_facts(source, "author")
+        self.assertEqual("2026-08-16T09:00:00Z", facts.top_level_feedback_cutoff)
 
     def test_latest_authorized_command_ignores_app_acknowledged_command(self) -> None:
         source = override_input(
@@ -159,10 +144,8 @@ class DashboardOverrideTest(unittest.TestCase):
             ),
         )
 
-        self.assertEqual(
-            (0, "", ""),
-            dashboard_override.latest_authorized_command(source, "author", set()),
-        )
+        facts = dashboard_override.dashboard_override_facts(source, "author")
+        self.assertEqual(0, facts.command_id)
 
     def test_latest_authorized_command_ignores_previously_rejected_command(self) -> None:
         source = override_input(
@@ -179,10 +162,10 @@ class DashboardOverrideTest(unittest.TestCase):
         )
 
         self.assertEqual(
-            (0, "", ""),
-            dashboard_override.latest_authorized_command(
+            0,
+            dashboard_override.dashboard_override_facts(
                 source, "author", {"new-approver"}
-            ),
+            ).command_id,
         )
 
     def test_is_authorized_commander_matches_author_or_approver(self) -> None:
@@ -194,6 +177,33 @@ class DashboardOverrideTest(unittest.TestCase):
         )
         self.assertFalse(
             dashboard_override.is_authorized_commander("outsider", "author", {"approver"})
+        )
+
+    def test_author_command_rejects_outsiders_and_unattended_authors(self) -> None:
+        source = override_input(
+            issue_comment(
+                database_id=1,
+                actor=actor("outsider"),
+                body="/dashboard route:author",
+            ),
+            issue_comment(
+                database_id=2,
+                actor=actor("approver"),
+                body="/dashboard route:author",
+            ),
+        )
+        facts = dashboard_override.dashboard_override_facts(
+            source, "app[bot]", {"approver"}, "head", author_can_act=False
+        )
+        self.assertEqual(0, facts.handoff.command_id)
+        outsider, approver = facts.command_replies
+        self.assertIn(
+            "can use `/dashboard route:author`.",
+            dashboard_override.render_command_reply(outsider),
+        )
+        self.assertIn(
+            "has no human author",
+            dashboard_override.render_command_reply(approver),
         )
 
     def test_pending_replies_for_unauthorized_and_unknown_commands(self) -> None:
@@ -225,17 +235,18 @@ class DashboardOverrideTest(unittest.TestCase):
             ),
         )
 
-        replies = dashboard_override.pending_command_replies(
+        facts = dashboard_override.dashboard_override_facts(
             source, "author", {"approver"}
         )
 
+        self.assertEqual(6, facts.command_id)
         self.assertEqual(
             (
                 DashboardCommandReply(2, "unauthorized", "outsider", "route:reviewers"),
                 DashboardCommandReply(3, "unknown_command", "reviewer", "frobnicate"),
                 DashboardCommandReply(4, "unknown_command", "author"),
             ),
-            replies,
+            facts.command_replies,
         )
 
     def test_already_replied_commands_are_not_repeated(self) -> None:
@@ -254,7 +265,7 @@ class DashboardOverrideTest(unittest.TestCase):
 
         self.assertEqual(
             (),
-            dashboard_override.pending_command_replies(source, "author"),
+            dashboard_override.dashboard_override_facts(source, "author").command_replies,
         )
 
     def test_forged_marker_from_non_app_user_does_not_suppress_reply(self) -> None:
@@ -274,7 +285,7 @@ class DashboardOverrideTest(unittest.TestCase):
             ),
         )
 
-        replies = dashboard_override.pending_command_replies(source, "author")
+        facts = dashboard_override.dashboard_override_facts(source, "author")
 
         self.assertEqual(
             (
@@ -285,7 +296,7 @@ class DashboardOverrideTest(unittest.TestCase):
                     "route:reviewers",
                 ),
             ),
-            replies,
+            facts.command_replies,
         )
 
     def test_renders_command_replies(self) -> None:
@@ -333,7 +344,7 @@ class DashboardOverrideTest(unittest.TestCase):
 
         self.assertIn(dashboard_override.command_reply_marker(2), unauthorized)
         self.assertIn(
-            "@outsider, only the pull request author or a member of an approving "
+            "Only the pull request author or a member of an approving "
             "team can use `/dashboard route:reviewers`.",
             unauthorized,
         )
@@ -342,30 +353,70 @@ class DashboardOverrideTest(unittest.TestCase):
             "`/dashboard frobnicate` is not a recognized dashboard command.",
             unknown,
         )
+        for body in (unauthorized, unknown):
+            self.assertNotIn("@", body)
         self.assertIn(dashboard_override.command_reply_marker(4), routed)
         self.assertIn(dashboard_override.override_ack_marker(4), routed)
-        self.assertIn("@author, this pull request was routed to reviewers.", routed)
         self.assertIn(
-            "Top-level feedback through this request will not return; unresolved "
-            "review threads remain open.",
+            "This pull request is now waiting on reviewers. Top-level feedback "
+            "posted before this request no longer counts; unresolved review "
+            "threads stay open. Comment `/dashboard route:author` to hand it back "
+            "to the author.",
             routed,
         )
+        self.assertNotIn("@author", routed)
         self.assertIn(
-            "No top-level feedback was retired because the dashboard could not "
-            "determine a safe command time; unresolved review threads remain open.",
+            "No top-level feedback was retired because the dashboard couldn't "
+            "determine when this command was posted; unresolved review threads "
+            "stay open.",
             conservative,
         )
         self.assertIn(dashboard_override.command_reply_marker(5), gate_held)
         self.assertIn(
-            "@author, your reviewer-routing request was recorded; the reviewer "
-            "handoff is waiting on the required status checks.",
+            "The reviewer handoff is recorded and is waiting on the required "
+            "status checks.",
             gate_held,
         )
         self.assertIn(dashboard_override.command_reply_marker(6), maintainer)
         self.assertIn(
-            "@author, your reviewer-routing request was recorded; this pull request "
-            "has the approvals it needs and is now waiting on maintainers.",
+            "This pull request has the approvals it needs and is now waiting on "
+            "maintainers.",
             maintainer,
+        )
+
+    def test_routed_reply_omits_author_handoff_when_author_cannot_act(self) -> None:
+        body = dashboard_override.render_command_reply(
+            DashboardCommandReply(
+                4,
+                "routed",
+                "reviewer",
+                route=DashboardRoute.APPROVER,
+                since="2026-08-16T08:00:00Z",
+                top_level_feedback_cutoff="2026-08-16T08:00:00Z",
+            ),
+            author_can_act=False,
+        )
+
+        self.assertIn("This pull request is now waiting on reviewers.", body)
+        self.assertNotIn("route:author", body)
+
+    def test_renders_author_handoff_reply_without_mention(self) -> None:
+        body = dashboard_override.render_command_reply(
+            DashboardCommandReply(
+                9,
+                "routed",
+                "reviewer",
+                "route:author",
+                head_sha="head",
+                route=DashboardRoute.AUTHOR,
+            )
+        )
+
+        self.assertEqual(
+            "This pull request is now waiting on the author until they address "
+            "review feedback or push a new commit. Comment "
+            "`/dashboard route:reviewers` to hand it to reviewers instead.",
+            body.splitlines()[-1],
         )
 
     def test_renders_routed_reply_for_a_command_bound_to_an_earlier_head(self) -> None:
@@ -383,11 +434,12 @@ class DashboardOverrideTest(unittest.TestCase):
 
                 self.assertIn(dashboard_override.override_ack_marker(7), body)
                 self.assertIn(
-                    "@author, your reviewer-routing request is not active for the "
-                    "current pull request head; comment `/dashboard route:reviewers` "
-                    "again to hand the current head to reviewers.",
+                    "This request applied to an earlier head and is no longer "
+                    "active. Comment `/dashboard route:reviewers` again to hand the "
+                    "current head to reviewers.",
                     body,
                 )
+                self.assertNotIn("route:author", body)
 
     def test_ack_marker_records_the_bound_head(self) -> None:
         body = dashboard_override.render_command_reply(
@@ -413,8 +465,8 @@ class DashboardOverrideTest(unittest.TestCase):
             body,
         )
         self.assertIn(
-            "The handoff remains active across pushes until newer actionable "
-            "human feedback arrives.",
+            "The handoff stays active across pushes until a reviewer leaves new "
+            "actionable feedback.",
             body,
         )
 
@@ -431,8 +483,8 @@ class DashboardOverrideTest(unittest.TestCase):
         )
 
         self.assertEqual(5, facts.command_id)
-        self.assertEqual("current-head", facts.head_sha)
-        self.assertTrue(facts.persistent_handoff)
+        self.assertEqual("current-head", facts.handoff.head_sha)
+        self.assertTrue(facts.handoff.persistent)
 
     def test_persistent_marker_restores_handoff_after_push(self) -> None:
         source = override_input(issue_comment(
@@ -451,9 +503,9 @@ class DashboardOverrideTest(unittest.TestCase):
             "later-head",
         )
 
-        self.assertEqual(5, facts.bound_command_id)
-        self.assertEqual("bound-head", facts.head_sha)
-        self.assertTrue(facts.persistent_handoff)
+        self.assertEqual(5, facts.handoff.command_id)
+        self.assertEqual("bound-head", facts.handoff.head_sha)
+        self.assertTrue(facts.handoff.persistent)
 
     def test_legacy_acknowledgement_remains_head_bound(self) -> None:
         source = override_input(issue_comment(
@@ -469,7 +521,7 @@ class DashboardOverrideTest(unittest.TestCase):
             "later-head",
         )
 
-        self.assertFalse(facts.persistent_handoff)
+        self.assertFalse(facts.handoff.persistent)
 
     def test_pending_command_keeps_its_first_observed_head(self) -> None:
         source = override_input(
@@ -487,7 +539,7 @@ class DashboardOverrideTest(unittest.TestCase):
         )
 
         self.assertEqual(5, retry.command_id)
-        self.assertEqual("first-head", retry.head_sha)
+        self.assertEqual("first-head", retry.handoff.head_sha)
 
     def test_pending_command_keeps_its_first_observed_cutoff(self) -> None:
         first_source = override_input(
@@ -518,7 +570,7 @@ class DashboardOverrideTest(unittest.TestCase):
             result_facts(first),
         )
 
-        self.assertEqual("2026-08-16T08:00:00Z", retry.since)
+        self.assertEqual("2026-08-16T08:00:00Z", retry.handoff.since)
         self.assertEqual(
             "2026-08-16T08:00:00Z",
             retry.top_level_feedback_cutoff,
@@ -547,7 +599,7 @@ class DashboardOverrideTest(unittest.TestCase):
         )
 
         self.assertEqual(6, facts.command_id)
-        self.assertEqual("later-head", facts.head_sha)
+        self.assertEqual("later-head", facts.handoff.head_sha)
 
     def test_acknowledged_command_keeps_its_bound_head(self) -> None:
         source = override_input(
@@ -568,17 +620,19 @@ class DashboardOverrideTest(unittest.TestCase):
         )
 
         self.assertEqual(0, facts.command_id)
-        self.assertEqual(5, facts.bound_command_id)
-        self.assertEqual("2026-08-16T08:00:00Z", facts.since)
-        self.assertEqual("bound-head", facts.head_sha)
+        self.assertEqual(5, facts.handoff.command_id)
+        self.assertEqual("2026-08-16T08:00:00Z", facts.handoff.since)
+        self.assertEqual("bound-head", facts.handoff.head_sha)
 
     def test_acknowledged_command_keeps_only_a_durable_cutoff(self) -> None:
         for previous_facts, acknowledged_since, expected_cutoff in (
             (
                 dashboard_facts(
-                    dashboard_override_bound_command_id=5,
-                    dashboard_override_head_sha="bound-head",
-                    dashboard_override_since="2026-08-16T09:00:00Z",
+                    handoff=RoutingHandoff(
+                        command_id=5,
+                        head_sha='bound-head',
+                        since='2026-08-16T09:00:00Z',
+                    ),
                     dashboard_top_level_feedback_cutoff=(
                         "2026-08-16T09:00:00Z"
                     ),
@@ -615,7 +669,7 @@ class DashboardOverrideTest(unittest.TestCase):
                     previous_facts,
                 )
 
-                self.assertEqual("2026-08-16T09:00:00Z", facts.since)
+                self.assertEqual("2026-08-16T09:00:00Z", facts.handoff.since)
                 self.assertEqual(
                     expected_cutoff,
                     facts.top_level_feedback_cutoff,
@@ -655,7 +709,7 @@ class DashboardOverrideTest(unittest.TestCase):
             "current-head",
         )
 
-        self.assertEqual(5, facts.bound_command_id)
+        self.assertEqual(5, facts.handoff.command_id)
         self.assertEqual(
             "2026-08-16T08:00:00Z",
             facts.top_level_feedback_cutoff,
@@ -670,8 +724,7 @@ class DashboardOverrideTest(unittest.TestCase):
             ),
         )
         previous_facts = dashboard_facts(
-            dashboard_override_bound_command_id=5,
-            dashboard_override_head_sha="old-head",
+            handoff=RoutingHandoff(command_id=5, head_sha='old-head'),
             dashboard_top_level_feedback_cutoff="2026-08-16T08:00:00Z",
         )
 
@@ -700,11 +753,6 @@ class DashboardOverrideTest(unittest.TestCase):
                 legacy_facts = dashboard_facts(
                     dashboard_override_command_id=5,
                     dashboard_override_command_user="author",
-                    dashboard_override_bound_command_id=(
-                        5 if version == 16 else 0
-                    ),
-                    dashboard_override_head_sha="bound-head",
-                    dashboard_override_since="2026-08-16T08:00:00Z",
                     dashboard_top_level_feedback_cutoff=(
                         "2026-08-16T08:00:00Z"
                         if version == 16
@@ -715,6 +763,13 @@ class DashboardOverrideTest(unittest.TestCase):
                     stored_dashboard_result(7, facts=legacy_facts)
                 ))
                 stored["version"] = version
+                raw_facts = stored["prs"]["7"]["facts"]
+                raw_facts.update(
+                    dashboard_override_head_sha="bound-head",
+                    dashboard_override_since="2026-08-16T08:00:00Z",
+                )
+                if version == 16:
+                    raw_facts["dashboard_override_bound_command_id"] = 5
                 loaded = state.decode_dashboard_state(stored)
                 previous_facts = loaded.results[0].facts
 
@@ -726,10 +781,10 @@ class DashboardOverrideTest(unittest.TestCase):
                     previous_facts,
                 )
 
-                self.assertFalse(migrated.persistent_handoff)
+                self.assertFalse(migrated.handoff.persistent)
                 self.assertEqual(
                     "2026-08-16T08:00:00Z",
-                    migrated.since,
+                    migrated.handoff.since,
                 )
                 self.assertEqual(
                     (
@@ -768,7 +823,7 @@ class DashboardOverrideTest(unittest.TestCase):
                     "new-head",
                     result_facts(migrated),
                 )
-                self.assertFalse(after_push.persistent_handoff)
+                self.assertFalse(after_push.handoff.persistent)
                 self.assertFalse(
                     reviewer_handoff_active(
                         result_facts(after_push, head_sha="new-head")
@@ -786,8 +841,7 @@ class DashboardOverrideTest(unittest.TestCase):
             ),
         )
         previous_facts = dashboard_facts(
-            dashboard_override_bound_command_id=5,
-            dashboard_override_head_sha="old-head",
+            handoff=RoutingHandoff(command_id=5, head_sha='old-head'),
             dashboard_top_level_feedback_cutoff="2026-08-16T08:00:00Z",
         )
 
@@ -815,8 +869,7 @@ class DashboardOverrideTest(unittest.TestCase):
             ),
         )
         previous_facts = dashboard_facts(
-            dashboard_override_bound_command_id=5,
-            dashboard_override_head_sha="old-head",
+            handoff=RoutingHandoff(command_id=5, head_sha='old-head'),
             dashboard_top_level_feedback_cutoff="2026-08-16T08:00:00Z",
         )
         override = dashboard_override.dashboard_override_facts(
@@ -840,10 +893,10 @@ class DashboardOverrideTest(unittest.TestCase):
             body,
         )
         self.assertIn(
-            "The existing top-level feedback cutoff remains in effect, but no "
-            "additional top-level feedback was retired because the dashboard could "
-            "not determine a safe command time; unresolved review threads remain "
-            "open.",
+            "Top-level feedback retired by an earlier request still doesn't count, "
+            "but no newer feedback was retired because the dashboard couldn't "
+            "determine when this command was posted; unresolved review threads "
+            "stay open.",
             body,
         )
 
@@ -885,7 +938,7 @@ class DashboardOverrideTest(unittest.TestCase):
             "current-head",
         )
 
-        self.assertEqual("2026-08-16T08:00:00Z", facts.since)
+        self.assertEqual("2026-08-16T08:00:00Z", facts.handoff.since)
 
     def test_deleted_command_keeps_previous_handoff_cutoff(self) -> None:
         source = override_input(
@@ -896,9 +949,11 @@ class DashboardOverrideTest(unittest.TestCase):
             )
         )
         previous_facts = dashboard_facts(
-            dashboard_override_bound_command_id=5,
-            dashboard_override_head_sha="bound-head",
-            dashboard_override_since="2026-08-16T08:00:00Z",
+            handoff=RoutingHandoff(
+                command_id=5,
+                head_sha='bound-head',
+                since='2026-08-16T08:00:00Z',
+            ),
         )
 
         facts = dashboard_override.dashboard_override_facts(
@@ -909,7 +964,61 @@ class DashboardOverrideTest(unittest.TestCase):
             previous_facts,
         )
 
-        self.assertEqual("2026-08-16T08:00:00Z", facts.since)
+        self.assertEqual("2026-08-16T08:00:00Z", facts.handoff.since)
+
+    def test_disappearing_command_does_not_restore_older_reviewer_handoff(self) -> None:
+        for target in ("author", "reviewers"):
+            for acknowledged in (False, True):
+                with self.subTest(target=target, acknowledged=acknowledged):
+                    older_command = issue_comment(
+                        database_id=12, body="/dashboard route:reviewers",
+                    )
+                    older_comments = (older_command,)
+                    if acknowledged:
+                        older_comments += (issue_comment(
+                            database_id=13,
+                            actor=actor("opentelemetry-pr-dashboard[bot]"),
+                            body="\n".join((
+                                dashboard_override.override_ack_marker(12, "head"),
+                                dashboard_override.persistent_handoff_marker(12, "head"),
+                            )),
+                        ),)
+                    accepted = dashboard_override.dashboard_override_facts(
+                        override_input(*older_comments, issue_comment(
+                            database_id=14, body=f"/dashboard route:{target}",
+                        )),
+                        "author",
+                        head_sha="head",
+                    )
+                    self.assertEqual(14, accepted.command_id)
+                    self.assertTrue(accepted.handoff.active_on("head"))
+
+                    previous = accepted
+                    for _ in range(2):
+                        previous = dashboard_override.dashboard_override_facts(
+                            override_input(*older_comments),
+                            "author",
+                            head_sha="head",
+                            previous_facts=result_facts(previous),
+                        )
+                        self.assertEqual(0, previous.command_id)
+                        self.assertEqual(accepted.handoff.release(), previous.handoff)
+                        self.assertEqual(
+                            accepted.top_level_feedback_cutoff, previous.top_level_feedback_cutoff,
+                        )
+
+                    published = issue_comment(
+                        database_id=15,
+                        actor=actor("opentelemetry-pr-dashboard[bot]"),
+                        body="\n".join(dashboard_override.released_handoff_markers(
+                            previous.handoff, previous.top_level_feedback_cutoff,
+                        )),
+                    )
+                    recovered = dashboard_override.dashboard_override_facts(
+                        override_input(*older_comments, published), "author", head_sha="head",
+                    )
+                    self.assertEqual(14, recovered.handoff.command_id)
+                    self.assertTrue(recovered.handoff.released)
 
     def test_legacy_acknowledgement_does_not_recover_permanent_cutoff(self) -> None:
         source = override_input(
@@ -931,9 +1040,9 @@ class DashboardOverrideTest(unittest.TestCase):
             "bound-head",
         )
 
-        self.assertEqual(5, facts.bound_command_id)
-        self.assertEqual("bound-head", facts.head_sha)
-        self.assertEqual("2026-08-16T08:00:00Z", facts.since)
+        self.assertEqual(5, facts.handoff.command_id)
+        self.assertEqual("bound-head", facts.handoff.head_sha)
+        self.assertEqual("2026-08-16T08:00:00Z", facts.handoff.since)
         self.assertEqual("", facts.top_level_feedback_cutoff)
 
     def test_acknowledgement_timestamp_restores_only_handoff_since(self) -> None:
@@ -953,9 +1062,9 @@ class DashboardOverrideTest(unittest.TestCase):
             "bound-head",
         )
 
-        self.assertEqual(5, facts.bound_command_id)
-        self.assertEqual("bound-head", facts.head_sha)
-        self.assertEqual("2026-08-16T08:00:00Z", facts.since)
+        self.assertEqual(5, facts.handoff.command_id)
+        self.assertEqual("bound-head", facts.handoff.head_sha)
+        self.assertEqual("2026-08-16T08:00:00Z", facts.handoff.since)
         self.assertEqual("", facts.top_level_feedback_cutoff)
 
     def test_status_marker_clears_only_its_bound_handoff(self) -> None:
@@ -1000,9 +1109,9 @@ class DashboardOverrideTest(unittest.TestCase):
             result_facts(cleared),
         )
 
-        self.assertTrue(cleared.cleared_by_feedback)
-        self.assertEqual(11, reapplied.bound_command_id)
-        self.assertFalse(reapplied.cleared_by_feedback)
+        self.assertTrue(cleared.handoff.released)
+        self.assertEqual(11, reapplied.handoff.command_id)
+        self.assertFalse(reapplied.handoff.released)
 
     def test_marker_without_a_head_still_retires_its_command(self) -> None:
         # Acknowledgements written before the dashboard recorded a head have to
@@ -1024,7 +1133,7 @@ class DashboardOverrideTest(unittest.TestCase):
         )
 
         self.assertEqual(0, facts.command_id)
-        self.assertEqual("", facts.head_sha)
+        self.assertEqual("", facts.handoff.head_sha)
 
     def test_forged_acknowledgement_does_not_bind_a_head(self) -> None:
         source = override_input(
@@ -1044,7 +1153,7 @@ class DashboardOverrideTest(unittest.TestCase):
         )
 
         self.assertEqual(5, facts.command_id)
-        self.assertEqual("current-head", facts.head_sha)
+        self.assertEqual("current-head", facts.handoff.head_sha)
 
     def test_forged_marker_does_not_persist_handoff(self) -> None:
         source = override_input(
@@ -1070,14 +1179,13 @@ class DashboardOverrideTest(unittest.TestCase):
             "later-head",
         )
 
-        self.assertFalse(facts.persistent_handoff)
+        self.assertFalse(facts.handoff.persistent)
 
     def test_appends_routed_reply_for_break_glass_command_that_cleared_nothing(self) -> None:
         facts = dashboard_facts(
             author="author",
             dashboard_override_command_id=12,
-            dashboard_override_head_sha="bound-head",
-            dashboard_override_since="2026-08-16T08:00:00Z",
+            handoff=RoutingHandoff(head_sha='bound-head', since='2026-08-16T08:00:00Z'),
         )
 
         facts = dashboard_override.append_command_ack_reply(
@@ -1110,8 +1218,12 @@ class DashboardOverrideTest(unittest.TestCase):
         facts = dashboard_facts(
             author="author",
             dashboard_override_command_id=12,
-            dashboard_override_head_sha="bound-head",
-            dashboard_override_cleared_by_feedback=True,
+            handoff=RoutingHandoff(
+                command_id=12,
+                head_sha="bound-head",
+                since="2026-08-16T08:00:00Z",
+                released=True,
+            ),
         )
 
         facts = dashboard_override.append_command_ack_reply(
@@ -1120,7 +1232,7 @@ class DashboardOverrideTest(unittest.TestCase):
 
         self.assertEqual(
             "2026-08-16T08:00:00Z",
-            facts.dashboard_override_since,
+            facts.handoff.since,
         )
         self.assertEqual((), facts.dashboard_command_replies)
 
@@ -1142,10 +1254,12 @@ class DashboardOverrideTest(unittest.TestCase):
         )
         facts = dashboard_facts(
             author="author",
-            dashboard_override_bound_command_id=12,
-            dashboard_override_head_sha="bound-head",
-            dashboard_override_since="2026-08-16T08:00:00Z",
-            dashboard_override_cleared_by_feedback=True,
+            handoff=RoutingHandoff(
+                command_id=12,
+                head_sha='bound-head',
+                since='2026-08-16T08:00:00Z',
+                released=True,
+            ),
         )
 
         facts = dashboard_override.append_command_ack_reply(
@@ -1155,6 +1269,37 @@ class DashboardOverrideTest(unittest.TestCase):
         )
 
         self.assertEqual((), facts.dashboard_command_replies)
+
+    def test_status_preserves_legacy_cutoff_when_a_newer_handoff_releases(self) -> None:
+        app = actor("opentelemetry-pr-dashboard[bot]")
+        cutoff = "2026-08-16T08:00:00Z"
+        previous_comment = issue_comment(
+            database_id=13,
+            actor=app,
+            body="\n".join((
+                "<!-- pull-request-dashboard-reviewer-handoff-cleared:12:old-head -->",
+                dashboard_override.top_level_feedback_cutoff_marker(12, cutoff),
+            )),
+        )
+        rendered = "\n".join((
+            "<!-- pull-request-dashboard-status -->",
+            "<!-- pull-request-dashboard-status-revision:4 -->",
+            *dashboard_override.released_handoff_markers(
+                RoutingHandoff(command_id=14, head_sha="new-head", released=True), ""
+            ),
+        ))
+
+        merged = dashboard_override.preserve_released_handoff_markers(
+            rendered, (previous_comment,)
+        )
+        recovered = dashboard_override.dashboard_override_facts(
+            override_input(issue_comment(database_id=13, actor=app, body=merged)),
+            "author",
+        )
+
+        self.assertEqual(14, recovered.handoff.command_id)
+        self.assertTrue(recovered.handoff.released)
+        self.assertEqual(cutoff, recovered.top_level_feedback_cutoff)
 
     def test_status_markers_recover_clearance_after_cache_loss(self) -> None:
         source = override_input(
@@ -1182,9 +1327,9 @@ class DashboardOverrideTest(unittest.TestCase):
             source, "author", None, "bound-head"
         )
 
-        self.assertEqual(5, facts.bound_command_id)
-        self.assertEqual("bound-head", facts.head_sha)
-        self.assertTrue(facts.cleared_by_feedback)
+        self.assertEqual(5, facts.handoff.command_id)
+        self.assertEqual("bound-head", facts.handoff.head_sha)
+        self.assertTrue(facts.handoff.released)
 
     def test_no_ack_reply_without_a_pending_command(self) -> None:
         facts = dashboard_facts(author="author")
@@ -1227,7 +1372,7 @@ class DashboardOverrideTest(unittest.TestCase):
         facts = dashboard_facts(
             author="author",
             dashboard_override_command_id=12,
-            dashboard_override_head_sha="bound-head",
+            handoff=RoutingHandoff(head_sha='bound-head'),
         )
         source = override_input(
             issue_comment(
@@ -1248,7 +1393,7 @@ class DashboardOverrideTest(unittest.TestCase):
         facts = dashboard_facts(
             author="author",
             dashboard_override_command_id=12,
-            dashboard_override_head_sha="bound-head",
+            handoff=RoutingHandoff(head_sha='bound-head'),
         )
         source = override_input(
             issue_comment(
@@ -1507,11 +1652,16 @@ class DashboardOverrideTest(unittest.TestCase):
         self.assertEqual(0, facts.command_id)
         self.assertEqual((), facts.command_replies)
 
-    def test_newest_acknowledgement_consumes_older_authorized_commands(self) -> None:
+    def test_acknowledgement_retires_older_commands_but_not_rejections(self) -> None:
         source = override_input(
             issue_comment(
                 database_id=3,
                 body="/dashboard route:reviewers",
+            ),
+            issue_comment(
+                database_id=4,
+                actor=actor("outsider"),
+                body="/dashboard route:author",
             ),
             issue_comment(
                 database_id=5,
@@ -1524,9 +1674,12 @@ class DashboardOverrideTest(unittest.TestCase):
             ),
         )
 
+        facts = dashboard_override.dashboard_override_facts(source, "author")
+        self.assertEqual(0, facts.command_id)
+        self.assertEqual(5, facts.handoff.command_id)
         self.assertEqual(
-            (0, "", ""),
-            dashboard_override.latest_authorized_command(source, "author", set()),
+            (DashboardCommandReply(4, "unauthorized", "outsider", "route:author"),),
+            facts.command_replies,
         )
 
     def test_command_that_cleared_nothing_is_acknowledged_where_it_is_routed(self) -> None:
@@ -1622,8 +1775,8 @@ class DashboardOverrideTest(unittest.TestCase):
         reply = facts.dashboard_command_replies[0]
         self.assertEqual("the open Copilot review findings", reply.held_gates)
         self.assertIn(
-            "@author, your reviewer-routing request was recorded; the reviewer "
-            "handoff is waiting on the open Copilot review findings.",
+            "The reviewer handoff is recorded and is waiting on the open Copilot "
+            "review findings.",
             dashboard_override.render_command_reply(reply),
         )
 
@@ -1656,7 +1809,7 @@ class DashboardOverrideTest(unittest.TestCase):
                 call([
                     "gh", "api", "--method", "POST",
                     "repos/open-telemetry/example/issues/7/comments",
-                    "-f", "body=<!-- pull-request-dashboard-command-reply:3 -->\n<!-- pull-request-dashboard-override-ack:3 -->\n@author, your reviewer-routing request was recorded; the reviewer handoff is waiting on the Copilot review. No top-level feedback was retired because the dashboard could not determine a safe command time; unresolved review threads remain open.\n",
+                    "-f", "body=<!-- pull-request-dashboard-command-reply:3 -->\n<!-- pull-request-dashboard-override-ack:3 -->\nThe reviewer handoff is recorded and is waiting on the Copilot review. No top-level feedback was retired because the dashboard couldn't determine when this command was posted; unresolved review threads stay open. Comment `/dashboard route:author` to hand it back to the author.\n",
                 ]),
             ],
             run_gh.call_args_list,

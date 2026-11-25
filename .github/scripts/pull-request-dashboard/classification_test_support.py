@@ -140,6 +140,8 @@ def successful_response(
     praise: str = "not_praise",
     author_reply: str = "complete",
     author_comment_action: str = "none",
+    inline_verdict: str | None = None,
+    inline_index: int | None = None,
 ) -> RawModelResponse:
     items = prompt_items(request)
     if "---BEGIN AUTHOR FOLLOW-UPS---" in request.prompt:
@@ -157,6 +159,29 @@ def successful_response(
             }
             for item in items
         ])
+    if "---BEGIN INLINE THREADS---" in request.prompt:
+        results = []
+        for item in items:
+            comments = item["comments"]
+            candidates = sorted(comments, key=lambda c: (c.get("edited_at") or c["timestamp"], c["comment_index"]))
+            if praise == "praise" and candidates and candidates[-1]["actor_role"] != "author":
+                candidates.pop()
+            latest = candidates[-1] if candidates else None
+            verdict = inline_verdict or (
+                "none" if latest is None else
+                "reviewer" if latest["actor_role"] == "author" and author_reply == "complete" else
+                "author"
+            )
+            results.append({
+                "discussion_id": item["discussion_id"],
+                "verdict": verdict,
+                "comment_index": (
+                    inline_index if inline_index is not None else
+                    latest["comment_index"] if latest and verdict in {"author", "reviewer"} else None
+                ),
+                "reason": "Test thread verdict.",
+            })
+        return raw_response(*results)
     if "---BEGIN REVIEWER FEEDBACK---" in request.prompt:
         verdict = reviewer_feedback
     elif "---BEGIN AUTHOR COMMENTS---" in request.prompt:

@@ -6,7 +6,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field, replace
 from enum import Enum
 from types import MappingProxyType
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal
 
 if TYPE_CHECKING:
     from classification_policy import ClassificationResult
@@ -47,6 +47,7 @@ class DashboardCommandReply:
             "routed",
             "cleared_by_feedback",
             "unauthorized",
+            "author_unavailable",
             "unknown_command",
         ):
             raise ValueError(f"unknown dashboard command reply kind: {self.kind!r}")
@@ -82,11 +83,57 @@ class ReviewerSummary:
     top_level_feedback: bool = False
 
 
+CopilotReviewRequester = Literal["app", "fallback"]
+CopilotReviewPhase = Literal["ready", "sending", "accepted", "unknown", "complete", "limited"]
+CopilotReviewLimit = Literal["", "quota", "errors", "requests", "timeout"]
+
+
 @dataclass(frozen=True)
-class CopilotReviewFallback:
-    quota_failure_ids: tuple[int, ...]
-    attempted_at: str
-    exhausted: bool = False
+class CopilotReviewCycle:
+    head_sha: str
+    requester: CopilotReviewRequester = "app"
+    phase: CopilotReviewPhase = "ready"
+    request_count: int = 0
+    dispatch_id: str = ""
+    started_at: str = ""
+    reserved_at: str = ""
+    sent_at: str = ""
+    baseline_review_ids: tuple[int, ...] = ()
+    limit_reason: CopilotReviewLimit = ""
+
+
+@dataclass(frozen=True)
+class CopilotReviewCycleUpdate:
+    before: CopilotReviewCycle | None
+    after: CopilotReviewCycle | None
+
+
+class HandoffTarget(str, Enum):
+    AUTHOR = "author"
+    REVIEWERS = "reviewers"
+
+
+@dataclass(frozen=True)
+class RoutingHandoff:
+    command_id: int = 0
+    head_sha: str = ""
+    since: str = ""
+    target: HandoffTarget = HandoffTarget.REVIEWERS
+    released: bool = False
+    persistent: bool = False
+
+    def matches(self, other: RoutingHandoff) -> bool:
+        return bool(self.head_sha) and (
+            self.command_id, self.head_sha, self.target
+        ) == (other.command_id, other.head_sha, other.target)
+
+    def release(self) -> RoutingHandoff:
+        return replace(self, released=True)
+
+    def active_on(self, head_sha: str) -> bool:
+        return bool(self.head_sha and head_sha) and not self.released and (
+            self.persistent or self.head_sha == head_sha
+        )
 
 
 @dataclass(frozen=True)
@@ -98,17 +145,15 @@ class DashboardFacts:
     copilot_request_fingerprint: str = ""
     dashboard_override_command_id: int = 0
     dashboard_override_command_user: str = ""
-    dashboard_override_bound_command_id: int = 0
-    dashboard_override_head_sha: str = ""
-    dashboard_override_since: str = ""
+    handoff: RoutingHandoff = field(default_factory=RoutingHandoff)
     dashboard_top_level_feedback_cutoff: str = ""
-    dashboard_override_persistent: bool = False
-    dashboard_override_cleared_by_feedback: bool = False
     dashboard_command_replies: tuple[DashboardCommandReply, ...] = ()
     copilot_review_requested: bool = False
     copilot_review_quota_exhausted: bool = False
     copilot_review_fallback_available: bool = False
-    copilot_review_fallback_exhausted: bool = False
+    copilot_review_request_in_flight: bool = False
+    copilot_review_request_limit_reason: CopilotReviewLimit = ""
+    copilot_review_cycle_update: CopilotReviewCycleUpdate | None = None
     copilot_review_error_count: int = 0
     copilot_review_exists: bool = False
     copilot_review_stale: bool = False

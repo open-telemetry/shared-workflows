@@ -33,6 +33,7 @@ from classification_policy import (
     ClassificationSuccess,
     DiscussionAction,
     DiscussionClassifications,
+    DiscussionKind,
     RawModelResponse,
     VerdictContract,
     VerdictModelRequest,
@@ -45,10 +46,9 @@ from classification_policy import (
     map_verdict_result,
     prepare_author_comment_discussion,
     prepare_author_comment_requests,
-    prepare_praise_candidates,
     prepare_verdict_requests,
+    render_verdict_prompt,
     resolve_author_comment_response,
-    resolve_review_thread_policy,
     resolve_verdict_response,
     select_author_comment_requests,
     with_result_metadata,
@@ -355,6 +355,7 @@ class ClassificationExecutionRequest:
     review_threads: tuple[ClassificationDiscussion, ...] = ()
     top_level_items: tuple[ClassificationDiscussion, ...] = ()
     top_level_author_comments: tuple[ClassificationDiscussion, ...] = ()
+    preserve_cache: bool = False
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "review_threads", tuple(self.review_threads))
@@ -433,7 +434,10 @@ class ClassificationService:
             deferrable=True,
             warning_label="top_level_author_comment",
         )
-        self.cache_store.write(request.pr_number, cache_out)
+        if request.preserve_cache:
+            cache_out = {**cache_in, **cache_out}
+        if not request.preserve_cache or cache_out != cache_in:
+            self.cache_store.write(request.pr_number, cache_out)
         return DiscussionClassifications(
             tuple(
                 review_threads[discussion.identity.discussion_id]
@@ -455,9 +459,22 @@ class ClassificationService:
     ) -> tuple[ClassificationResult, ...]:
         cache_in = self.cache_store.load(request.pr_number)
         cache_out: ClassificationCache = {}
+        inline = await self._classify_review_threads(
+            request.pr_number,
+            tuple(
+                d for d in request.discussions
+                if d.identity.kind is DiscussionKind.REVIEW_THREAD
+            ),
+            request.model,
+            cache_in,
+            cache_out,
+        )
         classifications = await self._classify_items(
             request.pr_number,
-            request.discussions,
+            tuple(
+                d for d in request.discussions
+                if d.identity.kind is not DiscussionKind.REVIEW_THREAD
+            ),
             request.model,
             cache_in,
             cache_out,
@@ -467,8 +484,9 @@ class ClassificationService:
         merged_cache = {**cache_in, **cache_out}
         if merged_cache != cache_in:
             self.cache_store.write(request.pr_number, merged_cache)
+        all_results = inline | classifications
         return tuple(
-            classifications[discussion.identity.discussion_id]
+            all_results[discussion.identity.discussion_id]
             for discussion in request.discussions
         )
 
@@ -948,54 +966,42 @@ class ClassificationService:
         cache_in: Mapping[str, Any],
         cache_out: ClassificationCache,
     ) -> dict[str, ClassificationResult]:
-        praise_candidates = prepare_praise_candidates(discussions)
-        praise = await self._classify_items(
+        contract = VerdictContract.INLINE_THREAD
+        eligible: list[ClassificationDiscussion] = []
+        results: dict[str, ClassificationResult] = {}
+        for discussion in discussions:
+            try:
+                render_verdict_prompt(
+                    (discussion,), contract, max_prompt_chars=self.max_prompt_chars,
+                )
+            except ValueError as error:
+                (result,) = self._request_failure_results(
+                    (discussion,), error, contract, author_comment=False,
+                )
+                results[discussion.identity.discussion_id] = map_verdict_result(result, contract)
+            else:
+                eligible.append(discussion)
+        results.update(await self._classify_items(
             number,
-            praise_candidates,
+            tuple(eligible),
             model,
             cache_in,
             cache_out,
-            contract=VerdictContract.PRAISE,
-            warning_label="praise",
-        )
-        plan = resolve_review_thread_policy(discussions, praise)
-        replies = await self._classify_items(
-            number,
-            plan.author_replies,
-            model,
-            cache_in,
-            cache_out,
-            contract=VerdictContract.AUTHOR_REPLY,
-            warning_label="author_reply",
-        )
-        ignored = {
-            discussion_id
-            for discussion_id, result in praise.items()
-            if isinstance(result, ClassificationSuccess)
-            and isinstance(result.decision, ActionDecision)
-            and result.decision.action is DiscussionAction.NONE
-        }
-        by_id = {
-            result.identity.discussion_id: result
-            for result in plan.resolved
-        }
-        for discussion in plan.author_replies:
+            contract=contract,
+            warning_label="inline_thread",
+        ))
+        for discussion in discussions:
             discussion_id = discussion.identity.discussion_id
-            result = replies[discussion_id]
-            by_id[discussion_id] = with_result_metadata(
-                result,
-                since=(
-                    discussion.selected_activity_timestamp
-                    or (
-                        discussion.comments[-1].timestamp
-                        if discussion.comments
-                        else ""
-                    )
-                ),
-                ignored_last_comment=(discussion_id in ignored),
-                ignored_comment_index=discussion.ignored_comment_index,
-            )
-        return by_id
+            result = results[discussion_id]
+            if not isinstance(result.decision, ActionDecision):
+                raise TypeError("inline thread requires an action decision")
+            index = result.decision.comment_index
+            if index is not None and not result.failed:
+                results[discussion_id] = with_result_metadata(
+                    result,
+                    since=discussion.comments[index].effective_activity_timestamp,
+                )
+        return results
 
 
 DEFAULT_CLASSIFICATION_CACHE_STORE = FileClassificationCacheStore(

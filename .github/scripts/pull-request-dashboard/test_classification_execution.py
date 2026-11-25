@@ -298,10 +298,12 @@ class ClassificationServiceTest(unittest.IsolatedAsyncioTestCase):
         self.assertIsInstance(result[0], ClassificationFailure)
         self.assertEqual(1, len(runner.requests))
 
-    async def test_partial_reviewer_feedback_uses_the_actionable_feedback_contract(
+    async def test_partial_reviewer_feedback_uses_the_inline_contract_for_threads(
         self,
     ) -> None:
-        runner = FakeModelRunner(responder=successful_response)
+        runner = FakeModelRunner(
+            responder=lambda request: successful_response(request, inline_verdict="none"),
+        )
         cache = MemoryClassificationCacheStore()
         service = ClassificationService(runner, cache)
         discussion = ClassificationDiscussion.from_record(
@@ -324,10 +326,10 @@ class ClassificationServiceTest(unittest.IsolatedAsyncioTestCase):
             result[0].decision,
             ActionDecision(
                 DiscussionAction.NONE,
-                "Test verdict.",
+                "Test thread verdict.",
             ),
         )
-        self.assertIn("---BEGIN REVIEWER FEEDBACK---", runner.requests[0].prompt)
+        self.assertIn("---BEGIN INLINE THREADS---", runner.requests[0].prompt)
 
     async def test_partial_reviewer_feedback_preserves_unrelated_cache_entries(
         self,
@@ -1282,7 +1284,7 @@ class ReviewThreadExecutionTest(unittest.IsolatedAsyncioTestCase):
         ).classify(execution_request(review_threads=(thread,)))
         return result.review_threads[0], runner
 
-    async def test_long_reviewer_request_needs_no_model(self) -> None:
+    async def test_long_reviewer_request_reaches_the_model(self) -> None:
         result, runner = await self.classify(self.thread(
             (
                 "approver",
@@ -1292,12 +1294,77 @@ class ReviewThreadExecutionTest(unittest.IsolatedAsyncioTestCase):
             )
         ))
 
-        self.assertEqual(runner.requests, [])
+        self.assertEqual(len(runner.requests), 1)
+        self.assertIn("The current approach is flaky", prompt_items(runner.requests[0])[0]["comments"][0]["body"])
         self.assertIsInstance(result, ClassificationSuccess)
         assert isinstance(result.decision, ActionDecision)
         self.assertIs(result.decision.action, DiscussionAction.AUTHOR)
 
-    async def test_copilot_finding_uses_reply_classifier(self) -> None:
+    async def test_thread_over_batch_budget_is_classified_whole_on_its_own(self) -> None:
+        thread = self.thread(
+            ("approver", "Please update the validation.", "2026-03-12T00:00:00Z"),
+            *(("author", "Context " * 150, f"2026-03-{day:02d}T00:00:00Z")
+              for day in range(13, 30)),
+        )
+        sibling = self.thread(("approver", "Please add a test.", "2026-04-01T00:00:00Z"))
+        sibling["discussion_id"] = "sibling"
+        runner = FakeModelRunner(responder=lambda request: successful_response(
+            request, inline_verdict="author", inline_index=0,
+        ))
+
+        results = await ClassificationService(
+            runner, MemoryClassificationCacheStore(),
+        ).classify(execution_request(review_threads=(thread, sibling)))
+
+        self.assertEqual(
+            [[item["discussion_id"] for item in prompt_items(request)]
+             for request in runner.requests],
+            [["thread"], ["sibling"]],
+        )
+        self.assertEqual(
+            [comment["body"] for comment in thread["comments"]],
+            [comment["body"] for comment in prompt_items(runner.requests[0])[0]["comments"]],
+        )
+        result = results.review_threads[0]
+        self.assertIsInstance(result, ClassificationSuccess)
+        assert isinstance(result.decision, ActionDecision)
+        self.assertEqual(0, result.decision.comment_index)
+        self.assertEqual("2026-03-12T00:00:00Z", result.since)
+
+    async def test_thread_over_single_prompt_limit_fails_without_truncating(self) -> None:
+        thread = self.thread(
+            ("approver", "\u754c" * 32_000, "2026-03-12T00:00:00Z"),
+        )
+
+        result, runner = await self.classify(thread)
+
+        self.assertIsInstance(result, ClassificationFailure)
+        self.assertIn("exceeds 96,000 bytes", result.diagnostics.error)
+        self.assertEqual([], runner.requests)
+
+    async def test_informational_and_unclear_threads_do_not_assign_author_work(self) -> None:
+        thread = self.thread(("approver", "The second call hits the cache, which is fine.", "2026-03-12T00:00:00Z"))
+        for verdict, action in (("none", DiscussionAction.NONE), ("unclear", DiscussionAction.UNCLEAR)):
+            with self.subTest(verdict=verdict):
+                result, _ = await self.classify(
+                    thread,
+                    responder=lambda request: successful_response(request, inline_verdict=verdict),
+                )
+                self.assertEqual(result.decision, ActionDecision(action, "Test thread verdict."))
+                self.assertFalse(result.failed)
+                self.assertEqual(result.since, "")
+
+    async def test_rejects_an_author_verdict_with_a_nonexistent_comment_index(self) -> None:
+        thread = self.thread(("approver", "Please update the tests.", "2026-03-12T00:00:00Z"))
+        result, runner = await self.classify(
+            thread,
+            responder=lambda request: successful_response(request, inline_verdict="author", inline_index=3),
+        )
+        self.assertEqual(len(runner.requests), 2)
+        self.assertTrue(result.failed)
+        self.assertIs(result.decision.action, DiscussionAction.UNCLEAR)
+
+    async def test_copilot_finding_and_reply_are_classified_together(self) -> None:
         for reply, verdict, action in (
             ("Fixed it.", "complete", DiscussionAction.REVIEWER),
             ("I'll fix it.", "deferral", DiscussionAction.AUTHOR),
@@ -1325,7 +1392,7 @@ class ReviewThreadExecutionTest(unittest.IsolatedAsyncioTestCase):
         self.assertIsInstance(result, ClassificationFailure)
         self.assertTrue(result.failed)
         assert isinstance(result.decision, ActionDecision)
-        self.assertIs(result.decision.action, DiscussionAction.AUTHOR)
+        self.assertIs(result.decision.action, DiscussionAction.UNCLEAR)
 
     async def test_praise_keeps_the_previous_request_and_wait_age(self) -> None:
         result, runner = await self.classify(self.thread(
@@ -1340,7 +1407,7 @@ class ReviewThreadExecutionTest(unittest.IsolatedAsyncioTestCase):
         assert isinstance(result.decision, ActionDecision)
         self.assertIs(result.decision.action, DiscussionAction.AUTHOR)
         self.assertEqual(result.since, "2026-03-12T00:00:00Z")
-        self.assertTrue(result.ignored_last_comment)
+        self.assertEqual(result.decision.comment_index, 0)
 
     async def test_praise_after_completed_author_reply_hands_back_to_reviewer(
         self,
@@ -1354,13 +1421,13 @@ class ReviewThreadExecutionTest(unittest.IsolatedAsyncioTestCase):
             author_reply="complete",
         ))
 
-        self.assertEqual(len(runner.requests), 2)
+        self.assertEqual(len(runner.requests), 1)
         assert isinstance(result.decision, ActionDecision)
         self.assertIs(result.decision.action, DiscussionAction.REVIEWER)
         self.assertEqual(result.since, "2026-03-12T00:00:00Z")
-        self.assertTrue(result.ignored_last_comment)
+        self.assertEqual(result.decision.comment_index, 0)
 
-    async def test_edited_older_praise_is_classified_and_removed_by_identity(
+    async def test_edited_older_praise_is_sent_with_its_edit_time(
         self,
     ) -> None:
         thread = self.thread(
@@ -1379,18 +1446,18 @@ class ReviewThreadExecutionTest(unittest.IsolatedAsyncioTestCase):
             ),
         )
 
-        self.assertEqual(len(runner.requests), 2)
-        self.assertEqual(prompt_items(runner.requests[0])[0]["body"], "LGTM")
+        self.assertEqual(len(runner.requests), 1)
+        comments = prompt_items(runner.requests[0])[0]["comments"]
+        self.assertEqual(comments[1]["body"], "LGTM")
         self.assertEqual(
-            prompt_items(runner.requests[1])[0]["body"],
-            "Fixed it.",
+            comments[1]["edited_at"], "2026-06-20T00:00:00Z",
         )
         assert isinstance(result.decision, ActionDecision)
         self.assertIs(result.decision.action, DiscussionAction.REVIEWER)
         self.assertEqual(result.since, "2026-05-20T00:00:00Z")
-        self.assertTrue(result.ignored_last_comment)
+        self.assertEqual(result.decision.comment_index, 2)
 
-    async def test_cached_praise_recomputes_ignored_comment_index(self) -> None:
+    async def test_cached_thread_preserves_evidence_and_wait_time(self) -> None:
         thread = self.thread(
             ("approver", "Please fix this.", "2026-03-12T00:00:00Z"),
             ("approver", "LGTM", "2026-04-12T00:00:00Z"),
@@ -1414,8 +1481,25 @@ class ReviewThreadExecutionTest(unittest.IsolatedAsyncioTestCase):
         )).review_threads[0]
 
         self.assertEqual(cached_runner.requests, [])
-        self.assertTrue(result.ignored_last_comment)
-        self.assertEqual(result.ignored_comment_index, 1)
+        self.assertEqual(result.decision, ActionDecision(DiscussionAction.REVIEWER, "Test thread verdict.", 2))
+        self.assertEqual(result.since, "2026-05-20T00:00:00Z")
+
+    async def test_informational_verdict_is_cached_with_no_evidence_index(self) -> None:
+        cache = MemoryClassificationCacheStore()
+        request = execution_request(review_threads=(self.thread(
+            ("approver", "The second call hits the cache, which is fine.", "2026-03-12T00:00:00Z"),
+        ),))
+        runner = FakeModelRunner(responder=lambda request: successful_response(request, inline_verdict="none"))
+        await ClassificationService(runner, cache).classify(request)
+
+        cached_runner = FakeModelRunner()
+        result = await ClassificationService(cached_runner, cache).classify(request)
+
+        self.assertEqual(cached_runner.requests, [])
+        self.assertEqual(
+            result.review_threads[0].decision,
+            ActionDecision(DiscussionAction.NONE, "Test thread verdict."),
+        )
 
     async def test_edited_older_author_reply_supplies_body_and_result_time(
         self,
@@ -1435,17 +1519,18 @@ class ReviewThreadExecutionTest(unittest.IsolatedAsyncioTestCase):
             thread,
             responder=lambda request: successful_response(
                 request,
-                author_reply="deferral",
+                inline_verdict="reviewer",
+                inline_index=1,
             ),
         )
 
         self.assertEqual(len(runner.requests), 1)
         self.assertEqual(
-            prompt_items(runner.requests[0])[0]["body"],
+            prompt_items(runner.requests[0])[0]["comments"][1]["body"],
             "The complete fix is ready.",
         )
         assert isinstance(result.decision, ActionDecision)
-        self.assertIs(result.decision.action, DiscussionAction.AUTHOR)
+        self.assertIs(result.decision.action, DiscussionAction.REVIEWER)
         self.assertEqual(result.since, "2026-06-20T00:00:00Z")
         self.assertEqual(
             [comment["body"] for comment in thread["comments"]],
@@ -1456,7 +1541,7 @@ class ReviewThreadExecutionTest(unittest.IsolatedAsyncioTestCase):
             ],
         )
 
-    async def test_failed_praise_and_author_reply_calls_fail_safe_to_author(
+    async def test_inline_model_failures_do_not_assign_work_to_the_author(
         self,
     ) -> None:
         praise_thread = self.thread(
@@ -1482,7 +1567,7 @@ class ReviewThreadExecutionTest(unittest.IsolatedAsyncioTestCase):
                 assert isinstance(result.decision, ActionDecision)
                 self.assertIs(
                     result.decision.action,
-                    DiscussionAction.AUTHOR,
+                    DiscussionAction.UNCLEAR,
                 )
 
 

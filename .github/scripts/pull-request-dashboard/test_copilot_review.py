@@ -1,46 +1,47 @@
 from __future__ import annotations
 
-from contextlib import redirect_stderr
 from dataclasses import replace
-from datetime import datetime, timezone
-import io
+from datetime import datetime, timedelta, timezone
+import json
 import os
 from pathlib import Path
 import tempfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from copilot_review import (
-    REQUEST_CONFIRMATION_ATTEMPTS,
-    copilot_fallback_exhausted,
+    copilot_quota_issue,
     copilot_review_error_count,
+    copilot_review_in_flight,
     copilot_review_outstanding,
-    copilot_review_request_landed,
     copilot_review_unreported,
     copilot_review_status,
     is_copilot_error,
     is_copilot_quota_failure,
+    refresh_copilot_review_cycle,
     set_copilot_review_request_needed,
     stale_request_reason,
 )
-from copilot_review_delivery import (
-    deliver_copilot_review_requests,
-    record_copilot_review_observation,
-)
+from copilot_review_delivery import deliver_copilot_review_requests
+from dashboard_contracts import CopilotReviewCycleUpdate, DashboardFacts, DashboardRoute
 from dashboard_test_support import (
     actor,
+    copilot_review_cycle,
     dashboard_facts,
+    dashboard_state,
     review_source,
     stored_dashboard_result,
 )
-from dashboard_contracts import CopilotReviewFallback
+from github_cli import CopilotReviewRequestRejected, TransientGhError, request_copilot_review
+from routing_decision import RoutingInput, resolve_routing
 from state import (
-    copilot_review_fallback_state_path,
-    copilot_review_request_state_path,
-    load_copilot_review_fallbacks,
-    load_copilot_review_requests,
-    save_copilot_review_fallbacks,
-    save_copilot_review_requests,
+    COPILOT_REVIEW_REQUEST_STATE_FILE,
+    copilot_review_dispatch_state_path,
+    dashboard_state_path,
+    load_copilot_review_cycles,
+    record_copilot_review_cycle_observations,
+    save_copilot_review_cycles,
+    save_dashboard_state_cache,
 )
 from routing_snapshot import build_routing_snapshot
 from pull_request_source import normalize_pull_request_source
@@ -80,14 +81,6 @@ def routing_snapshot(raw: dict | None = None, **changes):
     return replace(
         build_routing_snapshot(normalize_pull_request_source(raw)),
         **changes,
-    )
-
-
-def review_result(route: str = "approver", **fact_changes):
-    return stored_dashboard_result(
-        7,
-        route,
-        facts=dashboard_facts(**fact_changes),
     )
 
 
@@ -182,25 +175,6 @@ class CopilotReviewStatusTest(unittest.TestCase):
                     copilot_review_status(reviews, "current-head"),
                 )
 
-    @patch("copilot_review.sleep_for_retry")
-    @patch("copilot_review.fetch_review_requests", return_value=[])
-    @patch("copilot_review.fetch_pr_reviews")
-    def test_failure_notice_does_not_confirm_delivery(
-        self, fetch_reviews, _fetch_requests, _sleep
-    ) -> None:
-        for body in (ERROR_BODY, INSUFFICIENT_QUOTA_FAILURE_WITH_GUIDANCE_BODY):
-            with self.subTest(body=body):
-                fetch_reviews.return_value = [{
-                    "user": {"login": "copilot-pull-request-reviewer[bot]"},
-                    "commit_id": "current-head",
-                    "state": "COMMENTED",
-                    "body": body,
-                }]
-
-                self.assertFalse(copilot_review_request_landed(
-                    "open-telemetry", "example", 7, "current-head"
-                ))
-
     def test_quota_failure_requires_the_copilot_actor_and_notice_prefix(self) -> None:
         for body in (QUOTA_FAILURE_BODY, INSUFFICIENT_QUOTA_FAILURE_BODY):
             for suffix in (
@@ -270,6 +244,11 @@ class CopilotReviewStatusTest(unittest.TestCase):
                 (True, True),
             ),
             (
+                "pending_review",
+                (replace(completed_review, state="PENDING"),),
+                (False, False),
+            ),
+            (
                 "stale_review_then_insufficient_quota_with_guidance",
                 (
                     replace(completed_review, commit_id="old-head"),
@@ -337,28 +316,28 @@ class CopilotFirstReviewRequestTest(unittest.TestCase):
                 self.assertFalse(facts.copilot_review_request_needed)
 
     def test_available_fallback_keeps_gate_and_requests_enabled(self) -> None:
-        for exhausted in (False, True):
+        for in_flight in (False, True):
             for exists in (False, True):
-                with self.subTest(exhausted=exhausted, exists=exists):
+                with self.subTest(in_flight=in_flight, exists=exists):
                     facts = self.base_facts(
                         copilot_review_quota_exhausted=True,
                         copilot_review_fallback_available=True,
-                        copilot_review_fallback_exhausted=exhausted,
+                        copilot_review_request_in_flight=in_flight,
                         copilot_review_exists=exists,
                         copilot_review_stale=exists,
                         copilot_review_needed=exists,
                     )
                     self.assertEqual(
-                        not exhausted,
+                        not in_flight,
                         set_copilot_review_request_needed(
                             facts, "approver", enabled=True
                         ).copilot_review_request_needed,
                     )
                     self.assertEqual(
-                        not exhausted, copilot_review_outstanding(facts, enabled=True)
+                        True, copilot_review_outstanding(facts, enabled=True)
                     )
                     self.assertEqual(
-                        not exhausted, copilot_review_unreported(facts, enabled=True)
+                        True, copilot_review_unreported(facts, enabled=True)
                     )
 
     def test_two_errors_stop_requests_and_release_only_the_copilot_gate(self) -> None:
@@ -413,1064 +392,1257 @@ class CopilotFirstReviewRequestTest(unittest.TestCase):
         self.assertFalse(facts.copilot_review_request_needed)
 
 
-class CopilotFallbackDeliveryTest(unittest.TestCase):
+class CopilotReviewCycleTest(unittest.TestCase):
+    NOW = datetime(2026, 8, 16, 8, tzinfo=timezone.utc)
+
+    def refresh(self, cycle, reviews=(), *, head="current-head", now=None, fallback=True):
+        return refresh_copilot_review_cycle(
+            cycle, reviews, head, now or self.NOW, fallback_available=fallback,
+        )
+
+    def notice(self, review_id=11, *, body=ERROR_BODY, **changes):
+        return review_source(
+            database_id=review_id,
+            actor=actor("copilot"),
+            commit_id="current-head",
+            body=body,
+            submitted_at="2026-08-16T08:01:00Z",
+            **changes,
+        )
+
+    def test_current_head_coverage_finishes_any_cycle_without_request_attribution(self) -> None:
+        completed = replace(self.notice(10), body="One finding.", finding_count=1)
+        for phase, head, reason, sent_at in (
+            ("accepted", "current-head", "", "2026-08-16T08:00:00Z"),
+            ("sending", "current-head", "", ""),
+            ("unknown", "", "", ""),
+            ("limited", "current-head", "quota", "2026-08-16T08:00:00Z"),
+        ):
+            with self.subTest(phase=phase):
+                cycle = copilot_review_cycle(
+                    head, phase=phase, limit_reason=reason,
+                    sent_at=sent_at, baseline_review_ids=(10,),
+                )
+                result = self.refresh(cycle, (completed,))
+                self.assertEqual("complete", result.phase)
+                self.assertEqual("current-head", result.head_sha)
+                self.assertEqual("", result.limit_reason)
+
+    def test_uncertain_requests_ignore_failure_notices_even_after_a_push(self) -> None:
+        for phase in ("sending", "unknown"):
+            for head in ("current-head", "old-head", ""):
+                with self.subTest(phase=phase, head=head):
+                    cycle = copilot_review_cycle(head, phase=phase, sent_at="")
+                    result = self.refresh(
+                        cycle,
+                        (
+                            self.notice(body=QUOTA_FAILURE_BODY),
+                            self.notice(12),
+                            replace(self.notice(13), commit_id="other-head", body="No issues."),
+                        ),
+                        now=self.NOW + timedelta(hours=1),
+                    )
+                    self.assertEqual(cycle, result)
+                    self.assertTrue(copilot_review_in_flight(result))
+
+    def test_only_fresh_known_head_notices_choose_fallback(self) -> None:
+        cycle = copilot_review_cycle("current-head", baseline_review_ids=(10,))
+        fresh = self.notice(body=QUOTA_FAILURE_BODY)
+        for notice in (
+            replace(fresh, database_id=10),
+            replace(fresh, submitted_at="2026-08-16T07:59:59Z"),
+            replace(fresh, commit_id="other-head"),
+            replace(fresh, commit_id=""),
+            replace(fresh, actor=actor("reviewer")),
+        ):
+            with self.subTest(notice=notice):
+                self.assertEqual(cycle, self.refresh(cycle, (notice,)))
+        ready = self.refresh(cycle, (fresh,))
+        self.assertEqual("ready", ready.phase)
+        self.assertEqual("fallback", ready.requester)
+        self.assertEqual(1, ready.request_count)
+        self.assertEqual(cycle.started_at, ready.started_at)
+
+    def test_fallback_quota_does_not_end_a_request_or_trigger_another(self) -> None:
+        cycle = copilot_review_cycle(
+            "current-head", requester="fallback", request_count=2,
+        )
+        self.assertEqual(
+            cycle, self.refresh(cycle, (self.notice(body=QUOTA_FAILURE_BODY),)),
+        )
+        limited = self.refresh(
+            cycle, (self.notice(body=QUOTA_FAILURE_BODY),),
+            now=self.NOW + timedelta(hours=4),
+        )
+        self.assertEqual("timeout", limited.limit_reason)
+
+    def test_same_second_notices_allow_retries_without_reusing_baseline_reviews(self) -> None:
+        for body, requester in ((QUOTA_FAILURE_BODY, "fallback"), (ERROR_BODY, "app")):
+            with self.subTest(body=body):
+                cycle = copilot_review_cycle(
+                    "current-head", sent_at="2026-08-16T08:00:00.700000Z",
+                    baseline_review_ids=(10,),
+                )
+                notice = replace(self.notice(body=body), submitted_at="2026-08-16T08:00:00Z")
+                ready = self.refresh(cycle, (notice,), now=self.NOW + timedelta(seconds=1))
+                self.assertEqual("ready", ready.phase)
+                self.assertEqual(requester, ready.requester)
+                for excluded in (
+                    replace(notice, database_id=10),
+                    replace(notice, submitted_at="2026-08-16T07:59:59Z"),
+                ):
+                    self.assertEqual(cycle, self.refresh(
+                        cycle, (excluded,), now=self.NOW + timedelta(seconds=1),
+                    ))
+
+    def test_one_generic_error_retries_and_two_release_the_gate(self) -> None:
+        cycle = copilot_review_cycle("current-head")
+        first = self.notice()
+        ready = self.refresh(cycle, (first,))
+        self.assertEqual("ready", ready.phase)
+        self.assertEqual("app", ready.requester)
+        retry = replace(
+            ready, phase="accepted", request_count=2,
+            sent_at="2026-08-16T08:01:00Z", baseline_review_ids=(11,),
+        )
+        limited = self.refresh(retry, (first, self.notice(12)))
+        self.assertEqual("limited", limited.phase)
+        self.assertEqual("errors", limited.limit_reason)
+        fresh = self.refresh(retry, (first, self.notice(12)), head="next-head")
+        self.assertEqual("ready", fresh.phase)
+        self.assertEqual(0, fresh.request_count)
+
+    def test_request_cap_survives_incomplete_error_history(self) -> None:
+        cycle = copilot_review_cycle(
+            "current-head", requester="fallback", request_count=3,
+        )
+        result = self.refresh(cycle, (self.notice(),))
+        self.assertEqual("limited", result.phase)
+        self.assertEqual("requests", result.limit_reason)
+        facts = dashboard_facts(
+            copilot_review_request_limit_reason=result.limit_reason,
+            copilot_review_fallback_available=True,
+        )
+        self.assertFalse(set_copilot_review_request_needed(
+            facts, "approver", enabled=True,
+        ).copilot_review_request_needed)
+        self.assertTrue(copilot_review_unreported(facts, enabled=True))
+
+    def test_exact_four_hour_deadline_limits_ready_and_in_flight_cycles(self) -> None:
+        for phase in ("ready", "sending", "accepted", "unknown"):
+            with self.subTest(phase=phase):
+                cycle = copilot_review_cycle(
+                    "current-head", phase=phase,
+                    sent_at="" if phase == "sending" else "2026-08-16T08:00:00Z",
+                )
+                before = self.NOW + timedelta(hours=4, microseconds=-1)
+                self.assertEqual(cycle, self.refresh(cycle, now=before))
+                limited = self.refresh(cycle, now=self.NOW + timedelta(hours=4))
+                self.assertEqual("limited", limited.phase)
+                self.assertEqual("timeout", limited.limit_reason)
+                fresh = self.refresh(
+                    cycle, head="next-head", now=self.NOW + timedelta(hours=4),
+                )
+                self.assertEqual("ready", fresh.phase)
+                self.assertEqual(0, fresh.request_count)
+
+    def test_old_head_coverage_closes_accepted_but_not_unknown_requests(self) -> None:
+        completed = replace(self.notice(10), body="No issues.", submitted_at="2026-08-16T07:00:00Z")
+        accepted = copilot_review_cycle("current-head", baseline_review_ids=(10,))
+        ready = self.refresh(accepted, (completed,), head="next-head")
+        self.assertEqual("next-head", ready.head_sha)
+        self.assertEqual("ready", ready.phase)
+        self.assertEqual(0, ready.request_count)
+        unknown = replace(accepted, phase="unknown")
+        self.assertEqual(unknown, self.refresh(unknown, (completed,), head="next-head"))
+
+    def test_late_reservation_survives_original_cycle_deadline(self) -> None:
+        reserved = self.NOW + timedelta(hours=3, minutes=59)
+        cycle = copilot_review_cycle(
+            "current-head", phase="sending", sent_at="", reserved_at=format_ts(reserved),
+            request_count=2,
+        )
+        self.assertEqual(cycle, self.refresh(
+            cycle, head="next-head", now=self.NOW + timedelta(hours=4),
+        ))
+        fresh = self.refresh(cycle, head="next-head", now=reserved + timedelta(hours=4))
+        self.assertEqual("next-head", fresh.head_sha)
+        self.assertEqual("ready", fresh.phase)
+
+    def test_notice_after_cycle_deadline_settles_without_allowing_same_head_retry(self) -> None:
+        cycle = copilot_review_cycle(
+            "current-head", sent_at="2026-08-16T11:59:00Z", request_count=2,
+        )
+        for body in (ERROR_BODY, QUOTA_FAILURE_BODY):
+            with self.subTest(body=body):
+                notice = replace(
+                    self.notice(body=body), submitted_at="2026-08-16T12:01:00Z",
+                )
+                now = self.NOW + timedelta(hours=4, minutes=1)
+                self.assertEqual(cycle, self.refresh(cycle, now=now))
+                settled = self.refresh(cycle, (notice,), now=now)
+                self.assertEqual("limited", settled.phase)
+                self.assertEqual("timeout", settled.limit_reason)
+                self.assertEqual(cycle.started_at, settled.started_at)
+                self.assertEqual(2, settled.request_count)
+                self.assertEqual("ready", self.refresh(
+                    cycle, (notice,), head="next-head", now=now,
+                ).phase)
+
+    def test_enabling_fallback_renews_a_quota_limited_window_only_once(self) -> None:
+        limited = copilot_review_cycle(
+            "current-head", phase="limited", limit_reason="quota",
+        )
+        later = self.NOW + timedelta(hours=5)
+        ready = self.refresh(limited, now=later)
+        self.assertEqual("ready", ready.phase)
+        self.assertEqual("fallback", ready.requester)
+        self.assertEqual("2026-08-16T13:00:00+00:00", ready.started_at)
+        self.assertEqual(ready, self.refresh(ready, now=later + timedelta(hours=1)))
+
+    def test_missing_fallback_pauses_an_idle_quota_cycle_without_restarting_the_gate(self) -> None:
+        cycle = copilot_review_cycle(
+            "current-head", phase="ready", requester="fallback", request_count=2,
+        )
+        quota = self.notice(body=QUOTA_FAILURE_BODY)
+        previous_route = DashboardRoute.AUTHOR
+        previous_facts = dashboard_facts(
+            head_sha="current-head", route_held_since=format_ts(self.NOW),
+        )
+        for hours, approvals, expected_route in (
+            (1, 0, DashboardRoute.APPROVER),
+            (5, 1, DashboardRoute.MAINTAINER),
+        ):
+            with self.subTest(hours=hours):
+                now = self.NOW + timedelta(hours=hours)
+                cycle = self.refresh(cycle, (quota,), now=now, fallback=False)
+                self.assertEqual("limited", cycle.phase)
+                self.assertEqual("quota", cycle.limit_reason)
+                self.assertEqual(2, cycle.request_count)
+                outcome = resolve_routing(RoutingInput(
+                    facts=dashboard_facts(
+                        head_sha="current-head", author_can_act=True,
+                        approval_count=approvals, ci_pending_count=0,
+                        ci_failing_count=0, ci_maintainer_action_required_count=0,
+                        copilot_review_quota_exhausted=True,
+                        copilot_review_fallback_available=False,
+                        copilot_review_request_in_flight=copilot_review_in_flight(cycle),
+                        copilot_review_request_limit_reason=cycle.limit_reason,
+                    ),
+                    pending_actions={}, previous_route=previous_route,
+                    previous_facts=previous_facts, required_approvals=1,
+                    require_clean_copilot_review=True,
+                    pending_human_reviewer_logins=frozenset(), now=now,
+                ))
+                self.assertEqual(expected_route, outcome.route)
+                self.assertFalse(outcome.facts.route_held_for_gates)
+                self.assertIsNone(outcome.facts.route_held_since)
+                self.assertFalse(outcome.facts.copilot_review_request_needed)
+                previous_route, previous_facts = outcome.route, outcome.facts
+
+    def test_generic_error_pauses_a_fallback_cycle_until_credentials_return(self) -> None:
+        cycle = copilot_review_cycle(
+            "current-head", requester="fallback", request_count=2, baseline_review_ids=(10,),
+        )
+        reviews = (self.notice(10, body=QUOTA_FAILURE_BODY), self.notice())
+        paused = self.refresh(
+            cycle, reviews, now=self.NOW + timedelta(hours=1), fallback=False,
+        )
+        self.assertEqual(replace(cycle, phase="limited", limit_reason="quota"), paused)
+        still_paused = self.refresh(
+            paused, reviews, now=self.NOW + timedelta(hours=5), fallback=False,
+        )
+        self.assertEqual(paused, still_paused)
+        resumed = self.refresh(
+            still_paused, reviews, now=self.NOW + timedelta(hours=6),
+        )
+        self.assertEqual("ready", resumed.phase)
+        self.assertEqual("", resumed.limit_reason)
+        self.assertEqual(2, resumed.request_count)
+        self.assertEqual("2026-08-16T14:00:00+00:00", resumed.started_at)
+
+    def test_generic_error_does_not_pause_without_current_head_quota(self) -> None:
+        cycle = copilot_review_cycle(
+            "current-head", requester="fallback", request_count=2, baseline_review_ids=(10,),
+        )
+        for reviews in (
+            (self.notice(),),
+            (
+                replace(self.notice(10, body=QUOTA_FAILURE_BODY), commit_id="other-head"),
+                self.notice(),
+            ),
+        ):
+            with self.subTest(reviews=reviews):
+                ready = self.refresh(
+                    cycle, reviews, now=self.NOW + timedelta(hours=1), fallback=False,
+                )
+                self.assertEqual(replace(cycle, phase="ready"), ready)
+
+    def test_restoring_fallback_preserves_the_remaining_request_budget(self) -> None:
+        quota = self.notice(body=QUOTA_FAILURE_BODY)
+        for count in (2, 3):
+            with self.subTest(count=count):
+                cycle = copilot_review_cycle(
+                    "current-head", phase="ready", requester="fallback", request_count=count,
+                )
+                paused = self.refresh(
+                    cycle, (quota,), now=self.NOW + timedelta(hours=5), fallback=False,
+                )
+                self.assertEqual("quota", paused.limit_reason)
+                resumed = self.refresh(
+                    paused, (quota,), now=self.NOW + timedelta(hours=6),
+                )
+                self.assertEqual(count, resumed.request_count)
+                self.assertEqual("ready" if count == 2 else "limited", resumed.phase)
+                self.assertEqual("" if count == 2 else "requests", resumed.limit_reason)
+                self.assertEqual("2026-08-16T14:00:00+00:00", resumed.started_at)
+
+    def test_missing_fallback_does_not_settle_active_requests(self) -> None:
+        quota = self.notice(body=QUOTA_FAILURE_BODY)
+        for phase in ("sending", "accepted", "unknown"):
+            with self.subTest(phase=phase):
+                cycle = copilot_review_cycle(
+                    "current-head", phase=phase, requester="fallback",
+                    sent_at="" if phase == "sending" else "2026-08-16T08:00:00Z",
+                )
+                self.assertEqual(cycle, self.refresh(
+                    cycle, (quota,), now=self.NOW + timedelta(hours=1), fallback=False,
+                ))
+                expired = self.refresh(
+                    cycle, (quota,), now=self.NOW + timedelta(hours=4), fallback=False,
+                )
+                self.assertEqual("timeout", expired.limit_reason)
+                self.assertTrue(copilot_review_unreported(dashboard_facts(
+                    copilot_review_quota_exhausted=True,
+                    copilot_review_request_limit_reason=expired.limit_reason,
+                ), enabled=True))
+
+    def test_unknown_timeout_preserves_normal_gate_expiry_reporting(self) -> None:
+        facts = dashboard_facts(
+            copilot_review_quota_exhausted=True,
+            copilot_review_request_limit_reason="timeout",
+        )
+        self.assertTrue(copilot_review_outstanding(facts, enabled=True))
+        self.assertTrue(copilot_review_unreported(facts, enabled=True))
+        self.assertFalse(set_copilot_review_request_needed(
+            facts, "approver", enabled=True,
+        ).copilot_review_request_needed)
+
+    def test_quota_scope_is_current_head_only(self) -> None:
+        notice = self.notice(body=QUOTA_FAILURE_BODY)
+        self.assertTrue(copilot_quota_issue((notice,), "current-head"))
+        self.assertFalse(copilot_quota_issue((notice,), "next-head"))
+        self.assertFalse(copilot_quota_issue((replace(notice, state="PENDING"),), "current-head"))
+
+    def test_invalid_clocks_and_notice_times_fail_explicitly(self) -> None:
+        cycle = copilot_review_cycle("current-head")
+        with self.assertRaisesRegex(ValueError, "timezone-aware"):
+            self.refresh(cycle, now=self.NOW.replace(tzinfo=None))
+        with self.assertRaisesRegex(RuntimeError, "valid timestamp"):
+            self.refresh(cycle, (replace(self.notice(), submitted_at="invalid"),))
+
+
+class CopilotReviewDeliveryTest(unittest.TestCase):
     def setUp(self) -> None:
         directory = tempfile.TemporaryDirectory()
         self.addCleanup(directory.cleanup)
-        for mock in (
-            patch("state._state_dir", Path(directory.name)),
-            patch("state._using_delivery_state", False),
-            patch.dict(os.environ, {"COPILOT_REVIEW_FALLBACK_TOKEN": "request-token"}),
-        ):
-            mock.start()
-            self.addCleanup(mock.stop)
-        self.snapshot = routing_snapshot(
-            copilot_request_fingerprint="accepted-fingerprint"
-        )
+        self.enterContext(patch("state._state_dir", Path(directory.name)))
+        self.enterContext(patch("state._using_delivery_state", False))
+        self.enterContext(patch.dict(
+            os.environ, {"COPILOT_REVIEW_FALLBACK_TOKEN": "request-token"},
+        ))
+        self.now = datetime(2026, 8, 16, 8, tzinfo=timezone.utc)
+        self.enterContext(patch("copilot_review_delivery.utc_now", side_effect=lambda: self.now))
+        self.snapshot = routing_snapshot(copilot_request_fingerprint="accepted-fingerprint")
         self.reviews = []
-        self.request = self.enterContext(patch("copilot_review_delivery.request_copilot_review"))
-        self.enterContext(patch(
-            "copilot_review_delivery.fetch_routing_snapshot",
-            side_effect=lambda *_: self.snapshot,
+        self.fetch_snapshot = self.enterContext(patch(
+            "copilot_review_delivery.fetch_routing_snapshot", side_effect=lambda *_: self.snapshot,
         ))
-        self.enterContext(patch(
-            "copilot_review_delivery.fetch_pr_reviews",
-            side_effect=lambda *_: self.reviews,
+        self.fetch_reviews = self.enterContext(patch(
+            "copilot_review_delivery.fetch_pr_reviews", side_effect=lambda *_: self.reviews,
         ))
-        self.landed = self.enterContext(patch(
-            "copilot_review_delivery.copilot_review_request_landed", return_value=True
+        self.in_commit = False
+        self.durable = {}
+        self.tracked_paths = (
+            dashboard_state_path(),
+            copilot_review_dispatch_state_path(),
+        )
+        self.request_error = None
+        self.requested_head = None
+        self.request = self.enterContext(patch(
+            "copilot_review_delivery.request_copilot_review", side_effect=self.request_review,
         ))
         self.enqueue()
+        self.commit(lambda: 0)
 
-    def enqueue(self, *, quota_exhausted: bool = False) -> None:
-        record_copilot_review_observation(
-            7,
-            review_result(
+    def enqueue(self, *, quota_exhausted=False) -> None:
+        save_dashboard_state_cache(dashboard_state(stored_dashboard_result(
+            7, facts=dashboard_facts(
                 head_sha=self.snapshot.head_sha,
                 copilot_review_request_needed=True,
                 copilot_review_quota_exhausted=quota_exhausted,
                 copilot_request_fingerprint="accepted-fingerprint",
             ),
-            NOW,
-        )
+        )))
 
-    def quota_notice(self, review_id: int, body: str = QUOTA_FAILURE_BODY) -> dict:
+    def commit(self, action) -> None:
+        self.in_commit = True
+        try:
+            action()
+            self.durable = {
+                path: path.read_bytes()
+                for path in self.tracked_paths
+                if path.exists()
+            }
+        finally:
+            self.in_commit = False
+
+    def restore(self) -> None:
+        for path in self.tracked_paths:
+            if path in self.durable:
+                path.write_bytes(self.durable[path])
+            else:
+                path.unlink(missing_ok=True)
+
+    def request_review(self, _pull_request_id, **_kwargs) -> str:
+        self.assertFalse(self.in_commit)
+        durable = json.loads(self.durable[copilot_review_dispatch_state_path()])
+        self.assertEqual("sending", durable["prs"]["7"]["phase"])
+        if self.request_error is not None:
+            raise self.request_error
+        return self.requested_head or self.snapshot.head_sha
+
+    def notice(self, review_id=10, *, body=QUOTA_FAILURE_BODY, head=None, submitted_at=None):
         return {
             "id": review_id,
             "user": {"login": "copilot"},
-            "commit_id": "current-head",
-            "body": body,
-            "submitted_at": format_ts(NOW),
-        }
-
-    def error_notice(self, review_id: int) -> dict:
-        return {
-            "id": review_id,
-            "user": {"login": "copilot-pull-request-reviewer[bot]"},
-            "commit_id": "current-head",
+            "commit_id": head or self.snapshot.head_sha,
             "state": "COMMENTED",
-            "body": ERROR_BODY,
+            "body": body,
+            "submitted_at": submitted_at or format_ts(self.now),
         }
 
-    def deliver(self) -> list[str]:
-        return deliver_copilot_review_requests("open-telemetry/example", NOW)
+    def deliver(self, commit=None) -> list[str]:
+        return deliver_copilot_review_requests("open-telemetry/example", commit or self.commit)
 
-    def test_insufficient_quota_notice_triggers_the_fallback_token(self) -> None:
-        self.enqueue()
-        self.reviews = [
-            self.quota_notice(10, INSUFFICIENT_QUOTA_FAILURE_BODY),
-            self.quota_notice(11),
-        ]
-        self.assertEqual([], self.deliver())
-        self.assertEqual(
-            CopilotReviewFallback((10, 11), format_ts(NOW)),
-            load_copilot_review_fallbacks()["7"],
-        )
-        self.request.assert_called_with("PR_node", token="request-token")
+    def retry_with_cycle(self, cycle):
+        calls = 0
 
-    def test_quota_notices_with_different_guidance_use_and_exhaust_fallback(self) -> None:
-        self.reviews = [
-            self.quota_notice(10, INSUFFICIENT_QUOTA_FAILURE_WITH_GUIDANCE_BODY),
-        ]
-        self.assertEqual([], self.deliver())
-        self.assertEqual(
-            CopilotReviewFallback((10,), format_ts(NOW)),
-            load_copilot_review_fallbacks()["7"],
-        )
-        self.request.assert_called_once_with("PR_node", token="request-token")
+        def persist(action):
+            nonlocal calls
+            calls += 1
+            if calls == 1:
+                self.in_commit = True
+                try:
+                    action()
+                    self.restore()
+                finally:
+                    self.in_commit = False
+                save_copilot_review_cycles({"7": cycle})
+                self.commit(lambda: 0)
+            self.commit(action)
 
-        self.reviews.append(
-            self.quota_notice(11, f"{INSUFFICIENT_QUOTA_FAILURE_BODY}\n\nTry again later.")
-        )
-        self.enqueue()
-        self.assertEqual([], self.deliver())
-        self.assertTrue(load_copilot_review_fallbacks()["7"].exhausted)
-        self.assertEqual({}, load_copilot_review_requests())
-        self.request.assert_called_once_with("PR_node", token="request-token")
+        return persist
 
-    def test_persisted_fallback_ignores_older_newly_recognized_notices(self) -> None:
-        fallback = CopilotReviewFallback((10,), format_ts(NOW))
-        save_copilot_review_fallbacks({"7": fallback})
-        self.reviews = [
-            {
-                **self.quota_notice(9, INSUFFICIENT_QUOTA_FAILURE_WITH_GUIDANCE_BODY),
-                "submitted_at": "2026-07-20T01:59:00Z",
-            },
-            self.quota_notice(10),
-        ]
-
-        self.assertEqual([], self.deliver())
-
-        self.assertEqual(fallback, load_copilot_review_fallbacks()["7"])
-        self.request.assert_called_once_with("PR_node", token="request-token")
-
-    def test_uses_app_until_a_live_quota_notice_arrives(self) -> None:
+    def test_first_request_is_durable_and_not_repeated_without_confirmation(self) -> None:
+        accepted = dashboard_state_path().read_bytes()
         self.assertEqual([], self.deliver())
         self.request.assert_called_once_with("PR_node")
-        self.assertEqual({}, load_copilot_review_fallbacks())
+        cycle = load_copilot_review_cycles()["7"]
+        self.assertEqual("accepted", cycle.phase)
+        self.assertEqual(1, cycle.request_count)
+        self.assertEqual(format_ts(self.now), cycle.sent_at)
+        self.assertEqual(accepted, dashboard_state_path().read_bytes())
+        for _ in range(3):
+            self.enqueue()
+            self.assertEqual([], self.deliver())
+        self.request.assert_called_once()
 
-        self.enqueue()
-        self.reviews = [self.quota_notice(10), self.quota_notice(11)]
-        self.assertEqual([], self.deliver())
-        self.assertEqual(
-            CopilotReviewFallback((10, 11), format_ts(NOW)),
-            load_copilot_review_fallbacks()["7"],
+    def test_only_accepted_results_with_a_complete_intent_can_dispatch(self) -> None:
+        legacy = dashboard_state_path().with_name("copilot-review-intent-state.json")
+        legacy.write_text(json.dumps({
+            "version": 13, "prs": {"7": {
+                "head_sha": self.snapshot.head_sha,
+                "copilot_request_fingerprint": self.snapshot.copilot_request_fingerprint,
+            }},
+        }), encoding="utf-8")
+        facts = dashboard_facts(
+            copilot_review_request_needed=True,
+            head_sha=self.snapshot.head_sha,
+            copilot_request_fingerprint=self.snapshot.copilot_request_fingerprint,
         )
-        self.request.assert_called_with("PR_node", token="request-token")
-        self.assertEqual(format_ts(NOW), load_copilot_review_requests()["7"]["requested_at"])
-
-    def test_error_notice_retries_without_quota_fallback(self) -> None:
-        self.reviews = [self.error_notice(10)]
-
-        self.assertEqual([], self.deliver())
-
-        self.request.assert_called_once_with("PR_node")
-        self.assertEqual({}, load_copilot_review_fallbacks())
-        self.assertEqual(format_ts(NOW), load_copilot_review_requests()["7"]["requested_at"])
-
-    def test_second_error_discards_a_request_accepted_before_it_arrived(self) -> None:
-        self.reviews = [self.error_notice(10), self.error_notice(11)]
-        for token in ("", "request-token"):
-            with self.subTest(token_available=bool(token)), patch.dict(
-                os.environ, {"COPILOT_REVIEW_FALLBACK_TOKEN": token}
-            ):
-                self.enqueue()
-                output = io.StringIO()
-                with redirect_stderr(output):
-                    self.assertEqual([], self.deliver())
-
-                self.assertIn("Copilot reported 2 errors on head current-head", output.getvalue())
-                self.assertEqual({}, load_copilot_review_requests())
-                self.assertEqual({}, load_copilot_review_fallbacks())
+        for accepted in (
+            dashboard_state(),
+            dashboard_state().with_draft(7),
+            dashboard_state(stored_dashboard_result(7, facts=replace(
+                facts, copilot_review_request_needed=False,
+            ))),
+            dashboard_state(stored_dashboard_result(7, facts=replace(facts, head_sha=""))),
+            dashboard_state(stored_dashboard_result(7, facts=replace(
+                facts, copilot_request_fingerprint="",
+            ))),
+        ):
+            with self.subTest(accepted=accepted):
+                save_dashboard_state_cache(accepted)
+                self.assertEqual([], self.deliver())
+                self.fetch_snapshot.assert_not_called()
                 self.request.assert_not_called()
 
-    def test_error_retry_budget_resets_after_push(self) -> None:
-        self.reviews = [self.error_notice(10), self.error_notice(11)]
-        self.assertEqual([], self.deliver())
-        self.request.assert_not_called()
+    def test_expired_legacy_receipt_does_not_skip_matching_intent(self) -> None:
+        accepted = self.tracked_paths[0].parent
+        delivery = accepted / "delivery"
+        delivery.mkdir()
+        accepted_snapshot = dashboard_state_path().read_bytes()
+        with (
+            patch("state._state_dir", delivery),
+            patch("state._accepted_state_dir", accepted),
+            patch("state._using_delivery_state", True),
+        ):
+            receipt = delivery / COPILOT_REVIEW_REQUEST_STATE_FILE
+            legacy = json.dumps({
+                "version": 9,
+                "prs": {"7": {
+                    "head_sha": self.snapshot.head_sha,
+                    "copilot_request_fingerprint": self.snapshot.copilot_request_fingerprint,
+                    "requested_at": format_ts(self.now),
+                }},
+            })
+            receipt.write_text(legacy, encoding="utf-8")
+            self.tracked_paths = (self.tracked_paths[0], copilot_review_dispatch_state_path())
 
-        self.snapshot = replace(self.snapshot, head_sha="next-head")
-        self.enqueue()
-        self.assertEqual([], self.deliver())
-
-        self.request.assert_called_once_with("PR_node")
-        self.assertEqual(format_ts(NOW), load_copilot_review_requests()["7"]["requested_at"])
-
-    def test_new_push_retains_fallback_after_receipt_intent_is_cleared(self) -> None:
-        self.reviews = [self.quota_notice(10)]
-        self.assertEqual([], self.deliver())
-        save_copilot_review_requests({})
-        self.snapshot = replace(self.snapshot, head_sha="next-head")
-        self.reviews = []
-        self.enqueue()
-        self.assertEqual([], self.deliver())
-        self.assertEqual(2, self.request.call_count)
-        self.request.assert_called_with("PR_node", token="request-token")
-
-    def test_new_notice_stops_fallback_without_repeating_requests(self) -> None:
-        self.reviews = [self.quota_notice(10)]
-        self.landed.return_value = False
-        self.assertEqual([], self.deliver())
-        self.reviews.append(self.quota_notice(11))
-        self.assertEqual([], self.deliver())
-        self.assertTrue(load_copilot_review_fallbacks()["7"].exhausted)
-        self.assertEqual({}, load_copilot_review_requests())
-        self.snapshot = replace(self.snapshot, head_sha="next-head")
-        self.reviews = []
-        self.enqueue()
-        self.assertEqual([], self.deliver())
-        self.request.assert_called_once_with("PR_node", token="request-token")
-
-    def test_old_notices_do_not_stop_a_retry(self) -> None:
-        self.reviews = [self.quota_notice(10)]
-        self.landed.return_value = False
-        self.assertEqual([], self.deliver())
-        self.assertEqual([], self.deliver())
-        self.assertEqual(2, self.request.call_count)
-        self.assertFalse(load_copilot_review_fallbacks()["7"].exhausted)
-
-    def test_cas_retry_persists_fallback_when_receipt_skips_delivery(self) -> None:
-        baseline_requests = load_copilot_review_requests()
-        self.reviews = [self.quota_notice(10)]
-        self.assertEqual([], self.deliver())
-        fallback = load_copilot_review_fallbacks()["7"]
-        with tempfile.TemporaryDirectory() as directory:
-            retry_snapshot = Path(directory) / "prior-copilot-review-request-state.json"
-            retry_snapshot.write_bytes(copilot_review_request_state_path().read_bytes())
-            retry_snapshot.with_suffix(".fallback.json").write_bytes(
-                copilot_review_fallback_state_path().read_bytes()
-            )
-            # A rejected CAS push restores the remote state, not the retry snapshots.
-            save_copilot_review_requests(baseline_requests)
-            save_copilot_review_fallbacks({})
-            self.assertEqual([], deliver_copilot_review_requests(
-                "open-telemetry/example", NOW, retry_snapshot
-            ))
-            self.assertEqual(fallback, load_copilot_review_fallbacks()["7"])
-            self.assertEqual(
-                format_ts(NOW), load_copilot_review_requests()["7"]["requested_at"]
-            )
-            self.request.assert_called_once_with("PR_node", token="request-token")
-
-        self.reviews.append(self.quota_notice(11))
-        self.snapshot = replace(self.snapshot, head_sha="next-head")
-        self.enqueue()
-        self.assertEqual([], self.deliver())
-        self.assertTrue(load_copilot_review_fallbacks()["7"].exhausted)
-        self.assertEqual({}, load_copilot_review_requests())
-        self.request.assert_called_once_with("PR_node", token="request-token")
-
-    def test_cas_retry_persists_exhaustion_without_queued_requests(self) -> None:
-        fallback = CopilotReviewFallback((10,), format_ts(NOW), exhausted=True)
-        save_copilot_review_fallbacks({"7": fallback})
-        save_copilot_review_requests({})
-        with tempfile.TemporaryDirectory() as directory:
-            retry_snapshot = Path(directory) / "prior-copilot-review-request-state.json"
-            retry_snapshot.write_bytes(copilot_review_request_state_path().read_bytes())
-            retry_snapshot.with_suffix(".fallback.json").write_bytes(
-                copilot_review_fallback_state_path().read_bytes()
-            )
-            save_copilot_review_fallbacks({})
-            self.assertEqual([], deliver_copilot_review_requests(
-                "open-telemetry/example", NOW, retry_snapshot
-            ))
-            self.assertEqual(fallback, load_copilot_review_fallbacks()["7"])
-
-        self.snapshot = replace(self.snapshot, head_sha="next-head")
-        self.enqueue()
-        self.assertEqual([], self.deliver())
-        self.assertEqual({}, load_copilot_review_requests())
-        self.request.assert_not_called()
-
-    def test_request_error_is_reported_without_disabling_fallback(self) -> None:
-        self.reviews = [self.quota_notice(10)]
-        self.request.side_effect = RuntimeError("HTTP 403")
-        self.assertEqual(["PR #7: HTTP 403"], self.deliver())
-        self.assertFalse(load_copilot_review_fallbacks()["7"].exhausted)
-        self.assertEqual("", load_copilot_review_requests()["7"]["requested_at"])
-        self.request.side_effect = None
-        self.assertEqual([], self.deliver())
-
-    def test_missing_secret_disables_requests(self) -> None:
-        self.reviews = [self.quota_notice(10)]
-        with patch.dict(os.environ, {"COPILOT_REVIEW_FALLBACK_TOKEN": ""}):
             self.assertEqual([], self.deliver())
-        self.request.assert_not_called()
-        self.assertEqual({}, load_copilot_review_fallbacks())
+            self.request.assert_not_called()
+            self.assertEqual("unknown", load_copilot_review_cycles()["7"].phase)
+            self.assertEqual(accepted_snapshot, dashboard_state_path().read_bytes())
 
-    def test_stored_quota_flag_can_start_fallback_without_original_notice(self) -> None:
+            self.now += timedelta(hours=4)
+            self.assertEqual([], self.deliver())
+            self.request.assert_called_once_with("PR_node")
+            self.assertEqual("accepted", load_copilot_review_cycles()["7"].phase)
+            self.assertEqual(legacy, receipt.read_text(encoding="utf-8"))
+
+    def test_app_quota_switches_once_and_fallback_quota_does_not_loop(self) -> None:
+        self.assertEqual([], self.deliver())
+        self.now += timedelta(minutes=1)
+        self.reviews = [self.notice(10)]
         self.enqueue(quota_exhausted=True)
-        self.assertTrue(load_copilot_review_requests()["7"]["quota_exhausted"])
         self.assertEqual([], self.deliver())
-        self.request.assert_called_once_with("PR_node", token="request-token")
+        self.request.assert_called_with("PR_node", token="request-token")
+        self.now += timedelta(minutes=1)
+        self.reviews.append(self.notice(11))
+        self.enqueue(quota_exhausted=True)
+        self.assertEqual([], self.deliver())
+        self.assertEqual(2, self.request.call_count)
+        cycle = load_copilot_review_cycles()["7"]
+        self.assertEqual("accepted", cycle.phase)
+        self.assertEqual(2, cycle.request_count)
+        self.assertEqual("2026-08-16T08:00:00+00:00", cycle.started_at)
 
-    def test_pending_request_and_completed_review_do_not_duplicate_requests(self) -> None:
-        self.reviews = [self.quota_notice(10)]
-        self.snapshot = replace(
-            self.snapshot,
-            review_requests=normalize_pull_request_source({
-                "review_requests": [{"__typename": "Bot", "login": "copilot"}]
-            }).review_requests,
-        )
+    def test_later_head_gets_a_fresh_bounded_request_after_fallback_quota(self) -> None:
+        self.reviews = [self.notice()]
         self.assertEqual([], self.deliver())
-        self.request.assert_not_called()
-        self.snapshot = replace(self.snapshot, review_requests=())
+        self.now += timedelta(minutes=1)
+        self.reviews.append(self.notice(11))
+        self.snapshot = replace(self.snapshot, head_sha="next-head")
         self.enqueue()
-        self.reviews.append({
-            "id": 11,
-            "user": {"login": "copilot"},
-            "commit_id": "current-head",
-            "body": "No issues found.",
+        self.assertEqual([], self.deliver())
+        self.request.assert_called_once()
+        self.now = datetime(2026, 8, 16, 12, tzinfo=timezone.utc)
+        self.enqueue()
+        self.assertEqual([], self.deliver())
+        self.assertEqual(2, self.request.call_count)
+        cycle = load_copilot_review_cycles()["7"]
+        self.assertEqual("next-head", cycle.head_sha)
+        self.assertEqual(1, cycle.request_count)
+        self.assertEqual("fallback", cycle.requester)
+
+    def test_three_dispatch_cap_survives_a_rebound_error_history(self) -> None:
+        self.assertEqual([], self.deliver())
+        self.now += timedelta(minutes=1)
+        self.reviews = [self.notice()]
+        self.enqueue()
+        self.assertEqual([], self.deliver())
+        self.now += timedelta(minutes=1)
+        self.reviews.append(self.notice(11, body=ERROR_BODY))
+        self.enqueue()
+        self.assertEqual([], self.deliver())
+        self.now += timedelta(minutes=1)
+        self.reviews = [self.notice(12, body=ERROR_BODY)]
+        self.enqueue()
+        self.assertEqual([], self.deliver())
+        self.assertEqual(3, self.request.call_count)
+        self.assertEqual("requests", load_copilot_review_cycles()["7"].limit_reason)
+
+    def test_two_generic_errors_stop_retries_but_a_push_resets_the_budget(self) -> None:
+        self.assertEqual([], self.deliver())
+        self.now += timedelta(minutes=1)
+        self.reviews = [self.notice(body=ERROR_BODY)]
+        self.enqueue()
+        self.assertEqual([], self.deliver())
+        self.request.assert_called_with("PR_node")
+        self.now += timedelta(minutes=1)
+        self.reviews.append(self.notice(11, body=ERROR_BODY))
+        self.enqueue()
+        self.assertEqual([], self.deliver())
+        self.assertEqual(2, self.request.call_count)
+        self.snapshot = replace(self.snapshot, head_sha="next-head")
+        self.enqueue()
+        self.assertEqual([], self.deliver())
+        self.assertEqual(3, self.request.call_count)
+        self.assertEqual(1, load_copilot_review_cycles()["7"].request_count)
+
+    def test_ambiguous_error_is_durable_and_ignores_later_quota_notices(self) -> None:
+        self.request_error = TransientGhError("HTTP 503")
+        self.assertIn("HTTP 503", self.deliver()[0])
+        self.assertEqual("unknown", load_copilot_review_cycles()["7"].phase)
+        self.restore()
+        self.request_error = None
+        self.now += timedelta(minutes=1)
+        self.reviews = [self.notice()]
+        self.snapshot = replace(self.snapshot, head_sha="next-head")
+        self.enqueue(quota_exhausted=True)
+        self.assertEqual([], self.deliver())
+        self.request.assert_called_once()
+        self.assertEqual("current-head", load_copilot_review_cycles()["7"].head_sha)
+
+    def test_delivery_checkpoints_completion_before_the_next_push(self) -> None:
+        self.request_error = TransientGhError("HTTP 503")
+        self.assertIn("HTTP 503", self.deliver()[0])
+        self.restore()
+        self.request_error = None
+        self.now += timedelta(minutes=1)
+        self.reviews = [self.notice(body="No issues found.")]
+        self.assertEqual([], self.deliver())
+        self.restore()
+        self.assertEqual("complete", load_copilot_review_cycles()["7"].phase)
+
+        self.snapshot = replace(self.snapshot, head_sha="next-head")
+        self.enqueue()
+        self.assertEqual([], self.deliver())
+        self.assertEqual(2, self.request.call_count)
+        self.assertEqual("next-head", load_copilot_review_cycles()["7"].head_sha)
+        self.assertEqual(1, load_copilot_review_cycles()["7"].request_count)
+
+    def test_coverage_that_invalidates_the_intent_still_completes_the_cycle(self) -> None:
+        prior = copilot_review_cycle("current-head", phase="unknown")
+        save_copilot_review_cycles({"7": prior})
+        self.snapshot = routing_snapshot({
+            "checks": [],
+            "pr": {"id": "PR_node", "state": "OPEN", "headRefOid": "current-head"},
+            "reviews": [self.notice(body="No issues found.")],
         })
+
         self.assertEqual([], self.deliver())
         self.request.assert_not_called()
-        self.assertEqual({}, load_copilot_review_fallbacks())
+        self.assertEqual({"7": replace(prior, phase="complete")}, load_copilot_review_cycles())
 
-    def test_quota_notice_without_id_is_an_error_not_an_unbounded_retry(self) -> None:
-        self.reviews = [self.quota_notice(0)]
-        self.assertEqual(
-            ["PR #7: GitHub returned a Copilot quota notice without a review ID"],
-            self.deliver(),
+    def test_coverage_on_new_head_settles_unknown_older_intent(self) -> None:
+        prior = copilot_review_cycle("current-head", phase="unknown")
+        save_copilot_review_cycles({"7": prior})
+        review = self.notice(body="No issues found.", head="reviewed-head")
+        self.snapshot = routing_snapshot({
+            "checks": [],
+            "pr": {"id": "PR_node", "state": "OPEN", "headRefOid": "reviewed-head"},
+            "reviews": [review],
+        })
+
+        self.assertEqual([], self.deliver())
+        self.request.assert_not_called()
+        self.restore()
+        completed = load_copilot_review_cycles()["7"]
+        self.assertEqual("reviewed-head", completed.head_sha)
+        self.assertEqual("complete", completed.phase)
+
+        self.now += timedelta(minutes=1)
+        self.snapshot = routing_snapshot(
+            head_sha="next-head", copilot_request_fingerprint="accepted-fingerprint",
         )
+        self.reviews = [review]
+        self.enqueue()
+        self.assertEqual([], self.deliver())
+        self.request.assert_called_once_with("PR_node")
+        self.assertEqual("next-head", load_copilot_review_cycles()["7"].head_sha)
+
+    def test_completion_does_not_clear_a_competing_reservation(self) -> None:
+        prior = copilot_review_cycle("current-head", phase="unknown")
+        save_copilot_review_cycles({"7": prior})
+        self.commit(lambda: 0)
+        self.reviews = [self.notice(body="No issues found.")]
+        reservation = copilot_review_cycle("current-head", phase="sending", sent_at="")
+
+        self.assertEqual([], self.deliver(self.retry_with_cycle(reservation)))
+        self.assertEqual([], self.deliver())
+        self.request.assert_not_called()
+        self.assertEqual({"7": reservation}, load_copilot_review_cycles())
+
+    def test_failed_process_start_releases_the_slot_and_allows_recovery(self) -> None:
+        self.request.side_effect = request_copilot_review
+        with patch("github_cli.subprocess.Popen", side_effect=FileNotFoundError("gh unavailable")):
+            self.assertIn("gh unavailable", self.deliver()[0])
+        self.restore()
+        self.assertEqual({}, load_copilot_review_cycles())
+        self.request.side_effect = self.request_review
+        self.now += timedelta(minutes=1)
+        self.assertEqual([], self.deliver())
+        self.assertEqual(2, self.request.call_count)
+        self.assertEqual(1, load_copilot_review_cycles()["7"].request_count)
+
+    def test_failure_after_process_start_retains_uncertainty(self) -> None:
+        self.request.side_effect = request_copilot_review
+        with patch("github_cli.subprocess.Popen") as start:
+            process = start.return_value
+            process.__enter__.return_value = process
+            process.communicate.side_effect = OSError("reply stream failed")
+            self.assertIn("reply stream failed", self.deliver()[0])
+            process.kill.assert_called_once()
+        self.restore()
+        cycle = load_copilot_review_cycles()["7"]
+        self.assertEqual("unknown", cycle.phase)
+        self.assertEqual(1, cycle.request_count)
+        self.request.side_effect = self.request_review
+        self.now += timedelta(minutes=1)
+        self.enqueue()
+        self.assertEqual([], self.deliver())
+        self.request.assert_called_once()
+
+    def test_failed_reservation_prevents_rpc(self) -> None:
+        def fail(action):
+            action()
+            raise RuntimeError("reservation push failed")
+
+        self.assertIn("reservation push failed", self.deliver(fail)[0])
+        self.request.assert_not_called()
+        self.restore()
+        self.assertEqual({}, load_copilot_review_cycles())
+
+    def test_failed_final_routing_read_refunds_the_reservation(self) -> None:
+        self.fetch_snapshot.side_effect = [
+            self.snapshot, TransientGhError("routing read failed"),
+        ]
+        self.assertIn("routing read failed", self.deliver()[0])
+        self.request.assert_not_called()
+        self.restore()
+        self.assertEqual({}, load_copilot_review_cycles())
+        self.fetch_snapshot.side_effect = lambda *_: self.snapshot
+        self.now += timedelta(minutes=1)
+        self.assertEqual([], self.deliver())
+        self.request.assert_called_once()
+        self.assertEqual(1, load_copilot_review_cycles()["7"].request_count)
+
+    def test_failed_final_review_read_restores_the_retry_budget(self) -> None:
+        prior = copilot_review_cycle(
+            "current-head", phase="ready", requester="fallback",
+            request_count=2, started_at="2026-08-16T07:00:00Z",
+        )
+        save_copilot_review_cycles({"7": prior})
+        self.commit(lambda: 0)
+        self.fetch_reviews.side_effect = [[], TransientGhError("review read failed")]
+        self.assertIn("review read failed", self.deliver()[0])
+        self.request.assert_not_called()
+        self.restore()
+        self.assertEqual(prior, load_copilot_review_cycles()["7"])
+        self.fetch_reviews.side_effect = lambda *_: self.reviews
+        self.assertEqual([], self.deliver())
+        self.request.assert_called_once()
+        accepted = load_copilot_review_cycles()["7"]
+        self.assertEqual(3, accepted.request_count)
+        self.assertEqual(prior.started_at, accepted.started_at)
+
+    def test_failed_unsent_rollback_reports_both_errors_and_preserves_the_barrier(self) -> None:
+        self.fetch_snapshot.side_effect = [
+            self.snapshot, TransientGhError("routing read failed"),
+        ]
+        calls = 0
+
+        def persist(action):
+            nonlocal calls
+            calls += 1
+            if calls == 2:
+                action()
+                raise RuntimeError("rollback push failed")
+            self.commit(action)
+
+        error = self.deliver(persist)[0]
+        self.assertIn("routing read failed", error)
+        self.assertIn("unsent reservation could not be released: rollback push failed", error)
+        self.request.assert_not_called()
+        self.restore()
+        self.assertEqual("sending", load_copilot_review_cycles()["7"].phase)
+        self.fetch_snapshot.side_effect = lambda *_: self.snapshot
+        self.assertEqual([], self.deliver())
         self.request.assert_not_called()
 
-    def test_only_new_copilot_quota_notices_exhaust_fallback(self) -> None:
-        fallback = CopilotReviewFallback((10,), format_ts(NOW))
-        old = review_source(database_id=10, actor=actor("copilot"), body=QUOTA_FAILURE_BODY)
-        human = replace(old, database_id=11, actor=actor("reviewer"))
-        self.assertFalse(copilot_fallback_exhausted(fallback, (old, human)))
-        self.assertTrue(copilot_fallback_exhausted(fallback, (old, replace(old, database_id=12))))
+    def test_failed_outcome_write_leaves_sending_and_does_not_resend(self) -> None:
+        calls = 0
 
-    def test_quota_notice_in_attempt_second_exhausts_fallback(self) -> None:
-        fallback = CopilotReviewFallback((10,), format_ts(NOW.replace(microsecond=500000)))
-        notice = review_source(
-            database_id=11,
-            actor=actor("copilot"),
-            body=INSUFFICIENT_QUOTA_FAILURE_WITH_GUIDANCE_BODY,
-            submitted_at="2026-07-20T02:00:00Z",
-        )
+        def persist(action):
+            nonlocal calls
+            calls += 1
+            if calls == 3:
+                action()
+                raise RuntimeError("outcome push failed")
+            self.commit(action)
 
-        self.assertTrue(copilot_fallback_exhausted(fallback, (notice,)))
+        self.assertIn("outcome push failed", self.deliver(persist)[0])
+        self.restore()
+        self.assertEqual("sending", load_copilot_review_cycles()["7"].phase)
+        self.enqueue()
+        self.assertEqual([], self.deliver())
+        self.request.assert_called_once()
 
-    def test_invalid_fallback_comparison_timestamps_fail_explicitly(self) -> None:
-        fallback = CopilotReviewFallback((10,), format_ts(NOW))
-        notice = review_source(
-            database_id=11,
-            actor=actor("copilot"),
-            body=QUOTA_FAILURE_BODY,
-            submitted_at=format_ts(NOW),
-        )
-        for timestamp in ("", "invalid", "2026-07-20T02:00:00"):
-            with self.subTest(timestamp=timestamp):
-                with self.assertRaisesRegex(RuntimeError, "invalid attempt timestamp"):
-                    copilot_fallback_exhausted(
-                        replace(fallback, attempted_at=timestamp), (notice,)
-                    )
-                with self.assertRaisesRegex(RuntimeError, "valid submission timestamp"):
-                    copilot_fallback_exhausted(
-                        fallback, (replace(notice, submitted_at=timestamp),)
-                    )
+    def test_rpc_and_outcome_write_failures_both_report_and_keep_the_durable_barrier(self) -> None:
+        calls = 0
+        self.request_error = TransientGhError("HTTP 503")
 
+        def persist(action):
+            nonlocal calls
+            calls += 1
+            if calls == 3:
+                action()
+                raise RuntimeError("outcome push failed")
+            self.commit(action)
 
-class CopilotReviewRequestStateTest(unittest.TestCase):
-    @patch("copilot_review_delivery.save_copilot_review_requests")
-    @patch(
-        "copilot_review_delivery.load_copilot_review_requests",
-        return_value={},
-    )
-    def test_records_request_for_current_head(self, _load_requests, save_requests) -> None:
-        record_copilot_review_observation(
-            7,
-            review_result(
-                head_sha="current-head",
-                copilot_review_request_needed=True,
-                copilot_request_fingerprint="accepted-fingerprint",
-            ),
-            NOW,
-        )
+        error = self.deliver(persist)[0]
+        self.assertIn("HTTP 503", error)
+        self.assertIn("outcome push failed", error)
+        self.restore()
+        self.assertEqual("sending", load_copilot_review_cycles()["7"].phase)
+        self.request_error = None
+        self.enqueue()
+        self.assertEqual([], self.deliver())
+        self.request.assert_called_once()
 
-        save_requests.assert_called_once_with({
-            "7": {
-                "head_sha": "current-head",
-                "observed_at": "2026-07-20T02:00:00+00:00",
-                "requested_at": "",
-                "copilot_request_fingerprint": "accepted-fingerprint",
-            },
-        })
+    def test_outcome_cannot_overwrite_terminal_progress_from_another_worker(self) -> None:
+        calls = 0
 
-    @patch("copilot_review_delivery.save_copilot_review_requests")
-    @patch(
-        "copilot_review_delivery.load_copilot_review_requests",
-        return_value={
-            "7": {
-                "head_sha": "old-head",
-                "requested_at": "old-request",
-            }
-        },
-    )
-    def test_new_head_replaces_previous_request(self, _load_requests, save_requests) -> None:
-        record_copilot_review_observation(
-            7,
-            review_result(
-                head_sha="current-head",
-                copilot_review_request_needed=True,
-                copilot_request_fingerprint="accepted-fingerprint",
-            ),
-            NOW,
-        )
+        def persist(action):
+            nonlocal calls
+            calls += 1
+            if calls == 3:
+                cycles = load_copilot_review_cycles()
+                cycles["7"] = replace(cycles["7"], phase="complete")
+                self.commit(lambda: save_copilot_review_cycles(cycles))
+            self.commit(action)
 
-        save_requests.assert_called_once_with({
-            "7": {
-                "head_sha": "current-head",
-                "observed_at": "2026-07-20T02:00:00+00:00",
-                "requested_at": "",
-                "copilot_request_fingerprint": "accepted-fingerprint",
-            },
-        })
+        self.assertIn("refusing to overwrite", self.deliver(persist)[0])
+        self.restore()
+        self.assertEqual("complete", load_copilot_review_cycles()["7"].phase)
+        self.request.assert_called_once()
 
-    @patch("copilot_review_delivery.save_copilot_review_requests")
-    @patch(
-        "copilot_review_delivery.load_copilot_review_requests",
-        return_value={
-            "7": {
-                "head_sha": "current-head",
-                "requested_at": "2026-07-20T01:00:00Z",
-            }
-        },
-    )
-    def test_same_head_request_needed_resets_acknowledgement(
-        self,
-        _load_requests,
-        save_requests,
-    ) -> None:
-        record_copilot_review_observation(
-            7,
-            review_result(
-                head_sha="current-head",
-                copilot_review_request_needed=True,
-                copilot_request_fingerprint="accepted-fingerprint",
-            ),
-            NOW,
-        )
+    def test_retried_state_callbacks_do_not_repeat_the_rpc_or_consume_a_slot(self) -> None:
+        def retry(action):
+            self.in_commit = True
+            try:
+                action()
+                self.restore()
+                action()
+            finally:
+                self.in_commit = False
+            self.commit(lambda: 0)
 
-        save_requests.assert_called_once_with({
-            "7": {
-                "head_sha": "current-head",
-                "observed_at": "2026-07-20T02:00:00+00:00",
-                "requested_at": "",
-                "copilot_request_fingerprint": "accepted-fingerprint",
-            },
-        })
+        self.assertEqual([], self.deliver(retry))
+        self.request.assert_called_once()
+        self.assertEqual(1, load_copilot_review_cycles()["7"].request_count)
 
-    @patch("copilot_review_delivery.save_copilot_review_requests")
-    @patch(
-        "copilot_review_delivery.load_copilot_review_requests",
-        return_value={
-            "7": {
-                "head_sha": "current-head",
-                "requested_at": "",
-            }
-        },
-    )
-    def test_clears_request_when_no_longer_needed(self, _load_requests, save_requests) -> None:
-        record_copilot_review_observation(
-            7,
-            review_result(
-                "maintainer",
-                head_sha="current-head",
-                copilot_review_request_needed=False,
-            ),
-            NOW,
-        )
+    def test_retry_adopts_an_already_durable_reservation(self) -> None:
+        def retry(action):
+            self.commit(action)
+            self.restore()
+            self.commit(action)
 
-        save_requests.assert_called_once_with({})
+        self.assertEqual([], self.deliver(retry))
+        self.request.assert_called_once()
+        self.assertEqual(1, load_copilot_review_cycles()["7"].request_count)
 
-    @patch("copilot_review_delivery.save_copilot_review_requests")
-    @patch(
-        "copilot_review_delivery.load_copilot_review_requests",
-        return_value={},
-    )
-    def test_missing_first_review_without_request_needed_does_not_enqueue(
-        self,
-        _load_requests,
-        save_requests,
-    ) -> None:
-        record_copilot_review_observation(
-            7,
-            review_result(
-                head_sha="current-head",
-                copilot_review_exists=False,
-                copilot_review_request_needed=False,
-            ),
-            NOW,
-        )
-
-        save_requests.assert_called_once_with({})
-
-    @patch(
-        "copilot_review.fetch_review_requests",
-        return_value=[{"__typename": "Bot", "login": "copilot-pull-request-reviewer"}],
-    )
-    @patch("copilot_review_delivery.request_copilot_review")
-    @patch("copilot_review_delivery.fetch_pr_reviews")
-    @patch("copilot_review_delivery.fetch_routing_snapshot")
-    @patch("copilot_review_delivery.save_copilot_review_requests")
-    @patch(
-        "copilot_review_delivery.load_copilot_review_requests",
-        return_value={
-            "7": {
-                "head_sha": "current-head",
-                "observed_at": "2026-07-20T01:00:00+00:00",
-                "requested_at": "",
-                "copilot_request_fingerprint": "accepted-fingerprint",
-            }
-        },
-    )
-    def test_delivers_request_for_current_stale_review(
-        self,
-        _load_requests,
-        save_requests,
-        fetch_snapshot,
-        fetch_reviews,
-        request_review,
-        fetch_pending_requests,
-    ) -> None:
-        pr = {
-            "state": "OPEN",
-            "isDraft": False,
-            "headRefOid": "current-head",
-            "id": "PR_node_id",
-        }
-        fetch_snapshot.return_value = routing_snapshot(
-            {"checks": [], "pr": pr},
-            copilot_request_fingerprint="accepted-fingerprint",
-        )
-        fetch_reviews.return_value = [{
-            "id": 20,
-            "commit_id": "reviewed-head",
-            "finding_count": 0,
-            "user": {"login": "copilot"},
-            "submitted_at": "2026-07-20T01:00:00Z",
-        }]
-
-        errors = deliver_copilot_review_requests(
-            "open-telemetry/example",
-            NOW,
-        )
-
-        self.assertEqual([], errors)
-        fetch_snapshot.assert_called_once_with("open-telemetry/example", 7)
-        fetch_reviews.assert_called_once_with("open-telemetry", "example", 7)
-        request_review.assert_called_once_with("PR_node_id")
-        fetch_pending_requests.assert_called_once_with("open-telemetry", "example", 7)
-        save_requests.assert_called_once_with({
-            "7": {
-                "head_sha": "current-head",
-                "observed_at": "2026-07-20T01:00:00+00:00",
-                "requested_at": "2026-07-20T02:00:00+00:00",
-                "copilot_request_fingerprint": "accepted-fingerprint",
-            },
-        })
-
-    def test_quota_failure_discards_queued_requests_even_after_a_push(self) -> None:
-        entry = {
-            "head_sha": "current-head",
-            "observed_at": "2026-07-20T01:00:00+00:00",
-            "requested_at": "",
-            "copilot_request_fingerprint": "accepted-fingerprint",
-        }
-        for failed_head in ("current-head", "old-head"):
-            with (
-                self.subTest(failed_head=failed_head),
-                patch(
-                    "copilot_review_delivery.load_copilot_review_requests",
-                    return_value={"7": entry},
+    def test_reservation_lost_to_another_worker_does_not_send(self) -> None:
+        def competing(action):
+            action()
+            self.restore()
+            save_copilot_review_cycles({
+                "7": copilot_review_cycle(
+                    "current-head", phase="sending", sent_at="", dispatch_id="another-worker",
                 ),
-                patch(
-                    "copilot_review_delivery.save_copilot_review_requests",
-                ) as save_requests,
-                patch(
-                    "copilot_review_delivery.fetch_routing_snapshot",
-                    return_value=routing_snapshot(
-                        copilot_request_fingerprint="accepted-fingerprint",
+            })
+            self.commit(action)
+
+        self.assertEqual([], self.deliver(competing))
+        self.request.assert_not_called()
+        self.assertEqual("another-worker", load_copilot_review_cycles()["7"].dispatch_id)
+
+    def test_stale_cas_retry_preserves_a_newer_head_budget(self) -> None:
+        newer = copilot_review_cycle(
+            "next-head", phase="limited", request_count=3, limit_reason="requests",
+        )
+        self.fetch_snapshot.side_effect = [
+            self.snapshot, replace(self.snapshot, head_sha="next-head"),
+        ]
+        self.assertEqual([], self.deliver(self.retry_with_cycle(newer)))
+        self.request.assert_not_called()
+        self.assertEqual({"7": newer}, load_copilot_review_cycles())
+
+    def test_stale_cas_retry_does_not_consume_a_changed_same_head_budget(self) -> None:
+        prior = copilot_review_cycle("current-head", phase="ready")
+        save_copilot_review_cycles({"7": prior})
+        self.commit(lambda: 0)
+        newer = replace(prior, request_count=2, baseline_review_ids=(10,))
+        self.assertEqual([], self.deliver(self.retry_with_cycle(newer)))
+        self.request.assert_not_called()
+        self.assertEqual({"7": newer}, load_copilot_review_cycles())
+
+    def test_reservation_changed_during_preflight_prevents_rpc(self) -> None:
+        calls = 0
+
+        def persist(action):
+            nonlocal calls
+            calls += 1
+            if calls == 2:
+                save_copilot_review_cycles({
+                    "7": copilot_review_cycle("current-head", dispatch_id="newer"),
+                })
+            self.commit(action)
+
+        self.assertIn("reservation changed", self.deliver(persist)[0])
+        self.request.assert_not_called()
+        self.assertEqual("newer", load_copilot_review_cycles()["7"].dispatch_id)
+
+    def test_coverage_during_a_returned_head_race_cannot_release_the_dispatch(self) -> None:
+        self.requested_head = "next-head"
+
+        def request_and_observe(pull_request_id, **kwargs):
+            requested_head = self.request_review(pull_request_id, **kwargs)
+            reservation = load_copilot_review_cycles()["7"]
+            save_dashboard_state_cache(dashboard_state(stored_dashboard_result(
+                7, facts=dashboard_facts(
+                    head_sha=self.snapshot.head_sha, copilot_review_exists=True,
+                    copilot_review_cycle_update=CopilotReviewCycleUpdate(
+                        reservation, replace(reservation, phase="complete"),
                     ),
                 ),
-                patch(
-                    "copilot_review_delivery.fetch_pr_reviews",
-                    return_value=[{
-                        "user": {"login": "copilot-pull-request-reviewer[bot]"},
-                        "commit_id": failed_head,
-                        "state": "COMMENTED",
-                        "body": QUOTA_FAILURE_BODY,
-                    }],
-                ),
-                patch(
-                    "copilot_review_delivery.request_copilot_review",
-                ) as request_review,
-                redirect_stderr(io.StringIO()) as stderr,
-            ):
-                errors = deliver_copilot_review_requests(
-                    "open-telemetry/example", NOW
-                )
+            )))
+            self.commit(record_copilot_review_cycle_observations)
+            self.assertEqual(reservation, load_copilot_review_cycles()["7"])
+            return requested_head
 
-                self.assertEqual([], errors)
-                request_review.assert_not_called()
-                save_requests.assert_called_once_with({})
-                self.assertIn(
-                    "Copilot reported quota exhaustion; automatic requests "
-                    "are disabled for this pull request",
-                    stderr.getvalue(),
-                )
+        self.request.side_effect = request_and_observe
+        self.assertEqual([], self.deliver())
+        uncertain = load_copilot_review_cycles()["7"]
+        self.assertEqual(self.snapshot.head_sha, uncertain.head_sha)
+        self.assertEqual("unknown", uncertain.phase)
+        self.commit(record_copilot_review_cycle_observations)
+        self.assertEqual(uncertain, load_copilot_review_cycles()["7"])
+        self.snapshot = replace(self.snapshot, head_sha="next-head")
+        self.enqueue()
+        self.assertEqual([], self.deliver())
+        self.request.assert_called_once()
+        self.assertEqual(uncertain, load_copilot_review_cycles()["7"])
 
-    @patch("copilot_review_delivery.request_copilot_review")
-    @patch("copilot_review_delivery.fetch_pr_reviews")
-    @patch("copilot_review_delivery.fetch_routing_snapshot")
-    @patch("copilot_review_delivery.save_copilot_review_requests")
-    @patch(
-        "copilot_review_delivery.load_copilot_review_requests",
-        return_value={
-            "7": {
-                "head_sha": "current-head",
-                "observed_at": "2026-07-20T01:00:00+00:00",
-                "requested_at": "",
-                "copilot_request_fingerprint": "accepted-fingerprint",
-            }
-        },
-    )
-    def test_pending_request_is_acknowledged_from_pull_response(
-        self,
-        _load_requests,
-        save_requests,
-        fetch_snapshot,
-        fetch_reviews,
-        request_review,
-    ) -> None:
-        pr = {
-            "state": "OPEN",
-            "isDraft": False,
-            "headRefOid": "current-head",
-        }
-        fetch_snapshot.return_value = routing_snapshot(
-            {
-                "checks": [],
-                "pr": pr,
-                "review_requests": [
-                    {
-                        "__typename": "Bot",
-                        "login": "copilot-pull-request-reviewer",
-                    },
-                ],
-            },
+    def test_definite_rejection_removes_first_reservation(self) -> None:
+        self.request_error = CopilotReviewRequestRejected("permission denied")
+        self.assertIn("permission denied", self.deliver()[0])
+        self.assertEqual({}, load_copilot_review_cycles())
+
+    def test_definite_rejection_restores_a_previous_retry_budget(self) -> None:
+        prior = copilot_review_cycle("current-head", phase="ready", requester="fallback")
+        save_copilot_review_cycles({"7": prior})
+        self.commit(lambda: 0)
+        self.request_error = CopilotReviewRequestRejected("permission denied")
+        self.assertIn("permission denied", self.deliver()[0])
+        self.assertEqual(prior, load_copilot_review_cycles()["7"])
+
+    def test_head_change_after_reservation_cancels_without_consuming_a_slot(self) -> None:
+        self.fetch_snapshot.side_effect = [
+            self.snapshot, replace(self.snapshot, head_sha="next-head"),
+        ]
+        self.assertEqual([], self.deliver())
+        self.request.assert_not_called()
+        self.assertEqual({}, load_copilot_review_cycles())
+
+    def test_missing_node_id_releases_the_unsent_reservation(self) -> None:
+        self.fetch_snapshot.side_effect = [
+            self.snapshot, replace(self.snapshot, node_id=""),
+        ]
+        commit = Mock(side_effect=self.commit)
+
+        self.assertEqual(["PR #7: GitHub did not return a node ID for PR #7"], self.deliver(commit))
+        self.request.assert_not_called()
+        self.assertEqual({}, load_copilot_review_cycles())
+        self.assertEqual(2, commit.call_count)
+
+    def test_cancelled_head_reset_restores_the_preceding_budget(self) -> None:
+        prior = copilot_review_cycle(
+            "next-head", phase="limited", request_count=3, limit_reason="requests",
+        )
+        save_copilot_review_cycles({"7": prior})
+        self.commit(lambda: 0)
+        self.fetch_snapshot.side_effect = [
+            self.snapshot, replace(self.snapshot, head_sha="next-head"),
+        ]
+        self.assertEqual([], self.deliver())
+        self.request.assert_not_called()
+        self.assertEqual({"7": prior}, load_copilot_review_cycles())
+
+    def test_final_preflight_completes_cycle_without_charging_the_unsent_slot(self) -> None:
+        for head in ("current-head", "previous-head"):
+            with self.subTest(head=head):
+                prior = copilot_review_cycle(head, phase="ready", request_count=2)
+                save_copilot_review_cycles({"7": prior})
+                self.enqueue()
+                review = self.notice(body="No issues found.", head=head)
+                if head == self.snapshot.head_sha:
+                    self.fetch_snapshot.side_effect = [self.snapshot, self.snapshot]
+                    self.fetch_reviews.side_effect = [[], [review]]
+                else:
+                    self.fetch_snapshot.side_effect = [
+                        self.snapshot,
+                        routing_snapshot({
+                            "checks": [],
+                            "pr": {"id": "PR_node", "state": "OPEN", "headRefOid": head},
+                            "reviews": [review],
+                        }),
+                    ]
+                    self.fetch_reviews.side_effect = [[]]
+
+                self.assertEqual([], self.deliver())
+                self.request.assert_not_called()
+                self.restore()
+                self.assertEqual({"7": replace(prior, phase="complete")}, load_copilot_review_cycles())
+
+    def test_missing_fallback_credentials_do_not_reset_another_heads_budget(self) -> None:
+        os.environ["COPILOT_REVIEW_FALLBACK_TOKEN"] = ""
+        prior = copilot_review_cycle(
+            "next-head", phase="limited", request_count=3, limit_reason="requests",
+        )
+        save_copilot_review_cycles({"7": prior})
+        self.enqueue(quota_exhausted=True)
+        self.assertEqual([], self.deliver())
+        self.request.assert_not_called()
+        self.assertEqual({"7": prior}, load_copilot_review_cycles())
+
+    def test_mismatched_response_keeps_the_retry_on_the_preflight_head(self) -> None:
+        prior = copilot_review_cycle("current-head", phase="ready", request_count=2)
+        save_copilot_review_cycles({"7": prior})
+        self.commit(lambda: 0)
+        self.now = datetime(2026, 8, 16, 11, 59, 59, tzinfo=timezone.utc)
+        self.requested_head = "next-head"
+        self.assertEqual([], self.deliver())
+        self.restore()
+        uncertain = load_copilot_review_cycles()["7"]
+        self.assertEqual("unknown", uncertain.phase)
+        self.assertEqual(prior.head_sha, uncertain.head_sha)
+        self.assertEqual(prior.request_count + 1, uncertain.request_count)
+        self.assertEqual(prior.started_at, uncertain.started_at)
+        self.assertEqual(format_ts(self.now), uncertain.sent_at)
+
+        self.snapshot = replace(self.snapshot, head_sha="next-head")
+        self.now += timedelta(minutes=1)
+        self.reviews = [self.notice(body=ERROR_BODY)]
+        self.enqueue()
+        self.assertEqual([], self.deliver())
+        self.request.assert_called_once()
+        self.assertEqual(uncertain, load_copilot_review_cycles()["7"])
+
+        self.reviews.append(self.notice(11, body="No issues found."))
+        self.assertEqual([], self.deliver())
+        self.request.assert_called_once()
+        complete = load_copilot_review_cycles()["7"]
+        self.assertEqual("complete", complete.phase)
+        self.assertEqual("next-head", complete.head_sha)
+
+    def test_mismatched_response_blocks_a_later_head_until_the_send_times_out(self) -> None:
+        prior = copilot_review_cycle(
+            "previous-head", phase="limited", request_count=3, limit_reason="timeout",
+            started_at="2026-08-16T04:00:00Z",
+        )
+        save_copilot_review_cycles({"7": prior})
+        self.commit(lambda: 0)
+        self.requested_head = prior.head_sha
+
+        self.assertEqual([], self.deliver())
+        uncertain = load_copilot_review_cycles()["7"]
+        self.assertEqual("unknown", uncertain.phase)
+        self.assertEqual(self.snapshot.head_sha, uncertain.head_sha)
+        self.assertEqual(1, uncertain.request_count)
+        self.assertEqual(format_ts(self.now), uncertain.started_at)
+
+        self.requested_head = None
+        self.snapshot = replace(self.snapshot, head_sha="next-head")
+        self.now += timedelta(hours=4, seconds=-1)
+        self.enqueue()
+        self.assertEqual([], self.deliver())
+        self.request.assert_called_once()
+        self.assertEqual(uncertain, load_copilot_review_cycles()["7"])
+
+        self.now += timedelta(seconds=1)
+        self.assertEqual([], self.deliver())
+        self.assertEqual(2, self.request.call_count)
+        self.assertEqual("next-head", load_copilot_review_cycles()["7"].head_sha)
+
+    def test_per_request_send_time_follows_final_baseline_fetch(self) -> None:
+        def fetch(*_args):
+            self.now += timedelta(minutes=1)
+            return []
+
+        self.fetch_reviews.side_effect = fetch
+        self.assertEqual([], self.deliver())
+        cycle = load_copilot_review_cycles()["7"]
+        self.assertEqual("2026-08-16T08:01:00+00:00", cycle.started_at)
+        self.assertEqual("2026-08-16T08:02:00+00:00", cycle.sent_at)
+        self.fetch_reviews.side_effect = lambda *_: self.reviews
+        self.reviews = [self.notice(submitted_at="2026-08-16T08:01:30Z")]
+        self.enqueue(quota_exhausted=True)
+        self.assertEqual([], self.deliver())
+        self.request.assert_called_once()
+
+    def test_expiry_during_reservation_prevents_rpc(self) -> None:
+        self.assertEqual([], self.deliver())
+        self.now += timedelta(hours=3, minutes=59)
+        self.reviews = [self.notice(body=ERROR_BODY)]
+        self.enqueue()
+
+        def delayed(action):
+            self.commit(action)
+            self.now += timedelta(minutes=1)
+
+        self.assertEqual([], self.deliver(delayed))
+        self.request.assert_called_once()
+        self.assertEqual("timeout", load_copilot_review_cycles()["7"].limit_reason)
+
+    def test_ambiguous_retry_blocks_new_head_until_four_hours_after_send(self) -> None:
+        self.assertEqual([], self.deliver())
+        self.now += timedelta(hours=3, minutes=59)
+        self.reviews = [self.notice(body=ERROR_BODY)]
+        self.request_error = TransientGhError("lost response")
+        self.enqueue()
+        self.assertIn("lost response", self.deliver()[0])
+        unknown = load_copilot_review_cycles()["7"]
+        self.assertEqual("unknown", unknown.phase)
+
+        self.snapshot = replace(self.snapshot, head_sha="next-head")
+        self.request_error = None
+        self.now += timedelta(minutes=1)
+        self.enqueue()
+        self.assertEqual([], self.deliver())
+        self.assertEqual(2, self.request.call_count)
+        self.assertEqual(unknown, load_copilot_review_cycles()["7"])
+
+        self.now += timedelta(hours=3, minutes=59)
+        self.assertEqual([], self.deliver())
+        self.assertEqual(3, self.request.call_count)
+        self.assertEqual("next-head", load_copilot_review_cycles()["7"].head_sha)
+
+    def test_pending_request_and_current_coverage_do_not_duplicate_requests(self) -> None:
+        self.reviews = [self.notice(body="No issues found.")]
+        self.assertEqual([], self.deliver())
+        self.request.assert_not_called()
+        self.assertEqual({}, load_copilot_review_cycles())
+        self.reviews = []
+        self.snapshot = routing_snapshot(
+            {"checks": [], "review_requests": [{
+                "requestedReviewer": {"__typename": "Bot", "login": "copilot-pull-request-reviewer"},
+            }], "pr": {
+                "id": "PR_node", "state": "OPEN", "isDraft": False, "headRefOid": "current-head",
+            }},
             copilot_request_fingerprint="accepted-fingerprint",
         )
+        self.enqueue()
+        self.assertEqual([], self.deliver())
+        self.request.assert_not_called()
+        self.assertEqual({}, load_copilot_review_cycles())
 
-        errors = deliver_copilot_review_requests(
-            "open-telemetry/example",
-            NOW,
+    def test_stale_failing_and_draft_intents_are_not_dispatched(self) -> None:
+        snapshots = (
+            replace(self.snapshot, copilot_request_fingerprint="new-fingerprint"),
+            replace(self.snapshot, is_draft=True),
+            replace(self.snapshot, has_conflicts=True),
+            replace(self.snapshot, state="CLOSED"),
+            replace(self.snapshot, checks=None),
+            routing_snapshot(
+                {"checks": [{"name": "build", "bucket": "fail"}], "pr": {
+                    "id": "PR_node", "state": "OPEN", "isDraft": False, "headRefOid": "current-head",
+                }},
+                copilot_request_fingerprint="accepted-fingerprint",
+            ),
         )
+        for snapshot in snapshots:
+            with self.subTest(snapshot=snapshot):
+                self.snapshot = snapshot
+                self.enqueue()
+                self.assertEqual([], self.deliver())
+                self.assertEqual({}, load_copilot_review_cycles())
+        self.request.assert_not_called()
 
-        self.assertEqual([], errors)
-        fetch_snapshot.assert_called_once_with("open-telemetry/example", 7)
-        fetch_reviews.assert_not_called()
-        request_review.assert_not_called()
-        save_requests.assert_called_once_with({
-            "7": {
-                "head_sha": "current-head",
-                "observed_at": "2026-07-20T01:00:00+00:00",
-                "requested_at": "2026-07-20T02:00:00+00:00",
-                "copilot_request_fingerprint": "accepted-fingerprint",
-            },
-        })
-
-    @patch("copilot_review_delivery.request_copilot_review")
-    @patch("copilot_review_delivery.fetch_pr_reviews")
-    @patch(
-        "copilot_review_delivery.fetch_routing_snapshot",
-        return_value=routing_snapshot(
-            copilot_request_fingerprint="new-fingerprint",
-        ),
-    )
-    @patch("copilot_review_delivery.save_copilot_review_requests")
-    @patch(
-        "copilot_review_delivery.load_copilot_review_requests",
-        return_value={
-            "7": {
-                "head_sha": "current-head",
-                "observed_at": "2026-07-20T01:00:00+00:00",
-                "requested_at": "",
-                "copilot_request_fingerprint": "accepted-fingerprint",
-            }
-        },
-    )
-    def test_drops_request_when_live_routing_inputs_changed(
-        self,
-        _load_requests,
-        save_requests,
-        _fetch_snapshot,
-        fetch_reviews,
-        request_review,
-    ) -> None:
-        stderr = io.StringIO()
-
-        with redirect_stderr(stderr):
-            errors = deliver_copilot_review_requests(
-                "open-telemetry/example",
-                NOW,
-            )
-
-        self.assertEqual([], errors)
-        fetch_reviews.assert_not_called()
-        request_review.assert_not_called()
-        save_requests.assert_called_once_with({})
-        discarded = stderr.getvalue()
-        self.assertIn(
-            "discarding Copilot review request for PR #7: routing fingerprint is "
-            "new-fingerprint but accepted-fingerprint was observed; components ",
-            discarded,
-        )
-        for component in (
-            "base_branch",
-            "conflicts",
-            "issue_comments",
-            "pr_text",
-            "review_comments",
-            "review_requests",
-            "reviews",
-            "review_threads",
-        ):
-            self.assertIn(component, discarded)
-        self.assertNotIn("checks", discarded)
-
-    def test_running_checks_do_not_discard_a_pending_request(self) -> None:
-        # The request is recorded while CI is still running, so every check that
-        # finishes changes the routing inputs. Discarding on that would put the
-        # request back to waiting for CI, one pass at a time.
-        pr = {
-            "id": "PR_node",
-            "state": "OPEN",
-            "isDraft": False,
-            "headRefOid": "current-head",
-            "mergeable": "MERGEABLE",
-            "mergeStateStatus": "CLEAN",
-        }
-        observed_raw = {
-            "checks": [{"name": "build", "bucket": "pending"}],
-            "pr": pr,
-        }
-        delivery_raw = {
-            "checks": [{"name": "build", "bucket": "pass"}],
-            "pr": pr,
-        }
-        requests = {
-            "7": {
-                "head_sha": "current-head",
-                "observed_at": "2026-07-20T01:00:00+00:00",
-                "requested_at": "",
-                "copilot_request_fingerprint": build_routing_snapshot(
-                    normalize_pull_request_source(observed_raw)
-                ).copilot_request_fingerprint,
-            }
-        }
-        with (
-            patch(
-                "copilot_review_delivery.load_copilot_review_requests",
-                return_value=requests,
-            ),
-            patch(
-                "copilot_review_delivery.save_copilot_review_requests"
-            ) as save_requests,
-            patch(
-                "copilot_review_delivery.fetch_routing_snapshot",
-                return_value=build_routing_snapshot(
-                    normalize_pull_request_source(delivery_raw)
-                ),
-            ),
-            patch("copilot_review_delivery.fetch_pr_reviews", return_value=[]),
-            patch(
-                "copilot_review_delivery.request_copilot_review"
-            ) as request_review,
-            patch(
-                "copilot_review.fetch_review_requests",
-                return_value=[{"login": "Copilot"}],
-            ),
-        ):
-            errors = deliver_copilot_review_requests(
-                "open-telemetry/example",
-                NOW,
-            )
-
-        self.assertEqual([], errors)
-        request_review.assert_called_once_with("PR_node")
-        save_requests.assert_called_once_with(
-            {
-                "7": {
-                    "head_sha": "current-head",
-                    "observed_at": "2026-07-20T01:00:00+00:00",
-                    "requested_at": format_ts(NOW),
-                    "copilot_request_fingerprint": build_routing_snapshot(
-                        normalize_pull_request_source(observed_raw)
-                    ).copilot_request_fingerprint,
-                }
-            }
-        )
-
-    def test_drops_request_when_pr_becomes_conflicted(self) -> None:
-        clean_raw = {
-            "checks": [],
-            "pr": {
-                "mergeable": "MERGEABLE",
-                "mergeStateStatus": "CLEAN",
-            },
-        }
-        conflicted_pr = {
-            "id": "PR_node",
-            "state": "OPEN",
-            "isDraft": False,
-            "headRefOid": "current-head",
-            "mergeable": "CONFLICTING",
-            "mergeStateStatus": "DIRTY",
-        }
-        conflicted_raw = {"checks": [], "pr": conflicted_pr}
-        requests = {
-            "7": {
-                "head_sha": "current-head",
-                "observed_at": "2026-07-20T01:00:00+00:00",
-                "requested_at": "",
-                "copilot_request_fingerprint": build_routing_snapshot(
-                    normalize_pull_request_source(clean_raw)
-                ).copilot_request_fingerprint,
-            }
-        }
-        with (
-            patch(
-                "copilot_review_delivery.load_copilot_review_requests",
-                return_value=requests,
-            ),
-            patch(
-                "copilot_review_delivery.save_copilot_review_requests"
-            ) as save_requests,
-            patch(
-                "copilot_review_delivery.fetch_routing_snapshot",
-                return_value=build_routing_snapshot(
-                    normalize_pull_request_source(conflicted_raw)
-                ),
-            ),
-            patch("copilot_review_delivery.fetch_pr_reviews") as fetch_reviews,
-            patch(
-                "copilot_review_delivery.request_copilot_review"
-            ) as request_review,
-        ):
-            errors = deliver_copilot_review_requests(
-                "open-telemetry/example",
-                NOW,
-            )
-
-        self.assertEqual([], errors)
-        fetch_reviews.assert_not_called()
-        request_review.assert_not_called()
-        save_requests.assert_called_once_with({})
-
-    @patch("copilot_review_delivery.request_copilot_review")
-    @patch(
-        "copilot_review_delivery.fetch_pr_reviews",
-        return_value=[
-            {"user": {"login": "Copilot"}, "commit_id": "current-head"},
-        ],
-    )
-    @patch(
-        "copilot_review_delivery.fetch_routing_snapshot",
-        return_value=routing_snapshot(
+    def test_pending_checks_and_stale_reviews_allow_dispatch(self) -> None:
+        self.snapshot = routing_snapshot(
+            {"checks": [{"name": "build", "bucket": "pending"}], "pr": {
+                "id": "PR_node", "state": "OPEN", "isDraft": False, "headRefOid": "current-head",
+            }},
             copilot_request_fingerprint="accepted-fingerprint",
-        ),
-    )
-    @patch("copilot_review_delivery.save_copilot_review_requests")
-    @patch(
-        "copilot_review_delivery.load_copilot_review_requests",
-        return_value={
-            "7": {
-                "head_sha": "current-head",
-                "observed_at": "2026-07-20T01:00:00+00:00",
-                "requested_at": "",
-                "copilot_request_fingerprint": "accepted-fingerprint",
-            }
-        },
-    )
-    def test_drops_request_when_copilot_review_no_longer_needed(
-        self,
-        _load_requests,
-        save_requests,
-        _fetch_snapshot,
-        _fetch_reviews,
-        request_review,
-    ) -> None:
-        stderr = io.StringIO()
-
-        with redirect_stderr(stderr):
-            errors = deliver_copilot_review_requests(
-                "open-telemetry/example",
-                NOW,
-            )
-
-        self.assertEqual([], errors)
-        request_review.assert_not_called()
-        save_requests.assert_called_once_with({})
-        self.assertIn(
-            "discarding Copilot review request for PR #7: Copilot review "
-            "already covers head current-head",
-            stderr.getvalue(),
         )
+        self.reviews = [self.notice(body="No issues found.", head="old-head")]
+        self.enqueue()
+        self.assertEqual([], self.deliver())
+        self.request.assert_called_once()
 
-    @patch(
-        "copilot_review.fetch_review_requests",
-        return_value=[{"__typename": "Bot", "login": "copilot-pull-request-reviewer"}],
-    )
-    @patch("copilot_review_delivery.request_copilot_review")
-    @patch("copilot_review_delivery.fetch_pr_reviews", return_value=[])
-    @patch(
-        "copilot_review_delivery.fetch_routing_snapshot",
-        return_value=routing_snapshot(
-            copilot_request_fingerprint="accepted-fingerprint",
-        ),
-    )
-    @patch("copilot_review_delivery.save_copilot_review_requests")
-    @patch(
-        "copilot_review_delivery.load_copilot_review_requests",
-        return_value={
-            "7": {
-                "head_sha": "current-head",
-                "observed_at": "2026-07-20T01:00:00+00:00",
-                "requested_at": "",
-                "copilot_request_fingerprint": "accepted-fingerprint",
-            }
-        },
-    )
-    def test_delivers_request_for_missing_first_review(
-        self,
-        _load_requests,
-        save_requests,
-        _fetch_snapshot,
-        _fetch_reviews,
-        request_review,
-        _fetch_pending_requests,
-    ) -> None:
-        errors = deliver_copilot_review_requests("open-telemetry/example", NOW)
+    def test_missing_fallback_secret_releases_quota_head_but_not_later_heads(self) -> None:
+        with patch.dict(os.environ, {"COPILOT_REVIEW_FALLBACK_TOKEN": ""}):
+            self.reviews = [self.notice()]
+            self.assertEqual([], self.deliver())
+            self.request.assert_not_called()
+            self.snapshot = replace(self.snapshot, head_sha="next-head")
+            self.enqueue()
+            self.assertEqual([], self.deliver())
+        self.request.assert_called_once_with("PR_node")
 
-        self.assertEqual([], errors)
-        request_review.assert_called_once_with("PR_node")
-        save_requests.assert_called_once_with({
-            "7": {
-                "head_sha": "current-head",
-                "observed_at": "2026-07-20T01:00:00+00:00",
-                "requested_at": "2026-07-20T02:00:00+00:00",
-                "copilot_request_fingerprint": "accepted-fingerprint",
-            },
-        })
+    def test_rejected_fallback_recovers_after_its_secret_is_removed_and_restored(self) -> None:
+        self.assertEqual([], self.deliver())
+        self.now += timedelta(minutes=1)
+        self.reviews = [self.notice()]
+        self.enqueue(quota_exhausted=True)
+        self.request_error = CopilotReviewRequestRejected("invalid fallback credential")
+        self.assertIn("invalid fallback credential", self.deliver()[0])
+        self.assertEqual(1, load_copilot_review_cycles()["7"].request_count)
+        with patch.dict(os.environ, {"COPILOT_REVIEW_FALLBACK_TOKEN": ""}):
+            self.now += timedelta(minutes=1)
+            self.assertEqual([], self.deliver())
+            self.restore()
+            self.assertEqual("quota", load_copilot_review_cycles()["7"].limit_reason)
+            self.now += timedelta(hours=5)
+            self.enqueue(quota_exhausted=True)
+            self.assertEqual([], self.deliver())
+            self.assertEqual("quota", load_copilot_review_cycles()["7"].limit_reason)
+            self.assertEqual(2, self.request.call_count)
+        self.request_error = None
+        self.enqueue(quota_exhausted=True)
+        self.assertEqual([], self.deliver())
+        self.request.assert_called_with("PR_node", token="request-token")
+        self.assertEqual(3, self.request.call_count)
+        accepted = load_copilot_review_cycles()["7"]
+        self.assertEqual("accepted", accepted.phase)
+        self.assertEqual(2, accepted.request_count)
+        self.assertEqual(format_ts(self.now), accepted.started_at)
 
-    @patch("copilot_review.sleep_for_retry")
-    @patch("copilot_review.fetch_review_requests", return_value=[])
-    @patch("copilot_review_delivery.request_copilot_review")
-    @patch("copilot_review_delivery.fetch_pr_reviews", return_value=[])
-    @patch("copilot_review.fetch_pr_reviews", return_value=[])
-    @patch(
-        "copilot_review_delivery.fetch_routing_snapshot",
-        return_value=routing_snapshot(
-            copilot_request_fingerprint="accepted-fingerprint",
-        ),
-    )
-    @patch("copilot_review_delivery.save_copilot_review_requests")
-    @patch(
-        "copilot_review_delivery.load_copilot_review_requests",
-        return_value={
-            "7": {
-                "head_sha": "current-head",
-                "observed_at": "2026-07-20T01:00:00+00:00",
-                "requested_at": "",
-                "copilot_request_fingerprint": "accepted-fingerprint",
-            }
-        },
-    )
-    def test_dropped_request_is_not_recorded_as_delivered(
-        self,
-        _load_requests,
-        save_requests,
-        _fetch_snapshot,
-        _fetch_confirmation_reviews,
-        _fetch_delivery_reviews,
-        _request_review,
-        fetch_pending_requests,
-        _sleep,
-    ) -> None:
-        stderr = io.StringIO()
+    def test_new_quota_notice_during_final_preflight_cancels_primary_dispatch(self) -> None:
+        self.fetch_reviews.side_effect = [[], [self.notice()]]
+        self.assertEqual([], self.deliver())
+        self.request.assert_not_called()
+        self.assertEqual({}, load_copilot_review_cycles())
 
-        with redirect_stderr(stderr):
-            errors = deliver_copilot_review_requests("open-telemetry/example", NOW)
-
-        self.assertEqual([], errors)
-        self.assertEqual(
-            REQUEST_CONFIRMATION_ATTEMPTS,
-            fetch_pending_requests.call_count,
-        )
-        save_requests.assert_called_once_with({
-            "7": {
-                "head_sha": "current-head",
-                "observed_at": "2026-07-20T01:00:00+00:00",
-                "requested_at": "",
-                "copilot_request_fingerprint": "accepted-fingerprint",
-            },
-        })
-        self.assertIn(
-            "GitHub did not record the Copilot review request for PR #7 on "
-            "head current-head",
-            stderr.getvalue(),
-        )
-
-    @patch("copilot_review.sleep_for_retry")
-    @patch("copilot_review.fetch_review_requests", return_value=[])
-    @patch("copilot_review_delivery.request_copilot_review")
-    @patch("copilot_review_delivery.fetch_pr_reviews", return_value=[])
-    @patch(
-        "copilot_review.fetch_pr_reviews",
-        return_value=[
-            {
-                "id": 20,
-                "commit_id": "current-head",
-                "user": {"login": "copilot-pull-request-reviewer"},
-                "submitted_at": "2026-07-20T02:00:00Z",
-            }
-        ],
-    )
-    @patch(
-        "copilot_review_delivery.fetch_routing_snapshot",
-        return_value=routing_snapshot(
-            copilot_request_fingerprint="accepted-fingerprint",
-        ),
-    )
-    @patch("copilot_review_delivery.save_copilot_review_requests")
-    @patch(
-        "copilot_review_delivery.load_copilot_review_requests",
-        return_value={
-            "7": {
-                "head_sha": "current-head",
-                "observed_at": "2026-07-20T01:00:00+00:00",
-                "requested_at": "",
-                "copilot_request_fingerprint": "accepted-fingerprint",
-            }
-        },
-    )
-    def test_review_that_arrives_before_the_read_counts_as_delivered(
-        self,
-        _load_requests,
-        save_requests,
-        _fetch_snapshot,
-        _fetch_confirmation_reviews,
-        _fetch_delivery_reviews,
-        _request_review,
-        _fetch_pending_requests,
-        _sleep,
-    ) -> None:
-        errors = deliver_copilot_review_requests("open-telemetry/example", NOW)
-
-        self.assertEqual([], errors)
-        save_requests.assert_called_once_with({
-            "7": {
-                "head_sha": "current-head",
-                "observed_at": "2026-07-20T01:00:00+00:00",
-                "requested_at": "2026-07-20T02:00:00+00:00",
-                "copilot_request_fingerprint": "accepted-fingerprint",
-            },
-        })
+    def test_invalid_review_baseline_fails_without_rpc(self) -> None:
+        self.reviews = [self.notice(0)]
+        self.assertIn("without a review ID", self.deliver()[0])
+        self.request.assert_not_called()
 
 
 class StaleRequestReasonTest(unittest.TestCase):
-    ENTRY = {
-        "head_sha": "current-head",
-        "copilot_request_fingerprint": "accepted-fingerprint",
-    }
+    FACTS = dashboard_facts(
+        head_sha="current-head",
+        copilot_request_fingerprint="accepted-fingerprint",
+    )
     OPEN_PR = {"state": "OPEN", "isDraft": False}
 
     def reason(
         self,
-        entry: dict | None = None,
+        facts: DashboardFacts | None = None,
         pr: dict | None = None,
         current_head: str = "current-head",
         current_routing_fingerprint: str = "accepted-fingerprint",
@@ -1487,7 +1659,7 @@ class StaleRequestReasonTest(unittest.TestCase):
             copilot_request_fingerprint=current_routing_fingerprint,
         )
         return stale_request_reason(
-            self.ENTRY if entry is None else entry,
+            self.FACTS if facts is None else facts,
             snapshot,
         )
 
@@ -1515,7 +1687,7 @@ class StaleRequestReasonTest(unittest.TestCase):
     def test_reports_missing_observed_fingerprint(self) -> None:
         self.assertEqual(
             "no routing fingerprint was observed",
-            self.reason(entry={"head_sha": "current-head"}),
+            self.reason(facts=replace(self.FACTS, copilot_request_fingerprint="")),
         )
 
     def test_reports_unavailable_check_results(self) -> None:
