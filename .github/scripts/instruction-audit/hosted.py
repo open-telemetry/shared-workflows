@@ -202,14 +202,14 @@ def publish(repo, result):
             "message": audit.fix_commit_message(result),
             "tree": audit.text(tree["sha"], 40, audit.SHA), "parents": [result["sha"]],
         })
-        audit.api(fork, "/git/refs", method="POST", body={
-            "ref": "refs/heads/" + branch, "sha": audit.text(commit["sha"], 40, audit.SHA),
-        })
     else:
         raise ValueError("Unconfirmed audit branch exists; inspect the bot fork before retrying")
-    # Check again after fork preparation, immediately before creating a target PR.
-    check_cap(repo, config["max_open_audit_prs"])
     commit_sha = audit.text(commit["sha"], 40, audit.SHA)
+    # Check before publishing the audit ref so a cap failure cannot strand the branch.
+    check_cap(repo, config["max_open_audit_prs"])
+    audit.api(fork, "/git/refs", method="POST", body={
+        "ref": "refs/heads/" + branch, "sha": commit_sha,
+    })
     pull = audit.api(repo, "/pulls", method="POST", body={
         "title": f"Instruction audit: {result['title']}",
         "body": body + f"\n\n{marker} {commit_sha} -->", "base": result["base"],

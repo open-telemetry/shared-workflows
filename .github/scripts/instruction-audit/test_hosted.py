@@ -194,12 +194,11 @@ class PublicationTest(unittest.TestCase):
     @patch.object(hosted, "check_cap")
     @patch.object(hosted, "pulls", return_value=iter([]))
     @patch.object(audit, "api")
-    def test_only_git_writes_go_to_bot_fork_and_cap_is_rechecked_before_ready_pr(
+    def test_late_cap_failure_leaves_no_branch_and_retry_publishes_to_bot_fork(
         self, api, _pulls, cap, _body, _settings, _fork, output, _summary
     ):
         result = finding()
         events = []
-        cap.side_effect = lambda *_: events.append("cap")
 
         def respond(repo, path="", **kwargs):
             events.append(path)
@@ -215,7 +214,7 @@ class PublicationTest(unittest.TestCase):
                 return {"sha": "d" * 40}
             if path == "/pulls":
                 self.assertEqual(repo, REPO)
-                self.assertEqual(events[-2], "cap")
+                self.assertEqual(events[-3:], ["cap", "/git/refs", "/pulls"])
                 self.assertEqual(kwargs["body"]["head"], f"{hosted.BOT}:{hosted.fix_branch(result)}")
                 self.assertFalse(kwargs["body"]["draft"])
                 self.assertIn("d" * 40, kwargs["body"]["body"])
@@ -224,6 +223,15 @@ class PublicationTest(unittest.TestCase):
             return {}
 
         api.side_effect = respond
+        cap.side_effect = [None, ValueError("Open audit PR limit reached")]
+        with self.assertRaisesRegex(ValueError, "Open audit PR limit reached"):
+            hosted.publish(REPO, result)
+        self.assertIn("/git/commits", events)
+        self.assertNotIn("/git/refs", events)
+        self.assertNotIn("/pulls", events)
+        output.assert_not_called()
+        events.clear()
+        cap.side_effect = lambda *_: events.append("cap")
         hosted.publish(REPO, result)
         for call in api.call_args_list:
             if call.kwargs.get("method") == "POST" and call.args[1].startswith("/git/"):

@@ -57,7 +57,7 @@ Preparation, cursor writes, and continuation dispatch use narrowly scoped centra
 
 Only the `protected` publication job receives `OPENTELEMETRYBOT_GITHUB_TOKEN`, following the instruction generator's identity and fork-parent checks. Git trees, commits, and branches are written to the bot fork, never the target. Only opening the PR writes to the target. The bot account needs access to its own forks and permission to propose public PRs, not membership or repository write access.
 
-The publisher checks the cap immediately before opening a PR. During migration, it counts both same-repository pilot heads and bot-fork heads whose branch starts with `otelbot/instruction-audit-`. Other forks and unrelated PRs do not count. A cap failure retains the active pass for a later dispatch. Central runs are serialized, but a concurrently publishing pilot is outside that lock; pause the pilot before cutover.
+The publisher checks the cap after preparing the Git objects, immediately before creating the fork branch and PR. During migration, it counts both same-repository pilot heads and bot-fork heads whose branch starts with `otelbot/instruction-audit-`. Other forks and unrelated PRs do not count. A cap failure leaves no new audit branch and retains the active pass for a later dispatch. Central runs are serialized, but a concurrently publishing pilot is outside that lock; pause the pilot before cutover.
 
 Generated fixes remain ready for review, matching the pilot. The workflow does not approve, merge, or post review comments. Run summaries hold coverage and validation details; generated PRs quote the selected rule and explain the fix.
 
