@@ -21,6 +21,8 @@ The verifier drops unsupported findings. It posts a `[Question]` without a sugge
 
 The workflow reviews the PR head and diff. All passes get a separate, read-only checkout of the target branch tip so they can find applicable review instructions and follow links to other repository docs. PR changes to instruction files don't change the rules for their own review.
 
+The review sandbox allows the instruction audit's default, GitHub, and language-ecosystem network destinations, plus `opentelemetry.io`, so agents can download build tools and dependencies. Other destinations remain blocked, and publishing credentials remain outside the sandbox.
+
 The **Review, simplify, and double-check** step shows tool activity and each pass's final answer, including any verification retry. Compare the review and simplification answers with the verification answer to see which findings made it through. The log redacts known credential patterns and omits prompts, intermediate messages, and tool output.
 
 If the verifier's output is malformed or ambiguous, the workflow asks it to fix the format without reviewing the PR again.

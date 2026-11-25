@@ -469,9 +469,16 @@ class ReviewTest(unittest.TestCase):
                 self.assertNotIn("ACTIONS_RUNTIME_TOKEN", env)
                 self.assertNotIn("GITHUB_TOKEN", env)
                 config = json.loads(Path(args[args.index("--config") + 1]).read_text(encoding="utf-8"))
-                self.assertEqual(config["network"]["allowDomains"], [
-                    "github.com", "release-assets.githubusercontent.com",
-                ])
+                self.assertTrue(config["network"]["isolation"])
+                self.assertTrue({
+                    "github.com", "release-assets.githubusercontent.com", "opentelemetry.io",
+                    "services.gradle.org", "repo.maven.apache.org", "api.foojay.io", "cdn.azul.com",
+                    "bcr.bazel.build", "pub.dev", "api.nuget.org", "repo.hex.pm", "proxy.golang.org",
+                    "maven.pkg.jetbrains.space", "registry.npmjs.org", "repo.packagist.org",
+                    "pypi.org", "files.pythonhosted.org", "rubygems.org", "static.crates.io", "swift.org",
+                }.issubset(config["network"]["allowDomains"]))
+                self.assertNotIn("*", config["network"]["allowDomains"])
+                self.assertFalse(any("://" in domain for domain in config["network"]["allowDomains"]))
                 self.assertEqual((cwd / "code").read_text(encoding="utf-8"), "PR contents")
                 (cwd / "code").write_text("scratch edit", encoding="utf-8")
 

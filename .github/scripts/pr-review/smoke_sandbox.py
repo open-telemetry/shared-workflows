@@ -38,6 +38,11 @@ def main() -> None:
             '#!/bin/bash\nset -eu\ntest -f .git/HEAD\ntouch smoke-write\n'
             f'grep -qx "Target branch guidance" {shlex.quote(str(target / "docs" / "policy.md"))}\n'
             f'if touch {shlex.quote(str(target / "smoke-write"))} 2>/dev/null; then exit 1; fi\n'
+            'curl --fail --silent --show-error --location --max-time 30 --output /dev/null '
+            'https://services.gradle.org/versions/current\n'
+            'curl --fail --silent --show-error --location --max-time 30 --output /dev/null '
+            'https://repo.maven.apache.org/maven2/org/mockito/mockito-core/4.11.0/mockito-core-4.11.0.pom\n'
+            'if curl --fail --silent --max-time 15 --output /dev/null https://example.com; then exit 1; fi\n'
             'echo "Copilot stub ran"\n',
             encoding="utf-8",
             newline="\n",
