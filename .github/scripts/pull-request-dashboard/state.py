@@ -52,8 +52,8 @@ FULL_PUBLISH_DELIVERED_FILE = "full-publish-delivered.json"
 # current vector, ordinary state loaders may regenerate mismatched disposable
 # caches. Every constant ending in _STATE_VERSION or _REVISION is included.
 # dashboard-routing-state.json: accepted PR routing results and backfill readiness.
-# Routing facts carry conditional before/after Copilot cycle updates.
-DASHBOARD_STATE_VERSION = 29
+# Routing facts record the base branch of a confirmed merge conflict.
+DASHBOARD_STATE_VERSION = 30
 DASHBOARD_STATE_COMPATIBLE_VERSIONS = (20, 21, 23)
 # backfill-state.json: round-robin cursor used by full dashboard refreshes.
 BACKFILL_STATE_VERSION = 3
@@ -805,6 +805,10 @@ def decode_dashboard_facts(value: Any) -> DashboardFacts:
             "facts.conflicts",
             "unknown",
         ),
+        conflict_base_branch=_string(
+            value.get("conflict_base_branch", _MISSING),
+            "facts.conflict_base_branch",
+        ),
         created_at=_string(
             value.get("created_at", _MISSING),
             "facts.created_at",
@@ -964,6 +968,8 @@ def encode_dashboard_facts(facts: DashboardFacts) -> dict[str, Any]:
         stored["dashboard_top_level_feedback_cutoff"] = (
             facts.dashboard_top_level_feedback_cutoff
         )
+    if facts.conflict_base_branch:
+        stored["conflict_base_branch"] = facts.conflict_base_branch
     if facts.ci_failing_count is not None:
         stored["ci_failing_count"] = facts.ci_failing_count
     if facts.ci_failing_since is not None:
@@ -1104,7 +1110,7 @@ def encode_dashboard_state(state: DashboardState) -> dict[str, Any]:
 def load_dashboard_state_cache() -> DashboardState | None:
     path = dashboard_state_path()
     if path.exists():
-        state = load_state_file(path, DASHBOARD_STATE_VERSION, compatible_versions=(27, 28))
+        state = load_state_file(path, DASHBOARD_STATE_VERSION, compatible_versions=(27, 28, 29))
     else:
         state = load_state_file(
             path.with_name("dashboard-state.json"),

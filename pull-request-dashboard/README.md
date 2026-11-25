@@ -263,6 +263,11 @@ The dashboard groups open non-draft pull requests by who is expected to act next
   timestamp; a re-request before the command does not override the handoff.
   Format: `<1m`, `Xm`, `Xh`, or `Xd`.
 
+If GitHub temporarily reports unknown mergeability, the dashboard keeps a
+confirmed conflict visible for the same head commit and target branch until
+GitHub confirms it is clear. A new head or target branch needs its own
+mergeability result.
+
 Merge conflicts remain visible without overriding normal CI, discussion, and
 approval routing. A conflicted PR can therefore stay with reviewers or
 maintainers when they can resolve it themselves. If missing required checks or a
