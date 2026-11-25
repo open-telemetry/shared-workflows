@@ -260,7 +260,7 @@ class RenderStatusCommentTest(unittest.TestCase):
             datetime(2026, 7, 18, 12, 35, 1, tzinfo=timezone.utc),
         ],
     )
-    def test_status_last_refreshed_changes_for_identical_status(self, _utc_now: Mock) -> None:
+    def test_render_uses_current_refresh_time(self, _utc_now: Mock) -> None:
         first_body = pr_status_comment.render_status_comment(
             self.pr(),
             status_result(),
@@ -876,6 +876,8 @@ class RenderStatusCommentTest(unittest.TestCase):
 
 
 class UpsertStatusCommentTest(unittest.TestCase):
+    pr = {"state": "open", "html_url": "https://github.com/open-telemetry/example/pull/1"}
+
     def setUp(self) -> None:
         self.commands: list[list[str]] = []
         self.run_gh_patch = patch.object(
@@ -890,19 +892,66 @@ class UpsertStatusCommentTest(unittest.TestCase):
 
     @patch.object(pr_status_comment, "managed_status_comments", return_value=[])
     def test_creates_first_status_comment(self, _comments: object) -> None:
-        pr_status_comment.upsert_status_comment("open-telemetry/example", 1, "body")
+        pr_status_comment.upsert_status_comment("open-telemetry/example", 1, self.pr, None)
 
         self.assertEqual("POST", self.commands[0][3])
 
-    @patch.object(
-        pr_status_comment,
-        "managed_status_comments",
-        return_value=[{"id": 7, "body": "body"}],
-    )
-    def test_does_not_update_unchanged_comment(self, _comments: object) -> None:
-        pr_status_comment.upsert_status_comment("open-telemetry/example", 1, "body")
+    def test_does_not_update_unchanged_comment(self) -> None:
+        result = status_result(DashboardRoute.AUTHOR, author_nudge_episode_id="episode")
+        existing_body = pr_status_comment.render_status_comment(
+            self.pr, result, refreshed_at="2026-07-18 12:34 UTC"
+        )
+        with patch.object(
+            pr_status_comment, "managed_status_comments",
+            return_value=[{"id": 7, "body": existing_body}],
+        ):
+            pr_status_comment.upsert_status_comment(
+                "open-telemetry/example", 1, self.pr, result
+            )
 
         self.assertEqual([], self.commands)
+
+    @patch.object(
+        pr_status_comment, "utc_now",
+        return_value=datetime(2026, 11, 25, 21, 46, tzinfo=timezone.utc),
+    )
+    def test_publishes_meaningful_changes_with_current_bookkeeping(
+        self, _now: Mock
+    ) -> None:
+        result = status_result(
+            DashboardRoute.AUTHOR,
+            author_nudge_episode_id="current-episode",
+            author_action_review_thread_urls=(f"{self.pr['html_url']}#discussion_r1",),
+        )
+        old_body = pr_status_comment.render_status_comment(
+            self.pr, result, revision="22", refreshed_at="2026-11-24 23:27 UTC"
+        )
+        for old_text, changed_text in (
+            ("Respond to", "Address"),
+            ("Waiting on the author", "Waiting on reviewers"),
+            ("/dashboard route:reviewers", "/dashboard route:approver"),
+            ("#discussion_r1", "#discussion_r2"),
+            ("current-episode", "previous-episode"),
+            ("incorrect-pr-dashboard-result.md", "old-report-template.md"),
+            ("What+looks+incorrect", "Describe+the+problem"),
+        ):
+            with self.subTest(old_text=old_text):
+                existing_body = old_body.replace(old_text, changed_text)
+                self.assertNotEqual(old_body, existing_body)
+                self.commands.clear()
+                with patch.object(
+                    pr_status_comment, "managed_status_comments",
+                    return_value=[{"id": 7, "body": existing_body}],
+                ):
+                    pr_status_comment.upsert_status_comment(
+                        "open-telemetry/example", 1, self.pr, result
+                    )
+
+                self.assertEqual(["PATCH"], [command[3] for command in self.commands])
+                self.assertEqual(
+                    f"body={pr_status_comment.render_status_comment(self.pr, result)}",
+                    self.commands[0][-1],
+                )
 
     @patch.object(
         pr_status_comment,
@@ -936,7 +985,8 @@ class UpsertStatusCommentTest(unittest.TestCase):
         pr_status_comment.upsert_status_comment(
             "open-telemetry/example",
             1,
-            "body",
+            self.pr,
+            None,
             preserve_clearance=True,
         )
 
@@ -974,14 +1024,11 @@ class UpsertStatusCommentTest(unittest.TestCase):
             "performed_via_github_app": app,
             "body": f"{status}\n{release}\n{cutoff}",
         }
-        replacement = pr_status_comment.render_status_comment(
-            {"state": "open"}, status_result()
-        )
         with patch.object(
             pr_status_comment, "managed_status_comments", return_value=[primary, duplicate]
         ):
             pr_status_comment.upsert_status_comment(
-                "open-telemetry/example", 1, replacement, preserve_clearance=True
+                "open-telemetry/example", 1, self.pr, status_result(), preserve_clearance=True
             )
 
         self.assertEqual(
@@ -1019,7 +1066,7 @@ class UpsertStatusCommentTest(unittest.TestCase):
         self, _comments: object
     ) -> None:
         pr_status_comment.upsert_status_comment(
-            "open-telemetry/example", 1, "body", create=False
+            "open-telemetry/example", 1, self.pr, None, create=False
         )
 
         self.assertEqual([], self.commands)
@@ -1031,7 +1078,8 @@ class UpsertStatusCommentTest(unittest.TestCase):
         pr_status_comment.upsert_status_comment(
             "open-telemetry/example",
             1,
-            "body",
+            self.pr,
+            None,
             create=False,
             locked=True,
         )
@@ -1047,7 +1095,7 @@ class UpsertStatusCommentTest(unittest.TestCase):
         self, _comments: object
     ) -> None:
         pr_status_comment.upsert_status_comment(
-            "open-telemetry/example", 1, "body", create=False
+            "open-telemetry/example", 1, self.pr, None, create=False
         )
 
         self.assertEqual(["PATCH"], [command[3] for command in self.commands])
@@ -1073,16 +1121,11 @@ class UpsertStatusCommentTest(unittest.TestCase):
     def test_status_update_preserves_handoff_clearance(
         self, _comments: object
     ) -> None:
-        body = (
-            f"{pr_status_comment.STATUS_MARKER}\n"
-            "<!-- pull-request-dashboard-status-revision:4 -->\n"
-            "## Pull request dashboard status"
-        )
-
         pr_status_comment.upsert_status_comment(
             "open-telemetry/example",
             1,
-            body,
+            self.pr,
+            None,
             create=False,
             preserve_clearance=True,
         )
@@ -1090,13 +1133,13 @@ class UpsertStatusCommentTest(unittest.TestCase):
         self.assertIn(
             "body="
             f"{pr_status_comment.STATUS_MARKER}\n"
-            "<!-- pull-request-dashboard-status-revision:4 -->\n"
+            f"<!-- pull-request-dashboard-status-revision:{pr_status_comment.STATUS_COMMENT_REVISION} -->\n"
             "<!-- pull-request-dashboard-override-ack:"
             "12:bound-head:2026-08-16T08:00:00Z -->\n"
             "<!-- pull-request-dashboard-reviewer-handoff-cleared:"
             "12:bound-head -->\n"
             "## Pull request dashboard status",
-            self.commands[0],
+            self.commands[0][-1],
         )
 
     @patch.object(
@@ -1121,25 +1164,23 @@ class UpsertStatusCommentTest(unittest.TestCase):
         # A status comment written before the dashboard recorded the
         # acknowledgement carries no cutoff to recover, so preserving the
         # acknowledgement must not duplicate the rendered one.
-        body = (
-            f"{pr_status_comment.STATUS_MARKER}\n"
-            "<!-- pull-request-dashboard-status-revision:4 -->\n"
-            "<!-- pull-request-dashboard-override-ack:"
-            "12:bound-head:2026-08-16T08:00:00Z -->\n"
-            "<!-- pull-request-dashboard-reviewer-handoff-cleared:"
-            "12:bound-head -->\n"
-            "## Pull request dashboard status"
+        result = status_result(
+            handoff=RoutingHandoff(
+                command_id=12, head_sha="bound-head",
+                since="2026-08-16T08:00:00Z", released=True,
+            ),
         )
 
         pr_status_comment.upsert_status_comment(
             "open-telemetry/example",
             1,
-            body,
+            self.pr,
+            result,
             create=False,
             preserve_clearance=True,
         )
 
-        patched_body = self.commands[0][-1]
+        patched_body = self.commands[0][-1].split("\n\n<details>", maxsplit=1)[0]
         self.assertEqual(
             1,
             patched_body.count("<!-- pull-request-dashboard-override-ack:"),
@@ -1163,7 +1204,8 @@ class UpsertStatusCommentTest(unittest.TestCase):
             pr_status_comment.upsert_status_comment(
                 "open-telemetry/example",
                 1,
-                "body",
+                self.pr,
+                None,
                 create=False,
                 locked=True,
             )
@@ -1302,6 +1344,66 @@ class ManagedStatusCommentsTest(unittest.TestCase):
 
 
 class RolloutStateTest(unittest.TestCase):
+    def test_bookkeeping_only_rollout_completes_without_editing_comments(self) -> None:
+        repo = "open-telemetry/example"
+        pulls = {
+            n: {"state": "open", "html_url": f"https://github.com/{repo}/pull/{n}"}
+            for n in (1, 2)
+        }
+        results = {
+            1: stored_dashboard_result(pr_number=1, route=DashboardRoute.APPROVER),
+            2: stored_dashboard_result(
+                pr_number=2,
+                route=DashboardRoute.AUTHOR,
+                facts=dashboard_facts(author_action_review_thread_urls=tuple(
+                    f"{pulls[2]['html_url']}?{'a' * 200}#discussion_r{n}"
+                    for n in range(20)
+                )),
+            ),
+        }
+        existing_comments = {
+            n: [{
+                "id": n,
+                "body": pr_status_comment.render_status_comment(
+                    pulls[n], results[n], revision="9", refreshed_at="2026-07-18 12:34 UTC"
+                ),
+            }]
+            for n in pulls
+        }
+        self.assertIn("Status+comment+truncated", existing_comments[2][0]["body"])
+        intents = {"1": "intent-1", "2": "intent-2"}
+        rollout = {
+            "target_revision": 9,
+            "completed_revision": 9,
+            "pending_pr_numbers": [],
+            "_accepted_intent_revisions": intents,
+        }
+        with (
+            patch.object(pr_status_comment, "run_gh") as run_gh,
+            patch.object(
+                pr_status_comment, "gh_api",
+                side_effect=lambda path: pulls[int(path.rsplit("/", 1)[1])],
+            ),
+            patch.object(
+                pr_status_comment, "managed_status_comments",
+                side_effect=lambda _repo, number: existing_comments[number],
+            ),
+            patch.object(pr_status_comment, "load_status_comment_rollout_state", return_value=rollout),
+            patch.object(
+                pr_status_comment, "load_dashboard_state_cache",
+                return_value=dashboard_state(*results.values()),
+            ),
+            patch.object(pr_status_comment, "save_status_comment_rollout_state") as save_rollout,
+        ):
+            errors = pr_status_comment.update_status_comments_from_state(repo, set(pulls))
+
+        self.assertEqual([], errors)
+        run_gh.assert_not_called()
+        saved = save_rollout.call_args.args[0]
+        self.assertEqual([], saved["pending_pr_numbers"])
+        self.assertEqual(pr_status_comment.STATUS_COMMENT_REVISION, saved["completed_revision"])
+        self.assertEqual(intents, saved["delivered_intent_revisions"])
+
     @patch.object(pr_status_comment, "STATUS_COMMENT_ROLLOUT_BATCH_SIZE", 2)
     @patch.object(pr_status_comment, "save_status_comment_rollout_state")
     @patch.object(pr_status_comment, "publish_pr_status")

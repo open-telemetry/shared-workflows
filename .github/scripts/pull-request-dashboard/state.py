@@ -68,9 +68,9 @@ COPILOT_REVIEW_REQUEST_STATE_VERSION = 14
 COPILOT_REVIEW_FALLBACK_STATE_VERSION = 11
 # status-comment-rollout-state.json: target/completed renderer revisions and queue.
 STATUS_COMMENT_ROLLOUT_STATE_VERSION = 3
-# Rendered status-comment behavior. Increment when existing comments need to
-# adopt a change; hourly runs durably roll it out to all open PRs.
-STATUS_COMMENT_REVISION = 24
+# Status-comment rendering and delivery behavior. Hourly runs check all open
+# PRs when the revision changes.
+STATUS_COMMENT_REVISION = 25
 FULL_PUBLISH_STATE_VERSION = 1
 INITIAL_BACKFILL_COMPLETE_KEY = "initial_backfill_complete"
 _state_dir: Path | None = None

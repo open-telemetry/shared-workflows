@@ -1426,7 +1426,7 @@ class StateTest(unittest.TestCase):
         self.assertEqual(DASHBOARD_STATE_VERSION, 29)
         self.assertEqual(DASHBOARD_STATE_COMPATIBLE_VERSIONS, (20, 21, 23))
         self.assertEqual(STATUS_COMMENT_ROLLOUT_STATE_VERSION, 3)
-        self.assertEqual(STATUS_COMMENT_REVISION, 24)
+        self.assertEqual(STATUS_COMMENT_REVISION, 25)
         self.assertEqual(AUTHOR_NUDGE_STATE_VERSION, 6)
         self.assertEqual(COPILOT_REVIEW_REQUEST_STATE_VERSION, 14)
 
