@@ -1,0 +1,94 @@
+name: Generate Copilot review instructions
+
+on:
+  workflow_dispatch:
+    inputs:
+      repository:
+        description: Public OpenTelemetry repository name, without the owner.
+        required: true
+        type: string
+
+permissions: {}
+
+concurrency:
+  group: generate-copilot-review-instructions-${{ inputs.repository }}
+  cancel-in-progress: false
+
+jobs:
+  generate:
+    if: github.repository == 'open-telemetry/shared-workflows' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    permissions:
+      contents: read
+      copilot-requests: write
+    outputs:
+      publish: ${{ steps.draft.outputs.publish }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.14"
+
+      - name: Install Copilot SDK
+        run: python -m pip install -r .github/scripts/pr-review-metrics/requirements.txt
+
+      - name: Draft replacement instructions
+        id: draft
+        env:
+          TARGET_REPOSITORY: ${{ inputs.repository }}
+          GH_TOKEN: ${{ github.token }}
+          COPILOT_GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          python -u .github/scripts/pr-review-metrics/draft_hosted.py \
+            --repository "$TARGET_REPOSITORY" --work "$RUNNER_TEMP/pr-review-metrics" \
+            --artifact "$RUNNER_TEMP/pr-review-instructions"
+
+      - name: Preview the publishing decision
+        if: steps.draft.outputs.publish != 'true'
+        env:
+          TARGET_REPOSITORY: ${{ inputs.repository }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          python .github/scripts/pr-review-metrics/publish_instructions.py \
+            --repository "$TARGET_REPOSITORY" \
+            --artifact "$RUNNER_TEMP/pr-review-instructions" --dry-run | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: copilot-review-instructions
+          path: ${{ runner.temp }}/pr-review-instructions
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    needs: generate
+    if: needs.generate.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    environment: protected
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: copilot-review-instructions
+          path: ${{ runner.temp }}/pr-review-instructions
+
+      - name: Open or update the bot draft
+        env:
+          TARGET_REPOSITORY: ${{ inputs.repository }}
+          GH_TOKEN: ${{ secrets.OPENTELEMETRYBOT_GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          python3 .github/scripts/pr-review-metrics/publish_instructions.py \
+            --repository "$TARGET_REPOSITORY" --artifact "$RUNNER_TEMP/pr-review-instructions" \
+            | tee -a "$GITHUB_STEP_SUMMARY"

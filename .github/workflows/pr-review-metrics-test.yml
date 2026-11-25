@@ -1,0 +1,30 @@
+name: PR review metrics tests
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - .github/scripts/pr-review-metrics/**
+      - .github/workflows/pr-review-metrics-*.yml
+      - .github/workflows/generate-copilot-review-instructions.yml
+      - .github/workflows/github-actions-queue-collector.yml
+      - pr-review-metrics/**
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Run tests
+        working-directory: .github/scripts/pr-review-metrics
+        run: python3 -m unittest discover -p 'test_*.py'

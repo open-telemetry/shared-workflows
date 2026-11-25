@@ -18,6 +18,8 @@ See [`CONTRIBUTING.md`](./CONTRIBUTING.md) for how to propose a new shared workf
 | [Workflow failure issue](./workflow-failure-issue/) | Reusable workflow that tracks a workflow's pass/fail state by opening, commenting on, and closing a GitHub issue in the calling repository — useful for scheduled workflows whose failure notifications otherwise reach only a single user. | Call via `uses:` from a final `if: always()` job in the workflow you want to monitor. See the [Workflow failure issue README](./workflow-failure-issue/README.md) for the snippet. |
 | [Zizmor](./zizmor/) | Static analysis of GitHub Actions workflows for security issues using [zizmor](https://github.com/zizmorcore/zizmor). | Call via `uses:` from your repo's workflow. See the [Zizmor README](./zizmor/README.md) for the snippet. |
 
+The [PR review metrics workflow](./pr-review-metrics/) collects review outcomes for opted-in public repositories and drafts Copilot review instructions on demand.
+
 ## Maintainers
 
 - [Adriel Perkins](https://github.com/adrielp), Grainger
