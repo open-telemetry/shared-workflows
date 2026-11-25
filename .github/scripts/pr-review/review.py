@@ -548,13 +548,15 @@ Write finding so a reader who stops there knows what is wrong and what it affect
 For a simplification, finding is the simpler alternative. For a question, finding is the question.
 Don't describe how to fix a review finding; the author decides.
 Put the supporting evidence in why: the code path, the conditions, and any authoritative source.
+Write why as one short paragraph, or as a list of short points if there are several. Don't use bold subheadings.
 For a question, why says what prompted it and how the answer could change the code.
 For a simplification, why says what makes the result simpler.
 Link code outside the diff instead of citing approximate line numbers. Use permalinks such as {permalink}
 for the PR checkout, and link dependency source at the pinned version's tag.
 Omit suggestion for questions or when there is no replacement to offer.
 Only include a suggestion if it fits one diff hunk and adds fewer than 15 green lines.
-Mention any separate edits the suggestion needs, such as an import, in finding. Don't put a suggestion fence in finding or why.
+With a suggestion, why can also say why the patch is safe and mention any separate edits it needs, such as an import.
+Don't put a suggestion fence in finding or why.
 If there is nothing worth posting, return {{"comments":[]}}.
 """, checkout, bundle, diff_scope, metadata, target=target)
         result["repository"] = repo

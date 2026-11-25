@@ -95,6 +95,21 @@ class ReviewBundleTest(unittest.TestCase):
                 {**findings, "comments": [{**question, "suggestion": "replacement"}]}, Path("source"), scope, metadata,
             )
 
+    def test_multiline_evidence_starts_on_its_own_line(self):
+        metadata = {"number": 123, "base": {"sha": "base"}, "head": {"sha": "head"}}
+        scope = {"example.txt": {"changed_lines": [1], "hunks": [(1, 1)]}}
+        result = prepare.prepare_review({
+            "body": "Review summary",
+            "comments": [{
+                "kind": "review", "path": "example.txt", "line": 1,
+                "finding": "Retries never finish.", "why": "- The counter resets.\n- Nothing saves progress.",
+            }],
+        }, Path("source"), scope, metadata)
+        self.assertEqual(
+            result["review"]["comments"][0]["body"],
+            "**Finding:** Retries never finish.\n\n**Why:**\n\n- The counter resets.\n- Nothing saves progress.",
+        )
+
     def test_comments_require_a_finding_and_evidence(self):
         comment = {"kind": "review", "path": "example.txt", "line": 1, "finding": "A finding", "why": "Evidence"}
         for missing in ("finding", "why"):

@@ -137,7 +137,9 @@ def prepare_review(
         start = raw.get("start_line", line)
         if not valid_diff_anchor(raw, diff_scope):
             raise ValueError(f"Invalid diff anchor for {path!r}:{start}-{line}")
-        body = f"**{COMMENT_LABELS[raw['kind']]}:** {raw['finding'].strip()}\n\n**Why:** {raw['why'].strip()}"
+        why = raw["why"].strip()
+        separator = "\n\n" if "\n" in why else " "
+        body = f"**{COMMENT_LABELS[raw['kind']]}:** {raw['finding'].strip()}\n\n**Why:**{separator}{why}"
         if "suggestion" in raw:
             suggestion = raw["suggestion"]
             if small_suggestion(checkout, head, path, start, line, suggestion):
