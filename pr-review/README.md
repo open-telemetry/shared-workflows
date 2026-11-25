@@ -17,7 +17,9 @@ gh workflow run pr-review.yml --repo open-telemetry/shared-workflows \
 
 `otelbot[bot]` posts findings as inline review comments, with only an experimental-review disclaimer in the review body. Review summaries stay in the workflow logs. If there's nothing worth posting, it posts a **No findings** comment with the same disclaimer. If the PR closes or its base or head changes during the run, the workflow skips posting.
 
-Each inline comment starts with a **Finding**, **Simplification**, or **Question** line that you can read on its own. A **Why** section follows with the supporting evidence, including permalinks to any code outside the diff. Comments leave the choice of fix to the author, except for small GitHub suggestions that you can apply directly. When a comment includes a suggestion, **Why** also says why the patch is safe and lists any edits it needs elsewhere.
+Each inline comment starts with a **Finding**, **Simplification**, or **Question** line that you can read on its own. Findings and questions have a **Why** section with supporting evidence, including permalinks to any code outside the diff. Simplifications include a concise reason in the opening line and add **Why** only when non-obvious equivalence, safety constraints, or evidence need more explanation. The verifier still checks that proposed simplifications preserve intended behavior.
+
+Comments leave the choice of fix to the author, except for small GitHub suggestions that you can apply directly. Comments with suggestions also list any edits needed elsewhere.
 
 The verifier drops unsupported findings. It posts a **Question** without a suggested patch only when the author can supply a missing fact that could change the code.
 

@@ -94,15 +94,19 @@ def validate_findings(findings: object) -> dict[str, Any]:
     if not isinstance(findings, dict) or not isinstance(findings.get("comments"), list):
         raise ValueError("Final findings must contain a comments array")
     for raw in findings["comments"]:
+        if not isinstance(raw, dict):
+            raise ValueError("Invalid final review comment")
+        text_fields = ["finding"]
+        if raw.get("kind") != "simplification" or "why" in raw:
+            text_fields.append("why")
         if (
-            not isinstance(raw, dict)
-            or raw.get("kind") not in COMMENT_LABELS
+            raw.get("kind") not in COMMENT_LABELS
             or not isinstance(raw.get("path"), str)
             or any(
                 not isinstance(raw.get(key), str)
                 or not raw[key].strip()
                 or re.search(r"(?im)^\s*(?:`{3,}|~{3,})\s*suggestion\b", raw[key])
-                for key in ("finding", "why")
+                for key in text_fields
             )
             or type(raw.get("line")) is not int
             or ("start_line" in raw and type(raw["start_line"]) is not int)
@@ -137,9 +141,11 @@ def prepare_review(
         start = raw.get("start_line", line)
         if not valid_diff_anchor(raw, diff_scope):
             raise ValueError(f"Invalid diff anchor for {path!r}:{start}-{line}")
-        why = raw["why"].strip()
-        separator = "\n\n" if "\n" in why else " "
-        body = f"**{COMMENT_LABELS[raw['kind']]}:** {raw['finding'].strip()}\n\n**Why:**{separator}{why}"
+        body = f"**{COMMENT_LABELS[raw['kind']]}:** {raw['finding'].strip()}"
+        if "why" in raw:
+            why = raw["why"].strip()
+            separator = "\n\n" if "\n" in why else " "
+            body += f"\n\n**Why:**{separator}{why}"
         if "suggestion" in raw:
             suggestion = raw["suggestion"]
             if small_suggestion(checkout, head, path, start, line, suggestion):

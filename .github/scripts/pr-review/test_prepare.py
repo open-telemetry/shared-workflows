@@ -112,11 +112,50 @@ class ReviewBundleTest(unittest.TestCase):
 
     def test_comments_require_a_finding_and_evidence(self):
         comment = {"kind": "review", "path": "example.txt", "line": 1, "finding": "A finding", "why": "Evidence"}
-        for missing in ("finding", "why"):
-            with self.subTest(missing=missing), self.assertRaisesRegex(ValueError, "Invalid final review comment"):
+        for kind, missing in (
+            ("review", "finding"), ("review", "why"),
+            ("question", "finding"), ("question", "why"),
+            ("simplification", "finding"),
+        ):
+            with self.subTest(kind=kind, missing=missing), self.assertRaisesRegex(ValueError, "Invalid final review comment"):
                 prepare.validate_findings({
                     "body": "Review summary",
-                    "comments": [{key: value for key, value in comment.items() if key != missing}],
+                    "comments": [{key: value for key, value in {**comment, "kind": kind}.items() if key != missing}],
+                })
+
+    def test_simplifications_render_with_optional_evidence_and_suggestions(self):
+        comment = {
+            "kind": "simplification", "path": "example.txt", "line": 1,
+            "finding": "Remove the check; the helper already accepts empty input.",
+            "suggestion": "helper(value)",
+        }
+        metadata = {"number": 123, "base": {"sha": "base"}, "head": {"sha": "head"}}
+        scope = {"example.txt": {"changed_lines": [1], "hunks": [(1, 1)]}}
+        blob = mock.Mock(returncode=0, stdout="helper(value) if value else ''\n")
+        for evidence, explanation in (
+            ({}, ""),
+            ({"why": "The empty-input case returns an empty string."},
+             "\n\n**Why:** The empty-input case returns an empty string."),
+        ):
+            with self.subTest(evidence=evidence), mock.patch.object(prepare, "run", return_value=blob):
+                result = prepare.prepare_review({
+                    "body": "Review summary", "comments": [{**comment, **evidence}],
+                }, Path("source"), scope, metadata)
+                self.assertEqual(
+                    result["review"]["comments"][0]["body"],
+                    "**Simplification:** Remove the check; the helper already accepts empty input."
+                    f"{explanation}\n\n```suggestion\nhelper(value)\n```",
+                )
+
+    def test_optional_simplification_evidence_must_be_valid_when_provided(self):
+        for why in (None, 42, "", " ", "```suggestion\nreplacement\n```"):
+            with self.subTest(why=why), self.assertRaisesRegex(ValueError, "Invalid final review comment"):
+                prepare.validate_findings({
+                    "body": "Review summary",
+                    "comments": [{
+                        "kind": "simplification", "path": "example.txt", "line": 1,
+                        "finding": "Remove the redundant check.", "why": why,
+                    }],
                 })
 
     def test_suggestions_preserve_trailing_blank_lines(self):

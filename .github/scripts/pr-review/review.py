@@ -539,23 +539,26 @@ Drop unverified findings by default. Ask a focused question only if the author c
 you cannot verify from the available evidence and the answer could change the code.
 Do not suggest a patch for a question or summarize it as a confirmed finding.
 Drop simplifications that only trade repetition for indirection, or that the author could reasonably reject as a matter of taste.
+Keep a simplification only after verifying that its proposed changes preserve intended behavior.
 {context}
 Your final message must be a single JSON object, with no text outside it. Format:
 {{"body":"review summary","comments":[{{"kind":"review","path":"file",
 "line":10,"finding":"what is wrong","why":"evidence","start_line":8,"suggestion":"exact replacement text"}}]}}.
 Use kind "review", "simplification", or "question". Omit start_line for single-line comments.
 Write finding so a reader who stops there knows what is wrong and what it affects, in one or two sentences.
-For a simplification, finding is the simpler alternative. For a question, finding is the question.
+For a simplification, finding is the simpler alternative and a concise reason to prefer it.
+For a question, finding is the question.
 Don't describe how to fix a review finding; the author decides.
 Put the supporting evidence in why: the code path, the conditions, and any authoritative source.
 Write why as one short paragraph, or as a list of short points if there are several. Don't use bold subheadings.
 For a question, why says what prompted it and how the answer could change the code.
-For a simplification, why says what makes the result simpler.
+For a simplification, omit why unless non-obvious equivalence, safety constraints, or supporting evidence need
+more explanation. Do not repeat the reason already given in finding.
 Link code outside the diff instead of citing approximate line numbers. Use permalinks such as {permalink}
 for the PR checkout, and link dependency source at the pinned version's tag.
 Omit suggestion for questions or when there is no replacement to offer.
 Only include a suggestion if it fits one diff hunk and adds fewer than 15 green lines.
-With a suggestion, why can also say why the patch is safe and mention any separate edits it needs, such as an import.
+With a suggestion, mention any separate edits it needs, such as an import, in finding or why.
 Don't put a suggestion fence in finding or why.
 If there is nothing worth posting, return {{"comments":[]}}.
 """, checkout, bundle, diff_scope, metadata, target=target)
