@@ -155,15 +155,13 @@ Explicitly optional suggestions and work for a follow-up are no_author_action.
 A politely worded request for a specific change here can still be author_action
 ("I think we should add a regression test for the empty response").
 
-A review preamble or summary is no_author_action. Inline comments submitted
-with a review are tracked separately as review_thread items, so the
-review_summary does not duplicate their action. This includes a summary that
-counts the comments, describes their severity, or names the topics they cover
-("a few nits below", "just one comment about naming", "left two requests to get
-checks passing"). The summary is still no_author_action even when the inline
-comments require author action. Classify a review_summary as author_action only
-when its body names a distinct author task beyond referring to the review's
-comments.
+Read a review_summary as standalone feedback. If its body describes a concrete
+author task or a defect in this PR, classify that content on its own merits.
+Do not assume the same feedback appears inline. A summary that only counts
+inline comments, describes their severity, or names their topics without
+stating a task or defect is no_author_action ("a few nits below", "just one
+comment about naming", "left two requests to get checks passing"). Inline
+comments are tracked separately as review_thread items.
 
 A preamble may also say where the review's comments came from, how much weight
 to give them, or that the author is free to disagree with them ("AI-generated
@@ -178,8 +176,10 @@ documents an unrelated or upstream problem is not an author task.
 A request for review or approval is reviewer work even without a named
 addressee ("Could someone have a look at this?", "We need one more approver").
 A merge hold pending another PR, a release, or someone else's decision is
-no_author_action unless the item also identifies a step this author owns
-("rebase this PR after #123 merges").
+no_author_action unless the item also identifies an author step on this PR
+("rebase this PR after #123 merges"). A link to a fix or a report that another
+PR needs work does not assign that work to this author. Do not infer that they
+need to bring the fix here or get the other PR reopened or merged.
 
 Compare `addressed_to`, and every other login and team named in `body`, against
 `pr_author`. An item asking a different person or team to review, decide, or

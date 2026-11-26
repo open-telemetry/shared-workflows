@@ -123,8 +123,8 @@ class PromptCompatibilityTest(unittest.TestCase):
             },
             {
                 "review": (
-                    5765,
-                    "eb5f85e60f3558b81442f747562dbf22699bd81c3e58d43593eafc91ec069d68",
+                    5842,
+                    "6474e9ab1003c946b0d8ce70079f5462fb37dd84a1e34a49419e7f9f715cdb11",
                 ),
                 "author": (
                     3372,

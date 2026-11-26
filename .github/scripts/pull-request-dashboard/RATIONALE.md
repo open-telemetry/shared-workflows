@@ -705,20 +705,12 @@ the implementation understandable and operationally cheap.
   that maintainer's, from feedback that merely mentions one. The item still
   waits on the author when it also gives them a concrete task, so the addressee
   does not override an independent request.
-- A review summary that only refers to the review it introduces needs nothing
-  from the author. That covers where its comments came from, how much weight to
-  give them, and that the author is free to disagree with them, and it equally
-  covers a summary that counts those comments, describes their severity, or
-  names the topics they cover. Those comments are already independent items, so
-  treating the summary as feedback asks the author to answer a note about
-  comments each tracked on their own, and its invitation to push back would
-  outlive every one of them. The classifier's ambiguity fail-safe otherwise
-  sends these to the author whenever the wording reads as a request, so the
-  prompt names them. A summary is ordinary feedback only when its own body adds
-  a request, question, objection, or blocker beyond referring to those comments.
-  Accepted tradeoff: a summary stays non-blocking even when it says the review
-  contains requests, so a reviewer whose only actionable point is in the summary
-  should post it as its own comment.
+- A review summary that only introduces or points to inline comments adds no
+  author action. That includes describing their source, count, severity, or
+  topics, or inviting the author to disagree with them. Inline comments are
+  independent items. When a summary itself describes a concrete defect or
+  names a task for the author, the classifier evaluates it on its own without
+  assuming the same feedback appears inline.
 - The author reply that closed an item is retained in the cached PR result. It
   is reused only when it is newer than the item's effective content timestamp.
   Editing an older request with new work therefore reopens the item when the
