@@ -106,9 +106,10 @@ class Archive:
             self.db.execute("DELETE FROM collection_retries WHERE repo = ? AND queue = ? AND item = ?",
                             (repo, queue, str(item)))
 
-    def pulls(self, repo, start, end):
+    def pulls(self, repo, start, end, *, newest_first=False):
+        order = "merged DESC, number" if newest_first else "number"
         for (payload,) in self.db.execute(
-            "SELECT payload FROM pulls WHERE repo = ? AND merged_day BETWEEN ? AND ? ORDER BY number",
+            f"SELECT payload FROM pulls WHERE repo = ? AND merged_day BETWEEN ? AND ? ORDER BY {order}",
             (repo, start.isoformat(), end.isoformat()),
         ):
             yield decode(payload)

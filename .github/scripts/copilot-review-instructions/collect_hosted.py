@@ -51,7 +51,7 @@ def capture_days(archive, start, today, max_backfill):
 
     def priority(repo, day):
         attempted_at = deferred.get((repo, day.isoformat()))
-        return attempted_at is not None, attempted_at or 0, day
+        return attempted_at is not None, attempted_at or 0, -day.toordinal()
 
     pending = {repo: sorted(archive.pending_days(repo, start, historical_end),
                             key=lambda day: priority(repo, day)) for repo in REPOS}
@@ -67,7 +67,7 @@ def eligible_pulls(archive, start, today):
     retries = []
     recent = max(start, today - timedelta(days=LIVE_DAYS - 1))
     for first, last in ((recent, today), (start, recent - timedelta(days=1))):
-        for cohort in zip_longest(*(archive.pulls(repo, first, last) for repo in REPOS)):
+        for cohort in zip_longest(*(archive.pulls(repo, first, last, newest_first=True) for repo in REPOS)):
             for pull in cohort:
                 if pull is None:
                     continue
