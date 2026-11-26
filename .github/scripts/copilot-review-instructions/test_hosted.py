@@ -192,15 +192,35 @@ class HostedCollectionTests(unittest.TestCase):
 
     def test_live_windows_precede_bounded_backfill_for_every_repository(self):
         start, today = date(2026, 10, 1), date(2026, 10, 13)
+        newest = date(2026, 10, 11)
         with TemporaryDirectory() as work, closing(Archive(Path(work) / "data.sqlite3")) as archive:
             with archive.db:
-                archive.db.execute("INSERT INTO complete_days VALUES (?, ?)", (REPOS[0], str(start)))
+                archive.db.execute("INSERT INTO complete_days VALUES (?, ?)", (REPOS[0], str(newest)))
             tasks = list(capture_days(archive, start, today, 1))
         self.assertEqual(tasks[:len(REPOS)], [(repo, date(2026, 10, 12), today) for repo in REPOS])
         self.assertEqual(tasks[len(REPOS):], [
-            (REPOS[0], date(2026, 10, 2), date(2026, 10, 2)),
-            *((repo, start, start) for repo in REPOS[1:]),
+            (REPOS[0], date(2026, 10, 10), date(2026, 10, 10)),
+            *((repo, newest, newest) for repo in REPOS[1:]),
         ])
+
+    def test_assessments_prefer_latest_merges_within_each_repository(self):
+        start, today = date(2026, 10, 1), date(2026, 10, 13)
+        repo, other = REPOS[:2]
+        pulls = [
+            (repo, 1, "2026-10-10T12:00:00Z"),
+            (repo, 2, "2026-10-10T08:00:00Z"),
+            (repo, 3, "2026-10-01T08:00:00Z"),
+            (repo, 4, "2026-10-12T08:00:00Z"),
+            (other, 5, "2026-10-01T08:00:00Z"),
+        ]
+        with TemporaryDirectory() as work, closing(Archive(Path(work) / "data.sqlite3")) as archive:
+            with archive.db:
+                for name, number, stamp in pulls:
+                    pull = {"repo": name, "number": number, "merged": stamp, "threads": ["review"]}
+                    archive.db.execute("INSERT INTO pulls VALUES (?, ?, ?, ?, ?)",
+                                       (name, number, stamp[:10], stamp, encode(pull)))
+                    archive.db.execute("INSERT INTO pull_authors VALUES (?, ?, 'person', 'User')", (name, number))
+            self.assertEqual([pull["number"] for pull in eligible_pulls(archive, start, today)], [4, 1, 5, 2, 3])
 
     def test_rejected_backfill_days_do_not_block_untested_days_after_snapshot_reload(self):
         repo = REPOS[0]
@@ -223,7 +243,7 @@ class HostedCollectionTests(unittest.TestCase):
                 SharedData(archive, [repo], remote=str(remote), cwd=checkout, snapshot=True).load(revision)
                 backfill = [day for name, first, day in capture_days(archive, start, today, 3)
                             if name == repo and first == day]
-                self.assertEqual(backfill, [date(2026, 10, 4), date(2026, 10, 5), start])
+                self.assertEqual(backfill, [date(2026, 10, 5), date(2026, 10, 4), start])
                 self.assertEqual(archive.pending_days(repo, start, start), [start])
                 github.merged.return_value, github.pulls.return_value = {}, []
                 archive.capture(github, repo, start, start, today)
