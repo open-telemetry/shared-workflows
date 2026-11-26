@@ -53,7 +53,7 @@ FULL_PUBLISH_DELIVERED_FILE = "full-publish-delivered.json"
 # caches. Every constant ending in _STATE_VERSION or _REVISION is included.
 # dashboard-routing-state.json: accepted PR routing results and backfill readiness.
 # Routing facts carry conditional before/after Copilot cycle updates.
-DASHBOARD_STATE_VERSION = 29
+DASHBOARD_STATE_VERSION = 30
 DASHBOARD_STATE_COMPATIBLE_VERSIONS = (20, 21, 23)
 # backfill-state.json: round-robin cursor used by full dashboard refreshes.
 BACKFILL_STATE_VERSION = 3
@@ -1104,7 +1104,7 @@ def encode_dashboard_state(state: DashboardState) -> dict[str, Any]:
 def load_dashboard_state_cache() -> DashboardState | None:
     path = dashboard_state_path()
     if path.exists():
-        state = load_state_file(path, DASHBOARD_STATE_VERSION, compatible_versions=(27, 28))
+        state = load_state_file(path, DASHBOARD_STATE_VERSION, compatible_versions=(27, 28, 29))
     else:
         state = load_state_file(
             path.with_name("dashboard-state.json"),

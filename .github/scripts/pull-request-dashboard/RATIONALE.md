@@ -673,13 +673,10 @@ the implementation understandable and operationally cheap.
   merged into one cache entry per author comment. Completed reply evidence
   retains the source comment id as well as its timestamp, so comments created in
   the same second cannot be confused.
-- "Unclear" remains classifier vocabulary but is not a route. It collapses onto
-  the author when a pending action is built: when the classifier cannot tell
-  what a discussion needs, the author is the one who can clarify it. There is no
-  separate label for feedback blocked on a dependency, decision, or event
-  outside this repository, because the author still has to drive it. A route for
-  that case would name nobody, could not be nudged, and would outrank approvals,
-  leaving blocked PRs unowned.
+- A new top-level item needs a concrete next step for the author before it
+  can affect routing. A merge hold, external dependency, or reviewer decision
+  does not assign work to the author on its own. An unclear follow-up to an
+  already actionable item does not close it.
 - A concrete reviewer report that tests still fail, CI still reproduces the
   defect, or the proposed fix remains broken is an author action even without
   request wording. It is evidence that the change is not ready, not a status
@@ -706,8 +703,8 @@ the implementation understandable and operationally cheap.
   mentions is treated as an addressee. Naming it explicitly is what lets the
   prompt distinguish a design question put to a maintainer, whose next move is
   that maintainer's, from feedback that merely mentions one. The item still
-  waits on the author whenever it also requests, suggests, or directs a change,
-  so the addressee never overrides real feedback.
+  waits on the author when it also gives them a concrete task, so the addressee
+  does not override an independent request.
 - A review summary that only refers to the review it introduces needs nothing
   from the author. That covers where its comments came from, how much weight to
   give them, and that the author is free to disagree with them, and it equally

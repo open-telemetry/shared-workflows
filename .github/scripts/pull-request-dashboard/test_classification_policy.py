@@ -100,7 +100,7 @@ class PromptCompatibilityTest(unittest.TestCase):
             "LGTM",
         )
 
-    def test_prompt_bytes_match_the_pre_extraction_prompts(self) -> None:
+    def test_prompt_bytes_match_expected_templates(self) -> None:
         prompts = {
             "review": render_verdict_prompt(
                 [self.review],
@@ -123,8 +123,8 @@ class PromptCompatibilityTest(unittest.TestCase):
             },
             {
                 "review": (
-                    5714,
-                    "d5960f93e1b5963a6355061281f4e418e807eaa17b8a0a101dfc2b4cc4277a67",
+                    5765,
+                    "eb5f85e60f3558b81442f747562dbf22699bd81c3e58d43593eafc91ec069d68",
                 ),
                 "author": (
                     3372,
@@ -213,7 +213,7 @@ class PromptCompatibilityTest(unittest.TestCase):
         )
 
         self.assertIn(
-            "A concrete report that tests still fail, CI still reproduces the defect",
+            "defect is author_action even without a request to fix it.",
             prompt,
         )
         self.assertIn(
