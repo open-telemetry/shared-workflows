@@ -223,7 +223,7 @@ def publish_snapshot(artifact):
 def report_progress(work):
     start, _ = load_config()
     today = datetime.now(timezone.utc).date()
-    yesterday = today - timedelta(days=1)
+    stable_through = today - timedelta(days=LIVE_DAYS)
     revision = remote_tip()
     if not revision:
         raise DataError("The staging checkpoint has not been published")
@@ -232,14 +232,14 @@ def report_progress(work):
     with closing(Archive(work / "progress.sqlite3")) as archive:
         open_snapshot(archive, revision, None)
         for repo in REPOS:
-            missing = archive.pending_days(repo, start, yesterday)
+            missing = archive.pending_days(repo, start, stable_through)
             captured, authors = archive.db.execute("""
                 SELECT count(*), count(a.number) FROM pulls p
                 LEFT JOIN pull_authors a USING (repo, number)
                 WHERE p.repo = ? AND p.merged_day BETWEEN ? AND ?
             """, (repo, start.isoformat(), today.isoformat())).fetchone()
             repositories[repo] = {
-                "covered_days": max(0, (today - start).days) - len(missing),
+                "covered_days": max(0, (stable_through - start).days + 1) - len(missing),
                 "missing_days": [day.isoformat() for day in missing],
                 "captured_pulls": captured,
                 "resolved_authors": authors,
@@ -261,7 +261,7 @@ def report_progress(work):
     remaining = ("missing_days", "missing_authors", "pending_assessments")
     print(json.dumps({
         "revision": revision,
-        "closed_through": yesterday.isoformat(),
+        "coverage_target": stable_through.isoformat(),
         "score": sum(row[key] for row in repositories.values() for key in counts),
         "done": not any(row[key] for row in repositories.values() for key in remaining),
         "repositories": repositories,
