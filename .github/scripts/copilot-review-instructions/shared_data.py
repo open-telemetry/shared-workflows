@@ -17,7 +17,7 @@ from prepared import SUPPORTED_PREPARED_VERSIONS, digest, json_bytes
 
 SHARED_REMOTE = "https://github.com/open-telemetry/shared-workflows.git"
 DATA_REF = "refs/heads/data"
-SNAPSHOT_REF = "refs/heads/otelbot/copilot-review-instructions-data"
+SNAPSHOT_REF = "refs/heads/trask-copilot-review-backfill-data"
 MANIFEST = "schema.json"
 COLLECTION_RETRIES = "collection-retries.json"
 FORMAT = {"format": 1}

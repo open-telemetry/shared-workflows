@@ -220,6 +220,54 @@ def publish_snapshot(artifact):
     print(revision)
 
 
+def report_progress(work):
+    start, _ = load_config()
+    today = datetime.now(timezone.utc).date()
+    yesterday = today - timedelta(days=1)
+    revision = remote_tip()
+    if not revision:
+        raise DataError("The staging checkpoint has not been published")
+
+    repositories = {}
+    with closing(Archive(work / "progress.sqlite3")) as archive:
+        open_snapshot(archive, revision, None)
+        for repo in REPOS:
+            missing = archive.pending_days(repo, start, yesterday)
+            captured, authors = archive.db.execute("""
+                SELECT count(*), count(a.number) FROM pulls p
+                LEFT JOIN pull_authors a USING (repo, number)
+                WHERE p.repo = ? AND p.merged_day BETWEEN ? AND ?
+            """, (repo, start.isoformat(), today.isoformat())).fetchone()
+            repositories[repo] = {
+                "covered_days": max(0, (today - start).days) - len(missing),
+                "missing_days": [day.isoformat() for day in missing],
+                "captured_pulls": captured,
+                "resolved_authors": authors,
+                "missing_authors": captured - authors,
+                "prepared_pulls": 0,
+                "assessed_pulls": 0,
+                "pending_assessments": 0,
+            }
+
+        model = Copilot(ASSESSOR)
+        for pull in eligible_pulls(archive, start, today):
+            row = repositories[pull["repo"]]
+            bundle = archive.get_prepared(pull)
+            saved, _ = assess_cached(archive, bundle, model, pull, None, False, RETRIEVAL_VERSION)
+            row["prepared_pulls"] += int(bundle is not None)
+            row["assessed_pulls" if saved is not None else "pending_assessments"] += 1
+
+    counts = ("covered_days", "captured_pulls", "resolved_authors", "prepared_pulls", "assessed_pulls")
+    remaining = ("missing_days", "missing_authors", "pending_assessments")
+    print(json.dumps({
+        "revision": revision,
+        "closed_through": yesterday.isoformat(),
+        "score": sum(row[key] for row in repositories.values() for key in counts),
+        "done": not any(row[key] for row in repositories.values() for key in remaining),
+        "repositories": repositories,
+    }))
+
+
 def main():
     parser = argparse.ArgumentParser()
     commands = parser.add_subparsers(dest="command", required=True)
@@ -233,6 +281,8 @@ def main():
     snapshot.add_argument("--work-seconds", type=int, default=1500)
     publisher = commands.add_parser("publish")
     publisher.add_argument("--artifact", type=Path, required=True)
+    progress = commands.add_parser("progress")
+    progress.add_argument("--work", type=Path, required=True)
     args = parser.parse_args()
     if args.command == "collect" and (
         min(args.max_backfill_days, args.max_evidence, args.max_assessments) < 0
@@ -242,7 +292,10 @@ def main():
     try:
         if args.command == "collect":
             return export_snapshot(args)
-        publish_snapshot(args.artifact)
+        if args.command == "publish":
+            publish_snapshot(args.artifact)
+        else:
+            report_progress(args.work)
     except COMMAND_ERRORS as error:
         log(f"Review evidence {args.command} stopped: {error}")
         return 1

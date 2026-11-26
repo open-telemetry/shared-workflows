@@ -1,0 +1,172 @@
+name: Stage Copilot review evidence backfill
+
+on:
+  push:
+    branches: [trask-copilot-review-backfill]
+  workflow_dispatch:
+    inputs:
+      batch:
+        description: Batch number for this chain.
+        type: number
+        default: 1
+      previous_score:
+        description: Progress score from the preceding checkpoint.
+        type: number
+        default: -1
+
+permissions: {}
+
+concurrency:
+  group: copilot-review-instructions-staging-backfill
+  cancel-in-progress: false
+
+jobs:
+  collect:
+    if: github.repository == 'open-telemetry/shared-workflows' && github.ref == 'refs/heads/trask-copilot-review-backfill'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      copilot-requests: write
+    outputs:
+      snapshot_artifact_id: ${{ steps.upload.outputs.artifact-id }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba80b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.14"
+
+      - name: Install Copilot SDK
+        run: python -m pip install -r .github/scripts/copilot-review-instructions/requirements.txt
+
+      - name: Capture and assess one bounded batch
+        id: collect
+        env:
+          GH_TOKEN: ${{ github.token }}
+          COPILOT_GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          status=0
+          python -u .github/scripts/copilot-review-instructions/collect_hosted.py collect \
+            --work "$RUNNER_TEMP/copilot-review-instructions-work" \
+            --artifact "$RUNNER_TEMP/copilot-review-instructions-snapshot" \
+            > "$RUNNER_TEMP/copilot-review-instructions-summary.json" || status=$?
+          if [[ -s "$RUNNER_TEMP/copilot-review-instructions-summary.json" ]]; then
+            {
+              echo '### Collection batch'
+              echo
+              echo '```json'
+              jq . "$RUNNER_TEMP/copilot-review-instructions-summary.json"
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+          if [[ -s "$RUNNER_TEMP/copilot-review-instructions-snapshot/snapshot.json" ]]; then
+            echo 'snapshot=true' >> "$GITHUB_OUTPUT"
+          fi
+          exit "$status"
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        id: upload
+        if: ${{ !cancelled() && steps.collect.outputs.snapshot == 'true' }}
+        with:
+          name: copilot-review-instructions-snapshot-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/copilot-review-instructions-snapshot
+          if-no-files-found: error
+          retention-days: 1
+
+  publish:
+    if: >-
+      !cancelled() && github.repository == 'open-telemetry/shared-workflows' &&
+      github.ref == 'refs/heads/trask-copilot-review-backfill' &&
+      needs.collect.outputs.snapshot_artifact_id != ''
+    needs: collect
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          artifact-ids: ${{ needs.collect.outputs.snapshot_artifact_id }}
+          path: ${{ runner.temp }}/copilot-review-instructions-snapshot
+
+      - name: Publish staging checkpoint
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 .github/scripts/copilot-review-instructions/collect_hosted.py publish \
+            --artifact "$RUNNER_TEMP/copilot-review-instructions-snapshot"
+
+  followup:
+    if: >-
+      !cancelled() && github.repository == 'open-telemetry/shared-workflows' &&
+      github.ref == 'refs/heads/trask-copilot-review-backfill' &&
+      (needs.publish.result == 'success' ||
+      (needs.collect.result == 'success' && needs.publish.result == 'skipped'))
+    needs: [collect, publish]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: write
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Read the persisted checkpoint
+        id: progress
+        run: |
+          set -euo pipefail
+          summary=$(python3 .github/scripts/copilot-review-instructions/collect_hosted.py progress \
+            --work "$RUNNER_TEMP/copilot-review-instructions-progress")
+          {
+            echo '### Staging checkpoint'
+            echo
+            echo '```json'
+            jq . <<< "$summary"
+            echo '```'
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+          jq -r '"score=\(.score)\ndone=\(.done)"' <<< "$summary" >> "$GITHUB_OUTPUT"
+
+      - name: Dispatch the next staging batch
+        if: steps.progress.outputs.done != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BATCH: ${{ inputs.batch || 1 }}
+          PREVIOUS_SCORE: ${{ inputs.previous_score }}
+          SCORE: ${{ steps.progress.outputs.score }}
+        run: |
+          set -euo pipefail
+          PREVIOUS_SCORE="${PREVIOUS_SCORE:--1}"
+          if [[ ! "$BATCH" =~ ^[1-9][0-9]{0,2}$ || ! "$PREVIOUS_SCORE" =~ ^(-1|0|[1-9][0-9]*)$ ||
+                ! "$SCORE" =~ ^(0|[1-9][0-9]*)$ ]]; then
+            echo '::error::Invalid backfill continuation state'
+            exit 1
+          fi
+          if (( BATCH >= 64 )); then
+            echo '::warning::Reached the staging batch cap'
+            exit 0
+          fi
+          if (( SCORE <= PREVIOUS_SCORE )); then
+            echo '::warning::No net progress since the previous checkpoint'
+            exit 0
+          fi
+          workflow_id=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" --jq .workflow_id)
+          if [[ ! "$workflow_id" =~ ^[0-9]+$ ]]; then
+            echo '::error::Could not identify the staging workflow'
+            exit 1
+          fi
+          gh api --method POST "repos/$GITHUB_REPOSITORY/actions/workflows/$workflow_id/dispatches" \
+            -f ref=trask-copilot-review-backfill \
+            -f "inputs[batch]=$((BATCH + 1))" \
+            -f "inputs[previous_score]=$SCORE"
