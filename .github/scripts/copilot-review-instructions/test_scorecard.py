@@ -19,9 +19,9 @@ from github_data import BudgetExhausted, DataError, GitHub, RateLimitError, run_
 from git_evidence import GitEvidence
 from outcome_evidence import OutcomeEvidence
 from prepared import PREPARED_VERSION, Evidence, PreparedEvidence, digest, pack_changes, prepare
-from review_instructions import (AUTHORING_INSTRUCTIONS, DISCOVER, EDIT_DRAFT, FINALIZE, JUDGE_EDITS, Snapshot,
-                                 archived_examples, ask_rules, consolidation_input, draft_rules, refine_rules,
-                                 render_rules, validate_rules)
+from review_instructions import (AUTHORING_INSTRUCTIONS, DISCOVER, EDIT_DRAFT, FINALIZE, JUDGE_EDITS, NAME_FILES,
+                                 Snapshot, archived_examples, ask_rules, consolidation_input, draft_rules, name_files,
+                                 refine_rules, render_rules, validate_rules)
 from scorecard import AUTOMATED, BASELINE, REPOS, Cohort, Stats, assess_cached, assessment_order, identity, main, render
 from shared_data import SharedData, judgment_key, public_assessment
 
@@ -1104,6 +1104,81 @@ class InstructionDraftTests(unittest.TestCase):
         ))
         with self.assertRaisesRegex(DataError, "must start with prose"):
             validate_rules([dict(rule, rule="- " + rule["rule"])], rule["scopes"], sources, final=True)
+
+    def test_model_names_scoped_files_and_sees_existing_names(self):
+        with TemporaryDirectory() as work:
+            repo = Path(work)
+            git_at(repo, "init", "--quiet")
+            git_at(repo, "config", "user.name", "Draft fixture")
+            git_at(repo, "config", "user.email", "fixture@example.test")
+            existing = repo / ".github/instructions/database-contracts.instructions.md"
+            existing.parent.mkdir(parents=True)
+            existing.write_text('---\napplyTo: "scenarios/database/contracts/**"\n---\n\n# Database contracts\n\n'
+                                "- Old rule.\n", encoding="utf-8")
+            (repo / AUTHORING_INSTRUCTIONS).write_text("Bundled guide\n", encoding="utf-8")
+            git_at(repo, "add", ".")
+            git_at(repo, "commit", "--quiet", "-m", "Create naming fixture")
+            rules = [
+                {"scopes": ["scenarios/database/contracts"], "rule": "Contracts list every column.",
+                 "sources": ["D1"], "contract": None},
+                {"scopes": ["scenarios/browser/js", "scenarios/http/js"], "rule": "Scenarios pin dependencies.",
+                 "sources": ["D1"], "contract": None},
+                {"scopes": [], "rule": "Workloads do not initialize telemetry.", "sources": ["D1"], "contract": None},
+            ]
+            model = Mock()
+            model.ask.return_value = {
+                "G1": {"slug": "database-contracts", "title": "Database contracts"},
+                "G2": {"slug": "js-scenario-dependencies", "title": "JavaScript scenario dependencies"},
+            }
+            names = name_files(model, Snapshot(repo / ".git"), rules)
+        prompt, data = model.ask.call_args.args
+        self.assertEqual(prompt, NAME_FILES)
+        self.assertEqual(data["existing"], [{
+            "path": ".github/instructions/database-contracts.instructions.md",
+            "applyTo": "scenarios/database/contracts/**", "title": "Database contracts",
+        }])
+        self.assertEqual(data["groups"], {
+            "G1": {"scopes": ["scenarios/database/contracts"], "rules": ["Contracts list every column."]},
+            "G2": {"scopes": ["scenarios/browser/js", "scenarios/http/js"], "rules": ["Scenarios pin dependencies."]},
+        })
+        files, evidence = render_rules(rules, {"D1": {"kind": "guide", "path": "README.md", "urls": ["u"]}}, names)
+        self.assertEqual([row["file"] for row in evidence], [
+            ".github/instructions/database-contracts.instructions.md",
+            ".github/instructions/js-scenario-dependencies.instructions.md",
+            ".github/copilot-instructions.md",
+        ])
+        self.assertEqual(files[".github/instructions/js-scenario-dependencies.instructions.md"], (
+            '---\napplyTo: "scenarios/browser/js/**,scenarios/http/js/**"\n---\n\n'
+            "# JavaScript scenario dependencies\n\n- Scenarios pin dependencies.\n"
+        ))
+        self.assertEqual(files[".github/copilot-instructions.md"],
+                         "# Repository code rules\n\n- Workloads do not initialize telemetry.\n")
+
+    def test_invalid_or_conflicting_model_file_names_fall_back_to_paths(self):
+        snapshot = SimpleNamespace(entries={}, read=lambda paths: {})
+        rules = [{"scopes": [scope], "rule": f"Rule for {scope}.", "sources": ["D1"], "contract": None}
+                 for scope in ("tools/report", "tools/runner", "tools/mock", "docs/a", "docs/b", "docs/c", "docs/d")]
+        model = FakeModel({
+            "G1": {"slug": "Coverage_Scoring", "title": "Coverage scoring"},
+            "G2": {"slug": "instruction-authoring", "title": "Runner rules"},
+            "G3": {"slug": "mock-server", "title": "# Mock server"},
+            "G4": {"slug": "shared-docs", "title": "Shared docs"},
+            "G5": {"slug": "shared-docs", "title": "Shared docs"},
+            "G6": {"slug": "tools-report", "title": "Report tools"},
+            "G7": {"slug": "doc-index", "title": "Documentation index"},
+        })
+        names = name_files(model, snapshot, rules)
+        self.assertEqual(names, {("docs/d",): ("doc-index", "Documentation index")})
+        files, _ = render_rules(rules, {"D1": {"kind": "guide", "path": "README.md", "urls": ["u"]}}, names)
+        self.assertEqual(sorted(files), sorted([AUTHORING_INSTRUCTIONS, *(
+            f".github/instructions/{name}.instructions.md"
+            for name in ("tools-report", "tools-runner", "tools-mock", "docs-a", "docs-b", "docs-c", "doc-index"))]))
+        self.assertIn("# Code rules for tools/report\n",
+                      files[".github/instructions/tools-report.instructions.md"])
+        self.assertEqual(name_files(FakeModel(["not", "an", "object"]), snapshot, rules), {})
+        failing = Mock()
+        failing.ask.side_effect = AssessmentError("Copilot did not return valid JSON")
+        self.assertEqual(name_files(failing, snapshot, rules), {})
 
     def test_unlisted_scopes_do_not_discard_other_rules_after_correction(self):
         valid = {"scopes": ["tools"], "rule": "Runners keep diagnostics separate.",

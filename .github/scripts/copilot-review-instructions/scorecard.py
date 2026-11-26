@@ -21,7 +21,7 @@ from copilot_model import DEFAULT_REASONING_EFFORT, AssessmentSetupError, Copilo
 from github_data import DataError, GitHub, merge_timing, time_remaining, timing_instant
 from outcome_evidence import OutcomeEvidence
 from prepared import Evidence, SUPPORTED_PREPARED_VERSIONS, digest, prepare
-from review_instructions import Snapshot, archived_examples, draft_rules, render_rules
+from review_instructions import Snapshot, archived_examples, draft_rules, name_files, render_rules
 from shared_data import SNAPSHOT_REF, SharedData, judgment_key
 
 
@@ -629,7 +629,8 @@ def draft_instructions(args, parser):
                         rules, sources = draft_rules(model, snapshot, repo, examples, editor=editor)
                 else:
                     rules, sources = draft_rules(model, snapshot, repo, examples)
-            files, evidence = render_rules(rules, sources)
+                names = name_files(model, snapshot, rules)
+            files, evidence = render_rules(rules, sources, names)
             patch, removed = snapshot.replacement(files, root / "draft.index")
         args.output_dir.mkdir(parents=True, exist_ok=True)
         patch_path = args.output_dir / "copilot-instructions.patch"

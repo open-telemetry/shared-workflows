@@ -37,7 +37,7 @@ gh workflow run copilot-review-instructions.yml \
   --repo open-telemetry/shared-workflows -f repository=semantic-conventions-conformance
 ```
 
-The target must be public and opted in to collection. The generator requires at least two paired examples from addressed human findings. GPT-6.2 Sol Max drafts and judges edits from Claude Opus 5.5 High. The draft includes the path-scoped authoring guide. The run retains the patch and its citations for seven days.
+The target must be public and opted in to collection. The generator requires at least two paired examples from addressed human findings. GPT-6.2 Sol Max drafts and judges edits from Claude Opus 5.5 High. The drafting model names each path-scoped instruction file after what its rules govern, and reuses a current file's name when that file applies to the same paths. If a proposed name is invalid or duplicated, that file is named after its paths instead. The draft includes the path-scoped authoring guide. The run retains the patch and its citations for seven days.
 
 Collection does not opt a repository in to bot PRs. Until `publish_instructions` is `true`, the run previews the publishing decision and makes no target writes. After enabling it, a nonempty patch against the current default-branch revision can open a draft from `opentelemetrybot`'s fork. The publisher rejects any patch that changes paths outside the Copilot instruction files. An existing managed draft can be updated if its head still matches the last generated commit. Another open instruction PR, manual changes to the bot branch, or a closed unmerged managed PR blocks publishing. The workflow requests Copilot review and reports a warning if the request cannot be confirmed. It does not merge.
 
