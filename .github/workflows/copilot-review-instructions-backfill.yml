@@ -24,7 +24,7 @@ jobs:
   collect:
     if: github.repository == 'open-telemetry/shared-workflows' && github.ref == 'refs/heads/trask-copilot-review-backfill'
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 75
     permissions:
       contents: read
       copilot-requests: write
@@ -55,6 +55,7 @@ jobs:
           python -u .github/scripts/copilot-review-instructions/collect_hosted.py collect \
             --work "$RUNNER_TEMP/copilot-review-instructions-work" \
             --artifact "$RUNNER_TEMP/copilot-review-instructions-snapshot" \
+            --work-seconds 3600 \
             > "$RUNNER_TEMP/copilot-review-instructions-summary.json" || status=$?
           if [[ -s "$RUNNER_TEMP/copilot-review-instructions-summary.json" ]]; then
             {
@@ -139,7 +140,7 @@ jobs:
           jq -r '"score=\(.score)\ndone=\(.done)"' <<< "$summary" >> "$GITHUB_OUTPUT"
 
       - name: Dispatch the next staging batch
-        if: steps.progress.outputs.done != 'true'
+        if: github.event_name == 'workflow_dispatch' && steps.progress.outputs.done != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           BATCH: ${{ inputs.batch || 1 }}
