@@ -6,6 +6,8 @@ from datetime import datetime, timedelta, timezone
 from time import monotonic, sleep, time
 from urllib.parse import quote, urlencode
 
+from public_data import redact_code_urls
+
 
 COMMAND_TIMEOUT = 180
 
@@ -391,7 +393,8 @@ class GitHub:
             )
             threads.append({
                 "id": thread["id"], "url": root["url"], "opened": root["publishedAt"],
-                "created": root["createdAt"], "path": root["path"], "hunk": root["diffHunk"],
+                "created": root["createdAt"], "path": root["path"],
+                "hunk": redact_code_urls(root["diffHunk"]),
                 "body": root["body"], "author": root["author"], "reviewed": revision,
                 "replies": comments,
             })
