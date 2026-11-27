@@ -13,6 +13,7 @@ from github_data import DataError, instant, line_counts, merge_timing, run_comma
 from git_evidence import object_id
 from outcome_evidence import LOOKUP_ROUNDS, OutcomeEvidence, valid_request
 from prepared import SUPPORTED_PREPARED_VERSIONS, digest, json_bytes
+from public_data import safe_payload
 
 
 SHARED_REMOTE = "https://github.com/open-telemetry/shared-workflows.git"
@@ -26,33 +27,6 @@ ASSESSMENT_FILE = rf"\.assessment\.({HASH})\.json"
 EVIDENCE_FILE = r"\.evidence(?:\.v([2-9]|[1-9]\d+))?\.json\.gz"
 PR_FILE = re.compile(rf"(\d{{4}}-\d{{2}})/([1-9]\d*)(\.json|{ASSESSMENT_FILE}|{EVIDENCE_FILE})")
 MAX_RECORD_BYTES = 16_000_000
-PROBABLE_SECRET = re.compile(
-    rb"-----BEGIN (?:[A-Z0-9]+ )*PRIVATE KEY-----[\s+>]*[A-Za-z0-9+/]{24,}"
-    rb"|\b(?:gh[pousr]_[A-Za-z0-9]{36,}|github_pat_[A-Za-z0-9_]{70,}|"
-    rb"(?:AKIA|ASIA)[A-Z0-9]{16}|xox[baprs]-[0-9A-Za-z-]{16,}|AIza[0-9A-Za-z_-]{35})\b"
-    rb"|(?i:\bbearer )[A-Za-z0-9._~-]{32,}"
-)
-URL_AUTH = re.compile(rb"""https?://[^\s:/"\\@]+:([^\s/"\\@]+)@""")
-PLACEHOLDER = re.compile(rb"(?i)(?:pass(?:word)?|token|secret|xxx+|\$\{?[\w.-]+\}?|\*+)")
-
-
-def safe_payload(value):
-    def strings(value):
-        if isinstance(value, str):
-            yield value.encode("utf-8")
-        elif isinstance(value, dict):
-            for child in value.values():
-                yield from strings(child)
-        elif isinstance(value, list):
-            for child in value:
-                yield from strings(child)
-
-    def safe(text):
-        return not PROBABLE_SECRET.search(text) and all(
-            PLACEHOLDER.fullmatch(match.group(1)) for match in URL_AUTH.finditer(text)
-        )
-
-    return all(map(safe, strings(value)))
 
 
 class RecordRejected(DataError):

@@ -6,6 +6,7 @@ from pathlib import PurePosixPath
 
 from github_data import blob_url, instant, time_remaining
 from git_evidence import GitEvidence, GitUnavailable, object_id
+from public_data import redact_code_urls
 
 
 PREPARED_VERSION = 3
@@ -84,6 +85,7 @@ class Evidence:
             return {"state": "unavailable"}
         if "\0" in text:
             return {"state": "unavailable"}
+        text = redact_code_urls(text)
         return {"state": "text" if len(text) <= 14_000 else "truncated", "text": text}
 
     def snapshot(self, revision, path, thread):
@@ -130,7 +132,7 @@ class Evidence:
     def scoped_patches(self, item, paths):
         def patch(path):
             try:
-                return bounded(self.git.patch(*item["git_range"], path), 10_000)
+                return bounded(redact_code_urls(self.git.patch(*item["git_range"], path)), 10_000)
             except UNREADABLE:
                 return None
 

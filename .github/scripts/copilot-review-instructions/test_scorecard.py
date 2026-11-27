@@ -19,11 +19,12 @@ from github_data import BudgetExhausted, DataError, GitHub, RateLimitError, run_
 from git_evidence import GitEvidence
 from outcome_evidence import OutcomeEvidence
 from prepared import PREPARED_VERSION, Evidence, PreparedEvidence, digest, pack_changes, prepare
+from public_data import redact_code_urls
 from review_instructions import (AUTHORING_INSTRUCTIONS, DISCOVER, EDIT_DRAFT, FINALIZE, JUDGE_EDITS, NAME_FILES,
                                  Snapshot, archived_examples, ask_rules, consolidation_input, draft_rules, name_files,
                                  refine_rules, render_rules, validate_rules)
 from scorecard import AUTOMATED, BASELINE, REPOS, Cohort, Stats, assess_cached, assessment_order, identity, main, render
-from shared_data import SharedData, judgment_key, public_assessment
+from shared_data import RecordRejected, SharedData, check_record, judgment_key, public_assessment
 
 
 def git_at(path, *args, **kwargs):
@@ -387,6 +388,24 @@ class CollectionTests(unittest.TestCase):
         self.assertEqual(pull["threads"][0]["replies"][0]["url"], "https://example.test/reply")
         self.assertEqual(pull["threads"][0]["reviewed"], "reviewed")
 
+    def test_capture_redacts_fixture_credentials_in_a_review_hunk(self):
+        merged = "2026-10-02T00:00:00Z"
+        opened = "2026-10-01T00:00:00Z"
+        hunk = '+    var url = "http://fixture:made-up@" + server.getHost();'
+        comment = {
+            "id": "root", "url": "https://example.test/review", "createdAt": opened,
+            "publishedAt": opened, "replyTo": None, "author": None, "body": "Check the expected URL.",
+            "path": "ExampleTest.java", "diffHunk": hunk, "originalCommit": None, "pullRequestReview": None,
+        }
+        node = {
+            "number": 1, "mergedAt": merged, "headRefOid": "head", "mergeCommit": None,
+            "reviewThreads": connection([{"id": "t1", "comments": connection([comment])}]),
+        }
+        repo = REPOS[0]
+        pull = GitHub()._pull(repo, *repo.split("/"), node)
+        self.assertEqual(pull["threads"][0]["hunk"], '+    var url = "http://omitted:password@" + server.getHost();')
+        check_record("pull.json", SharedData.text_record(pull), pull)
+
     def test_merge_timing_uses_final_ready_event_before_merge_across_pages(self):
         created, earlier, merged, after = (f"2026-10-01T{hour:02}:00:00Z" for hour in (1, 2, 3, 4))
 
@@ -440,6 +459,40 @@ class CollectionTests(unittest.TestCase):
 
 
 class AssessmentTests(unittest.TestCase):
+    def test_prepared_and_lookup_evidence_preserve_already_redacted_urls(self):
+        path = "ExampleTest.java"
+        raw = '    var url = "https://REDACTED:REDACTED@example.test/path";'
+        normalized = '    var url = "https://redacted:password@example.test/path";'
+        thread = {"id": "t1", "path": path, "body": "Check the expected URL.", "reviewed": None,
+                  "opened": "2026-10-01T00:00:00Z"}
+        pull = {"repo": REPOS[0], "number": 1, "head": None, "merge": "a" * 40, "threads": [thread]}
+        retrieval = OutcomeEvidence(Path("."), pull)
+        evidence = retrieval.source
+        evidence.git = Mock()
+        evidence.git.file.return_value = raw.encode()
+        evidence.git.patch.return_value = "+" + raw
+        evidence.git.commit.return_value = {
+            "git_range": ("b" * 40, "a" * 40), "files": [{"path": path, "status": "modified"}],
+        }
+        bundle = prepare(pull, evidence)
+        records = PreparedEvidence(bundle).for_thread(thread, [path])
+        self.assertEqual(records["merged-0"]["text"], normalized)
+        self.assertEqual(records["merge-commit"]["patches"][0]["patch"], "+" + normalized)
+        check_record("evidence.json", SharedData.text_record(bundle), bundle)
+        records, _ = retrieval.lookup(thread, {"action": "read", "path": path, "query": ""}, "0")
+        self.assertEqual(records["merged-lookup-0"]["text"], normalized)
+
+    def test_publication_check_still_rejects_unredacted_or_ambiguous_values(self):
+        values = (
+            "https://fixture:made-up@example.test",
+            redact_code_urls("https://fixture:made-up@extra@example.test"),
+            redact_code_urls("Authorization: Bearer " + "A" * 40),
+        )
+        for value in values:
+            with self.assertRaises(RecordRejected):
+                check_record("evidence.json", value.encode(), value)
+        self.assertEqual(redact_code_urls("https://user:password@example.test"), "https://user:password@example.test")
+
     def test_evidence_lookup_stops_at_collection_deadline_instead_of_returning_missing_git(self):
         pull = {"repo": REPOS[0], "number": 1, "head": None, "merge": "a" * 40}
         thread = {"reviewed": None}
